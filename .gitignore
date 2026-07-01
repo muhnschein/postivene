@@ -1,0 +1,25 @@
+# Rust
+/target/
+**/target/
+Cargo.lock.bak
+
+# Sailfish SDK / mb2 / sfdk build artifacts
+RPMS/
+*.rpm
+build-*/
+*.spec.bak
+
+# Qt Creator / QML tooling
+*.pro.user
+*.pro.user.*
+.qmake.stash
+
+# Editor / OS cruft
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# deltachat-rpc-server binaries fetched by scripts/fetch-rpc-server.sh
+/vendor/deltachat-rpc-server/*
+!/vendor/deltachat-rpc-server/.gitkeep

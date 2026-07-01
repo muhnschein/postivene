@@ -1,8 +1,12 @@
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use deltachat_jsonrpc::{spawn_event_loop, CoreEvent, RpcClient};
 use qmetaobject::*;
 use tokio::runtime::Runtime;
+
+use crate::models::{ChatListItem, ChatListModel, MessageListItem, MessageListModel};
 
 /// `DeltaChatCore` is the one QObject that owns the connection to a spawned
 /// `deltachat-rpc-server`: it starts the process, keeps the tokio runtime
@@ -67,6 +71,26 @@ pub struct DeltaChatCore {
 
     /// Send a plain-text message; result via `messageSent`/`sendError`.
     pub send_text: qt_method!(fn(&mut self, account_id: u32, chat_id: u32, text: QString)),
+
+    /// Backing model for a chat list `SilicaListView`. Repopulated by
+    /// `refresh_chat_list`.
+    pub chat_list: qt_property!(RefCell<ChatListModel>; CONST),
+
+    /// Backing model for a conversation `SilicaListView`. Repopulated by
+    /// `open_chat`, appended to by a successful `send_text`.
+    pub message_list: qt_property!(RefCell<MessageListModel>; CONST),
+
+    /// Repopulate `chatList` from the core; result observable via
+    /// `chatList`'s own change notifications, errors via
+    /// `chatListError`.
+    pub refresh_chat_list: qt_method!(fn(&mut self, account_id: u32)),
+
+    /// Repopulate `messageList` with `chat_id`'s messages; errors via
+    /// `messageListError`.
+    pub open_chat: qt_method!(fn(&mut self, account_id: u32, chat_id: u32)),
+
+    pub chat_list_error: qt_signal!(message: QString),
+    pub message_list_error: qt_signal!(message: QString),
 
     rpc: Option<Arc<RpcClient>>,
     runtime: Option<Arc<Runtime>>,
@@ -280,14 +304,27 @@ impl DeltaChatCore {
         };
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
-        let done = queued_callback(move |result: (u32, u32, Result<u32, String>)| {
-            let Some(this) = ptr.as_pinned() else { return };
-            let (account_id, chat_id, result) = result;
-            match result {
-                Ok(message_id) => this.borrow().message_sent(account_id, chat_id, message_id),
-                Err(err) => this.borrow().send_error(err.into()),
-            }
-        });
+        let done = queued_callback(
+            move |result: (u32, u32, Result<(u32, String, i64), String>)| {
+                let Some(this) = ptr.as_pinned() else { return };
+                let (account_id, chat_id, result) = result;
+                match result {
+                    Ok((message_id, text, timestamp)) => {
+                        this.borrow_mut()
+                            .message_list
+                            .borrow_mut()
+                            .push(MessageListItem {
+                                message_id,
+                                text: text.into(),
+                                is_outgoing: true,
+                                timestamp,
+                            });
+                        this.borrow().message_sent(account_id, chat_id, message_id);
+                    }
+                    Err(err) => this.borrow().send_error(err.into()),
+                }
+            },
+        );
 
         let text = text.to_string();
         runtime.spawn(async move {
@@ -307,9 +344,168 @@ impl DeltaChatCore {
                     ),
                 )
                 .await
-                .map(|(message_id, _message)| message_id)
+                .map(|(message_id, message)| {
+                    let text = message
+                        .get("text")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or_default()
+                        .to_string();
+                    let timestamp = message
+                        .get("timestamp")
+                        .and_then(|v| v.as_i64())
+                        .unwrap_or(0);
+                    (message_id, text, timestamp)
+                })
                 .map_err(|err| err.to_string());
             done((account_id, chat_id, result));
         });
+    }
+
+    pub fn refresh_chat_list(&mut self, account_id: u32) {
+        let Some(rpc) = self.rpc.clone() else {
+            self.chat_list_error(QString::from("not started"));
+            return;
+        };
+        let Some(runtime) = self.runtime.clone() else {
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<Vec<ChatListItem>, String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            match result {
+                Ok(items) => this.borrow_mut().chat_list.borrow_mut().reset_data(items),
+                Err(err) => this.borrow().chat_list_error(err.into()),
+            }
+        });
+
+        runtime.spawn(async move {
+            let result = Self::fetch_chat_list(&rpc, account_id)
+                .await
+                .map_err(|err| err.to_string());
+            done(result);
+        });
+    }
+
+    async fn fetch_chat_list(
+        rpc: &RpcClient,
+        account_id: u32,
+    ) -> Result<Vec<ChatListItem>, deltachat_jsonrpc::RpcError> {
+        let entries: Vec<u32> = rpc
+            .call(
+                "get_chatlist_entries",
+                (
+                    account_id,
+                    Option::<u32>::None,
+                    Option::<String>::None,
+                    Option::<u32>::None,
+                ),
+            )
+            .await?;
+        let items: HashMap<u32, serde_json::Value> = rpc
+            .call(
+                "get_chatlist_items_by_entries",
+                (account_id, entries.clone()),
+            )
+            .await?;
+
+        let mut result = Vec::with_capacity(entries.len());
+        for chat_id in entries {
+            let Some(item) = items.get(&chat_id) else {
+                continue;
+            };
+            if item.get("kind").and_then(|k| k.as_str()) != Some("ChatListItem") {
+                continue;
+            }
+            result.push(ChatListItem {
+                chat_id,
+                name: item
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .into(),
+                preview: item
+                    .get("summaryText2")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .into(),
+                unread_count: item
+                    .get("freshMessageCounter")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0) as u32,
+            });
+        }
+        Ok(result)
+    }
+
+    pub fn open_chat(&mut self, account_id: u32, chat_id: u32) {
+        let Some(rpc) = self.rpc.clone() else {
+            self.message_list_error(QString::from("not started"));
+            return;
+        };
+        let Some(runtime) = self.runtime.clone() else {
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<Vec<MessageListItem>, String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            match result {
+                Ok(items) => this
+                    .borrow_mut()
+                    .message_list
+                    .borrow_mut()
+                    .reset_data(items),
+                Err(err) => this.borrow().message_list_error(err.into()),
+            }
+        });
+
+        runtime.spawn(async move {
+            let result = Self::fetch_messages(&rpc, account_id, chat_id)
+                .await
+                .map_err(|err| err.to_string());
+            done(result);
+        });
+    }
+
+    async fn fetch_messages(
+        rpc: &RpcClient,
+        account_id: u32,
+        chat_id: u32,
+    ) -> Result<Vec<MessageListItem>, deltachat_jsonrpc::RpcError> {
+        let items: Vec<serde_json::Value> = rpc
+            .call(
+                "get_message_list_items",
+                (account_id, chat_id, false, false),
+            )
+            .await?;
+
+        let mut result = Vec::with_capacity(items.len());
+        for item in items {
+            if item.get("kind").and_then(|k| k.as_str()) != Some("message") {
+                continue;
+            }
+            let Some(message_id) = item.get("msgId").and_then(|v| v.as_u64()) else {
+                continue;
+            };
+            let message: serde_json::Value = rpc
+                .call("get_message", (account_id, message_id as u32))
+                .await?;
+            result.push(MessageListItem {
+                message_id: message_id as u32,
+                text: message
+                    .get("text")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .into(),
+                // Contact id 1 is the well-known DC_CONTACT_ID_SELF.
+                is_outgoing: message.get("fromId").and_then(|v| v.as_u64()) == Some(1),
+                timestamp: message
+                    .get("timestamp")
+                    .and_then(|v| v.as_i64())
+                    .unwrap_or(0),
+            });
+        }
+        Ok(result)
     }
 }

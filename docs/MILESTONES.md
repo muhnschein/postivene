@@ -53,10 +53,37 @@ within a minimal Sailfish harness.
 Single account, single conversation: read and send text. No notifications,
 no polish.
 
-- [ ] Not started. `ChatListModel`/`MessageListModel` types exist
-      (Milestone 2) but nothing populates them yet or exposes them via
-      QML; that's the next increment along with `main.rs` and the actual
-      `.qml` pages.
+- [x] `DeltaChatCore` grew `chat_list`/`message_list` nested
+      `SimpleListModel` properties (`qt_property!(RefCell<...>; CONST)`,
+      following the pattern from `qmetaobject`'s own
+      `tests/models.rs::simple_model_remove`) plus `refresh_chat_list`/
+      `open_chat` methods that populate them from
+      `get_chatlist_entries`/`get_chatlist_items_by_entries` and
+      `get_message_list_items`/`get_message`. `send_text` now also appends
+      the sent message to `message_list` directly from the response, no
+      extra round trip.
+- [x] `rust/postivene-app`: the `main.rs` harness binary that registers
+      `DeltaChatCore` as the `core` context property and loads
+      `qml/postivene.qml`.
+- [x] `qml/`: `postivene.qml` (root), `cover/CoverPage.qml`,
+      `pages/SetupPage.qml` (add + configure account),
+      `pages/ChatListPage.qml`, `pages/ConversationPage.qml` (read +
+      send text).
+  - **Naming caveat that shaped all of this QML**: `qmetaobject`'s
+    `QObject`/`SimpleListItem` derives expose Rust identifiers to QML
+    *verbatim*, snake_case and all -- there's no automatic camelCase
+    conversion. Confirmed empirically (not just by reading the macro
+    source) in `postivene-shim/tests/qml_naming.rs`, which loads real QML
+    calling `core.check_health()` and listening for
+    `onSystem_info_changed`. All the `.qml` files here use snake_case
+    method/property/signal-handler names to match.
+  - **Verification limits**: Sailfish's `Sailfish.Silica` QML module isn't
+    installable outside the Sailfish SDK, so these pages could not be
+    rendered or interacted with here. What *was* checked: `qmllint` (no
+    args) parses all five files with zero errors, and the snake_case
+    naming convention they depend on is covered by an automated test
+    (previous bullet). Layout, visual behavior, and page-to-page
+    navigation are unverified pending Sailfish SDK/device access.
 
 ## 4. Full messaging UI
 

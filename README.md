@@ -29,12 +29,15 @@ rust/
                        context property and loads qml/postivene.qml.
 qml/                   Silica UI: postivene.qml (root), cover/, pages/
                        (setup/login, chat list, conversation).
+rpm/                   postivene.spec: Sailfish/OBS RPM packaging.
+postivene.desktop      Launcher entry (Exec sets POSTIVENE_RPC_SERVER to
+                       the bundled binary's installed path).
+icons/                 Placeholder app icons per hicolor size.
+vendor/                Where a deltachat-rpc-server binary per target
+                       arch belongs (see vendor/deltachat-rpc-server/
+                       SOURCE.md) -- not yet populated, see Milestone 1.
 docs/                  Scope, architecture notes, licensing analysis.
 ```
-
-Not yet present (see `docs/MILESTONES.md` for what's next): the Sailfish
-RPM packaging (spec file, desktop entry) and the vendored/fetched
-`deltachat-rpc-server` binary.
 
 ## Building
 

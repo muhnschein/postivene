@@ -21,5 +21,5 @@ build-*/
 .DS_Store
 
 # deltachat-rpc-server binaries fetched by scripts/fetch-rpc-server.sh
-/vendor/deltachat-rpc-server/*
-!/vendor/deltachat-rpc-server/.gitkeep
+# (or cross-compiled) -- see vendor/deltachat-rpc-server/SOURCE.md
+/vendor/deltachat-rpc-server/*/

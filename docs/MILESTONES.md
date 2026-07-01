@@ -103,7 +103,32 @@ setup, encryption-state indicators.
 
 RPM via `sfdk`, OBS build, distribution through Chum / OpenRepos.
 
-- [ ] Not started.
+- [x] `rpm/postivene.spec`, `postivene.desktop`, placeholder app icons
+      (`icons/<size>/postivene.png`, procedurally generated -- a simple
+      "mail boat" glyph, not real design work). Modeled on Whisperfish's
+      real `rpm/harbour-whisperfish.spec` (fetched from upstream, not
+      guessed) but simplified: no vendored C/C++ deps, just the Cargo
+      workspace, `qml/`, and a separately-obtained
+      `deltachat-rpc-server` binary (Milestone 1).
+- [x] Actually verified, not just written: installed `rpm`/`rpmspec` +
+      `desktop-file-utils` on this host, built `postivene-app` in release
+      mode, staged a source tarball, and ran a real
+      `rpmbuild -bb --nodeps rpm/postivene.spec` (`--nodeps` because the
+      Sailfish-specific `BuildRequires` package names don't exist in this
+      Ubuntu host's package database -- that part is inherently
+      untestable outside the real OBS/SDK chroot). It **produced an
+      actual `.rpm`** with every file landing where the spec and
+      `postivene-app`'s `qml_dir()`/`POSTIVENE_RPC_SERVER` lookups expect
+      it (`/usr/bin/postivene`, `/usr/share/postivene/qml/...`,
+      `/usr/libexec/postivene/deltachat-rpc-server`,
+      `/usr/share/applications/postivene.desktop`,
+      `/usr/share/icons/hicolor/*/apps/postivene.png`). The bundled
+      `deltachat-rpc-server` was a throwaway stand-in binary for this
+      dry run, not a real one -- Milestone 1 still needs to land before
+      this produces a package that actually functions.
+- [ ] Verified with `sfdk build` inside the real Sailfish SDK (cross
+      compilation, scratchbox2, actual `BuildRequires` resolution).
+- [ ] Chum/OpenRepos submission.
 
 ## Environment constraint
 

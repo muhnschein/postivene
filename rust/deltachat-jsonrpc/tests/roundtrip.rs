@@ -26,7 +26,10 @@ async fn health_check_round_trip() {
         .await
         .expect("get_system_info call");
 
-    assert_eq!(info.get("name").map(String::as_str), Some("fake-rpc-test-server"));
+    assert_eq!(
+        info.get("name").map(String::as_str),
+        Some("fake-rpc-test-server")
+    );
     assert_eq!(info.get("version").map(String::as_str), Some("0.0.0-test"));
 
     client.shutdown().await.expect("shutdown");

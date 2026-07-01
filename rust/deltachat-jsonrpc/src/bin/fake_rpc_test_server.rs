@@ -40,7 +40,10 @@ async fn main() {
             let params = request.get("params").cloned().unwrap_or(Value::Null);
 
             let response = match method.as_str() {
-                "get_system_info" => ok(id, json!({"name": "fake-rpc-test-server", "version": "0.0.0-test"})),
+                "get_system_info" => ok(
+                    id,
+                    json!({"name": "fake-rpc-test-server", "version": "0.0.0-test"}),
+                ),
                 "echo" => ok(id, params),
                 "add" => {
                     let nums = params.as_array().cloned().unwrap_or_default();

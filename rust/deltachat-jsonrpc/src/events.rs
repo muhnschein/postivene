@@ -51,7 +51,10 @@ pub fn spawn_event_loop(
     let (tx, rx) = mpsc::unbounded_channel();
     let task = tokio::spawn(async move {
         loop {
-            match client.call_unit::<Vec<CoreEvent>>("get_next_event_batch").await {
+            match client
+                .call_unit::<Vec<CoreEvent>>("get_next_event_batch")
+                .await
+            {
                 Ok(batch) => {
                     for event in batch {
                         if tx.send(event).is_err() {

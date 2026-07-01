@@ -106,9 +106,7 @@ impl RpcClient {
                                     (Some(result), None) => Ok(result),
                                     (None, None) => Ok(serde_json::Value::Null),
                                 };
-                                if let Some(sender) =
-                                    reader_pending.lock().unwrap().remove(&id)
-                                {
+                                if let Some(sender) = reader_pending.lock().unwrap().remove(&id) {
                                     let _ = sender.send(outcome);
                                 }
                             }

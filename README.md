@@ -25,12 +25,13 @@ rust/
                        DeltaChatCore as a QObject and chat/message lists as
                        QAbstractListModel, for use from QML. Requires Qt5
                        dev headers.
-qml/                   Silica UI: pages, cover, main.qml.
-rpm/                   Sailfish packaging (spec file, desktop entry).
-vendor/                Bundled deltachat-rpc-server binary + provenance
-                       (fetched, not built by this repo's own CI here).
 docs/                  Scope, architecture notes, licensing analysis.
 ```
+
+Not yet present (see `docs/MILESTONES.md` for what's next): the `.qml`
+pages and `main.rs` harness that load `postivene-shim`'s types into an
+actual app, the Sailfish RPM packaging (spec file, desktop entry), and the
+vendored/fetched `deltachat-rpc-server` binary.
 
 ## Building
 

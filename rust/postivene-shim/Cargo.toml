@@ -7,3 +7,15 @@ description = "Qt/QML integration layer: exposes DeltaChatCore as a QObject and 
 
 [dependencies]
 deltachat-jsonrpc = { path = "../deltachat-jsonrpc" }
+qmetaobject = "0.2"
+tokio = { version = "1", features = ["rt-multi-thread", "sync"] }
+serde_json = "1"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["io-std", "io-util", "macros"] }
+
+[[bin]]
+name = "fake-health-server"
+path = "src/bin/fake_health_server.rs"
+test = false
+doc = false

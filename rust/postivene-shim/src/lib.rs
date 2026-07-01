@@ -1,4 +1,14 @@
-//! Placeholder: filled in with `qmetaobject-rs` QObject/QAbstractListModel
-//! bindings in a follow-up increment. Kept as its own crate (depending on
-//! `deltachat-jsonrpc`) so the Qt/QML-dependent code stays isolated from the
-//! transport crate, which builds and tests without Qt installed.
+//! Qt/QML integration layer over `deltachat-jsonrpc`: exposes
+//! [`DeltaChatCore`] as a `QObject` and chat/message lists as
+//! `QAbstractListModel`s (via `qmetaobject`'s `SimpleListModel`) for use
+//! from Silica QML.
+//!
+//! Requires Qt5 dev headers to build (`qtbase5-dev`, `qtdeclarative5-dev`
+//! on Debian/Ubuntu-family hosts, or the Sailfish SDK's Qt5 for target
+//! builds).
+
+mod core;
+mod models;
+
+pub use crate::core::DeltaChatCore;
+pub use models::{ChatListItem, ChatListModel, MessageListItem, MessageListModel};

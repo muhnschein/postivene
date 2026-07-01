@@ -1,0 +1,21 @@
+[package]
+name = "deltachat-jsonrpc"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "Transport-only JSON-RPC 2.0 client for deltachat-rpc-server: spawns the process, correlates requests/responses over newline-delimited stdio, and streams core events. Carries no protocol/crypto logic of its own -- that all lives in the upstream Delta Chat core."
+
+[dependencies]
+tokio = { version = "1", features = ["process", "io-util", "io-std", "rt", "rt-multi-thread", "sync", "macros", "time"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["test-util"] }
+
+[[bin]]
+name = "fake-rpc-test-server"
+path = "src/bin/fake_rpc_test_server.rs"
+test = false
+doc = false

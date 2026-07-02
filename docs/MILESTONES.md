@@ -42,10 +42,18 @@ health check over stdio.
       `RpcClient` grew `spawn_with_env`, and `DeltaChatCore::start` now
       pins the accounts dir to `$XDG_DATA_HOME/postivene/accounts`
       (override: `POSTIVENE_ACCOUNTS_DIR`).
+- [x] Both device-architecture binaries **executed and passed the full
+      integration test under QEMU user-mode emulation**
+      (`qemu-aarch64-static` / `qemu-arm-static` on this x86_64 host):
+      the actual ARM instruction streams run, answer `get_system_info`,
+      create accounts, and deliver events through our transport crate.
+      What QEMU user-mode cannot prove is behavior against Sailfish's
+      actual kernel (syscalls are translated to the host kernel), but
+      static musl binaries use a conservative, stable syscall ABI, so
+      the residual risk is small.
 - [ ] The one remaining item: run the `aarch64`/`armv7hl` binary on real
-      Sailfish hardware or the SDK emulator. Static musl linking makes
-      this very likely to just work, but it's the single claim only
-      hardware can prove.
+      Sailfish hardware or the SDK emulator — now a formality-level
+      check rather than an open question.
 
 ## 2. Headless RPC shim
 

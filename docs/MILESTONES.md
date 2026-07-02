@@ -206,8 +206,39 @@ RPM via `sfdk`, OBS build, distribution through Chum / OpenRepos.
       `deltachat-rpc-server` was a throwaway stand-in binary for this
       dry run, not a real one -- Milestone 1 still needs to land before
       this produces a package that actually functions.
-- [ ] Verified with `sfdk build` inside the real Sailfish SDK (cross
-      compilation, scratchbox2, actual `BuildRequires` resolution).
+- [x] **Real `mb2` builds inside the real Platform SDK** (see
+      `docs/SDK-BUILD.md` for the full setup and every workaround):
+      `coderus/sailfishos-platform-sdk:5.0.0.43` pulled from Docker Hub
+      (via `mirror.gcr.io` -- the egress proxy here blocks Docker Hub's
+      CDN but not Google's mirror of it), set up as a chroot with the
+      stock sb2 targets, and `mb2 -t SailfishOS-5.0.0.43-<arch> build`
+      run against `rpm/postivene.spec` for **aarch64** (device arch) and
+      **i486** (emulator arch). The full Rust workspace including
+      `qmetaobject`/`qttypes` compiled and linked against the target's
+      actual Qt 5.6.3 stack through scratchbox2's cross toolchain, and
+      real `.rpm`s were produced. Spec fixes that came out of it:
+  - `%{_arch}` -> `%{_target_cpu}` for the bundled rpc-server path
+    (`%{_arch}` expands to `arm` on armv7hl, but the vendor dirs use
+    Sailfish arch names).
+  - `QT_INCLUDE_PATH`/`QT_LIBRARY_PATH` exported in `%build`: qttypes'
+    build script cannot exec the target `qmake` under sb2; with both
+    vars set it detects Qt from headers instead (Qt 5.6.3 found).
+  - i486 packages no longer try to bundle `deltachat-rpc-server`
+    (upstream ships no 32-bit x86 musl binary).
+  - `-j1` forced for cargo inside sb2 sessions: parallel cargo
+    reproducibly deadlocks under scratchbox2 (futex-wait on an unreaped
+    child during qmetaobject's C++ build).
+  - `rust/Cargo.lock` pinned to lockfile v3 -- the SDK's cargo 1.75
+    cannot read v4 lockfiles.
+  - Caveats: BuildRequires resolution was skipped (`-n`/`--nodeps`, no
+    network path to the Jolla repos from this environment -- the target
+    rust std had to be grafted/built by hand, see `docs/SDK-BUILD.md`),
+    so the `BuildRequires` list itself is still unproven against zypper;
+    and the produced RPMs have not been installed/run on a device or
+    emulator.
+- [ ] `armv7hl` mb2 build (same rustlib graft as aarch64 needed).
+- [ ] An unrestricted-network `sfdk`/OBS build that exercises real
+      `BuildRequires` resolution.
 - [ ] Chum/OpenRepos submission.
 
 ## Environment constraint

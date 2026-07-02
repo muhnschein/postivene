@@ -8,6 +8,17 @@ Page {
 
     Component.onCompleted: core.refresh_chat_list(accountId)
 
+    Connections {
+        target: core
+
+        function onCore_event(contextId, kind, payloadJson) {
+            if (contextId === page.accountId
+                    && (kind === "IncomingMsg" || kind === "MsgsChanged")) {
+                core.refresh_chat_list(page.accountId)
+            }
+        }
+    }
+
     SilicaListView {
         id: listView
         anchors.fill: parent

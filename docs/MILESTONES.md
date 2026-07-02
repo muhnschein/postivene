@@ -84,6 +84,20 @@ no polish.
     naming convention they depend on is covered by an automated test
     (previous bullet). Layout, visual behavior, and page-to-page
     navigation are unverified pending Sailfish SDK/device access.
+- [x] Live-update wiring: `ConversationPage`/`ChatListPage` listen to the
+      shim's `core_event` signal and re-fetch on `IncomingMsg`/
+      `MsgsChanged`, so received messages appear without leaving and
+      re-entering the chat. (Event `kind` strings are verbatim variant
+      names; their payload fields are camelCase `chatId`/`msgId` --
+      per-variant `rename_all` upstream, verified against
+      `chatmail/core`'s `events.rs`.)
+  - A self-review pass also caught and fixed a wire-format bug here
+    before it ever ran against a real server: `get_message_list_items`
+    returns items whose id field is snake_case `msg_id` (upstream's
+    `rename_all` sits at the *enum* level, renaming only the variant
+    tags), not `msgId` as first assumed -- confirmed by serializing the
+    exact upstream serde attribute shape. With the old code every
+    message would have been silently skipped.
 
 ## 4. Full messaging UI
 

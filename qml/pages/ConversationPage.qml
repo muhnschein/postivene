@@ -18,6 +18,20 @@ Page {
                 textField.text = ""
             }
         }
+
+        function onCore_event(contextId, kind, payloadJson) {
+            if (contextId !== page.accountId) {
+                return
+            }
+            if (kind === "IncomingMsg" || kind === "MsgsChanged") {
+                // MsgsChanged carries chatId 0 when more than one chat is
+                // affected; refresh for our chat or for "unspecified".
+                var chatId = JSON.parse(payloadJson).chatId
+                if (chatId === page.chatId || chatId === 0) {
+                    core.open_chat(page.accountId, page.chatId)
+                }
+            }
+        }
     }
 
     SilicaListView {

@@ -40,7 +40,7 @@ BuildRequires:  pkgconfig(Qt5Quick)
 BuildRequires:  qt5-qtdeclarative-devel-tools
 
 %ifarch %arm
-%define rusttarget armv7hl-unknown-linux-gnueabi
+%define rusttarget armv7-unknown-linux-gnueabihf
 %endif
 %ifarch aarch64
 %define rusttarget aarch64-unknown-linux-gnu
@@ -73,8 +73,12 @@ cargo --version
 
 # Cross-compiling Rust under Sailfish's scratchbox2 (sb2) requires the
 # Docker build engine (the VirtualBox build engine does not support it);
-# see docs/SCOPE.md §7. This target-triple selection assumes that's already
-# handled by the surrounding sfdk/mb2 build environment.
+# see docs/SCOPE.md §7. Under sb2 the accelerated rustc would otherwise
+# emit host (x86) code, so tell it the real target explicitly -- same
+# mechanism Whisperfish's spec uses (see the xulrunner-qt5.spec comment it
+# cites). Unverified against a real SDK build so far; expect to iterate
+# here once one is available.
+export SB2_RUST_TARGET_TRIPLE=%{rusttarget}
 cargo build \
     --release \
     --target %{rusttarget} \

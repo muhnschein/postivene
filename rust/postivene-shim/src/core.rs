@@ -136,7 +136,13 @@ impl DeltaChatCore {
                     );
                 }
                 Err(err) => {
-                    this.borrow_mut().status = format!("error: {err}").into();
+                    // Drop the runtime so a later `start()` (e.g. after the
+                    // user fixes the server path) isn't blocked by the
+                    // is-already-started guard.
+                    let mut this_mut = this.borrow_mut();
+                    this_mut.runtime = None;
+                    this_mut.status = format!("error: {err}").into();
+                    drop(this_mut);
                     this.borrow().status_changed();
                 }
             }
@@ -485,7 +491,18 @@ impl DeltaChatCore {
             if item.get("kind").and_then(|k| k.as_str()) != Some("message") {
                 continue;
             }
-            let Some(message_id) = item.get("msgId").and_then(|v| v.as_u64()) else {
+            // Upstream's JsonrpcMessageListItem has serde's `rename_all`
+            // only at the *enum* level, which renames variants ("message",
+            // "dayMarker") but not their fields -- so this field really is
+            // snake_case `msg_id` on the wire, unlike MessageObject's
+            // camelCase fields. Verified by serializing the exact upstream
+            // attribute shape. `msgId` is also accepted in case upstream
+            // ever switches to `rename_all_fields`.
+            let Some(message_id) = item
+                .get("msg_id")
+                .or_else(|| item.get("msgId"))
+                .and_then(|v| v.as_u64())
+            else {
                 continue;
             };
             let message: serde_json::Value = rpc

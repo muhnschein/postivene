@@ -95,11 +95,15 @@ async fn concurrent_calls_are_correlated_independently_of_order() {
             .expect("spawn fake server"),
     );
 
+    // Generous margins: the slow call blocks for 1.5s and the fast call
+    // only has to beat 1s, so scheduler jitter on a loaded test machine
+    // can't produce false failures the way a tight 250ms-vs-300ms window
+    // did. What's actually asserted is the ordering property, not speed.
     let slow_client = client.clone();
     let slow_handle = tokio::spawn(async move {
         let start = Instant::now();
         let result: String = slow_client
-            .call("slow", (300u64,))
+            .call("slow", (1500u64,))
             .await
             .expect("slow call");
         assert_eq!(result, "slow-done");
@@ -107,19 +111,19 @@ async fn concurrent_calls_are_correlated_independently_of_order() {
     });
 
     // Give the slow request time to be in flight before firing the fast one.
-    tokio::time::sleep(Duration::from_millis(30)).await;
+    tokio::time::sleep(Duration::from_millis(50)).await;
 
     let echo_start = Instant::now();
     let _: serde_json::Value = client.call("echo", json!("hi")).await.expect("echo call");
     let echo_elapsed = echo_start.elapsed();
 
     assert!(
-        echo_elapsed < Duration::from_millis(250),
-        "echo took {echo_elapsed:?}, expected it to complete well before the slow call"
+        echo_elapsed < Duration::from_millis(1000),
+        "echo took {echo_elapsed:?}, expected it to complete well before the 1.5s slow call"
     );
 
     let slow_elapsed = slow_handle.await.expect("slow task");
-    assert!(slow_elapsed >= Duration::from_millis(300));
+    assert!(slow_elapsed >= Duration::from_millis(1500));
 
     client.shutdown().await.expect("shutdown");
 }

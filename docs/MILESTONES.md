@@ -8,11 +8,44 @@ Cross-compile / obtain `deltachat-rpc-server` for Sailfish target
 architectures; confirm it runs on-device and answers a `get_system_info`
 health check over stdio.
 
-- [ ] Fetch/verify upstream prebuilt binaries, or cross-compile for
-      `aarch64`/`armv7hl`.
-- [ ] Confirmed running on real Sailfish hardware or emulator (requires
-      Sailfish SDK / device access not available in this environment).
-- [ ] `get_system_info` health check exercised on-device.
+- [x] **The scope's open question (§9) is effectively resolved: no
+      Sailfish-specific build is needed.** Upstream's release binaries are
+      **statically linked against musl libc** — confirmed from their own
+      CI workflow (`.github/workflows/deltachat-rpc-server.yml`: "Build a
+      version statically linked against musl libc to avoid problems with
+      glibc version incompatibility") and re-confirmed with `file`/`ldd`
+      on the actual binaries. A static binary depends only on the kernel
+      ABI, so Sailfish's older glibc is irrelevant. The armv7l build is
+      hard-float (`armv7-unknown-linux-musleabihf`), matching Sailfish
+      `armv7hl`.
+- [x] `scripts/fetch-rpc-server.sh`: fetches upstream v2.53.0 binaries for
+      `aarch64`/`armv7hl`/`x86_64` via upstream's PyPI wheels (same nix
+      build artifacts as their GitHub release), sha256-pinned on both the
+      wheels and the extracted binaries, placed at
+      `vendor/deltachat-rpc-server/<arch>/` where `rpm/postivene.spec`
+      expects them. Ran clean twice in this environment. (GitHub release
+      asset downloads are blocked by this environment's proxy; PyPI is
+      the channel that works here and is equally upstream-official.)
+- [x] `get_system_info` health check **passed against the real server**
+      (x86_64, this host): `rust/deltachat-jsonrpc/tests/real_server.rs`
+      is a gated integration test (`DELTACHAT_RPC_SERVER=<path>`) that
+      spawns the real v2.53.0 binary through our transport crate and
+      verifies, all offline: the health check, `add_account`,
+      `set_config`/`get_config`, **real event delivery** (MsgsChanged
+      after setting a draft), and the exact chat-list and message-list
+      wire shapes `DeltaChatCore` depends on — including the snake_case
+      `msg_id` spelling that was once a bug, now pinned by a test against
+      the real core.
+- [x] Found & fixed while doing this: the app never set
+      `DC_ACCOUNTS_PATH`, so the core would have stored all account data
+      in `./accounts` relative to whatever cwd the launcher provided.
+      `RpcClient` grew `spawn_with_env`, and `DeltaChatCore::start` now
+      pins the accounts dir to `$XDG_DATA_HOME/postivene/accounts`
+      (override: `POSTIVENE_ACCOUNTS_DIR`).
+- [ ] The one remaining item: run the `aarch64`/`armv7hl` binary on real
+      Sailfish hardware or the SDK emulator. Static musl linking makes
+      this very likely to just work, but it's the single claim only
+      hardware can prove.
 
 ## 2. Headless RPC shim
 

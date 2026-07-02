@@ -33,9 +33,12 @@ rpm/                   postivene.spec: Sailfish/OBS RPM packaging.
 postivene.desktop      Launcher entry (Exec sets POSTIVENE_RPC_SERVER to
                        the bundled binary's installed path).
 icons/                 Placeholder app icons per hicolor size.
-vendor/                Where a deltachat-rpc-server binary per target
-                       arch belongs (see vendor/deltachat-rpc-server/
-                       SOURCE.md) -- not yet populated, see Milestone 1.
+vendor/                deltachat-rpc-server binaries per target arch
+                       (not committed; run scripts/fetch-rpc-server.sh
+                       to populate -- see vendor/deltachat-rpc-server/
+                       SOURCE.md for provenance and checksums).
+scripts/               fetch-rpc-server.sh: pinned, checksum-verified
+                       fetch of upstream's static-musl rpc-server builds.
 docs/                  Scope, architecture notes, licensing analysis.
 ```
 
@@ -58,6 +61,16 @@ hosts) for local iteration outside the Sailfish SDK:
 ```sh
 cd rust
 cargo test --workspace   # includes an offscreen Qt event-loop smoke test
+```
+
+To also run the integration test against the **real** Delta Chat core
+(offline; no account is configured against any server):
+
+```sh
+scripts/fetch-rpc-server.sh   # fetch upstream static binaries into vendor/
+cd rust
+DELTACHAT_RPC_SERVER=../vendor/deltachat-rpc-server/x86_64/deltachat-rpc-server \
+    cargo test -p deltachat-jsonrpc --test real_server
 ```
 
 Note: `qml/`'s pages import `Sailfish.Silica`, which only ships with the

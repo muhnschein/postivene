@@ -48,8 +48,31 @@ impl RpcClient {
         I: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
     {
+        Self::spawn_with_env(program, args, std::iter::empty::<(&OsStr, &OsStr)>()).await
+    }
+
+    /// Like [`RpcClient::spawn`], but with extra environment variables set
+    /// on the child (on top of the inherited environment). The one that
+    /// matters in practice is `DC_ACCOUNTS_PATH`: `deltachat-rpc-server`
+    /// stores all account state under `./accounts` relative to its *current
+    /// working directory* unless this is set, which is never what a
+    /// launched GUI app wants.
+    pub async fn spawn_with_env<S, I, A, E, K, V>(
+        program: S,
+        args: I,
+        envs: E,
+    ) -> Result<Self, SpawnError>
+    where
+        S: AsRef<OsStr>,
+        I: IntoIterator<Item = A>,
+        A: AsRef<OsStr>,
+        E: IntoIterator<Item = (K, V)>,
+        K: AsRef<OsStr>,
+        V: AsRef<OsStr>,
+    {
         let mut child = Command::new(program)
             .args(args)
+            .envs(envs)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())

@@ -149,12 +149,43 @@ impl DeltaChatCore {
         });
 
         rt_for_spawn.spawn(async move {
-            let result = RpcClient::spawn(path, Vec::<&str>::new())
+            let result = async {
+                let accounts_dir = Self::accounts_dir()?;
+                RpcClient::spawn_with_env(
+                    path,
+                    Vec::<&str>::new(),
+                    [("DC_ACCOUNTS_PATH", accounts_dir)],
+                )
                 .await
                 .map(Arc::new)
-                .map_err(|err| err.to_string());
+                .map_err(|err| err.to_string())
+            }
+            .await;
             started(result);
         });
+    }
+
+    /// Where the core keeps all account state. Without this,
+    /// `deltachat-rpc-server` defaults to `./accounts` relative to whatever
+    /// working directory the app happened to be launched from -- account
+    /// data would land in a different place per launch context.
+    /// `POSTIVENE_ACCOUNTS_DIR` overrides; otherwise the XDG data dir.
+    fn accounts_dir() -> Result<String, String> {
+        let dir = if let Ok(dir) = std::env::var("POSTIVENE_ACCOUNTS_DIR") {
+            std::path::PathBuf::from(dir)
+        } else {
+            let base = std::env::var("XDG_DATA_HOME")
+                .map(std::path::PathBuf::from)
+                .or_else(|_| {
+                    std::env::var("HOME")
+                        .map(|home| std::path::PathBuf::from(home).join(".local/share"))
+                })
+                .map_err(|_| "neither XDG_DATA_HOME nor HOME is set".to_string())?;
+            base.join("postivene/accounts")
+        };
+        std::fs::create_dir_all(&dir)
+            .map_err(|err| format!("cannot create accounts dir {}: {err}", dir.display()))?;
+        Ok(dir.to_string_lossy().into_owned())
     }
 
     /// Start draining the core's event stream and forwarding each event to

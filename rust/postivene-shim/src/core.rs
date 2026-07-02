@@ -6,7 +6,9 @@ use deltachat_jsonrpc::{spawn_event_loop, CoreEvent, RpcClient};
 use qmetaobject::*;
 use tokio::runtime::Runtime;
 
-use crate::models::{ChatListItem, ChatListModel, MessageListItem, MessageListModel};
+use crate::models::{
+    AccountItem, AccountListModel, ChatListItem, ChatListModel, MessageListItem, MessageListModel,
+};
 
 /// `DeltaChatCore` is the one QObject that owns the connection to a spawned
 /// `deltachat-rpc-server`: it starts the process, keeps the tokio runtime
@@ -91,6 +93,31 @@ pub struct DeltaChatCore {
 
     pub chat_list_error: qt_signal!(message: QString),
     pub message_list_error: qt_signal!(message: QString),
+
+    /// All accounts known to the core. Repopulated by `refresh_accounts`.
+    pub account_list: qt_property!(RefCell<AccountListModel>; CONST),
+
+    /// Repopulate `accountList`; completion via `accountsRefreshed`
+    /// (errors via `accountError`). QML uses this at startup to decide
+    /// between the setup wizard and the chat list: if
+    /// `configured_count > 0`, `first_configured_id` is the account to
+    /// resume (call `start_account_io` and go straight to chats).
+    pub refresh_accounts: qt_method!(fn(&mut self)),
+    pub accounts_refreshed: qt_signal!(configured_count: u32, first_configured_id: u32),
+
+    /// Resume IO for an already-configured account (app start / account
+    /// switch); result via `ioStarted`.
+    pub start_account_io: qt_method!(fn(&mut self, account_id: u32)),
+    pub io_started: qt_signal!(account_id: u32, success: bool, error: QString),
+
+    /// Parse/classify a QR code's payload via the core. Result via
+    /// `qrChecked` with the upstream `Qr` object as raw JSON: `kind` is
+    /// camelCase (e.g. "account", "askVerifyContact", "login"), while the
+    /// payload's *fields* are snake_case (upstream's serde rename_all sits
+    /// at the enum level, exactly like MessageListItem's).
+    pub check_qr: qt_method!(fn(&mut self, account_id: u32, qr_content: QString)),
+    pub qr_checked: qt_signal!(account_id: u32, kind: QString, payload_json: QString),
+    pub qr_error: qt_signal!(message: QString),
 
     rpc: Option<Arc<RpcClient>>,
     runtime: Option<Arc<Runtime>>,
@@ -342,11 +369,11 @@ impl DeltaChatCore {
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
         let done = queued_callback(
-            move |result: (u32, u32, Result<(u32, String, i64), String>)| {
+            move |result: (u32, u32, Result<(u32, String, i64, bool), String>)| {
                 let Some(this) = ptr.as_pinned() else { return };
                 let (account_id, chat_id, result) = result;
                 match result {
-                    Ok((message_id, text, timestamp)) => {
+                    Ok((message_id, text, timestamp, show_padlock)) => {
                         this.borrow_mut()
                             .message_list
                             .borrow_mut()
@@ -355,6 +382,7 @@ impl DeltaChatCore {
                                 text: text.into(),
                                 is_outgoing: true,
                                 timestamp,
+                                show_padlock,
                             });
                         this.borrow().message_sent(account_id, chat_id, message_id);
                     }
@@ -391,7 +419,11 @@ impl DeltaChatCore {
                         .get("timestamp")
                         .and_then(|v| v.as_i64())
                         .unwrap_or(0);
-                    (message_id, text, timestamp)
+                    let show_padlock = message
+                        .get("showPadlock")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false);
+                    (message_id, text, timestamp, show_padlock)
                 })
                 .map_err(|err| err.to_string());
             done((account_id, chat_id, result));
@@ -470,6 +502,10 @@ impl DeltaChatCore {
                     .get("freshMessageCounter")
                     .and_then(|v| v.as_u64())
                     .unwrap_or(0) as u32,
+                is_encrypted: item
+                    .get("isEncrypted")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false),
             });
         }
         Ok(result)
@@ -552,8 +588,148 @@ impl DeltaChatCore {
                     .get("timestamp")
                     .and_then(|v| v.as_i64())
                     .unwrap_or(0),
+                show_padlock: message
+                    .get("showPadlock")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false),
             });
         }
         Ok(result)
+    }
+
+    pub fn refresh_accounts(&mut self) {
+        let Some(rpc) = self.rpc.clone() else {
+            self.account_error(QString::from("not started"));
+            return;
+        };
+        let Some(runtime) = self.runtime.clone() else {
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<Vec<AccountItem>, String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            match result {
+                Ok(items) => {
+                    let configured_count =
+                        items.iter().filter(|item| item.is_configured).count() as u32;
+                    let first_configured_id = items
+                        .iter()
+                        .find(|item| item.is_configured)
+                        .map(|item| item.account_id)
+                        .unwrap_or(0);
+                    this.borrow_mut()
+                        .account_list
+                        .borrow_mut()
+                        .reset_data(items);
+                    this.borrow()
+                        .accounts_refreshed(configured_count, first_configured_id);
+                }
+                Err(err) => this.borrow().account_error(err.into()),
+            }
+        });
+
+        runtime.spawn(async move {
+            // Upstream `Account`: tagged `kind` ("Configured"/
+            // "Unconfigured", verbatim variant names), camelCase fields
+            // (per-variant rename_all).
+            let result = rpc
+                .call_unit::<Vec<serde_json::Value>>("get_all_accounts")
+                .await
+                .map(|accounts| {
+                    accounts
+                        .iter()
+                        .filter_map(|account| {
+                            let account_id = account.get("id")?.as_u64()? as u32;
+                            let is_configured =
+                                account.get("kind").and_then(|k| k.as_str()) == Some("Configured");
+                            Some(AccountItem {
+                                account_id,
+                                display_name: account
+                                    .get("displayName")
+                                    .and_then(|v| v.as_str())
+                                    .unwrap_or_default()
+                                    .into(),
+                                addr: account
+                                    .get("addr")
+                                    .and_then(|v| v.as_str())
+                                    .unwrap_or_default()
+                                    .into(),
+                                is_configured,
+                            })
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .map_err(|err| err.to_string());
+            done(result);
+        });
+    }
+
+    pub fn start_account_io(&mut self, account_id: u32) {
+        let Some(rpc) = self.rpc.clone() else {
+            self.io_started(account_id, false, QString::from("not started"));
+            return;
+        };
+        let Some(runtime) = self.runtime.clone() else {
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: (u32, Result<(), String>)| {
+            let Some(this) = ptr.as_pinned() else { return };
+            let (account_id, result) = result;
+            match result {
+                Ok(()) => this
+                    .borrow()
+                    .io_started(account_id, true, QString::default()),
+                Err(err) => this.borrow().io_started(account_id, false, err.into()),
+            }
+        });
+
+        runtime.spawn(async move {
+            let result = rpc
+                .call::<_, ()>("start_io", (account_id,))
+                .await
+                .map_err(|err| err.to_string());
+            done((account_id, result));
+        });
+    }
+
+    pub fn check_qr(&mut self, account_id: u32, qr_content: QString) {
+        let Some(rpc) = self.rpc.clone() else {
+            self.qr_error(QString::from("not started"));
+            return;
+        };
+        let Some(runtime) = self.runtime.clone() else {
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: (u32, Result<serde_json::Value, String>)| {
+            let Some(this) = ptr.as_pinned() else { return };
+            let (account_id, result) = result;
+            match result {
+                Ok(qr) => {
+                    let kind = qr
+                        .get("kind")
+                        .and_then(|k| k.as_str())
+                        .unwrap_or("unknown")
+                        .to_string();
+                    let payload = serde_json::to_string(&qr).unwrap_or_default();
+                    this.borrow()
+                        .qr_checked(account_id, kind.into(), payload.into());
+                }
+                Err(err) => this.borrow().qr_error(err.into()),
+            }
+        });
+
+        let qr_content = qr_content.to_string();
+        runtime.spawn(async move {
+            let result = rpc
+                .call::<_, serde_json::Value>("check_qr", (account_id, qr_content))
+                .await
+                .map_err(|err| err.to_string());
+            done((account_id, result));
+        });
     }
 }

@@ -186,6 +186,74 @@ async fn offline_round_trip_against_real_core() {
         }
     }
 
+    // Account listing, as DeltaChatCore::refresh_accounts consumes it:
+    // tagged `kind` with verbatim variant names ("Configured"/
+    // "Unconfigured") and camelCase fields. Our never-configured test
+    // account must show up as Unconfigured.
+    let accounts: Vec<Value> = client
+        .call_unit("get_all_accounts")
+        .await
+        .expect("get_all_accounts");
+    let ours = accounts
+        .iter()
+        .find(|a| a.get("id").and_then(Value::as_u64) == Some(account_id as u64))
+        .expect("our account missing from get_all_accounts");
+    assert_eq!(
+        ours.get("kind").and_then(Value::as_str),
+        Some("Unconfigured"),
+        "unexpected account shape: {ours:?}"
+    );
+
+    // QR classification, as DeltaChatCore::check_qr consumes it. A
+    // DCACCOUNT: code is parsed purely locally (no network): expect
+    // kind "account" (camelCase variant tag) with snake_case fields.
+    let qr: Value = client
+        .call(
+            "check_qr",
+            (account_id, "DCACCOUNT:https://nine.testrun.org/new"),
+        )
+        .await
+        .expect("check_qr");
+    assert_eq!(
+        qr.get("kind").and_then(Value::as_str),
+        Some("account"),
+        "unexpected qr shape: {qr:?}"
+    );
+    assert_eq!(
+        qr.get("domain").and_then(Value::as_str),
+        Some("nine.testrun.org"),
+        "unexpected qr shape: {qr:?}"
+    );
+
+    // Encryption flags, as the chat list / message models consume them.
+    // The email-address contact chat above is an unencrypted
+    // "address-contact" chat; a freshly created group is encrypted.
+    assert_eq!(
+        items[&chat_id].get("isEncrypted").and_then(Value::as_bool),
+        Some(false),
+        "plain-email chat should be unencrypted: {:?}",
+        items[&chat_id]
+    );
+    let group_chat_id: u32 = client
+        .call("create_group_chat", (account_id, "Test Group", false))
+        .await
+        .expect("create_group_chat");
+    let group_items: std::collections::HashMap<u32, Value> = client
+        .call(
+            "get_chatlist_items_by_entries",
+            (account_id, vec![group_chat_id]),
+        )
+        .await
+        .expect("get_chatlist_items_by_entries for group");
+    assert_eq!(
+        group_items[&group_chat_id]
+            .get("isEncrypted")
+            .and_then(Value::as_bool),
+        Some(true),
+        "fresh group chat should be encrypted: {:?}",
+        group_items[&group_chat_id]
+    );
+
     handle.stop();
     client.shutdown().await.expect("shutdown");
     let _ = std::fs::remove_dir_all(&accounts_dir);

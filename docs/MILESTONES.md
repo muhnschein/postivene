@@ -145,14 +145,39 @@ no polish.
 Chat list, multiple accounts, media, background sync and notifications via
 Sailfish's notification APIs.
 
-- [ ] Not started.
+- [x] Account bootstrap: the app now checks for an existing configured
+      account at startup (`refresh_accounts` → `get_all_accounts`,
+      `AccountListModel`) and resumes it (`start_account_io`) instead of
+      showing the login form on every launch. Wire shape (tagged
+      `Configured`/`Unconfigured`, camelCase fields) pinned against the
+      real core in `real_server.rs`.
+- [x] Multi-account groundwork: `account_list` model exposed to QML with
+      id/display-name/address/configured per account. (Account-switcher
+      UI page itself not built yet.)
+- [ ] Media (images/files), message states (delivered/read), contact
+      pages, notifications via nemo-qml-plugin-notifications, background
+      sync/suspend handling. Notifications and suspend behavior can only
+      be meaningfully built against a real Sailfish target.
 
 ## 5. Onboarding & security UX
 
 Account creation on the default server, QR-based contact/verification
 setup, encryption-state indicators.
 
-- [ ] Not started.
+- [x] Encryption-state indicators: `is_encrypted` on chat-list rows and
+      `show_padlock` per message, surfaced in the QML delegates per
+      upstream guidance (unencrypted marked with a letter symbol,
+      encrypted unmarked). Both flag spellings and semantics verified
+      against the real core (plain-email chat → unencrypted; fresh group
+      → encrypted).
+- [x] QR groundwork: `check_qr` shim method classifying QR payloads via
+      the core, result forwarded to QML as kind + raw JSON. Verified
+      offline against the real core with a `DCACCOUNT:` code (kind
+      `account`, snake_case payload fields -- same enum-level-rename
+      serde trap as MessageListItem, now documented on the method).
+- [ ] Camera-based QR scanning UI, `secure_join`/`set_config_from_qr`
+      flows, account creation on the default chatmail server (needs
+      network to the relay; also camera only exists on-device).
 
 ## 6. Packaging & release
 

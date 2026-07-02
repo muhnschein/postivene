@@ -51,7 +51,10 @@ Page {
 
                 Label {
                     width: parent.width
-                    text: model.name
+                    // Unencrypted chats ("address contacts", plain email)
+                    // get a letter mark, per upstream UI guidance;
+                    // encrypted chats are the unmarked normal case.
+                    text: model.is_encrypted ? model.name : "✉ " + model.name
                     truncationMode: TruncationMode.Fade
                 }
 

@@ -15,6 +15,10 @@ pub struct ChatListItem {
     /// Last-message preview text (`summaryText2` upstream).
     pub preview: QString,
     pub unread_count: u32,
+    /// Whether all messages/contacts in this chat are encrypted
+    /// (`isEncrypted` upstream). Unencrypted chats should be marked with a
+    /// mail icon per upstream UI guidance.
+    pub is_encrypted: bool,
 }
 
 pub type ChatListModel = SimpleListModel<ChatListItem>;
@@ -29,6 +33,22 @@ pub struct MessageListItem {
     pub is_outgoing: bool,
     /// Unix timestamp, seconds.
     pub timestamp: i64,
+    /// `showPadlock` upstream: true if correctly encrypted & signed.
+    /// Upstream guidance: show a small email icon when this is *false*,
+    /// nothing when true.
+    pub show_padlock: bool,
 }
 
 pub type MessageListModel = SimpleListModel<MessageListItem>;
+
+/// One account, as surfaced by `get_all_accounts` (upstream `Account`:
+/// tagged `kind` = "Configured"/"Unconfigured", camelCase fields).
+#[derive(Default, Clone, qmetaobject::SimpleListItem)]
+pub struct AccountItem {
+    pub account_id: u32,
+    pub display_name: QString,
+    pub addr: QString,
+    pub is_configured: bool,
+}
+
+pub type AccountListModel = SimpleListModel<AccountItem>;

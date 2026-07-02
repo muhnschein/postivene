@@ -5,6 +5,21 @@ Page {
     id: page
 
     property bool busy: false
+    // True while we don't yet know whether a configured account already
+    // exists; keeps the login form hidden so it doesn't flash before an
+    // auto-resume kicks in.
+    property bool probing: true
+
+    // The core may already be "ready" before this page's signal handlers
+    // exist (start() is fast when the binary spawns cleanly), in which
+    // case onStatus_changed would never fire for us -- probe explicitly.
+    Component.onCompleted: {
+        if (core.status === "ready") {
+            core.refresh_accounts()
+        } else if (core.status.indexOf("error") === 0) {
+            probing = false
+        }
+    }
 
     SilicaFlickable {
         anchors.fill: parent
@@ -21,6 +36,7 @@ Page {
             id: column
             width: page.width
             spacing: Theme.paddingLarge
+            visible: !page.probing
 
             PageHeader {
                 title: qsTr("Postivene")
@@ -65,12 +81,32 @@ Page {
 
     BusyIndicator {
         anchors.centerIn: parent
-        running: page.busy
+        running: page.busy || page.probing
         size: BusyIndicatorSize.Large
     }
 
     Connections {
         target: core
+
+        // Once the core is up, look for an existing configured account so
+        // a returning user lands in their chats, not the login form.
+        function onStatus_changed() {
+            if (core.status === "ready") {
+                core.refresh_accounts()
+            } else if (core.status.indexOf("error") === 0) {
+                page.probing = false
+            }
+        }
+
+        function onAccounts_refreshed(configuredCount, firstConfiguredId) {
+            if (configuredCount > 0) {
+                core.start_account_io(firstConfiguredId)
+                pageStack.replace(Qt.resolvedUrl("ChatListPage.qml"),
+                                  { accountId: firstConfiguredId })
+            } else {
+                page.probing = false
+            }
+        }
 
         function onAccount_added(accountId) {
             core.configure_account(accountId, addressField.text, passwordField.text)
@@ -78,6 +114,7 @@ Page {
 
         function onAccount_error(message) {
             page.busy = false
+            page.probing = false
         }
 
         function onConfigure_done(accountId, success, error) {

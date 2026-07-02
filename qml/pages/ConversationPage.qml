@@ -59,7 +59,10 @@ Page {
                     leftMargin: Theme.horizontalPageMargin
                     rightMargin: Theme.horizontalPageMargin
                 }
-                text: model.text
+                // Upstream guidance: mark messages that were NOT correctly
+                // encrypted & signed (show_padlock false) with a small
+                // email icon; encrypted is the unmarked normal case.
+                text: model.show_padlock ? model.text : "✉ " + model.text
                 wrapMode: Text.Wrap
                 horizontalAlignment: model.is_outgoing ? Text.AlignRight : Text.AlignLeft
                 color: model.is_outgoing ? Theme.highlightColor : Theme.primaryColor

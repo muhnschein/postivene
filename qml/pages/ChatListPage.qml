@@ -13,7 +13,8 @@ Page {
 
         function onCore_event(contextId, kind, payloadJson) {
             if (contextId === page.accountId
-                    && (kind === "IncomingMsg" || kind === "MsgsChanged")) {
+                    && (kind === "IncomingMsg" || kind === "MsgsChanged"
+                        || kind === "MsgsNoticed")) {
                 core.refresh_chat_list(page.accountId)
             }
         }

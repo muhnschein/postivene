@@ -37,6 +37,11 @@ pub struct MessageListItem {
     /// Upstream guidance: show a small email icon when this is *false*,
     /// nothing when true.
     pub show_padlock: bool,
+    /// Upstream `state` (the classic `DC_STATE_*` constants, verified
+    /// against `chatmail/core` `src/message.rs` for v2.53.0): 20 = out
+    /// pending, 24 = out failed, 26 = out delivered, 28 = out read
+    /// (MDN received); incoming: 10 fresh, 13 noticed, 16 seen.
+    pub state: u32,
 }
 
 pub type MessageListModel = SimpleListModel<MessageListItem>;

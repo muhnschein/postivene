@@ -254,6 +254,15 @@ async fn offline_round_trip_against_real_core() {
         group_items[&group_chat_id]
     );
 
+    // Clearing the unread badge, as DeltaChatCore::open_chat does after
+    // fetching messages. Pins the method name/params against the real
+    // core (its MsgsNoticed side effect only fires when something was
+    // actually fresh, so no event assertion here).
+    client
+        .call::<_, ()>("marknoticed_chat", (account_id, chat_id))
+        .await
+        .expect("marknoticed_chat");
+
     handle.stop();
     client.shutdown().await.expect("shutdown");
     let _ = std::fs::remove_dir_all(&accounts_dir);

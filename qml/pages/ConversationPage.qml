@@ -23,7 +23,11 @@ Page {
             if (contextId !== page.accountId) {
                 return
             }
-            if (kind === "IncomingMsg" || kind === "MsgsChanged") {
+            // MsgDelivered/MsgRead/MsgFailed update the delivery-state
+            // ticks on outgoing messages; the others add/change content.
+            if (kind === "IncomingMsg" || kind === "MsgsChanged"
+                    || kind === "MsgDelivered" || kind === "MsgRead"
+                    || kind === "MsgFailed") {
                 // MsgsChanged carries chatId 0 when more than one chat is
                 // affected; refresh for our chat or for "unspecified".
                 var chatId = JSON.parse(payloadJson).chatId
@@ -62,10 +66,22 @@ Page {
                 // Upstream guidance: mark messages that were NOT correctly
                 // encrypted & signed (show_padlock false) with a small
                 // email icon; encrypted is the unmarked normal case.
-                text: model.show_padlock ? model.text : "✉ " + model.text
+                // Outgoing messages carry a delivery-state suffix (the
+                // DC_STATE_* constants: 20 pending, 24 failed,
+                // 26 delivered, 28 read).
+                text: (model.show_padlock ? "" : "✉ ") + model.text
+                      + (model.is_outgoing ? " " + stateMark(model.state) : "")
                 wrapMode: Text.Wrap
                 horizontalAlignment: model.is_outgoing ? Text.AlignRight : Text.AlignLeft
                 color: model.is_outgoing ? Theme.highlightColor : Theme.primaryColor
+
+                function stateMark(state) {
+                    if (state === 28) return "✓✓"
+                    if (state === 26) return "✓"
+                    if (state === 24) return "✗"
+                    if (state === 20) return "…"
+                    return ""
+                }
             }
         }
 

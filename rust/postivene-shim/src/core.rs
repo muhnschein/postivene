@@ -369,11 +369,11 @@ impl DeltaChatCore {
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
         let done = queued_callback(
-            move |result: (u32, u32, Result<(u32, String, i64, bool), String>)| {
+            move |result: (u32, u32, Result<(u32, String, i64, bool, u32), String>)| {
                 let Some(this) = ptr.as_pinned() else { return };
                 let (account_id, chat_id, result) = result;
                 match result {
-                    Ok((message_id, text, timestamp, show_padlock)) => {
+                    Ok((message_id, text, timestamp, show_padlock, state)) => {
                         this.borrow_mut()
                             .message_list
                             .borrow_mut()
@@ -383,6 +383,7 @@ impl DeltaChatCore {
                                 is_outgoing: true,
                                 timestamp,
                                 show_padlock,
+                                state,
                             });
                         this.borrow().message_sent(account_id, chat_id, message_id);
                     }
@@ -423,7 +424,8 @@ impl DeltaChatCore {
                         .get("showPadlock")
                         .and_then(|v| v.as_bool())
                         .unwrap_or(false);
-                    (message_id, text, timestamp, show_padlock)
+                    let state = message.get("state").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+                    (message_id, text, timestamp, show_padlock, state)
                 })
                 .map_err(|err| err.to_string());
             done((account_id, chat_id, result));
@@ -537,7 +539,17 @@ impl DeltaChatCore {
             let result = Self::fetch_messages(&rpc, account_id, chat_id)
                 .await
                 .map_err(|err| err.to_string());
+            let fetched_ok = result.is_ok();
             done(result);
+            if fetched_ok {
+                // Opening a chat means the user has seen it: clear its
+                // "fresh" badge. The core answers with a MsgsNoticed
+                // event, which the chat list listens to for refreshing
+                // its unread counts -- so no extra UI plumbing here.
+                let _ = rpc
+                    .call::<_, ()>("marknoticed_chat", (account_id, chat_id))
+                    .await;
+            }
         });
     }
 
@@ -592,6 +604,7 @@ impl DeltaChatCore {
                     .get("showPadlock")
                     .and_then(|v| v.as_bool())
                     .unwrap_or(false),
+                state: message.get("state").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
             });
         }
         Ok(result)

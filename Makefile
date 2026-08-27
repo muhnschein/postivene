@@ -21,8 +21,10 @@ CARGO ?= cargo
 # bare `cargo test` and `make test` behave the same way.
 export QT_QPA_PLATFORM = offscreen
 
-## Everything that runs anywhere, in the order CI runs it.
-check: fmt lint test qml-lint lockfile-lint packaging-lint
+## Everything that runs anywhere, in the order CI runs it. Keep this list
+## in step with .github/workflows/ci.yml: a check that CI runs and this
+## does not is a check that only ever fails on the runner.
+check: fmt lint test doc-lint qml-lint lockfile-lint packaging-lint
 
 ## Unit, integration, and Qt event-loop tests.
 test:

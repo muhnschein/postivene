@@ -265,8 +265,9 @@ impl RpcClient {
         rx.await.unwrap_or(Err(RpcError::TransportClosed))
     }
 
-    /// The last [`STDERR_TAIL_CAPACITY`] lines the server has written to
-    /// stderr, oldest first. Useful for surfacing diagnostics when a call
+    /// The last `STDERR_TAIL_CAPACITY` lines the server has written to
+    /// stderr, oldest first. (Named rather than linked: the constant is
+    /// private, and a link to it fails the doc build.) Useful for surfacing diagnostics when a call
     /// fails or the process exits unexpectedly.
     pub fn stderr_tail(&self) -> Vec<String> {
         lock(&self.stderr_tail).clone()

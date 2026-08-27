@@ -28,22 +28,16 @@ avatars, pinned/archived/muted, search, context menu, or account switcher
 
 ## Defects in what exists
 
-Messages were the worst of these and are done: `ChatMessages` is a
-QML-instantiable model, one per conversation page, loading in a single
-batch `get_messages` and applying events row by row. The chat list still
-has the same shape and the same three problems:
+The shared models are gone. `ChatMessages` and `ChatList` are
+QML-instantiable, so a page owns its model; both load in one batch call and
+apply events rather than rebuilding.
 
-- `refresh_chat_list` re-reads the whole list on every event.
-- Every refresh is `reset_data`: scroll position lost, whole list redrawn.
-- One shared `chat_list` on the core, so a second view of it would fight
-  the first.
+What is left here:
 
-Elsewhere:
-
-- `chat_list_error`, `io_started` and `qr_error` have no QML listeners. A
-  failure vanishes silently.
-- A dead `deltachat-rpc-server` leaves `status` at `"ready"`; nothing
-  restarts it.
+- `io_started` and `qr_error` have no QML listeners. A failure vanishes
+  silently.
+- Nothing notices when `deltachat-rpc-server` dies: `status` stays
+  `"ready"` and nothing restarts it.
 - Only `marknoticed_chat`, never `markseen_msgs`: read receipts never go
   out and messages are never marked seen on IMAP or other devices.
 
@@ -61,12 +55,8 @@ form of every invite payload already works, so the camera is polish.
 
 ## Order of work
 
-1. Restructure the shim: per-chat models created on demand, incremental
-   updates from event payloads instead of blanket re-fetches. This causes
-   the shared-model bugs and the refetch storms; doing it first is cheaper
-   than retrofitting.
-2. Contacts, new chat, groups; batch message fetch; error surfacing;
-   `markseen_msgs`.
+1. Contacts, new chat, groups -- the largest gap, above.
+2. Error surfacing in the UI, and `markseen_msgs`.
 3. Conversation UX: sender names, timestamps, day markers, attachments,
    quotes.
 4. Chat list: unread badges, times, context actions, account switcher.

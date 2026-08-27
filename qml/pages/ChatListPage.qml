@@ -1,22 +1,29 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
+import Postivene 1.0
 
 Page {
     id: page
 
     property int accountId
 
-    Component.onCompleted: core.refresh_chat_list(accountId)
+    ChatList {
+        id: chats
+        objectName: "chats"
+        account_id: page.accountId
+        onError: page.errorMessage = message
+    }
+
+    property string errorMessage: ""
 
     Connections {
         target: core
-
-        // Qt 5.6 handler syntax; see WelcomePage.qml.
-        onCore_event: {
-            if (context_id === page.accountId
-                    && (kind === "IncomingMsg" || kind === "MsgsChanged"
-                        || kind === "MsgsNoticed")) {
-                core.refresh_chat_list(page.accountId)
+        // Qt 5.6 handler syntax; see WelcomePage.qml. The model ignores
+        // events for other accounts itself.
+        onCore_event: chats.handle_event(context_id, kind, payload_json)
+        onStatus_changed: {
+            if (core.status === "ready") {
+                chats.reload()
             }
         }
     }
@@ -24,7 +31,7 @@ Page {
     SilicaListView {
         id: listView
         anchors.fill: parent
-        model: core.chat_list
+        model: chats.rows
 
         header: PageHeader {
             title: qsTr("Chats")
@@ -69,7 +76,7 @@ Page {
         }
 
         ViewPlaceholder {
-            enabled: listView.count === 0
+            enabled: chats.count === 0
             text: qsTr("No chats yet")
         }
     }

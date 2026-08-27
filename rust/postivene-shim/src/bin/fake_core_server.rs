@@ -30,6 +30,8 @@ struct State {
     events: VecDeque<Value>,
     /// Message ids per chat, oldest first. Seeded on first use.
     chats: std::collections::BTreeMap<u32, Vec<u32>>,
+    /// Chat ids in display order, most recent first.
+    chat_order: Vec<u32>,
     next_message_id: u32,
 }
 
@@ -56,6 +58,7 @@ impl State {
         if self.chats.is_empty() {
             self.chats.insert(1, vec![1, 2]);
             self.chats.insert(2, vec![10]);
+            self.chat_order = vec![1, 2];
             self.next_message_id = 100;
         }
     }
@@ -67,6 +70,10 @@ impl State {
         self.next_message_id += 1;
         let id = self.next_message_id;
         self.chats.entry(chat_id).or_default().push(id);
+        // A message moves its chat to the top, which is what makes a chat
+        // list reorder rather than merely change.
+        self.chat_order.retain(|chat| *chat != chat_id);
+        self.chat_order.insert(0, chat_id);
         self.events.push_back(json!({
             "contextId": account_id,
             "event": {"kind": "IncomingMsg", "chatId": chat_id, "msgId": id},
@@ -205,6 +212,31 @@ async fn main() {
                     }
                 }
                 "list_transports" => ok(&id, &json!([{"addr": "someone@example.org"}])),
+                "get_chatlist_entries" => {
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    ok(&id, &json!(state.chat_order.clone()))
+                }
+                "get_chatlist_items_by_entries" => {
+                    let ids: Vec<u64> = positional(1)
+                        .as_array()
+                        .map(|array| array.iter().filter_map(Value::as_u64).collect())
+                        .unwrap_or_default();
+                    let mut items = serde_json::Map::new();
+                    for chat in ids {
+                        items.insert(
+                            chat.to_string(),
+                            json!({
+                                "kind": "ChatListItem",
+                                "name": format!("chat {chat}"),
+                                "summaryText2": format!("last in {chat}"),
+                                "freshMessageCounter": 0,
+                                "isEncrypted": true,
+                            }),
+                        );
+                    }
+                    ok(&id, &Value::Object(items))
+                }
                 "get_message_list_items" => {
                     let mut state = state.lock().await;
                     state.seed_chats();

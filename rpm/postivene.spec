@@ -6,16 +6,25 @@
 # but simplified: Postivene has no C/C++ vendored dependencies of its own
 # (no sqlcipher, no protobuf, etc.), just the Rust workspace under rust/,
 # the qml/ tree, and a *separately obtained* deltachat-rpc-server binary
-# (see vendor/deltachat-rpc-server/, Milestone 1 in docs/MILESTONES.md --
-# not yet populated by this repository, so a full `sfdk build`/`rpmbuild`
-# of this spec has not actually been exercised anywhere yet).
+# (scripts/fetch-rpc-server.sh, see vendor/deltachat-rpc-server/).
+#
+# Two build modes:
+#   sfdk build                  -- crates are fetched from crates.io by the
+#                                  build engine, which has network access.
+#   sfdk build -- --with vendor -- crates come from a pre-generated
+#                                  vendor.tar.xz; required on OBS/Chum,
+#                                  which build without network. Generate
+#                                  the two extra sources with
+#                                  scripts/vendor-crates.sh.
 #
 # NOT YET DONE, tracked in docs/MILESTONES.md:
-#   - vendoring/cross-compiling deltachat-rpc-server for the target arch
-#   - an actual `sfdk build` / OBS build of this spec
+#   - an actual `sfdk build` / OBS build of this spec (no Sailfish SDK has
+#     been available in any environment this repo was developed in)
 #   - Harbour-store compliance (sailjail permissions, aarch64/armv7hl
 #     signing, etc.) if that channel is ever pursued instead of/alongside
 #     Chum or OpenRepos
+
+%bcond_with vendor
 
 Name:       postivene
 Summary:    Native SailfishOS client for Delta Chat
@@ -23,21 +32,35 @@ Version:    0.1.0
 Release:    1
 License:    MPL-2.0
 Group:      Qt/Qt
-URL:        https://github.com/vittuusaatanaperkele/postivene
+URL:        https://github.com/muhnschein/postivene
 Source0:    %{name}-%{version}.tar.gz
+%if %{with vendor}
+Source1:    vendor.tar.xz
+Source2:    vendor.toml
+%endif
 
 Requires:   sailfishsilica-qt5 >= 0.10.9
 Requires:   libsailfishapp-launcher
 Requires:   sailfish-version >= 4.5.0
 
-BuildRequires:  rust
-BuildRequires:  cargo
+# Sailfish ships Rust 1.75.0 (sailfishos/rust); rust/Cargo.lock is kept in
+# the v3 lockfile format because Cargo only learned to read v4 in 1.78.
+# `rust-std-static` is the virtual provide of the native std library; the
+# *cross* std for the target triple comes from
+# rust-std-static-%{rusttarget}, which the SDK target normally already has.
+# If a build fails with "can't find crate for `std`", install it into the
+# tooling, the way Whisperfish's build docs describe:
+#   sfdk tools exec <tooling> zypper in rust-std-static-%{rusttarget}
+BuildRequires:  rust >= 1.75
+BuildRequires:  rust-std-static >= 1.75
+BuildRequires:  cargo >= 1.75
+# qmetaobject-rs compiles C++ glue (the cpp/cpp_build crates) against Qt.
+BuildRequires:  gcc-c++
 BuildRequires:  git
 BuildRequires:  desktop-file-utils
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5Qml)
 BuildRequires:  pkgconfig(Qt5Quick)
-BuildRequires:  qt5-qtdeclarative-devel-tools
 
 %ifarch %arm
 %define rusttarget armv7-unknown-linux-gnueabihf
@@ -46,6 +69,8 @@ BuildRequires:  qt5-qtdeclarative-devel-tools
 %define rusttarget aarch64-unknown-linux-gnu
 %endif
 %ifarch %ix86
+# NOTE: upstream publishes no 32-bit x86 deltachat-rpc-server build, so the
+# i486 emulator target cannot be packaged; use the x86_64 emulator.
 %define rusttarget i686-unknown-linux-gnu
 %endif
 %ifarch x86_64
@@ -66,6 +91,13 @@ importantly, its non-goals.
 
 %prep
 %setup -q -n %{name}-%{version}
+%if %{with vendor}
+# vendor.tar.xz contains rust/vendor/ (cargo vendor output); vendor.toml is
+# the [source] replacement stanza cargo prints when generating it.
+%setup -q -T -D -a 1 -n %{name}-%{version}
+mkdir -p rust/.cargo
+install -m 644 %{SOURCE2} rust/.cargo/config.toml
+%endif
 
 %build
 rustc --version
@@ -81,6 +113,10 @@ cargo --version
 export SB2_RUST_TARGET_TRIPLE=%{rusttarget}
 cargo build \
     --release \
+    --locked \
+%if %{with vendor}
+    --offline \
+%endif
     --target %{rusttarget} \
     --manifest-path rust/Cargo.toml \
     --package postivene-app
@@ -97,13 +133,18 @@ install -Dm 755 %{builddir}/postivene \
 (cd qml && find . -type f -exec \
     install -Dm 644 "{}" "%{buildroot}%{appdatadir}/qml/{}" \; )
 
-# Bundled deltachat-rpc-server: see vendor/deltachat-rpc-server/ (Milestone
-# 1, docs/MILESTONES.md). Installed under a private libexec dir rather than
-# %{_bindir} so it can't be picked up as a generic system
+# Bundled deltachat-rpc-server: see vendor/deltachat-rpc-server/ and
+# scripts/fetch-rpc-server.sh. Installed under a private libexec dir rather
+# than %{_bindir} so it can't be picked up as a generic system
 # "deltachat-rpc-server" by anything else that happens to look for one on
-# PATH -- Postivene is pointed at this exact path via POSTIVENE_RPC_SERVER
-# in the desktop entry's Exec line.
-install -Dm 755 vendor/deltachat-rpc-server/%{_arch}/deltachat-rpc-server \
+# PATH -- postivene-app defaults to this exact path.
+#
+# %{_target_cpu}, *not* %{_arch}: rpm canonicalises every armv7h* target to
+# the arch name "arm" (rpm's installplatform: `armv7h*) CANONARCH=arm`), so
+# %{_arch} would look for vendor/deltachat-rpc-server/arm/ while
+# scripts/fetch-rpc-server.sh writes armv7hl/. %{_target_cpu} keeps the
+# Sailfish arch names (armv7hl, aarch64, x86_64) that the script uses.
+install -Dm 755 vendor/deltachat-rpc-server/%{_target_cpu}/deltachat-rpc-server \
     %{buildroot}%{appexecdir}/deltachat-rpc-server
 
 # MPL-2.0 obligation for bundling deltachat-rpc-server's Executable Form:

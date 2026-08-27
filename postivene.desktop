@@ -2,7 +2,7 @@
 Type=Application
 X-Nemo-Application-Type=silica-qt5
 Icon=postivene
-Exec=env POSTIVENE_RPC_SERVER=/usr/libexec/postivene/deltachat-rpc-server postivene
+Exec=postivene
 Name=Postivene
 Name[fi]=Postivene
 Comment=Delta Chat client

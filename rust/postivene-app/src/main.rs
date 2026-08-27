@@ -13,14 +13,24 @@ use postivene_shim::DeltaChatCore;
 use qmetaobject::*;
 
 /// Where to find `deltachat-rpc-server`: explicit CLI arg, then
-/// `POSTIVENE_RPC_SERVER`, then just `"deltachat-rpc-server"` (resolved via
-/// `PATH`, e.g. once it's bundled and on `PATH` by the RPM).
+/// `POSTIVENE_RPC_SERVER`, then the path the RPM bundles it at, then
+/// `"deltachat-rpc-server"` resolved via `PATH`.
+///
+/// The installed path is checked *in the binary* rather than being handed
+/// over by the desktop entry: Sailfish launches apps declaring
+/// `X-Nemo-Application-Type=silica-qt5` through the invoker/booster, which
+/// executes the application binary itself, so an `Exec=env FOO=bar app`
+/// wrapper is not reliably honoured.
 fn rpc_server_path() -> String {
     if let Some(arg) = std::env::args().nth(1) {
         return arg;
     }
     if let Ok(env) = std::env::var("POSTIVENE_RPC_SERVER") {
         return env;
+    }
+    let bundled = PathBuf::from("/usr/libexec/postivene/deltachat-rpc-server");
+    if bundled.is_file() {
+        return bundled.to_string_lossy().into_owned();
     }
     "deltachat-rpc-server".to_string()
 }

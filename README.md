@@ -44,9 +44,38 @@ docs/                  Scope, architecture notes, licensing analysis.
 
 ## Building
 
-Postivene targets the Sailfish OS SDK (`sfdk`/`mb2`) for real device/RPM
-builds; see `docs/MILESTONES.md` for what that still requires. The
-`rust/deltachat-jsonrpc` crate has no Sailfish/Qt dependency and can be
+### Device RPM (Sailfish SDK)
+
+Real device packages must be built inside the Sailfish SDK: the app links
+against the target's Qt 5.6 and glibc, so a host-built binary will not run
+on a phone. With the SDK installed (**Docker** build engine -- the
+VirtualBox one cannot compile Rust) and a build target for your device's
+architecture:
+
+```sh
+scripts/fetch-rpc-server.sh          # bundled deltachat-rpc-server binaries
+scripts/build-rpm.sh aarch64         # or: armv7hl; add a version, e.g. 5.0.0.62
+```
+
+`build-rpm.sh` is a thin wrapper around `sfdk -c target=<target> build`,
+which runs every SPEC section except `%prep` -- it builds this working tree
+in place, so the (gitignored) binaries fetched above are used directly.
+
+For OBS/Chum, which build without network access, generate the offline
+crate sources first and switch the spec into vendor mode:
+
+```sh
+scripts/vendor-crates.sh
+sfdk build -- --with vendor
+```
+
+The toolchain floor is the one Sailfish ships: **Rust 1.75**, Qt **5.6**.
+`rust/Cargo.lock` is deliberately kept in the v3 lockfile format (Cargo
+only learned v4 in 1.78) and the workspace declares `rust-version = 1.75`.
+
+### Host builds (development)
+
+The `rust/deltachat-jsonrpc` crate has no Sailfish/Qt dependency and can be
 built and tested with a plain host Rust toolchain:
 
 ```sh
@@ -77,6 +106,9 @@ Note: `qml/`'s pages import `Sailfish.Silica`, which only ships with the
 Sailfish SDK/target, so `postivene-app` won't actually render anything on
 a plain desktop Linux host -- the SDK is required for that and for the
 final Sailfish-target build and packaging.
+
+See `docs/MILESTONES.md` for what remains unverified, including the state
+of Sailfish OS 5.2 build targets.
 
 ## License
 

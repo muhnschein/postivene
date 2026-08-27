@@ -2,6 +2,7 @@
 name = "postivene-shim"
 version = "0.1.0"
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 description = "Qt/QML integration layer: exposes DeltaChatCore as a QObject and chat/message lists as QAbstractListModel for use from Silica QML. Depends on Qt5 via qmetaobject-rs."
 

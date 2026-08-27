@@ -23,3 +23,10 @@ build-*/
 # deltachat-rpc-server binaries fetched by scripts/fetch-rpc-server.sh
 # (or cross-compiled) -- see vendor/deltachat-rpc-server/SOURCE.md
 /vendor/deltachat-rpc-server/*/
+
+# Offline crate sources for `sfdk build -- --with vendor`, regenerated from
+# rust/Cargo.lock by scripts/vendor-crates.sh
+/rpm/vendor.tar.xz
+/rpm/vendor.toml
+/rust/vendor/
+/rust/.cargo/

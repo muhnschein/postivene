@@ -96,8 +96,11 @@ cargo test -p deltachat-jsonrpc
 ```
 
 `rust/postivene-shim` and `rust/postivene-app` additionally require Qt5
-dev packages (`qtbase5-dev`, `qtdeclarative5-dev` on Debian/Ubuntu-family
-hosts) for local iteration outside the Sailfish SDK:
+packages for local iteration outside the Sailfish SDK -- on
+Debian/Ubuntu-family hosts `qtbase5-dev`, `qtdeclarative5-dev`,
+`qtdeclarative5-dev-tools` (for `qmllint`) and `qml-module-qtquick2` (the
+QtQuick runtime plugin, which the -dev packages do not pull in and without
+which every QML the tests load fails to import):
 
 ```sh
 cd rust

@@ -5,7 +5,12 @@
 # Rust toolchain and Qt5 dev packages; nothing needs a phone.
 #
 # Qt5 dev packages (Debian/Ubuntu):
-#   apt install qtbase5-dev qtdeclarative5-dev qtdeclarative5-dev-tools
+#   apt install qtbase5-dev qtdeclarative5-dev qtdeclarative5-dev-tools \
+#               qml-module-qtquick2
+#
+# The last one is the QtQuick runtime plugin. It is not pulled in by the
+# -dev packages, and without it every QML the tests load fails with
+# `module "QtQuick" is not installed`.
 
 .PHONY: check test lint fmt qml-lint packaging-lint lockfile-lint doc-lint \
         msrv integration fetch-server clean

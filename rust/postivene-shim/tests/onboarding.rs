@@ -186,12 +186,19 @@ fn onboarding_speaks_the_current_transport_api() {
     let summary = QString::from_qvariant(engine.invoke_method("summary".into(), &[]))
         .map(|value| value.to_string())
         .unwrap_or_default();
+    assert!(
+        !summary.is_empty(),
+        "the probe QML never loaded, so nothing was recorded. The usual \
+         cause is a missing QtQuick runtime plugin (`qml-module-qtquick2` on \
+         Debian/Ubuntu); Qt reports it as `module \"QtQuick\" is not \
+         installed` above this line."
+    );
     let fields: Vec<&str> = summary.split('/').collect();
     assert_eq!(
         fields.len(),
         5,
-        "QML summary() did not return; the handler names may not match the \
-         shim's signals. Got {summary:?}"
+        "QML summary() returned something unexpected; the handler names may \
+         not match the shim's signals. Got {summary:?}"
     );
     assert_eq!(
         fields[0], "2",

@@ -30,7 +30,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update
-      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qtdeclarative5-dev-tools
+      # qml-module-qtquick2 is the runtime plugin, not a header package:
+      # without it every QML the tests load dies with `module "QtQuick" is
+      # not installed`, which surfaces as a confusing assertion rather than
+      # an obvious missing dependency. The -dev packages do not pull it in.
+      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qtdeclarative5-dev-tools qml-module-qtquick2
       - run: rustc --version && cargo --version
       - run: cd rust && cargo fmt --all --check
       - run: cd rust && cargo clippy --workspace --all-targets -- -D warnings
@@ -74,7 +78,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update
-      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev
+      # real_core drives the shim through a QML probe, so this job needs the
+      # QtQuick runtime plugin too.
+      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qml-module-qtquick2
       # Checksum-pinned on both the wheel and the extracted binary; a
       # tampered or moved upstream artifact fails here rather than being
       # tested against.

@@ -2,11 +2,6 @@
 /target/
 **/target/
 Cargo.lock.bak
-# `cargo vendor` output, generated locally for offline builds inside the
-# Sailfish SDK chroot (scratchbox2 has no reliable network path to
-# crates.io in this environment) -- see docs/MILESTONES.md milestone 6
-/rust/vendor/
-/rust/.cargo/
 
 # Sailfish SDK / mb2 / sfdk build artifacts
 RPMS/
@@ -29,9 +24,13 @@ build-*/
 # (or cross-compiled) -- see vendor/deltachat-rpc-server/SOURCE.md
 /vendor/deltachat-rpc-server/*/
 
-# Offline crate sources for `sfdk build -- --with vendor`, regenerated from
-# rust/Cargo.lock by scripts/vendor-crates.sh
+# `cargo vendor` output: offline crate sources for OBS/Chum
+# (`sfdk build -- --with vendor`) and for builds inside the SDK chroot,
+# where scratchbox2 has no reliable network path to crates.io. All of it is
+# regenerated from rust/Cargo.lock by scripts/vendor-crates.sh -- see
+# docs/MILESTONES.md milestone 6 and docs/SDK-BUILD.md.
 /rpm/vendor.tar.xz
 /rpm/vendor.toml
 /rust/vendor/
 /rust/.cargo/
+/.cargo/

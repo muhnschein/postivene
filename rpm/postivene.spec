@@ -127,8 +127,8 @@ export SB2_RUST_TARGET_TRIPLE=%{rusttarget}
 # binary. Both env vars set together make qttypes skip qmake entirely and
 # detect the Qt version from qtcoreversion.h (verified against the crate's
 # build.rs) -- these are the target-rootfs paths as seen from inside sb2.
-export QT_INCLUDE_PATH=/usr/include/qt5
-export QT_LIBRARY_PATH=/usr/lib
+export QT_INCLUDE_PATH=%{_includedir}/qt5
+export QT_LIBRARY_PATH=%{_libdir}
 
 # Under scratchbox2, parallel cargo deadlocks (observed reproducibly at the
 # default -j4: cargo futex-waits forever on an unreaped child while
@@ -136,6 +136,24 @@ export QT_LIBRARY_PATH=/usr/lib
 # single-threaded anyway (docs/SCOPE.md §7), so force -j1 there; outside
 # sb2 (e.g. a native OBS worker) let cargo pick its own parallelism.
 # SBOX_SESSION_DIR is set by sb2 itself inside build sessions.
+# Build scripts and proc-macros are compiled for the tooling's own
+# architecture, and rustc links them by calling plain `cc` -- which sb2
+# rewrites to the *cross* compiler, producing "unrecognized command-line
+# option '-m32'" and killing the build before the first crate is done.
+# scratchbox2 exposes the native compiler as `host-gcc` (SBOX_HOST_GCC_NAME
+# in the target's sb2.config) precisely for this; point the host triple's
+# linker at it. Outside sb2 nothing is overridden.
+if [ -n "${SBOX_SESSION_DIR:-}" ]; then
+    host_triple=$(rustc -vV | sed -n 's/^host: //p')
+    export "CARGO_TARGET_$(echo "$host_triple" | tr 'a-z-' 'A-Z_')_LINKER"=host-gcc
+fi
+
+# Deliberately *no* `--target`: under sb2 that would make cargo treat this
+# as a cross build and look for a target std it cannot find. Instead
+# SB2_RUST_TARGET_TRIPLE (above) tells the sb2-accelerated rustc what to
+# emit, and cargo still writes the result to target/<triple>/release --
+# the same convention upstream Sailfish Rust apps rely on (Whisperfish's
+# spec likewise passes no --target).
 cargo build \
     ${SBOX_SESSION_DIR:+-j1} \
     --release \
@@ -143,7 +161,6 @@ cargo build \
 %if %{with vendor}
     --offline \
 %endif
-    --target %{rusttarget} \
     --manifest-path rust/Cargo.toml \
     --package postivene-app
 

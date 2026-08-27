@@ -133,3 +133,103 @@ documents *what those packages actually provide* under sb2.
 - These builds validate compilation, linking against the real Sailfish
   Qt 5.6 stack, and packaging -- not runtime behavior. On-device/emulator
   runs are still tracked in `docs/MILESTONES.md`.
+
+
+## Second run: what a from-scratch reproduction needs (2026-08-27)
+
+Rebuilt from a clean container to produce a device RPM. Everything above
+still applies; these are the additional details that reproduction needed.
+
+### Getting the image without a Docker daemon
+
+No dockerd in that environment, so the image was pulled straight from the
+registry API and unpacked as a chroot:
+
+```sh
+curl -sS -H 'Accept: application/vnd.docker.distribution.manifest.v2+json' \
+    https://mirror.gcr.io/v2/coderus/sailfishos-platform-sdk/manifests/5.0.0.43
+# then, per layer digest (note -L: blob URLs redirect to a storage CDN,
+# and without it you silently save a 140-byte redirect body):
+curl -sSL https://mirror.gcr.io/v2/coderus/sailfishos-platform-sdk/blobs/sha256:<digest> \
+    | tar -xz -C rootfs
+```
+
+12 layers, ~4.6 GB compressed, ~13 GB unpacked. Then bind-mount `/proc`,
+`/sys`, `/dev`, `/dev/pts` and enter with
+`chroot --userspec=mersdk:mersdk`, with `HOME=/home/mersdk` in the
+environment -- the sb2 targets are registered under that user's
+`~/.scratchbox2`, so as root sb2 just says "Invalid target specified".
+
+### Reconstructing rust in the targets, exactly
+
+The stock targets ship no rust (see above). Three pieces are needed, and
+the *third* is easy to miss:
+
+1. `cp -a <tooling>/usr/lib/rustlib/i686-unknown-linux-gnu` into the
+   target (and its `.default` snapshot) -- host std for build scripts.
+2. aarch64 std built from source with the **tooling's own rustc**. Do not
+   substitute rustup's std for the same version: Jolla's compiler reports
+   `1.75.0-nightly (82e1608df)` and upstream's stable 1.75.0 reports
+   `1.75.0 (82e1608df)`, same commit but a different release string, and
+   rustc rejects the rlibs with `E0514: found crate compiled by an
+   incompatible version of rustc`. Building `-Zbuild-std=std,panic_unwind`
+   with the tooling rustc (rust-src 1.75.0 unpacked into
+   `<tooling>/usr/lib/rustlib/src/rust`) produces metadata that matches.
+   The dummy crate's own final link fails -- it uses the tooling's i686
+   linker -- which is fine, the `lib*.rlib` in
+   `target/aarch64-unknown-linux-gnu/release/deps/` are what you install
+   into the target's `usr/lib/rustlib/aarch64-unknown-linux-gnu/lib/`.
+3. The i686 rustlib **also** has to exist at `/usr/lib/rustlib` in the SDK
+   chroot itself, not only in the target. Build-script links run in sb2's
+   *host* mode, where `/usr` maps to the SDK filesystem; without this the
+   link fails with `gcc: error: /usr/lib/rustlib/i686-unknown-linux-gnu/
+   lib/libcore-*.rlib: No such file or directory`.
+
+None of this is needed where the Jolla repos are reachable: `mb2 build`
+installs the real `rust`/`cargo`/`rust-std-static` packages instead.
+
+### Two spec fixes this run forced
+
+- **No `--target` for cargo.** Jolla's cargo pins build scripts to the
+  tooling's host triple, and passing `--target` on top makes cargo treat
+  the whole build as a cross build. `SB2_RUST_TARGET_TRIPLE` already tells
+  the sb2-accelerated rustc what to emit, and cargo still writes to
+  `target/<triple>/release`. Whisperfish's spec passes no `--target`
+  either; ours now matches.
+- **`CARGO_TARGET_<HOST>_LINKER=host-gcc` inside sb2 sessions.** rustc
+  links build scripts by calling plain `cc`, which sb2 rewrites to the
+  *cross* compiler: `aarch64-meego-linux-gnu-cc: error: unrecognized
+  command-line option '-m32'`. scratchbox2 exposes the native compiler as
+  `host-gcc` (`SBOX_HOST_GCC_NAME` in the target's `sb2.config`); pointing
+  the host triple's linker at it is what unblocks the build. Pointing it
+  at the tooling's gcc by absolute path is *not* enough -- sb2 still
+  rewrites the `ld` that gcc invokes, and you get
+  `cannot find /lib/libgcc_s.so.1`.
+- Also corrected: `QT_LIBRARY_PATH` now uses `%{_libdir}`. Qt lives in
+  `/usr/lib64` on the aarch64 target, not `/usr/lib`.
+
+### Result
+
+```sh
+mb2 -t SailfishOS-5.0.0.43-aarch64 -X -n build --no-check -- --nodeps
+# -> RPMS/postivene-0.1.0-1.aarch64.rpm  (11 MB)
+```
+
+Verified on the produced package, not just on the build log:
+
+- `/usr/bin/postivene` is an `ELF 64-bit LSB pie executable, ARM aarch64`
+  dynamically linked against the target's Qt 5.6.3
+  (`libQt5Core/Gui/Qml/Quick/Widgets.so.5`), with a highest glibc
+  requirement of `GLIBC_2.29`.
+- `/usr/libexec/postivene/deltachat-rpc-server` is the statically linked
+  musl aarch64 build; rpm's own strip pass changes its hash but not its
+  behavior -- extracted from the finished RPM it still answers
+  `--version` -> `2.53.0`, and it passes the full
+  `deltachat-jsonrpc --test real_server` integration suite (health check,
+  `add_account`, config round trip, live event delivery, chat/message
+  wire shapes) when run under `qemu-aarch64`.
+- `rpm -qlp` shows every file where `qml_dir()` and the rpc-server lookup
+  expect it, and the desktop entry's `Exec=postivene` (no `env` wrapper).
+
+Still unproven: running it on a real device or emulator, `BuildRequires`
+resolution against zypper, and the armv7hl build.

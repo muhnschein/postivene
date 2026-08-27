@@ -266,6 +266,18 @@ RPM via `sfdk`, OBS build, distribution through Chum / OpenRepos.
     the invoker/booster, which executes the binary itself, so the wrapper
     is not reliably honoured. The bundled path is now a fallback inside
     `rpc_server_path()` and `Exec=postivene`.
+- [x] **A device RPM actually exists**: `postivene-0.1.0-1.aarch64.rpm`,
+      built with `mb2 -t SailfishOS-5.0.0.43-aarch64` from a
+      from-scratch reproduction of the Platform SDK chroot
+      (`docs/SDK-BUILD.md` has the full recipe). Two more spec fixes came
+      out of it -- cargo must not be passed `--target` under sb2, and the
+      host triple's linker must be scratchbox2's `host-gcc` or the build
+      dies linking the first build script -- plus `QT_LIBRARY_PATH` now
+      uses `%{_libdir}` (Qt is in `/usr/lib64` on aarch64). Verified on
+      the package itself: aarch64 ELF linked against the target's Qt
+      5.6.3, and the bundled `deltachat-rpc-server` extracted from the
+      finished RPM still passes the full `real_server` integration suite
+      under `qemu-aarch64`.
 - [ ] `armv7hl` mb2 build (same rustlib graft as aarch64 needed).
 - [ ] An unrestricted-network `sfdk`/OBS build that exercises real
       `BuildRequires` resolution. `scripts/build-rpm.sh` drives this in

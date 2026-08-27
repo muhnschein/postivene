@@ -40,6 +40,10 @@ vendor/                deltachat-rpc-server binaries per target arch
 scripts/               fetch-rpc-server.sh: pinned, checksum-verified
                        fetch of upstream's static-musl rpc-server builds.
 docs/                  Scope, architecture notes, licensing analysis.
+                       GAP-ANALYSIS.md (what is missing between here and
+                       a usable client) and ONBOARDING.md (how Delta Chat
+                       really onboards a user -- read out of the official
+                       Android client) are the current planning docs.
 ```
 
 ## Building

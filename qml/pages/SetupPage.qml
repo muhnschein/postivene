@@ -85,12 +85,18 @@ Page {
         size: BusyIndicatorSize.Large
     }
 
+    // NB: Sailfish is on Qt 5.6, where `Connections` only recognises
+    // `onFoo:` script bindings -- the `function onFoo() {}` form is Qt 5.15+
+    // and is silently treated as an ordinary function declaration that is
+    // never connected. Signal parameters are injected by the names the
+    // shim declares them with, i.e. snake_case (qmetaobject writes the Rust
+    // identifiers into the metaobject verbatim).
     Connections {
         target: core
 
         // Once the core is up, look for an existing configured account so
         // a returning user lands in their chats, not the login form.
-        function onStatus_changed() {
+        onStatus_changed: {
             if (core.status === "ready") {
                 core.refresh_accounts()
             } else if (core.status.indexOf("error") === 0) {
@@ -98,29 +104,29 @@ Page {
             }
         }
 
-        function onAccounts_refreshed(configuredCount, firstConfiguredId) {
-            if (configuredCount > 0) {
-                core.start_account_io(firstConfiguredId)
+        onAccounts_refreshed: {
+            if (configured_count > 0) {
+                core.start_account_io(first_configured_id)
                 pageStack.replace(Qt.resolvedUrl("ChatListPage.qml"),
-                                  { accountId: firstConfiguredId })
+                                  { accountId: first_configured_id })
             } else {
                 page.probing = false
             }
         }
 
-        function onAccount_added(accountId) {
-            core.configure_account(accountId, addressField.text, passwordField.text)
+        onAccount_added: {
+            core.configure_account(account_id, addressField.text, passwordField.text)
         }
 
-        function onAccount_error(message) {
+        onAccount_error: {
             page.busy = false
             page.probing = false
         }
 
-        function onConfigure_done(accountId, success, error) {
+        onConfigure_done: {
             page.busy = false
             if (success) {
-                pageStack.replace(Qt.resolvedUrl("ChatListPage.qml"), { accountId: accountId })
+                pageStack.replace(Qt.resolvedUrl("ChatListPage.qml"), { accountId: account_id })
             }
         }
     }

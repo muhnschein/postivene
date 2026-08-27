@@ -11,8 +11,10 @@ Page {
     Connections {
         target: core
 
-        function onCore_event(contextId, kind, payloadJson) {
-            if (contextId === page.accountId
+        // Qt 5.6 handler syntax with the shim's snake_case parameter
+        // names -- see the note in SetupPage.qml.
+        onCore_event: {
+            if (context_id === page.accountId
                     && (kind === "IncomingMsg" || kind === "MsgsChanged"
                         || kind === "MsgsNoticed")) {
                 core.refresh_chat_list(page.accountId)

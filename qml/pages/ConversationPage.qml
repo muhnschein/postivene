@@ -13,14 +13,16 @@ Page {
     Connections {
         target: core
 
-        function onMessage_sent(sentAccountId, sentChatId, messageId) {
-            if (sentAccountId === page.accountId && sentChatId === page.chatId) {
+        // Qt 5.6 handler syntax with the shim's snake_case parameter
+        // names -- see the note in SetupPage.qml.
+        onMessage_sent: {
+            if (account_id === page.accountId && chat_id === page.chatId) {
                 textField.text = ""
             }
         }
 
-        function onCore_event(contextId, kind, payloadJson) {
-            if (contextId !== page.accountId) {
+        onCore_event: {
+            if (context_id !== page.accountId) {
                 return
             }
             // MsgDelivered/MsgRead/MsgFailed update the delivery-state
@@ -30,8 +32,8 @@ Page {
                     || kind === "MsgFailed") {
                 // MsgsChanged carries chatId 0 when more than one chat is
                 // affected; refresh for our chat or for "unspecified".
-                var chatId = JSON.parse(payloadJson).chatId
-                if (chatId === page.chatId || chatId === 0) {
+                var eventChatId = JSON.parse(payload_json).chatId
+                if (eventChatId === page.chatId || eventChatId === 0) {
                     core.open_chat(page.accountId, page.chatId)
                 }
             }

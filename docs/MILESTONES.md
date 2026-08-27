@@ -118,6 +118,26 @@ no polish.
     calling `core.check_health()` and listening for
     `onSystem_info_changed`. All the `.qml` files here use snake_case
     method/property/signal-handler names to match.
+  - **Two device-only bugs this QML shipped with, both now fixed and
+    covered by tests** (found on a Jolla phone, 2026-08-27):
+    1. `postivene-app` loaded the UI into a bare `QmlEngine`
+       (`QQmlApplicationEngine`). Silica's `ApplicationWindow` derives from
+       `Sailfish.Silica.private.Window` and has to be hosted in a
+       `QQuickView` and shown -- what `SailfishApp::createView()` does for
+       C++ apps. The engine loaded the QML and ran its `onCompleted`
+       handlers, but never created a window: on device that looked like the
+       launcher spinning forever with no UI and no error.
+    2. Every `Connections` block used Qt 5.15's
+       `function onFoo(args) { ... }` handler syntax. **Sailfish is on Qt
+       5.6**, where that is not an error -- it is an ordinary function
+       declaration that is never connected -- so no handler ever fired and
+       the setup page sat on its BusyIndicator forever. Rewritten to
+       `onFoo: { ... }`, whose parameters arrive under the names the shim
+       declares, i.e. snake_case (`context_id`, not `contextId`).
+       `tests/qml_signal_handlers.rs` proves the old form connects and
+       injects those names, and `tests/qml_syntax.rs` fails the build if
+       the 5.15-only form comes back -- a behavioural test cannot catch it,
+       since host Qt 5.15 accepts both.
   - **Verification limits**: Sailfish's `Sailfish.Silica` QML module isn't
     installable outside the Sailfish SDK, so these pages could not be
     rendered or interacted with here. What *was* checked: `qmllint` (no

@@ -53,14 +53,27 @@ fn qml_dir() -> PathBuf {
 fn main() {
     let core = QObjectBox::new(DeltaChatCore::default());
 
-    let mut engine = QmlEngine::new();
-    engine.set_object_property("core".into(), core.pinned());
-    engine.set_property(
+    // A `QQuickView`, not a bare `QmlEngine`. Silica's `ApplicationWindow`
+    // derives from `Sailfish.Silica.private.Window`, which is an item meant
+    // to be hosted in a QQuickView and shown explicitly -- the same thing
+    // `SailfishApp::createView()` does for C++ apps, and what Whisperfish
+    // gets from libsailfishapp's `QmlApp`. Loading it into a plain
+    // `QQmlApplicationEngine` instead does load the QML and run its
+    // `Component.onCompleted` handlers, but never creates a visible window:
+    // on device that looks like the launcher spinning forever with no UI
+    // and no error.
+    let mut view = QQuickView::new();
+
+    // Context properties have to exist before the QML is sourced, or the
+    // root component's bindings and onCompleted handlers see undefined.
+    view.engine().set_object_property("core".into(), core.pinned());
+    view.engine().set_property(
         "rpcServerPath".into(),
         QString::from(rpc_server_path()).into(),
     );
 
     let main_qml = qml_dir().join("postivene.qml");
-    engine.load_file(QString::from(main_qml.to_string_lossy().into_owned()));
-    engine.exec();
+    view.set_source(QString::from(main_qml.to_string_lossy().into_owned()));
+    view.show();
+    view.engine().exec();
 }

@@ -42,13 +42,13 @@ async fn main() {
             let response = match method.as_str() {
                 "get_system_info" => ok(
                     id,
-                    json!({"name": "fake-rpc-test-server", "version": "0.0.0-test"}),
+                    &json!({"name": "fake-rpc-test-server", "version": "0.0.0-test"}),
                 ),
-                "echo" => ok(id, params),
+                "echo" => ok(id, &params),
                 "add" => {
                     let nums = params.as_array().cloned().unwrap_or_default();
                     let sum: f64 = nums.iter().filter_map(Value::as_f64).sum();
-                    ok(id, json!(sum))
+                    ok(id, &json!(sum))
                 }
                 "fail" => err(id, -32000, "boom"),
                 "slow" => {
@@ -58,7 +58,7 @@ async fn main() {
                         .and_then(Value::as_u64)
                         .unwrap_or(0);
                     tokio::time::sleep(std::time::Duration::from_millis(ms)).await;
-                    ok(id, json!("slow-done"))
+                    ok(id, &json!("slow-done"))
                 }
                 "get_next_event_batch" => {
                     let mut count = batch_counter.lock().await;
@@ -67,7 +67,7 @@ async fn main() {
                         let n = *count;
                         ok(
                             id,
-                            json!([{
+                            &json!([{
                                 "contextId": 1,
                                 "event": {"kind": "Info", "msg": format!("batch {n}")},
                             }]),
@@ -94,7 +94,7 @@ async fn main() {
     }
 }
 
-fn ok(id: Option<Value>, result: Value) -> Option<Value> {
+fn ok(id: Option<Value>, result: &Value) -> Option<Value> {
     id.map(|id| json!({"jsonrpc": "2.0", "id": id, "result": result}))
 }
 

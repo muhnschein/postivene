@@ -19,8 +19,10 @@ use crate::client::RpcClient;
 /// `--openrpc` output later if that becomes worthwhile.
 #[derive(Debug, Clone, Deserialize)]
 pub struct CoreEvent {
+    /// Which account (the core calls it a "context") the event belongs to.
     #[serde(rename = "contextId")]
     pub context_id: u32,
+    /// The event object itself, tagged by its `kind` field.
     pub event: serde_json::Value,
 }
 
@@ -32,6 +34,7 @@ pub struct EventLoopHandle {
 }
 
 impl EventLoopHandle {
+    /// Cancel the polling task.
     pub fn stop(self) {
         self.task.abort();
     }

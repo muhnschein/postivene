@@ -20,3 +20,6 @@ name = "fake-health-server"
 path = "src/bin/fake_health_server.rs"
 test = false
 doc = false
+
+[lints]
+workspace = true

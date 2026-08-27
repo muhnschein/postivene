@@ -10,7 +10,7 @@ use crate::models::{
 };
 use crate::runtime::CoreRuntime;
 
-/// `DeltaChatCore` is the one QObject that owns the connection to a spawned
+/// `DeltaChatCore` is the one `QObject` that owns the connection to a spawned
 /// `deltachat-rpc-server`: it starts the process, keeps the tokio runtime
 /// that drives it alive, forwards the core's event stream to QML as a
 /// signal, and exposes a handful of fire-and-forget methods (each paired
@@ -32,9 +32,13 @@ pub struct DeltaChatCore {
 
     /// One of: "idle", "starting", "ready", or `"error: ..."`.
     pub status: qt_property!(QString; NOTIFY status_changed),
+    /// Emitted whenever [`DeltaChatCore::status`] changes.
     pub status_changed: qt_signal!(),
 
+    /// The core's `get_system_info` answer, as raw JSON. Empty until
+    /// [`DeltaChatCore::check_health`] has completed once.
     pub system_info: qt_property!(QString; NOTIFY system_info_changed),
+    /// Emitted when [`DeltaChatCore::system_info`] is refreshed.
     pub system_info_changed: qt_signal!(),
 
     /// Raw core event, forwarded as-is: `kind` is the event's `"kind"`
@@ -44,12 +48,18 @@ pub struct DeltaChatCore {
     /// needing a hand-typed struct for every one of the ~40 event kinds.
     pub core_event: qt_signal!(context_id: u32, kind: QString, payload_json: QString),
 
+    /// A new, still unconfigured account was created.
     pub account_added: qt_signal!(account_id: u32),
+    /// An account-scoped call (create, list, resume) failed.
     pub account_error: qt_signal!(message: QString),
 
+    /// Configuration of `account_id` finished, successfully or not.
     pub configure_done: qt_signal!(account_id: u32, success: bool, error: QString),
 
+    /// A message was accepted by the core and appended to
+    /// [`DeltaChatCore::message_list`].
     pub message_sent: qt_signal!(account_id: u32, chat_id: u32, message_id: u32),
+    /// Sending a message failed; nothing was appended.
     pub send_error: qt_signal!(message: QString),
 
     /// Spawn `rpc_server_path` (typically the bundled
@@ -91,7 +101,11 @@ pub struct DeltaChatCore {
     /// `messageListError`.
     pub open_chat: qt_method!(fn(&mut self, account_id: u32, chat_id: u32)),
 
+    /// Repopulating [`DeltaChatCore::chat_list`] failed; the model still
+    /// holds whatever it held before.
     pub chat_list_error: qt_signal!(message: QString),
+    /// Repopulating [`DeltaChatCore::message_list`] failed; the model
+    /// still holds whatever it held before.
     pub message_list_error: qt_signal!(message: QString),
 
     /// All accounts known to the core. Repopulated by `refresh_accounts`.
@@ -103,20 +117,26 @@ pub struct DeltaChatCore {
     /// `configured_count > 0`, `first_configured_id` is the account to
     /// resume (call `start_account_io` and go straight to chats).
     pub refresh_accounts: qt_method!(fn(&mut self)),
+    /// [`DeltaChatCore::account_list`] was repopulated. `configured_count`
+    /// is how many accounts are usable, and `first_configured_id` is the
+    /// one to resume (0 when there is none).
     pub accounts_refreshed: qt_signal!(configured_count: u32, first_configured_id: u32),
 
     /// Resume IO for an already-configured account (app start / account
     /// switch); result via `ioStarted`.
     pub start_account_io: qt_method!(fn(&mut self, account_id: u32)),
+    /// Result of resuming IO for an already-configured account.
     pub io_started: qt_signal!(account_id: u32, success: bool, error: QString),
 
     /// Parse/classify a QR code's payload via the core. Result via
     /// `qrChecked` with the upstream `Qr` object as raw JSON: `kind` is
     /// camelCase (e.g. "account", "askVerifyContact", "login"), while the
-    /// payload's *fields* are snake_case (upstream's serde rename_all sits
-    /// at the enum level, exactly like MessageListItem's).
+    /// payload's *fields* are `snake_case` (upstream's serde `rename_all` sits
+    /// at the enum level, exactly like `MessageListItem`'s).
     pub check_qr: qt_method!(fn(&mut self, account_id: u32, qr_content: QString)),
+    /// A QR/invite payload was classified by the core.
     pub qr_checked: qt_signal!(account_id: u32, kind: QString, payload_json: QString),
+    /// Classifying a QR/invite payload failed.
     pub qr_error: qt_signal!(message: QString),
 
     rpc: Option<Arc<RpcClient>>,
@@ -124,6 +144,8 @@ pub struct DeltaChatCore {
 }
 
 impl DeltaChatCore {
+    /// Spawn the server and begin draining its event stream. No-op if
+    /// already started. See the `start` declaration above.
     pub fn start(&mut self, rpc_server_path: QString) {
         if self.runtime.is_some() {
             return;
@@ -238,7 +260,7 @@ impl DeltaChatCore {
                 let kind = event
                     .event
                     .get("kind")
-                    .and_then(|k| k.as_str())
+                    .and_then(serde_json::Value::as_str)
                     .unwrap_or("Unknown")
                     .to_string();
                 let payload = serde_json::to_string(&event.event).unwrap_or_default();
@@ -254,6 +276,8 @@ impl DeltaChatCore {
         });
     }
 
+    /// Run a `get_system_info` round trip into
+    /// [`DeltaChatCore::system_info`].
     pub fn check_health(&mut self) {
         let Some(rpc) = self.rpc.clone() else {
             self.status = QString::from("error: not started");
@@ -289,6 +313,7 @@ impl DeltaChatCore {
         });
     }
 
+    /// Create a new, unconfigured account.
     pub fn add_account(&mut self) {
         let Some(rpc) = self.rpc.clone() else {
             self.account_error(QString::from("not started"));
@@ -316,6 +341,7 @@ impl DeltaChatCore {
         });
     }
 
+    /// Configure `account_id` from an address and password.
     pub fn configure_account(&mut self, account_id: u32, addr: QString, password: QString) {
         let Some(rpc) = self.rpc.clone() else {
             self.configure_done(account_id, false, QString::from("not started"));
@@ -360,6 +386,7 @@ impl DeltaChatCore {
         });
     }
 
+    /// Send a plain-text message to `chat_id`.
     pub fn send_text(&mut self, account_id: u32, chat_id: u32, text: QString) {
         let Some(rpc) = self.rpc.clone() else {
             self.send_error(QString::from("not started"));
@@ -415,18 +442,25 @@ impl DeltaChatCore {
                 .map(|(message_id, message)| {
                     let text = message
                         .get("text")
-                        .and_then(|v| v.as_str())
+                        .and_then(serde_json::Value::as_str)
                         .unwrap_or_default()
                         .to_string();
                     let timestamp = message
                         .get("timestamp")
-                        .and_then(|v| v.as_i64())
+                        .and_then(serde_json::Value::as_i64)
                         .unwrap_or(0);
                     let show_padlock = message
                         .get("showPadlock")
-                        .and_then(|v| v.as_bool())
+                        .and_then(serde_json::Value::as_bool)
                         .unwrap_or(false);
-                    let state = message.get("state").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+                    // The core's DC_STATE_* constants are small; anything
+                    // that does not fit is not a state we know, so it reads
+                    // as "no state" rather than silently wrapping.
+                    let state = message
+                        .get("state")
+                        .and_then(serde_json::Value::as_u64)
+                        .and_then(|v| u32::try_from(v).ok())
+                        .unwrap_or(0);
                     (message_id, text, timestamp, show_padlock, state)
                 })
                 .map_err(|err| err.to_string());
@@ -434,6 +468,7 @@ impl DeltaChatCore {
         });
     }
 
+    /// Repopulate [`DeltaChatCore::chat_list`] from the core.
     pub fn refresh_chat_list(&mut self, account_id: u32) {
         let Some(rpc) = self.rpc.clone() else {
             self.chat_list_error(QString::from("not started"));
@@ -487,34 +522,37 @@ impl DeltaChatCore {
             let Some(item) = items.get(&chat_id) else {
                 continue;
             };
-            if item.get("kind").and_then(|k| k.as_str()) != Some("ChatListItem") {
+            if item.get("kind").and_then(serde_json::Value::as_str) != Some("ChatListItem") {
                 continue;
             }
             result.push(ChatListItem {
                 chat_id,
                 name: item
                     .get("name")
-                    .and_then(|v| v.as_str())
+                    .and_then(serde_json::Value::as_str)
                     .unwrap_or_default()
                     .into(),
                 preview: item
                     .get("summaryText2")
-                    .and_then(|v| v.as_str())
+                    .and_then(serde_json::Value::as_str)
                     .unwrap_or_default()
                     .into(),
                 unread_count: item
                     .get("freshMessageCounter")
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(0) as u32,
+                    .and_then(serde_json::Value::as_u64)
+                    .and_then(|v| u32::try_from(v).ok())
+                    .unwrap_or(0),
                 is_encrypted: item
                     .get("isEncrypted")
-                    .and_then(|v| v.as_bool())
+                    .and_then(serde_json::Value::as_bool)
                     .unwrap_or(false),
             });
         }
         Ok(result)
     }
 
+    /// Repopulate [`DeltaChatCore::message_list`] with `chat_id`'s
+    /// messages and clear the chat's fresh-message badge.
     pub fn open_chat(&mut self, account_id: u32, chat_id: u32) {
         let Some(rpc) = self.rpc.clone() else {
             self.message_list_error(QString::from("not started"));
@@ -569,7 +607,7 @@ impl DeltaChatCore {
 
         let mut result = Vec::with_capacity(items.len());
         for item in items {
-            if item.get("kind").and_then(|k| k.as_str()) != Some("message") {
+            if item.get("kind").and_then(serde_json::Value::as_str) != Some("message") {
                 continue;
             }
             // Upstream's JsonrpcMessageListItem has serde's `rename_all`
@@ -582,36 +620,46 @@ impl DeltaChatCore {
             let Some(message_id) = item
                 .get("msg_id")
                 .or_else(|| item.get("msgId"))
-                .and_then(|v| v.as_u64())
+                .and_then(serde_json::Value::as_u64)
             else {
                 continue;
             };
-            let message: serde_json::Value = rpc
-                .call("get_message", (account_id, message_id as u32))
-                .await?;
+            // A message id that does not fit u32 is not one the core's own
+            // API can address, so such a row is skipped rather than wrapped
+            // into a different message's id.
+            let Ok(message_id) = u32::try_from(message_id) else {
+                continue;
+            };
+            let message: serde_json::Value =
+                rpc.call("get_message", (account_id, message_id)).await?;
             result.push(MessageListItem {
-                message_id: message_id as u32,
+                message_id,
                 text: message
                     .get("text")
-                    .and_then(|v| v.as_str())
+                    .and_then(serde_json::Value::as_str)
                     .unwrap_or_default()
                     .into(),
                 // Contact id 1 is the well-known DC_CONTACT_ID_SELF.
-                is_outgoing: message.get("fromId").and_then(|v| v.as_u64()) == Some(1),
+                is_outgoing: message.get("fromId").and_then(serde_json::Value::as_u64) == Some(1),
                 timestamp: message
                     .get("timestamp")
-                    .and_then(|v| v.as_i64())
+                    .and_then(serde_json::Value::as_i64)
                     .unwrap_or(0),
                 show_padlock: message
                     .get("showPadlock")
-                    .and_then(|v| v.as_bool())
+                    .and_then(serde_json::Value::as_bool)
                     .unwrap_or(false),
-                state: message.get("state").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
+                state: message
+                    .get("state")
+                    .and_then(serde_json::Value::as_u64)
+                    .and_then(|v| u32::try_from(v).ok())
+                    .unwrap_or(0),
             });
         }
         Ok(result)
     }
 
+    /// Repopulate [`DeltaChatCore::account_list`] from the core.
     pub fn refresh_accounts(&mut self) {
         let Some(rpc) = self.rpc.clone() else {
             self.account_error(QString::from("not started"));
@@ -626,13 +674,17 @@ impl DeltaChatCore {
             let Some(this) = ptr.as_pinned() else { return };
             match result {
                 Ok(items) => {
+                    // Saturating rather than wrapping: an account count
+                    // that overflows u32 is impossible, and if it ever
+                    // happened "very many" is the right answer for a
+                    // has-any-configured-account check.
                     let configured_count =
-                        items.iter().filter(|item| item.is_configured).count() as u32;
+                        u32::try_from(items.iter().filter(|item| item.is_configured).count())
+                            .unwrap_or(u32::MAX);
                     let first_configured_id = items
                         .iter()
                         .find(|item| item.is_configured)
-                        .map(|item| item.account_id)
-                        .unwrap_or(0);
+                        .map_or(0, |item| item.account_id);
                     this.borrow_mut()
                         .account_list
                         .borrow_mut()
@@ -655,19 +707,20 @@ impl DeltaChatCore {
                     accounts
                         .iter()
                         .filter_map(|account| {
-                            let account_id = account.get("id")?.as_u64()? as u32;
+                            let account_id = u32::try_from(account.get("id")?.as_u64()?).ok()?;
                             let is_configured =
-                                account.get("kind").and_then(|k| k.as_str()) == Some("Configured");
+                                account.get("kind").and_then(serde_json::Value::as_str)
+                                    == Some("Configured");
                             Some(AccountItem {
                                 account_id,
                                 display_name: account
                                     .get("displayName")
-                                    .and_then(|v| v.as_str())
+                                    .and_then(serde_json::Value::as_str)
                                     .unwrap_or_default()
                                     .into(),
                                 addr: account
                                     .get("addr")
-                                    .and_then(|v| v.as_str())
+                                    .and_then(serde_json::Value::as_str)
                                     .unwrap_or_default()
                                     .into(),
                                 is_configured,
@@ -680,6 +733,7 @@ impl DeltaChatCore {
         });
     }
 
+    /// Resume IO for an already-configured account.
     pub fn start_account_io(&mut self, account_id: u32) {
         let Some(rpc) = self.rpc.clone() else {
             self.io_started(account_id, false, QString::from("not started"));
@@ -710,6 +764,7 @@ impl DeltaChatCore {
         });
     }
 
+    /// Classify a QR/invite payload via the core.
     pub fn check_qr(&mut self, account_id: u32, qr_content: QString) {
         let Some(rpc) = self.rpc.clone() else {
             self.qr_error(QString::from("not started"));
@@ -727,7 +782,7 @@ impl DeltaChatCore {
                 Ok(qr) => {
                     let kind = qr
                         .get("kind")
-                        .and_then(|k| k.as_str())
+                        .and_then(serde_json::Value::as_str)
                         .unwrap_or("unknown")
                         .to_string();
                     let payload = serde_json::to_string(&qr).unwrap_or_default();

@@ -1,0 +1,11 @@
+# Pinned so lint results are reproducible: a new lint in a later stable
+# cannot fail CI out from under a green local run. Bump deliberately.
+#
+# This file is a rustup mechanism and is read only by the rustup proxies.
+# The Sailfish SDK builds with the cargo from its own `rust` package, which
+# is not rustup-managed and ignores this file entirely -- the toolchain
+# floor that matters for the device is `rust-version = "1.75"` in
+# rust/Cargo.toml, enforced by CI's `msrv` job. See docs/ENGINEERING.md.
+[toolchain]
+channel = "1.94.1"
+components = ["clippy", "rustfmt"]

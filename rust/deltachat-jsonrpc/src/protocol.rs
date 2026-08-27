@@ -27,10 +27,16 @@ pub(crate) struct ResponseEnvelope {
     pub error: Option<ErrorObject>,
 }
 
+/// A JSON-RPC 2.0 error object, as returned by the server for a failed
+/// call. Reproduced verbatim rather than interpreted: the codes and
+/// messages are the core's, and this crate does not assign meaning to them.
 #[derive(Debug, Deserialize, Clone)]
 pub struct ErrorObject {
+    /// JSON-RPC error code.
     pub code: i64,
+    /// Human-readable message, written by the core.
     pub message: String,
+    /// Optional structured payload accompanying the error.
     #[serde(default)]
     pub data: Option<Value>,
 }

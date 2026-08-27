@@ -13,3 +13,6 @@ qmetaobject = "0.2"
 [[bin]]
 name = "postivene"
 path = "src/main.rs"
+
+[lints]
+workspace = true

@@ -10,10 +10,13 @@ use qmetaobject::QString;
 /// than mirrored wholesale up front.
 #[derive(Default, Clone, qmetaobject::SimpleListItem)]
 pub struct ChatListItem {
+    /// The core's chat id.
     pub chat_id: u32,
+    /// Display name of the chat.
     pub name: QString,
     /// Last-message preview text (`summaryText2` upstream).
     pub preview: QString,
+    /// Fresh (unseen) message count, for the badge.
     pub unread_count: u32,
     /// Whether all messages/contacts in this chat are encrypted
     /// (`isEncrypted` upstream). Unencrypted chats should be marked with a
@@ -21,6 +24,7 @@ pub struct ChatListItem {
     pub is_encrypted: bool,
 }
 
+/// Chat-list model bound to a `SilicaListView` from QML.
 pub type ChatListModel = SimpleListModel<ChatListItem>;
 
 /// One row of a message list, as surfaced by `get_message`/
@@ -28,8 +32,11 @@ pub type ChatListModel = SimpleListModel<ChatListItem>;
 /// upstream (contact id `1` is the well-known `DC_CONTACT_ID_SELF`).
 #[derive(Default, Clone, qmetaobject::SimpleListItem)]
 pub struct MessageListItem {
+    /// The core's message id.
     pub message_id: u32,
+    /// Message body text.
     pub text: QString,
+    /// True when this device's account is the sender.
     pub is_outgoing: bool,
     /// Unix timestamp, seconds.
     pub timestamp: i64,
@@ -44,16 +51,22 @@ pub struct MessageListItem {
     pub state: u32,
 }
 
+/// Conversation model bound to a `SilicaListView` from QML.
 pub type MessageListModel = SimpleListModel<MessageListItem>;
 
 /// One account, as surfaced by `get_all_accounts` (upstream `Account`:
 /// tagged `kind` = "Configured"/"Unconfigured", camelCase fields).
 #[derive(Default, Clone, qmetaobject::SimpleListItem)]
 pub struct AccountItem {
+    /// The core's account id.
     pub account_id: u32,
+    /// Profile display name, empty when unset.
     pub display_name: QString,
+    /// The account's email address, empty when unconfigured.
     pub addr: QString,
+    /// Whether this account has a usable transport.
     pub is_configured: bool,
 }
 
+/// Account model, for the account switcher.
 pub type AccountListModel = SimpleListModel<AccountItem>;

@@ -33,7 +33,7 @@ armv7hl armv7l py3-none-linux_armv7l.manylinux_2_17_armv7l.manylinux2014_armv7l.
 x86_64 x86_64 py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.musllinux_1_1_x86_64 5d87ab664667f4a8e0926aa0e6428efe88fb37fb30a17abe00a9d777675e0cd0 dcc37af7b7e95aae714c2366ff9f6d5c64170d0a7bb72cd7e3926a1a46e7e750
 "
 
-repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+repo_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 vendor_dir="$repo_root/vendor/deltachat-rpc-server"
 workdir=$(mktemp -d)
 trap 'rm -rf "$workdir"' EXIT

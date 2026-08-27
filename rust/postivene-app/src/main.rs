@@ -7,6 +7,10 @@
 //! engine. Everything interesting lives in `postivene-shim` (Rust/Qt
 //! bridge) and `qml/` (UI).
 
+// See postivene-shim/src/lib.rs: qmetaobject's macros expand to references
+// across that crate, and upstream's own examples use the glob.
+#![allow(clippy::wildcard_imports)]
+
 use std::path::PathBuf;
 
 use postivene_shim::DeltaChatCore;
@@ -66,7 +70,8 @@ fn main() {
 
     // Context properties have to exist before the QML is sourced, or the
     // root component's bindings and onCompleted handlers see undefined.
-    view.engine().set_object_property("core".into(), core.pinned());
+    view.engine()
+        .set_object_property("core".into(), core.pinned());
     view.engine().set_property(
         "rpcServerPath".into(),
         QString::from(rpc_server_path()).into(),

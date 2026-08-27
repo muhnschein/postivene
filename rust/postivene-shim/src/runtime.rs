@@ -58,6 +58,10 @@ impl CoreRuntime {
         std::thread::Builder::new()
             .name("postivene-tokio".to_string())
             .spawn(move || {
+                // The one place a runtime may be built: this is that
+                // thread, which is the whole point of this type. See the
+                // module docs, and clippy.toml for the ban this opts out of.
+                #[allow(clippy::disallowed_methods)]
                 let runtime = match Runtime::new() {
                     Ok(runtime) => runtime,
                     Err(err) => {

@@ -8,7 +8,28 @@
 //!
 //! It also pins how signal *parameters* reach QML: qmetaobject writes the
 //! Rust identifiers into the metaobject verbatim, so handlers see
-//! snake_case names (`context_id`, not `contextId`).
+//! `snake_case` names (`context_id`, not `contextId`).
+
+// This is Qt harness code: it drives a real event loop from a test, which
+// needs three things the workspace lints otherwise deny, each already
+// carrying its own SAFETY/justification note below:
+//
+// * `unsafe`: setting `QT_QPA_PLATFORM=offscreen` before Qt initialises.
+//   `unused_unsafe` rides along because `std::env::set_var` is safe on the
+//   Rust 1.75 floor but unsafe from edition 2024 on: the block is required
+//   by the newer compiler and merely redundant on the older one, and the
+//   MSRV job builds with warnings denied.
+// * `borrow_as_ptr`: handing the engine to a timer callback that outlives
+//   the borrow but not the engine.
+// * `single_shot`: allowed here because every call passes a *whole-second*
+//   `Duration`, which is the case qmetaobject 0.2.10 converts correctly
+//   (see clippy.toml for the bug this lint guards).
+#![allow(
+    unsafe_code,
+    unused_unsafe,
+    clippy::borrow_as_ptr,
+    clippy::disallowed_methods
+)]
 
 use postivene_shim::DeltaChatCore;
 use qmetaobject::*;

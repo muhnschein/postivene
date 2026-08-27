@@ -25,7 +25,7 @@ set -eu
 arch=${1:-aarch64}
 version=${2:-}
 
-repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+repo_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$repo_root"
 
 rpc_server="vendor/deltachat-rpc-server/$arch/deltachat-rpc-server"

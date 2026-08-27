@@ -20,3 +20,6 @@ name = "fake-rpc-test-server"
 path = "src/bin/fake_rpc_test_server.rs"
 test = false
 doc = false
+
+[lints]
+workspace = true

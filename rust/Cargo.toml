@@ -13,3 +13,16 @@ license = "MPL-2.0"
 # `cargo update` on a newer host from resolving dependencies that no longer
 # build on the toolchain the device target actually has.
 rust-version = "1.75"
+
+# Lints live at the workspace level so a bare `cargo clippy` fails the same
+# way CI's `-D warnings` does, instead of only warning locally.
+[workspace.lints.rust]
+unsafe_code = "deny"
+missing_docs = "deny"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+disallowed_methods = "deny"

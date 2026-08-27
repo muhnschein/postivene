@@ -43,6 +43,9 @@ fn qml_dir() -> PathBuf {
 }
 
 fn main() {
+    // Types QML instantiates itself, notably the per-chat message model.
+    postivene_shim::register_qml_types();
+
     let core = QObjectBox::new(DeltaChatCore::default());
 
     // A `QQuickView`, not a bare `QmlEngine`: Silica's `ApplicationWindow`

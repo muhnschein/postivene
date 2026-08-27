@@ -28,14 +28,20 @@ avatars, pinned/archived/muted, search, context menu, or account switcher
 
 ## Defects in what exists
 
-- `open_chat` does 1 + N round trips over the whole history, and re-runs it
-  on every incoming or delivery event. Upstream has a batch `get_messages`.
+Messages were the worst of these and are done: `ChatMessages` is a
+QML-instantiable model, one per conversation page, loading in a single
+batch `get_messages` and applying events row by row. The chat list still
+has the same shape and the same three problems:
+
+- `refresh_chat_list` re-reads the whole list on every event.
 - Every refresh is `reset_data`: scroll position lost, whole list redrawn.
-- One shared `message_list` and `chat_list` for the app. A second
-  conversation resets the first page's model underneath it, and `send_text`
-  appends to whichever list is loaded.
-- `send_error`, `chat_list_error`, `message_list_error`, `io_started` and
-  `qr_error` have no QML listeners. A failed send vanishes silently.
+- One shared `chat_list` on the core, so a second view of it would fight
+  the first.
+
+Elsewhere:
+
+- `chat_list_error`, `io_started` and `qr_error` have no QML listeners. A
+  failure vanishes silently.
 - A dead `deltachat-rpc-server` leaves `status` at `"ready"`; nothing
   restarts it.
 - Only `marknoticed_chat`, never `markseen_msgs`: read receipts never go

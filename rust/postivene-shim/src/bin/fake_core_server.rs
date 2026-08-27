@@ -28,6 +28,9 @@ struct State {
     accounts: Vec<Account>,
     /// Events waiting to be handed out by `get_next_event_batch`.
     events: VecDeque<Value>,
+    /// Message ids per chat, oldest first. Seeded on first use.
+    chats: std::collections::BTreeMap<u32, Vec<u32>>,
+    next_message_id: u32,
 }
 
 impl State {
@@ -45,6 +48,30 @@ impl State {
                 })
                 .collect(),
         )
+    }
+
+    /// Two chats with a couple of messages each, so a test can watch a
+    /// model load them and then take in one more.
+    fn seed_chats(&mut self) {
+        if self.chats.is_empty() {
+            self.chats.insert(1, vec![1, 2]);
+            self.chats.insert(2, vec![10]);
+            self.next_message_id = 100;
+        }
+    }
+
+    /// Append a message to a chat and announce it, the way a send or an
+    /// incoming message does.
+    fn add_message(&mut self, account_id: u32, chat_id: u32) -> u32 {
+        self.seed_chats();
+        self.next_message_id += 1;
+        let id = self.next_message_id;
+        self.chats.entry(chat_id).or_default().push(id);
+        self.events.push_back(json!({
+            "contextId": account_id,
+            "event": {"kind": "IncomingMsg", "chatId": chat_id, "msgId": id},
+        }));
+        id
     }
 
     /// Configure an account and queue the progress events the core emits:
@@ -178,23 +205,62 @@ async fn main() {
                     }
                 }
                 "list_transports" => ok(&id, &json!([{"addr": "someone@example.org"}])),
-                "get_message_list_items" => ok(&id, &json!([{"kind": "message", "msg_id": 1}])),
-                "get_message" => ok(
-                    &id,
-                    // Long on purpose: a device message runs to many wrapped
-                    // lines, which is what a fixed row height truncates.
-                    &json!({
-                        "text": "Get in contact! Tap \"QR code\" on the main \
-                                 screen of both devices. Choose \"Scan QR \
-                                 Code\" on one device, and point it at the \
-                                 other. If not in the same room, scan via \
-                                 video call or share an invite link.",
-                        "fromId": 10,
-                        "timestamp": 0,
-                        "showPadlock": true,
-                        "state": 16,
-                    }),
-                ),
+                "get_message_list_items" => {
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let items: Vec<Value> = state
+                        .chats
+                        .get(&chat)
+                        .cloned()
+                        .unwrap_or_default()
+                        .into_iter()
+                        .map(|msg| json!({"kind": "message", "msg_id": msg}))
+                        .collect();
+                    ok(&id, &Value::Array(items))
+                }
+                "get_messages" => {
+                    // One call for many ids: the point of the batch.
+                    let ids: Vec<u64> = positional(1)
+                        .as_array()
+                        .map(|array| array.iter().filter_map(Value::as_u64).collect())
+                        .unwrap_or_default();
+                    let mut loaded = serde_json::Map::new();
+                    for msg in ids {
+                        loaded.insert(
+                            msg.to_string(),
+                            json!({
+                                "kind": "message",
+                                "text": format!("message {msg}"),
+                                "fromId": 10,
+                                "timestamp": 0,
+                                "showPadlock": true,
+                                "state": 16,
+                            }),
+                        );
+                    }
+                    ok(&id, &Value::Object(loaded))
+                }
+                "misc_send_msg" => {
+                    let account = account_id();
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let text = positional(2).as_str().unwrap_or_default().to_string();
+                    let msg = state.lock().await.add_message(account, chat);
+                    ok(
+                        &id,
+                        &json!([
+                            msg,
+                            {"text": text, "fromId": 1, "timestamp": 0,
+                             "showPadlock": true, "state": 20}
+                        ]),
+                    )
+                }
                 "get_next_event_batch" => {
                     // Blocks when empty, like the real long poll.
                     loop {

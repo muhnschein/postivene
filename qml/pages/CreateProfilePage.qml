@@ -42,8 +42,8 @@ Page {
 
         onProfile_created: {
             page.busy = false
-            pageStack.replace(Qt.resolvedUrl("ChatListPage.qml"),
-                              { accountId: account_id })
+            pageStack.replaceAbove(null, Qt.resolvedUrl("ChatListPage.qml"),
+                                   { accountId: account_id })
         }
 
         onProfile_error: {
@@ -71,19 +71,6 @@ Page {
     SilicaFlickable {
         anchors.fill: parent
         contentHeight: column.height
-
-        PullDownMenu {
-            MenuItem {
-                objectName: "emailLoginMenuItem"
-                text: qsTr("Log in to an email account")
-                onClicked: pageStack.push(Qt.resolvedUrl("EmailLoginPage.qml"), {})
-            }
-            MenuItem {
-                objectName: "useLinkMenuItem"
-                text: qsTr("Use an invite or login link")
-                onClicked: linkField.visible = true
-            }
-        }
 
         Column {
             id: column
@@ -139,6 +126,21 @@ Page {
                 text: qsTr("Agree & Create Profile")
                 enabled: !page.busy && nameField.text.length > 0
                 onClicked: page.beginCreate()
+            }
+
+            Button {
+                objectName: "useLinkButton"
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: qsTr("Use an invite or login link")
+                visible: !linkField.visible
+                onClicked: linkField.visible = true
+            }
+
+            Button {
+                objectName: "emailLoginButton"
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: qsTr("Log in to an email account")
+                onClicked: pageStack.push(Qt.resolvedUrl("EmailLoginPage.qml"), {})
             }
         }
 

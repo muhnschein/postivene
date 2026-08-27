@@ -53,9 +53,15 @@ Page {
         }
 
         delegate: ListItem {
-            contentHeight: Theme.itemSizeSmall
+            objectName: "messageRow"
+            // Sized by its text, not fixed: a device message runs to a dozen
+            // wrapped lines, and a fixed row height makes them overlap each
+            // other and the header.
+            contentHeight: Math.max(Theme.itemSizeSmall,
+                                    messageLabel.implicitHeight + 2 * Theme.paddingMedium)
 
             Label {
+                id: messageLabel
                 anchors {
                     left: parent.left
                     right: parent.right

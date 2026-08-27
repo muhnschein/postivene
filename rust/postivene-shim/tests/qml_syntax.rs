@@ -1,4 +1,5 @@
-//! Guards the QML against syntax newer than Sailfish's Qt 5.6.
+//! Guards QML rules that no host-Qt run can check: syntax newer than
+//! Sailfish's Qt 5.6, and list rows whose height ignores their text.
 //!
 //! A text scan on purpose: host Qt 5.15 accepts the newer form and only
 //! warns, while on device the handlers silently never fire.
@@ -50,5 +51,29 @@ fn qml_avoids_qt_5_15_only_signal_handler_syntax() {
          so the handler silently never runs. Use `onFoo: {{ ... }}` with the \
          shim's snake_case parameter names instead.\n  {}",
         offenders.join("\n  ")
+    );
+}
+
+/// A list row holding a wrapping `Label` must take its height from that
+/// label. With a constant `contentHeight` a long message -- a device
+/// message runs to a dozen wrapped lines -- overlaps its neighbours and the
+/// header.
+///
+/// A text scan because `ConversationPage` uses Silica's `EnterKey` attached
+/// property, which cannot be stubbed, so `tests/qml_pages.rs` cannot load
+/// the page to measure it (see docs/ENGINEERING.md).
+#[test]
+fn wrapping_list_rows_size_to_their_text() {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/pages/ConversationPage.qml");
+    let text = fs::read_to_string(&path).expect("read ConversationPage.qml");
+
+    let height = text
+        .lines()
+        .find(|line| line.trim_start().starts_with("contentHeight:"))
+        .unwrap_or("");
+    assert!(
+        height.contains("messageLabel") || text.contains("messageLabel.implicitHeight"),
+        "the message delegate's contentHeight does not follow its label: {height:?}"
     );
 }

@@ -63,7 +63,7 @@ fetch-server:
 ## Needs `make fetch-server` first; skipped silently without it, which is
 ## why CI runs the fetch as its own step and fails there instead.
 integration:
-	cd rust && DELTACHAT_RPC_SERVER=../vendor/deltachat-rpc-server/x86_64/deltachat-rpc-server \
+	cd rust && DELTACHAT_RPC_SERVER=vendor/deltachat-rpc-server/x86_64/deltachat-rpc-server \
 		$(CARGO) test -p deltachat-jsonrpc --test real_server -- --nocapture
 
 clean:

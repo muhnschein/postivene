@@ -44,9 +44,31 @@ const SHAPE_ERRORS: &[&str] = &[
     "Invalid params",
 ];
 
+/// Resolve the gate's value, treating a relative path as relative to the
+/// repository root rather than to the process's working directory.
+///
+/// Cargo runs an integration test with its working directory set to the
+/// *package* root, not the workspace or repository root, so the obvious
+/// `DELTACHAT_RPC_SERVER=../vendor/...` -- which is what the README, the
+/// Makefile and CI all naturally write -- would otherwise look for the
+/// binary under `rust/`. That failure only shows up where the variable is
+/// actually set, which is CI, and reads as a missing download rather than a
+/// wrong path.
+fn resolve(path: &str) -> String {
+    let path = std::path::Path::new(path);
+    if path.is_absolute() {
+        return path.to_string_lossy().into_owned();
+    }
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .join(path)
+        .to_string_lossy()
+        .into_owned()
+}
+
 fn real_server() -> Option<String> {
     match std::env::var("DELTACHAT_RPC_SERVER") {
-        Ok(path) if !path.is_empty() => Some(path),
+        Ok(path) if !path.is_empty() => Some(resolve(&path)),
         _ => {
             eprintln!(
                 "skipping: set DELTACHAT_RPC_SERVER to a real deltachat-rpc-server binary to run"

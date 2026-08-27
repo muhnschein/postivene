@@ -77,6 +77,14 @@ The toolchain floor is the one Sailfish ships: **Rust 1.75**, Qt **5.6**.
 `rust/Cargo.lock` is deliberately kept in the v3 lockfile format (Cargo
 only learned v4 in 1.78) and the workspace declares `rust-version = 1.75`.
 
+### Checks
+
+`make check` runs what CI runs -- formatting, clippy at the workspace lint
+level, the test suite, qmllint, and the packaging checks -- from a clean
+checkout, with no phone, account, or network needed. `make msrv` compiles
+against the Rust 1.75 floor Sailfish ships. See
+[`docs/ENGINEERING.md`](docs/ENGINEERING.md) for what each layer is for.
+
 ### Host builds (development)
 
 The `rust/deltachat-jsonrpc` crate has no Sailfish/Qt dependency and can be
@@ -102,9 +110,17 @@ To also run the integration test against the **real** Delta Chat core
 ```sh
 scripts/fetch-rpc-server.sh   # fetch upstream static binaries into vendor/
 cd rust
-DELTACHAT_RPC_SERVER=../vendor/deltachat-rpc-server/x86_64/deltachat-rpc-server \
+DELTACHAT_RPC_SERVER=vendor/deltachat-rpc-server/x86_64/deltachat-rpc-server \
     cargo test -p deltachat-jsonrpc --test real_server
 ```
+
+A relative `DELTACHAT_RPC_SERVER` is resolved from the repository root, not
+from the shell's directory: cargo runs an integration test with its working
+directory set to the *package* root, so anything cwd-relative would mean
+something different for each crate.
+
+The same gate covers `cargo test -p postivene-shim --test real_core`, which
+drives the shim itself against the real core.
 
 Note: `qml/`'s pages import `Sailfish.Silica`, which only ships with the
 Sailfish SDK/target, so `postivene-app` won't actually render anything on

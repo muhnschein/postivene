@@ -81,10 +81,10 @@ jobs:
       - run: ./scripts/fetch-rpc-server.sh
       - run: cd rust && cargo test -p deltachat-jsonrpc --test real_server
         env:
-          DELTACHAT_RPC_SERVER: ../vendor/deltachat-rpc-server/x86_64/deltachat-rpc-server
+          DELTACHAT_RPC_SERVER: vendor/deltachat-rpc-server/x86_64/deltachat-rpc-server
       - run: cd rust && cargo test -p postivene-shim --test real_core
         env:
-          DELTACHAT_RPC_SERVER: ../vendor/deltachat-rpc-server/x86_64/deltachat-rpc-server
+          DELTACHAT_RPC_SERVER: vendor/deltachat-rpc-server/x86_64/deltachat-rpc-server
           QT_QPA_PLATFORM: offscreen
 
   # Everything that decides whether the RPM installs and the launcher works.

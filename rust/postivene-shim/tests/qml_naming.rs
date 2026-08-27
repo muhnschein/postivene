@@ -1,7 +1,17 @@
-//! Confirms how `qmetaobject`'s `QObject` derive exposes Rust identifiers
-//! to QML: does it keep snake_case verbatim, or camelCase it? This is
-//! load-bearing for every `.qml` file that calls into `DeltaChatCore`, so
-//! it's worth pinning down with a real QML load rather than assuming.
+//! `qmetaobject` exposes Rust identifiers to QML verbatim, `snake_case` and
+//! all. Every `.qml` file depends on that, so it is pinned with a real load
+//! rather than assumed.
+
+// Qt harness: needs `unsafe` for `env::set_var` before Qt starts
+// (`unused_unsafe` because it is only unsafe from edition 2024 on),
+// `borrow_as_ptr` for the engine pointer, and `single_shot` with
+// whole-second Durations.
+#![allow(
+    unsafe_code,
+    unused_unsafe,
+    clippy::borrow_as_ptr,
+    clippy::disallowed_methods
+)]
 
 use std::time::Duration;
 
@@ -22,11 +32,8 @@ fn methods_properties_and_signals_are_exposed_verbatim_snake_case() {
     let server_path = QString::from(env!("CARGO_BIN_EXE_fake-health-server"));
     core_box.pinned().borrow_mut().start(server_path);
 
-    // If any of `core.check_health`, `core.status`, or the
-    // `system_info_changed` signal handler name were wrong, this QML would
-    // fail to bind/compile and `sawSystemInfoChanged` would stay false, or
-    // Qt would print "ReferenceError"/"is not a function" to stderr.
-    let qml = r#"
+    // A wrong method, property or handler name leaves this QML unbound.
+    let qml = r"
         import QtQuick 2.0
         Item {
             property bool sawSystemInfoChanged: false
@@ -39,7 +46,7 @@ fn methods_properties_and_signals_are_exposed_verbatim_snake_case() {
                 onTriggered: core.check_health()
             }
         }
-    "#;
+    ";
     engine.load_data(QByteArray::from(qml));
 
     let engine_ptr = &engine as *const QmlEngine;

@@ -1,8 +1,6 @@
-//! Minimal JSON-RPC double for `postivene-shim`'s own smoke test: answers
-//! `get_system_info` only. Separate from
-//! `deltachat-jsonrpc/src/bin/fake_rpc_test_server.rs` (that one is not
-//! reachable from this crate's `CARGO_BIN_EXE_*` env vars, which Cargo only
-//! sets for binaries within the same package).
+//! JSON-RPC double answering `get_system_info` only, for the smoke test.
+//! Separate from the transport crate's because `CARGO_BIN_EXE_*` only
+//! covers binaries in the same package.
 
 use serde_json::{json, Value};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};

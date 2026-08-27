@@ -1,8 +1,5 @@
 //! Wire types for the JSON-RPC 2.0 messages exchanged with
-//! `deltachat-rpc-server` over newline-delimited stdio (confirmed against
-//! upstream `deltachat-rpc-server/src/main.rs`: it reads `stdin` line by
-//! line and writes each response with `println!`, i.e. JSON Lines, not
-//! `Content-Length`-framed like LSP).
+//! `deltachat-rpc-server`. The framing is JSON Lines, not `Content-Length`.
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -27,10 +24,15 @@ pub(crate) struct ResponseEnvelope {
     pub error: Option<ErrorObject>,
 }
 
+/// A JSON-RPC 2.0 error object. Reproduced verbatim; the codes and messages
+/// are the core's.
 #[derive(Debug, Deserialize, Clone)]
 pub struct ErrorObject {
+    /// JSON-RPC error code.
     pub code: i64,
+    /// Human-readable message, written by the core.
     pub message: String,
+    /// Optional structured payload accompanying the error.
     #[serde(default)]
     pub data: Option<Value>,
 }

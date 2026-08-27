@@ -4,7 +4,7 @@
 //! hold against the actual core, not just the in-repo fake.
 //!
 //! Gated: skipped unless `DELTACHAT_RPC_SERVER` points at a real binary
-//! (e.g. one extracted from upstream's PyPI wheel or GitHub release), so
+//! (e.g. one extracted from upstream's `PyPI` wheel or GitHub release), so
 //! `cargo test` stays green in environments that don't have one.
 //!
 //! Everything here is offline -- no account is ever configured against a
@@ -16,9 +16,31 @@ use std::time::Duration;
 use deltachat_jsonrpc::{spawn_event_loop, RpcClient};
 use serde_json::Value;
 
+/// Resolve the gate's value, treating a relative path as relative to the
+/// repository root rather than to the process's working directory.
+///
+/// Cargo runs an integration test with its working directory set to the
+/// *package* root, not the workspace or repository root, so the obvious
+/// `DELTACHAT_RPC_SERVER=../vendor/...` -- which is what the README, the
+/// Makefile and CI all naturally write -- would otherwise look for the
+/// binary under `rust/`. That failure only shows up where the variable is
+/// actually set, which is CI, and reads as a missing download rather than a
+/// wrong path.
+fn resolve(path: &str) -> String {
+    let path = std::path::Path::new(path);
+    if path.is_absolute() {
+        return path.to_string_lossy().into_owned();
+    }
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .join(path)
+        .to_string_lossy()
+        .into_owned()
+}
+
 fn real_server() -> Option<String> {
     match std::env::var("DELTACHAT_RPC_SERVER") {
-        Ok(path) if !path.is_empty() => Some(path),
+        Ok(path) if !path.is_empty() => Some(resolve(&path)),
         _ => {
             eprintln!(
                 "skipping: set DELTACHAT_RPC_SERVER to a real deltachat-rpc-server binary to run"
@@ -29,6 +51,11 @@ fn real_server() -> Option<String> {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+// One long function on purpose: this walks a single live session through
+// the whole surface the app depends on, in order, against one spawned
+// server. Splitting it into helpers would either respawn the core per step
+// or hide the ordering that is half of what is being pinned.
+#[allow(clippy::too_many_lines)]
 async fn offline_round_trip_against_real_core() {
     let Some(server) = real_server() else {
         return;
@@ -196,7 +223,7 @@ async fn offline_round_trip_against_real_core() {
         .expect("get_all_accounts");
     let ours = accounts
         .iter()
-        .find(|a| a.get("id").and_then(Value::as_u64) == Some(account_id as u64))
+        .find(|a| a.get("id").and_then(Value::as_u64) == Some(u64::from(account_id)))
         .expect("our account missing from get_all_accounts");
     assert_eq!(
         ours.get("kind").and_then(Value::as_str),

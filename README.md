@@ -40,6 +40,9 @@ vendor/                deltachat-rpc-server binaries per target arch
 scripts/               fetch-rpc-server.sh: pinned, checksum-verified
                        fetch of upstream's static-musl rpc-server builds.
 docs/                  Scope, architecture notes, licensing analysis.
+                       GAP-ANALYSIS.md (what is missing), ONBOARDING.md
+                       (how Delta Chat onboards a user), ENGINEERING.md
+                       (standards).
 ```
 
 ## Building
@@ -73,6 +76,13 @@ The toolchain floor is the one Sailfish ships: **Rust 1.75**, Qt **5.6**.
 `rust/Cargo.lock` is deliberately kept in the v3 lockfile format (Cargo
 only learned v4 in 1.78) and the workspace declares `rust-version = 1.75`.
 
+### Checks
+
+`make check` runs what CI runs -- formatting, clippy, tests, qmllint,
+packaging checks -- from a clean checkout, with no phone, account, or
+network. `make msrv` compiles against Sailfish's Rust 1.75 floor. See
+[`docs/ENGINEERING.md`](docs/ENGINEERING.md).
+
 ### Host builds (development)
 
 The `rust/deltachat-jsonrpc` crate has no Sailfish/Qt dependency and can be
@@ -83,9 +93,10 @@ cd rust
 cargo test -p deltachat-jsonrpc
 ```
 
-`rust/postivene-shim` and `rust/postivene-app` additionally require Qt5
-dev packages (`qtbase5-dev`, `qtdeclarative5-dev` on Debian/Ubuntu-family
-hosts) for local iteration outside the Sailfish SDK:
+`rust/postivene-shim` and `rust/postivene-app` need Qt5 packages: on
+Debian/Ubuntu `qtbase5-dev`, `qtdeclarative5-dev`,
+`qtdeclarative5-dev-tools` (for `qmllint`) and `qml-module-qtquick2` (the
+QtQuick runtime plugin, which the -dev packages omit):
 
 ```sh
 cd rust
@@ -98,9 +109,13 @@ To also run the integration test against the **real** Delta Chat core
 ```sh
 scripts/fetch-rpc-server.sh   # fetch upstream static binaries into vendor/
 cd rust
-DELTACHAT_RPC_SERVER=../vendor/deltachat-rpc-server/x86_64/deltachat-rpc-server \
+DELTACHAT_RPC_SERVER=vendor/deltachat-rpc-server/x86_64/deltachat-rpc-server \
     cargo test -p deltachat-jsonrpc --test real_server
 ```
+
+A relative `DELTACHAT_RPC_SERVER` resolves from the repository root, since
+cargo runs integration tests from the package root. The same gate covers
+`cargo test -p postivene-shim --test real_core`.
 
 Note: `qml/`'s pages import `Sailfish.Silica`, which only ships with the
 Sailfish SDK/target, so `postivene-app` won't actually render anything on

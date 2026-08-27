@@ -8,43 +8,35 @@ use crate::client::RpcClient;
 
 /// One event as delivered by `get_next_event_batch`.
 ///
-/// `event` is left as a raw [`serde_json::Value`] rather than a hand-typed
-/// enum of every `EventType` variant upstream defines (there are several
-/// dozen, see `deltachat-jsonrpc/src/api/types/events.rs` in `chatmail/core`
-/// -- tagged on the `"kind"` field). Duplicating that whole schema by hand
-/// here would be exactly the kind of protocol-logic reimplementation the
-/// project scope rules out; callers that need typed access to specific
-/// event kinds should match on `event["kind"]` for the events they actually
-/// care about, or this crate can grow generated bindings from the core's
-/// `--openrpc` output later if that becomes worthwhile.
+/// `event` stays a raw [`serde_json::Value`]: hand-typing the core's several
+/// dozen event variants would be the protocol reimplementation
+/// `docs/SCOPE.md` §3 rules out. Callers match on `event["kind"]`.
 #[derive(Debug, Clone, Deserialize)]
 pub struct CoreEvent {
+    /// Which account (the core calls it a "context") the event belongs to.
     #[serde(rename = "contextId")]
     pub context_id: u32,
+    /// The event object itself, tagged by its `kind` field.
     pub event: serde_json::Value,
 }
 
-/// Handle to a background task that long-polls `get_next_event_batch` and
-/// forwards results to a channel. Drop or call [`EventLoopHandle::stop`] to
-/// cancel it.
+/// Handle to the polling task. Drop or [`EventLoopHandle::stop`] to cancel.
 pub struct EventLoopHandle {
     task: JoinHandle<()>,
 }
 
 impl EventLoopHandle {
+    /// Cancel the polling task.
     pub fn stop(self) {
         self.task.abort();
     }
 }
 
-/// Start a background task that repeatedly calls `get_next_event_batch` and
-/// pushes each event to the returned channel, in order, until the transport
-/// closes or the handle is stopped.
+/// Poll `get_next_event_batch` in a loop, pushing each event to the returned
+/// channel until the transport closes or the handle is stopped.
 ///
-/// The core doesn't push unsolicited notifications for events; clients are
-/// expected to poll `get_next_event`/`get_next_event_batch` in a loop (the
-/// call blocks server-side until an event is available), so this is just an
-/// ordinary RPC call issued repeatedly, not a special transport mode.
+/// The core has no unsolicited notifications: the call blocks server-side
+/// until an event is available, so this is an ordinary RPC call repeated.
 pub fn spawn_event_loop(
     client: Arc<RpcClient>,
 ) -> (mpsc::UnboundedReceiver<CoreEvent>, EventLoopHandle) {

@@ -1,13 +1,22 @@
+//! Error types for the transport: failures spawning the server process,
+//! and failures of an individual RPC call.
+
 use crate::protocol::ErrorObject;
 
+/// Why `deltachat-rpc-server` could not be started.
 #[derive(Debug, thiserror::Error)]
 pub enum SpawnError {
+    /// The process could not be executed at all (missing binary, wrong
+    /// permissions, ...).
     #[error("failed to spawn deltachat-rpc-server: {0}")]
     Io(#[from] std::io::Error),
+    /// The child was spawned but one of the stdio pipes we asked for is
+    /// missing, which should be impossible.
     #[error("spawned child has no stdin/stdout pipe (this is a bug)")]
     MissingPipe,
 }
 
+/// Why a single RPC call did not produce a result.
 #[derive(Debug, thiserror::Error)]
 pub enum RpcError {
     /// The server returned a JSON-RPC error object for this call.
@@ -17,7 +26,9 @@ pub enum RpcError {
     /// The result payload didn't match the type the caller asked for.
     #[error("failed to decode result for method {method}: {source}")]
     Decode {
+        /// The method whose result could not be decoded.
         method: String,
+        /// The underlying serde error.
         #[source]
         source: serde_json::Error,
     },
@@ -28,9 +39,12 @@ pub enum RpcError {
     #[error("deltachat-rpc-server transport closed")]
     TransportClosed,
 
+    /// The caller's params could not be serialized to JSON.
     #[error("failed to serialize params for method {method}: {source}")]
     Encode {
+        /// The method whose params could not be serialized.
         method: String,
+        /// The underlying serde error.
         #[source]
         source: serde_json::Error,
     },

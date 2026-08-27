@@ -4,6 +4,7 @@ version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+publish.workspace = true
 description = "Transport-only JSON-RPC 2.0 client for deltachat-rpc-server: spawns the process, correlates requests/responses over newline-delimited stdio, and streams core events. Carries no protocol/crypto logic of its own -- that all lives in the upstream Delta Chat core."
 
 [dependencies]
@@ -20,3 +21,6 @@ name = "fake-rpc-test-server"
 path = "src/bin/fake_rpc_test_server.rs"
 test = false
 doc = false
+
+[lints]
+workspace = true

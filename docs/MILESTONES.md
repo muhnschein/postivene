@@ -1,339 +1,125 @@
 # Milestones & status
 
-Tracks the milestones from `docs/SCOPE.md` §6. Updated as work lands.
+Tracks `docs/SCOPE.md` §6. Unchecked items are unproven, not merely
+unfinished.
 
 ## 1. Core bring-up
 
-Cross-compile / obtain `deltachat-rpc-server` for Sailfish target
-architectures; confirm it runs on-device and answers a `get_system_info`
-health check over stdio.
-
-- [x] **The scope's open question (§9) is effectively resolved: no
-      Sailfish-specific build is needed.** Upstream's release binaries are
-      **statically linked against musl libc** — confirmed from their own
-      CI workflow (`.github/workflows/deltachat-rpc-server.yml`: "Build a
-      version statically linked against musl libc to avoid problems with
-      glibc version incompatibility") and re-confirmed with `file`/`ldd`
-      on the actual binaries. A static binary depends only on the kernel
-      ABI, so Sailfish's older glibc is irrelevant. The armv7l build is
-      hard-float (`armv7-unknown-linux-musleabihf`), matching Sailfish
-      `armv7hl`.
-- [x] `scripts/fetch-rpc-server.sh`: fetches upstream v2.53.0 binaries for
-      `aarch64`/`armv7hl`/`x86_64` via upstream's PyPI wheels (same nix
-      build artifacts as their GitHub release), sha256-pinned on both the
-      wheels and the extracted binaries, placed at
-      `vendor/deltachat-rpc-server/<arch>/` where `rpm/postivene.spec`
-      expects them. Ran clean twice in this environment. (GitHub release
-      asset downloads are blocked by this environment's proxy; PyPI is
-      the channel that works here and is equally upstream-official.)
-- [x] `get_system_info` health check **passed against the real server**
-      (x86_64, this host): `rust/deltachat-jsonrpc/tests/real_server.rs`
-      is a gated integration test (`DELTACHAT_RPC_SERVER=<path>`) that
-      spawns the real v2.53.0 binary through our transport crate and
-      verifies, all offline: the health check, `add_account`,
-      `set_config`/`get_config`, **real event delivery** (MsgsChanged
-      after setting a draft), and the exact chat-list and message-list
-      wire shapes `DeltaChatCore` depends on — including the snake_case
-      `msg_id` spelling that was once a bug, now pinned by a test against
-      the real core.
-- [x] Found & fixed while doing this: the app never set
-      `DC_ACCOUNTS_PATH`, so the core would have stored all account data
-      in `./accounts` relative to whatever cwd the launcher provided.
-      `RpcClient` grew `spawn_with_env`, and `DeltaChatCore::start` now
-      pins the accounts dir to `$XDG_DATA_HOME/postivene/accounts`
-      (override: `POSTIVENE_ACCOUNTS_DIR`).
-- [x] Both device-architecture binaries **executed and passed the full
-      integration test under QEMU user-mode emulation**
-      (`qemu-aarch64-static` / `qemu-arm-static` on this x86_64 host):
-      the actual ARM instruction streams run, answer `get_system_info`,
-      create accounts, and deliver events through our transport crate.
-      What QEMU user-mode cannot prove is behavior against Sailfish's
-      actual kernel (syscalls are translated to the host kernel), but
-      static musl binaries use a conservative, stable syscall ABI, so
-      the residual risk is small.
-- [ ] The one remaining item: run the `aarch64`/`armv7hl` binary on real
-      Sailfish hardware or the SDK emulator — now a formality-level
-      check rather than an open question.
+- [x] No Sailfish-specific build is needed: upstream's release binaries are
+      statically linked against musl, so the target's glibc is irrelevant.
+      The armv7l build is hard-float, matching Sailfish `armv7hl`.
+- [x] `scripts/fetch-rpc-server.sh` fetches v2.53.0 for
+      `aarch64`/`armv7hl`/`x86_64` from upstream's PyPI wheels, sha256-pinned
+      on both wheel and extracted binary.
+- [x] `get_system_info` and the chat/message/account wire shapes verified
+      against the real binary, offline
+      (`deltachat-jsonrpc/tests/real_server.rs`).
+- [x] The accounts directory is pinned to `$XDG_DATA_HOME/postivene/accounts`
+      (`POSTIVENE_ACCOUNTS_DIR` overrides). Without it the core stores state
+      relative to the launcher's working directory.
+- [x] Both ARM binaries pass the integration suite under `qemu-user`. That
+      does not prove behaviour against Sailfish's kernel, but static musl
+      binaries use a conservative syscall ABI.
+- [ ] Run on real Sailfish hardware or the SDK emulator.
 
 ## 2. Headless RPC shim
 
-Spawn the server, complete a JSON-RPC round trip, receive events, from
-within a minimal Sailfish harness.
-
-- [x] `rust/deltachat-jsonrpc`: spawns `deltachat-rpc-server`, JSON-RPC 2.0
-      request/response correlation, event stream via the
-      `get_next_event`/`get_next_event_batch` long-poll pattern. No
-      Sailfish/Qt dependency; unit-tested against a fake stdio server
-      double (6 tests).
-- [x] `rust/postivene-shim`: `DeltaChatCore` QObject wrapping the client
-      (start/health-check/add-account/configure-account/send-text +
-      `coreEvent` signal forwarding), plus `ChatListItem`/`MessageListItem`
-      + `SimpleListModel`-based `ChatListModel`/`MessageListModel` types.
-      Builds clean against host Qt5 (`qtbase5-dev`/`qtdeclarative5-dev`);
-      Sailfish-target cross-compile still to be validated against the real
-      SDK.
-- [x] End-to-end smoke test (`postivene-shim/tests/smoke.rs`) drives a real
-      **offscreen** Qt event loop (`QT_QPA_PLATFORM=offscreen`) and proves
-      the full async round trip actually works: a `qt_method` call spawns
-      the fake server on a background tokio runtime, and the result comes
-      back through `queued_callback` to mutate `qt_property`s / fire
-      `qt_signal`s on the Qt thread. This is the riskiest architectural
-      piece per `docs/SCOPE.md` §5 ("core events run off the main thread
-      and are marshalled to the Qt main thread via queued signals").
-  - Found and worked around an upstream bug while building this:
-    `qmetaobject` 0.2.10's `single_shot()` mis-converts the sub-second part
-    of a `Duration` (`subsec_nanos() * (1e-6 as u32)`, and `1e-6 as u32`
-    truncates to `0`), so any non-whole-second `Duration` schedules as if
-    it were 0ms. Anything in this codebase that uses `single_shot` should
-    pass whole-second `Duration`s until/unless this is fixed upstream.
-- [ ] Validated inside an actual Sailfish harness/emulator (needs Milestone
-      1 first: a `deltachat-rpc-server` binary that actually runs there).
+- [x] `rust/deltachat-jsonrpc`: process spawn, JSON-RPC 2.0 correlation,
+      event stream via the `get_next_event_batch` long poll. No Qt
+      dependency.
+- [x] `rust/postivene-shim`: `DeltaChatCore` as a `QObject`, chat/message/
+      account list models.
+- [x] The async round trip proven under a real offscreen Qt event loop
+      (`tests/smoke.rs`): a `qt_method` spawns work on a background runtime
+      and the result returns through `queued_callback` on the Qt thread.
+- [ ] Validated inside a Sailfish harness or emulator.
 
 ## 3. Minimal UI
 
-Single account, single conversation: read and send text. No notifications,
-no polish.
-
-- [x] `DeltaChatCore` grew `chat_list`/`message_list` nested
-      `SimpleListModel` properties (`qt_property!(RefCell<...>; CONST)`,
-      following the pattern from `qmetaobject`'s own
-      `tests/models.rs::simple_model_remove`) plus `refresh_chat_list`/
-      `open_chat` methods that populate them from
-      `get_chatlist_entries`/`get_chatlist_items_by_entries` and
-      `get_message_list_items`/`get_message`. `send_text` now also appends
-      the sent message to `message_list` directly from the response, no
-      extra round trip.
-- [x] `rust/postivene-app`: the `main.rs` harness binary that registers
-      `DeltaChatCore` as the `core` context property and loads
-      `qml/postivene.qml`.
-- [x] `qml/`: `postivene.qml` (root), `cover/CoverPage.qml`,
-      `pages/SetupPage.qml` (add + configure account),
-      `pages/ChatListPage.qml`, `pages/ConversationPage.qml` (read +
-      send text).
-  - **Naming caveat that shaped all of this QML**: `qmetaobject`'s
-    `QObject`/`SimpleListItem` derives expose Rust identifiers to QML
-    *verbatim*, snake_case and all -- there's no automatic camelCase
-    conversion. Confirmed empirically (not just by reading the macro
-    source) in `postivene-shim/tests/qml_naming.rs`, which loads real QML
-    calling `core.check_health()` and listening for
-    `onSystem_info_changed`. All the `.qml` files here use snake_case
-    method/property/signal-handler names to match.
-  - **Two device-only bugs this QML shipped with, both now fixed and
-    covered by tests** (found on a Jolla phone, 2026-08-27):
-    1. `postivene-app` loaded the UI into a bare `QmlEngine`
-       (`QQmlApplicationEngine`). Silica's `ApplicationWindow` derives from
-       `Sailfish.Silica.private.Window` and has to be hosted in a
-       `QQuickView` and shown -- what `SailfishApp::createView()` does for
-       C++ apps. The engine loaded the QML and ran its `onCompleted`
-       handlers, but never created a window: on device that looked like the
-       launcher spinning forever with no UI and no error.
-    2. Every `Connections` block used Qt 5.15's
-       `function onFoo(args) { ... }` handler syntax. **Sailfish is on Qt
-       5.6**, where that is not an error -- it is an ordinary function
-       declaration that is never connected -- so no handler ever fired and
-       the setup page sat on its BusyIndicator forever. Rewritten to
-       `onFoo: { ... }`, whose parameters arrive under the names the shim
-       declares, i.e. snake_case (`context_id`, not `contextId`).
-       `tests/qml_signal_handlers.rs` proves the old form connects and
-       injects those names, and `tests/qml_syntax.rs` fails the build if
-       the 5.15-only form comes back -- a behavioural test cannot catch it,
-       since host Qt 5.15 accepts both.
-  - **Verification limits**: Sailfish's `Sailfish.Silica` QML module isn't
-    installable outside the Sailfish SDK, so these pages could not be
-    rendered or interacted with here. What *was* checked: `qmllint` (no
-    args) parses all five files with zero errors, and the snake_case
-    naming convention they depend on is covered by an automated test
-    (previous bullet). Layout, visual behavior, and page-to-page
-    navigation are unverified pending Sailfish SDK/device access.
-- [x] Live-update wiring: `ConversationPage`/`ChatListPage` listen to the
-      shim's `core_event` signal and re-fetch on `IncomingMsg`/
-      `MsgsChanged`, so received messages appear without leaving and
-      re-entering the chat. (Event `kind` strings are verbatim variant
-      names; their payload fields are camelCase `chatId`/`msgId` --
-      per-variant `rename_all` upstream, verified against
-      `chatmail/core`'s `events.rs`.)
-  - A self-review pass also caught and fixed a wire-format bug here
-    before it ever ran against a real server: `get_message_list_items`
-    returns items whose id field is snake_case `msg_id` (upstream's
-    `rename_all` sits at the *enum* level, renaming only the variant
-    tags), not `msgId` as first assumed -- confirmed by serializing the
-    exact upstream serde attribute shape. With the old code every
-    message would have been silently skipped.
+- [x] `chat_list`/`message_list` models populated from the core;
+      `refresh_chat_list`, `open_chat`, `send_text`.
+- [x] `rust/postivene-app`: registers the context properties and loads
+      `qml/postivene.qml` into a `QQuickView`.
+- [x] `qml/`: root, cover, chat list, conversation.
+- [x] Live updates: both list pages re-fetch on the relevant core events.
+- [x] Two constraints the QML depends on, each covered by a test:
+      `qmetaobject` exposes Rust identifiers to QML verbatim
+      (`tests/qml_naming.rs`), and Qt 5.6 connects only `onFoo:` bindings
+      (`tests/qml_syntax.rs`).
 
 ## 4. Full messaging UI
 
-Chat list, multiple accounts, media, background sync and notifications via
-Sailfish's notification APIs.
-
-- [x] Account bootstrap: the app now checks for an existing configured
-      account at startup (`refresh_accounts` → `get_all_accounts`,
-      `AccountListModel`) and resumes it (`start_account_io`) instead of
-      showing the login form on every launch. Wire shape (tagged
-      `Configured`/`Unconfigured`, camelCase fields) pinned against the
-      real core in `real_server.rs`.
-- [x] Multi-account groundwork: `account_list` model exposed to QML with
-      id/display-name/address/configured per account. (Account-switcher
-      UI page itself not built yet.)
-- [x] Message delivery states: `MessageListItem` carries the core's
-      `state` (classic `DC_STATE_*` constants, verified against
-      `chatmail/core`'s `message.rs`), outgoing messages render ticks, and
-      the conversation refreshes on `MsgDelivered`/`MsgRead`/`MsgFailed`.
-      Opening a chat clears its fresh-message badge via `marknoticed_chat`
-      and the chat list re-reads unread counts on `MsgsNoticed`.
-- [ ] Media (images/files), contact pages, notifications via
-      nemo-qml-plugin-notifications, background sync/suspend handling.
-      Notifications and suspend behavior can only be meaningfully built
-      against a real Sailfish target.
+- [x] Account bootstrap and resume at startup; `account_list` model.
+- [x] Message delivery states (`DC_STATE_*`), ticks on outgoing messages,
+      unread-badge clearing via `marknoticed_chat`.
+- [ ] Media, contact pages, notifications, background sync and suspend
+      handling. The last two need a real Sailfish target.
+- [ ] Starting a conversation at all: see `docs/GAP-ANALYSIS.md`.
 
 ## 5. Onboarding & security UX
 
-Account creation on the default server, QR-based contact/verification
-setup, encryption-state indicators.
-
-- [x] Encryption-state indicators: `is_encrypted` on chat-list rows and
-      `show_padlock` per message, surfaced in the QML delegates per
-      upstream guidance (unencrypted marked with a letter symbol,
-      encrypted unmarked). Both flag spellings and semantics verified
-      against the real core (plain-email chat → unencrypted; fresh group
-      → encrypted).
-- [x] QR groundwork: `check_qr` shim method classifying QR payloads via
-      the core, result forwarded to QML as kind + raw JSON. Verified
-      offline against the real core with a `DCACCOUNT:` code (kind
-      `account`, snake_case payload fields -- same enum-level-rename
-      serde trap as MessageListItem, now documented on the method).
-- [ ] Camera-based QR scanning UI, `secure_join`/`set_config_from_qr`
-      flows, account creation on the default chatmail server (needs
-      network to the relay; also camera only exists on-device).
+- [x] Encryption indicators: `is_encrypted` per chat, `show_padlock` per
+      message, both verified against the real core.
+- [x] Onboarding rebuilt on the core's current API (`docs/ONBOARDING.md`):
+      `create_profile` via `add_transport_from_qr`,
+      `create_profile_with_email` via `add_or_update_transport`,
+      `check_invite`, `cancel_ongoing`, `list_transports`, and a typed
+      `configure_progress` signal. `WelcomePage`, `CreateProfilePage` and
+      `EmailLoginPage` replace the address-and-password `SetupPage`.
+      Both create paths reuse an existing unconfigured account.
+- [ ] Camera QR scanning and `secure_join`. Pasted invite links already
+      work.
+- [ ] Add as second device; restore from backup.
 
 ## 6. Packaging & release
 
-RPM via `sfdk`, OBS build, distribution through Chum / OpenRepos.
-
-- [x] `rpm/postivene.spec`, `postivene.desktop`, placeholder app icons
-      (`icons/<size>/postivene.png`, procedurally generated -- a simple
-      "mail boat" glyph, not real design work). Modeled on Whisperfish's
-      real `rpm/harbour-whisperfish.spec` (fetched from upstream, not
-      guessed) but simplified: no vendored C/C++ deps, just the Cargo
-      workspace, `qml/`, and a separately-obtained
-      `deltachat-rpc-server` binary (Milestone 1).
-- [x] Actually verified, not just written: installed `rpm`/`rpmspec` +
-      `desktop-file-utils` on this host, built `postivene-app` in release
-      mode, staged a source tarball, and ran a real
-      `rpmbuild -bb --nodeps rpm/postivene.spec` (`--nodeps` because the
-      Sailfish-specific `BuildRequires` package names don't exist in this
-      Ubuntu host's package database -- that part is inherently
-      untestable outside the real OBS/SDK chroot). It **produced an
-      actual `.rpm`** with every file landing where the spec and
-      `postivene-app`'s `qml_dir()`/`POSTIVENE_RPC_SERVER` lookups expect
-      it (`/usr/bin/postivene`, `/usr/share/postivene/qml/...`,
-      `/usr/libexec/postivene/deltachat-rpc-server`,
-      `/usr/share/applications/postivene.desktop`,
-      `/usr/share/icons/hicolor/*/apps/postivene.png`). The bundled
-      `deltachat-rpc-server` was a throwaway stand-in binary for this
-      dry run, not a real one -- Milestone 1 still needs to land before
-      this produces a package that actually functions.
-- [x] **Real `mb2` builds inside the real Platform SDK** (see
-      `docs/SDK-BUILD.md` for the full setup and every workaround):
-      `coderus/sailfishos-platform-sdk:5.0.0.43` pulled from Docker Hub
-      (via `mirror.gcr.io` -- the egress proxy here blocks Docker Hub's
-      CDN but not Google's mirror of it), set up as a chroot with the
-      stock sb2 targets, and `mb2 -t SailfishOS-5.0.0.43-<arch> build`
-      run against `rpm/postivene.spec` for **aarch64** (device arch) and
-      **i486** (emulator arch). The full Rust workspace including
-      `qmetaobject`/`qttypes` compiled and linked against the target's
-      actual Qt 5.6.3 stack through scratchbox2's cross toolchain, and
-      real `.rpm`s were produced. Spec fixes that came out of it:
-  - `%{_arch}` -> `%{_target_cpu}` for the bundled rpc-server path
-    (`%{_arch}` expands to `arm` on armv7hl, but the vendor dirs use
-    Sailfish arch names).
-  - `QT_INCLUDE_PATH`/`QT_LIBRARY_PATH` exported in `%build`: qttypes'
-    build script cannot exec the target `qmake` under sb2; with both
-    vars set it detects Qt from headers instead (Qt 5.6.3 found).
-  - i486 packages no longer try to bundle `deltachat-rpc-server`
-    (upstream ships no 32-bit x86 musl binary).
-  - `-j1` forced for cargo inside sb2 sessions: parallel cargo
-    reproducibly deadlocks under scratchbox2 (futex-wait on an unreaped
-    child during qmetaobject's C++ build).
-  - `rust/Cargo.lock` pinned to lockfile v3 -- the SDK's cargo 1.75
-    cannot read v4 lockfiles.
-  - Caveats: BuildRequires resolution was skipped (`-n`/`--nodeps`, no
-    network path to the Jolla repos from this environment -- the target
-    rust std had to be grafted/built by hand, see `docs/SDK-BUILD.md`),
-    so the `BuildRequires` list itself is still unproven against zypper;
-    and the produced RPMs have not been installed/run on a device or
-    emulator.
-- [x] Further packaging bugs found by auditing the spec against what
-      Sailfish actually ships, and fixed:
-  - `BuildRequires: qt5-qtdeclarative-devel-tools` names a package that
-    does not exist in Sailfish's qtdeclarative packaging (its subpackages
-    are `devel`, `qtquick`, `qtquicktest`, `qtdeclarativetools-devel`,
-    ...), and nothing in the spec used it. Dropped.
-  - Missing `BuildRequires: gcc-c++` (qmetaobject-rs compiles C++ glue via
-    the `cpp`/`cpp_build` crates) and `rust`/`rust-std-static`/`cargo`
-    version floors.
-  - `rust/Cargo.lock` stays at lockfile v3 (Cargo learned v4 only in
-    1.78, and Sailfish ships 1.75.0 -- newest `sailfishos/rust` tag is
-    `1.75.0+git2`). The workspace now also declares
-    `rust-version = "1.75"`, so a future `cargo update` on a modern host
-    cannot silently outrun the device toolchain. Verified independently
-    of the SDK: the whole workspace compiles under cargo 1.75.0.
-  - Offline builds: OBS/Chum build without network, so `cargo build`
-    cannot fetch crates there. The spec gained a `--with vendor` mode
-    (`vendor.tar.xz` + `vendor.toml`), generated by
-    `scripts/vendor-crates.sh`, following Whisperfish's approach.
-  - `postivene.desktop` wrapped its `Exec` in `env POSTIVENE_RPC_SERVER=...`;
-    Sailfish launches `X-Nemo-Application-Type=silica-qt5` apps through
-    the invoker/booster, which executes the binary itself, so the wrapper
-    is not reliably honoured. The bundled path is now a fallback inside
-    `rpc_server_path()` and `Exec=postivene`.
-- [x] **A device RPM actually exists**: `postivene-0.1.0-1.aarch64.rpm`,
-      built with `mb2 -t SailfishOS-5.0.0.43-aarch64` from a
-      from-scratch reproduction of the Platform SDK chroot
-      (`docs/SDK-BUILD.md` has the full recipe). Two more spec fixes came
-      out of it -- cargo must not be passed `--target` under sb2, and the
-      host triple's linker must be scratchbox2's `host-gcc` or the build
-      dies linking the first build script -- plus `QT_LIBRARY_PATH` now
-      uses `%{_libdir}` (Qt is in `/usr/lib64` on aarch64). Verified on
-      the package itself: aarch64 ELF linked against the target's Qt
-      5.6.3, and the bundled `deltachat-rpc-server` extracted from the
-      finished RPM still passes the full `real_server` integration suite
-      under `qemu-aarch64`.
-- [ ] `armv7hl` mb2 build (same rustlib graft as aarch64 needed).
-- [ ] An unrestricted-network `sfdk`/OBS build that exercises real
-      `BuildRequires` resolution. `scripts/build-rpm.sh` drives this in
-      one command once an SDK and a build target exist. Note that `sfdk
-      build` runs every SPEC section *except* `%prep` (it builds the
-      working tree in place), so the gitignored
-      `vendor/deltachat-rpc-server/<arch>/` binaries are picked up
-      directly -- no tarball or vendoring step is needed for a device
-      build inside the SDK.
+- [x] `rpm/postivene.spec`, `postivene.desktop`, placeholder icons.
+      Modeled on Whisperfish's spec, simplified: no vendored C/C++ deps.
+- [x] Real `mb2` builds inside the Platform SDK for **aarch64** and
+      **i486**, producing real RPMs (`docs/SDK-BUILD.md`). Spec constraints
+      that came out of it:
+  - `%{_target_cpu}`, not `%{_arch}`, for the bundled server path.
+  - `QT_INCLUDE_PATH`/`QT_LIBRARY_PATH` exported in `%build`: qttypes cannot
+    exec the target `qmake` under sb2.
+  - i486 bundles no server; upstream ships no 32-bit x86 musl binary.
+  - `-j1` for cargo inside sb2: parallel cargo deadlocks there.
+  - cargo must not be passed `--target` under sb2, and the host triple's
+    linker must be scratchbox2's `host-gcc`.
+  - `Cargo.lock` stays v3; the SDK's cargo 1.75 cannot read v4.
+  - `--with vendor` mode for OBS/Chum, which build without network.
+  - `Exec=postivene`: the invoker does not honour an `Exec=env FOO=bar`
+    wrapper, so the bundled server path is a fallback inside the binary.
+- [x] A device RPM exists: `postivene-0.1.0-1.aarch64.rpm`, aarch64 ELF
+      linked against the target's Qt 5.6.3, with a bundled server that still
+      passes the integration suite under `qemu-aarch64`.
+- [ ] `armv7hl` build.
+- [ ] An unrestricted-network `sfdk`/OBS build exercising real
+      `BuildRequires` resolution.
 - [ ] Chum/OpenRepos submission.
 
-## Sailfish OS 5.2 ("Finlayson") readiness
+## Sailfish OS 5.2 readiness
 
-Checked 2026-08-27, since 5.2 is what the current Jolla phone ships:
+No public 5.2 SDK build target exists yet, so device RPMs are built against
+a 5.0 target. Sailfish keeps binary compatibility across such point
+releases, but that is untested here. Sailfish's Rust is 1.75.0 and its Qt is
+5.6.3; `qttypes` requires Qt >= 5.6.
 
-- **No public 5.2 SDK build target yet.** 5.2 (5.2.0.15/.16) went out
-  Jolla-Phone-only, and developers report no 5.2 entry under the SDK's
-  `sdk/targets/` listing or `sfdk tools list -a`
-  (<https://forum.sailfishos.org/t/is-there-an-sfdk-usable-build-target-of-sfos-5-2-0-16-to-allow-building-programs-for-j2/31462>).
-  Until Jolla publishes one, device RPMs must be built against a 5.0
-  target; Sailfish keeps binary compatibility across such point releases,
-  so a 5.0-built package is expected to install and run on 5.2, but that
-  expectation is untested here.
-- **Toolchain:** Sailfish's Rust is 1.75.0 and its system Qt is still
-  5.6.3 (`sailfishos/qtbase`'s newest `upgrade-*` branch is
-  `upgrade-5.0.0`, `MODULE_VERSION = 5.6.3`). `qttypes` requires Qt >= 5.6,
-  so the bar is cleared by exactly one patch release; qmetaobject-rs is
-  proven on Sailfish by Whisperfish. Everything in this repo has only ever
-  been compiled against Qt 5.15, so the Qt 5.6 compile itself remains
-  unverified.
+## Verification
+
+`make check` runs everything below from a clean checkout: no phone, account,
+or network. See `docs/ENGINEERING.md`.
+
+- Lints at `clippy::pedantic`, `missing_docs` and `unsafe_code` denied, plus
+  two banned methods in `rust/clippy.toml`.
+- `msrv`: the workspace compiles on Rust 1.75.0 with warnings denied.
+- The real page files load and run in tests against `tests/silica-stubs/`.
+  The stubs imitate no layout, and pages using Silica's `EnterKey` cannot be
+  loaded at all.
+- Contract tests pin the JSON-RPC call sequence of each onboarding action.
+- `real_core.rs` distinguishes a request the real core could not decode from
+  one it could not deliver.
 
 ## Environment constraint
 
-This working environment has no Sailfish SDK, emulator, or device, and no
-network path to Sailfish OBS. Everything markable as done above was
-built/tested with a host Rust + Qt5 toolchain (Qt5 dev packages installed
-locally in this environment for that purpose); anything requiring the
-actual Sailfish SDK/mb2/sfdk or on-device testing is left unchecked and
-called out explicitly rather than assumed to work.
+No Sailfish SDK, emulator, device, or OBS access here. Anything requiring
+them is left unchecked above rather than assumed.

@@ -13,3 +13,22 @@ license = "MPL-2.0"
 # `cargo update` on a newer host from resolving dependencies that no longer
 # build on the toolchain the device target actually has.
 rust-version = "1.75"
+# Never published: these are workspace-internal crates wired by path, and an
+# application, not a library. Saying so is also what lets cargo-deny treat the
+# internal path deps as private rather than wildcard dependencies (deny.toml,
+# `allow-wildcard-paths`) -- that allowance does not apply to publishable
+# crates, because crates.io forbids path deps in the first place.
+publish = false
+
+# Lints live at the workspace level so a bare `cargo clippy` fails the same
+# way CI's `-D warnings` does, instead of only warning locally.
+[workspace.lints.rust]
+unsafe_code = "deny"
+missing_docs = "deny"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+disallowed_methods = "deny"

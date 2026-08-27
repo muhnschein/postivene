@@ -1,0 +1,16 @@
+# Two failures that only reproduce on device, encoded so they cannot recur.
+
+disallowed-methods = [
+    # Building a tokio runtime on the Qt main thread panics on the Sailfish
+    # aarch64 build. Everything goes through `CoreRuntime`, which owns its
+    # own thread. `Builder::build` is not banned: `#[tokio::main]` and
+    # `#[tokio::test]` expand to it.
+    { path = "tokio::runtime::Runtime::new", reason = "use CoreRuntime (postivene-shim/src/runtime.rs)" },
+
+    # qmetaobject 0.2.10 truncates the sub-second part of a Duration to 0,
+    # so anything under a second fires immediately. Pass whole seconds.
+    { path = "qmetaobject::single_shot", reason = "pass whole-second Durations only" },
+]
+
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true

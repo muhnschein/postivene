@@ -1,11 +1,7 @@
-//! Stand-in for `deltachat-rpc-server` used only by this crate's own tests.
+//! Stand-in for `deltachat-rpc-server`, for this crate's tests.
 //!
-//! Speaks the same wire format (newline-delimited JSON-RPC 2.0 on
-//! stdin/stdout) and handles requests concurrently (each line is dispatched
-//! to its own task), so the test suite can exercise request/response
-//! correlation, out-of-order concurrent replies, error propagation, and the
-//! `get_next_event_batch` long-poll pattern without needing a real Delta
-//! Chat core binary.
+//! Same wire format, one task per request, so the suite can exercise
+//! correlation, out-of-order replies, errors, and the event long poll.
 
 use std::sync::Arc;
 
@@ -42,13 +38,13 @@ async fn main() {
             let response = match method.as_str() {
                 "get_system_info" => ok(
                     id,
-                    json!({"name": "fake-rpc-test-server", "version": "0.0.0-test"}),
+                    &json!({"name": "fake-rpc-test-server", "version": "0.0.0-test"}),
                 ),
-                "echo" => ok(id, params),
+                "echo" => ok(id, &params),
                 "add" => {
                     let nums = params.as_array().cloned().unwrap_or_default();
                     let sum: f64 = nums.iter().filter_map(Value::as_f64).sum();
-                    ok(id, json!(sum))
+                    ok(id, &json!(sum))
                 }
                 "fail" => err(id, -32000, "boom"),
                 "slow" => {
@@ -58,7 +54,7 @@ async fn main() {
                         .and_then(Value::as_u64)
                         .unwrap_or(0);
                     tokio::time::sleep(std::time::Duration::from_millis(ms)).await;
-                    ok(id, json!("slow-done"))
+                    ok(id, &json!("slow-done"))
                 }
                 "get_next_event_batch" => {
                     let mut count = batch_counter.lock().await;
@@ -67,15 +63,14 @@ async fn main() {
                         let n = *count;
                         ok(
                             id,
-                            json!([{
+                            &json!([{
                                 "contextId": 1,
                                 "event": {"kind": "Info", "msg": format!("batch {n}")},
                             }]),
                         )
                     } else {
-                        // No more events: emulate the real long-poll
-                        // behavior of blocking until something new
-                        // happens, which in this test double is "never".
+                        // Blocks forever, like the real long poll with no
+                        // events.
                         drop(count);
                         std::future::pending::<()>().await;
                         unreachable!("pending future never resolves")
@@ -94,7 +89,7 @@ async fn main() {
     }
 }
 
-fn ok(id: Option<Value>, result: Value) -> Option<Value> {
+fn ok(id: Option<Value>, result: &Value) -> Option<Value> {
     id.map(|id| json!({"jsonrpc": "2.0", "id": id, "result": result}))
 }
 

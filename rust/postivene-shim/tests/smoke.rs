@@ -1,12 +1,17 @@
-//! Drives a real (offscreen) Qt event loop to prove the trickiest part of
-//! the architecture actually works end-to-end: a `qt_method` call kicks
-//! off async work on a background tokio runtime, and the result comes back
-//! through `queued_callback` to mutate `qt_property`s / fire `qt_signal`s
-//! back on the Qt thread -- not just that the types compile.
-//!
-//! Uses `fake-health-server` (see `src/bin/fake_health_server.rs`) instead
-//! of a real `deltachat-rpc-server`, which isn't available in this
-//! environment.
+//! The async round trip, end to end: a `qt_method` starts work on the
+//! background runtime and the result returns through `queued_callback` to
+//! mutate `qt_property`s on the Qt thread.
+
+// Qt harness: needs `unsafe` for `env::set_var` before Qt starts
+// (`unused_unsafe` because it is only unsafe from edition 2024 on),
+// `borrow_as_ptr` for the engine pointer, and `single_shot` with
+// whole-second Durations.
+#![allow(
+    unsafe_code,
+    unused_unsafe,
+    clippy::borrow_as_ptr,
+    clippy::disallowed_methods
+)]
 
 use std::time::Duration;
 
@@ -15,10 +20,8 @@ use qmetaobject::*;
 
 #[test]
 fn health_check_round_trips_through_qt_event_loop() {
-    // SAFETY: this test is the only thing running in this process and Qt
-    // must be told which QPA platform to use before the first QGuiApplication
-    // is constructed; there is no safe alternative for setting process
-    // environment this early in a single-threaded test binary.
+    // SAFETY: single-threaded test binary, and Qt needs its platform before
+    // the first QGuiApplication.
     unsafe {
         std::env::set_var("QT_QPA_PLATFORM", "offscreen");
     }
@@ -26,9 +29,7 @@ fn health_check_round_trips_through_qt_event_loop() {
     let core_box = QObjectBox::new(DeltaChatCore::default());
 
     let mut engine = QmlEngine::new();
-    // Registering the object with the engine is what creates its backing
-    // C++ QObject; `QPointer::from` requires that to have already
-    // happened, so this must run before we take a `QPointer` to it.
+    // Creates the backing C++ QObject, which `QPointer::from` requires.
     engine.set_object_property("core".into(), core_box.pinned());
     let core_ptr: QPointer<DeltaChatCore> = QPointer::from(core_box.pinned().borrow());
 
@@ -36,10 +37,7 @@ fn health_check_round_trips_through_qt_event_loop() {
     core_box.pinned().borrow_mut().start(server_path);
 
     let health_check_ptr = core_ptr.clone();
-    // NOTE: `qmetaobject::single_shot` (0.2.10) mis-converts the sub-second
-    // part of a `Duration` (`subsec_nanos() * (1e-6 as u32)`, and
-    // `1e-6 as u32` truncates to `0`), so any non-whole-second `Duration`
-    // schedules as if it were 0ms. Use whole seconds to sidestep it.
+    // Whole seconds only; see clippy.toml.
     single_shot(Duration::from_secs(1), move || {
         if let Some(this) = health_check_ptr.as_pinned() {
             this.borrow_mut().check_health();
@@ -48,9 +46,8 @@ fn health_check_round_trips_through_qt_event_loop() {
 
     let engine_ptr = &engine as *const QmlEngine;
     single_shot(Duration::from_secs(3), move || {
-        // SAFETY: `engine` outlives this callback: the callback only ever
-        // fires while `engine.exec()` below is still running on this same
-        // thread, and `engine` isn't dropped until after `exec()` returns.
+        // SAFETY: fires only while `exec()` is running on this thread, and
+        // `engine` outlives it.
         unsafe {
             (*engine_ptr).quit();
         }

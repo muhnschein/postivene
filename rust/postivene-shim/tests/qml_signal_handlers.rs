@@ -8,7 +8,18 @@
 //!
 //! It also pins how signal *parameters* reach QML: qmetaobject writes the
 //! Rust identifiers into the metaobject verbatim, so handlers see
-//! snake_case names (`context_id`, not `contextId`).
+//! `snake_case` names (`context_id`, not `contextId`).
+
+// Qt harness: needs `unsafe` for `env::set_var` before Qt starts
+// (`unused_unsafe` because it is only unsafe from edition 2024 on),
+// `borrow_as_ptr` for the engine pointer, and `single_shot` with
+// whole-second Durations.
+#![allow(
+    unsafe_code,
+    unused_unsafe,
+    clippy::borrow_as_ptr,
+    clippy::disallowed_methods
+)]
 
 use postivene_shim::DeltaChatCore;
 use qmetaobject::*;

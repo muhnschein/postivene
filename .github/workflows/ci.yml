@@ -1,0 +1,102 @@
+name: ci
+
+# `main` only: a bare `push:` beside `pull_request:` runs everything twice.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A new push supersedes the run in flight; everything else is a group of
+# one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Lints, unit tests, and the Qt event-loop tests. The toolchain comes from
+  # rust-toolchain.toml.
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update
+      # qml-module-qtquick2 is the QtQuick runtime plugin, which the -dev
+      # packages do not pull in.
+      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qtdeclarative5-dev-tools qml-module-qtquick2
+      - run: rustc --version && cargo --version
+      - run: cd rust && cargo fmt --all --check
+      - run: cd rust && cargo clippy --workspace --all-targets -- -D warnings
+      # Also set by the tests; here so a failure is never a missing
+      # display.
+      - run: cd rust && cargo test --workspace
+        env:
+          QT_QPA_PLATFORM: offscreen
+      # Broken intra-doc links are errors.
+      - run: cd rust && RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
+
+  # The device toolchain floor: Sailfish ships Rust 1.75.0 and does not get
+  # to pick a newer one.
+  msrv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev
+      - run: rustup toolchain install 1.75.0 --profile minimal
+      - run: cd rust && cargo +1.75.0 check --workspace --all-targets
+        env:
+          RUSTFLAGS: -D warnings
+      # Checked here, next to the toolchain it constrains.
+      - run: ./ci/check-lockfile.sh
+
+  # What no fake server can prove: that our shapes are the real core's.
+  # Offline, against the pinned binary.
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update
+      # real_core drives the shim through a QML probe.
+      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qml-module-qtquick2
+      # Checksum-pinned on the wheel and the extracted binary.
+      - run: ./scripts/fetch-rpc-server.sh
+      - run: cd rust && cargo test -p deltachat-jsonrpc --test real_server
+        env:
+          DELTACHAT_RPC_SERVER: vendor/deltachat-rpc-server/x86_64/deltachat-rpc-server
+      - run: cd rust && cargo test -p postivene-shim --test real_core
+        env:
+          DELTACHAT_RPC_SERVER: vendor/deltachat-rpc-server/x86_64/deltachat-rpc-server
+          QT_QPA_PLATFORM: offscreen
+
+  # What decides whether the RPM installs and the launcher works; none of it
+  # is reachable from `cargo test`.
+  packaging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y qtdeclarative5-dev-tools rpm desktop-file-utils shellcheck
+      - run: ./ci/qml-lint.sh
+      - run: ./ci/packaging-lint.sh
+
+  # Licences matter here: we ship beside a GPL-family binary
+  # (docs/LICENSING.md).
+  deny:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          manifest-path: rust/Cargo.toml

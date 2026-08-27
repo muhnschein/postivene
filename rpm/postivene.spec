@@ -77,6 +77,16 @@ BuildRequires:  pkgconfig(Qt5Quick)
 %define rusttarget x86_64-unknown-linux-gnu
 %endif
 
+# Upstream publishes no 32-bit x86 musl build of deltachat-rpc-server, so
+# i486 (SDK emulator) packages cannot bundle one: the app there needs a
+# server supplied via POSTIVENE_RPC_SERVER instead. Every device arch
+# (aarch64, armv7hl) bundles the server as usual.
+%ifarch %ix86
+%define bundle_rpc_server 0
+%else
+%define bundle_rpc_server 1
+%endif
+
 %define builddir rust/target/%{rusttarget}/release
 %define appdatadir %{_datadir}/%{name}
 %define appexecdir %{_libexecdir}/%{name}
@@ -111,7 +121,23 @@ cargo --version
 # cites). Unverified against a real SDK build so far; expect to iterate
 # here once one is available.
 export SB2_RUST_TARGET_TRIPLE=%{rusttarget}
+
+# qttypes' build script shells out to `qmake -query` by default, but rust
+# build scripts running under sb2 cannot reliably exec the target's qmake
+# binary. Both env vars set together make qttypes skip qmake entirely and
+# detect the Qt version from qtcoreversion.h (verified against the crate's
+# build.rs) -- these are the target-rootfs paths as seen from inside sb2.
+export QT_INCLUDE_PATH=/usr/include/qt5
+export QT_LIBRARY_PATH=/usr/lib
+
+# Under scratchbox2, parallel cargo deadlocks (observed reproducibly at the
+# default -j4: cargo futex-waits forever on an unreaped child while
+# compiling qmetaobject's C++ glue). sb2 rust builds are effectively
+# single-threaded anyway (docs/SCOPE.md §7), so force -j1 there; outside
+# sb2 (e.g. a native OBS worker) let cargo pick its own parallelism.
+# SBOX_SESSION_DIR is set by sb2 itself inside build sessions.
 cargo build \
+    ${SBOX_SESSION_DIR:+-j1} \
     --release \
     --locked \
 %if %{with vendor}
@@ -144,8 +170,10 @@ install -Dm 755 %{builddir}/postivene \
 # %{_arch} would look for vendor/deltachat-rpc-server/arm/ while
 # scripts/fetch-rpc-server.sh writes armv7hl/. %{_target_cpu} keeps the
 # Sailfish arch names (armv7hl, aarch64, x86_64) that the script uses.
+%if 0%{?bundle_rpc_server}
 install -Dm 755 vendor/deltachat-rpc-server/%{_target_cpu}/deltachat-rpc-server \
     %{buildroot}%{appexecdir}/deltachat-rpc-server
+%endif
 
 # MPL-2.0 obligation for bundling deltachat-rpc-server's Executable Form:
 # recipients must be told how to obtain its Source Code Form. See
@@ -176,6 +204,8 @@ install -Dm 644 icons/256x256/postivene.png \
 %defattr(-,root,root,-)
 %{_bindir}/postivene
 %{appdatadir}
+%if 0%{?bundle_rpc_server}
 %{appexecdir}/deltachat-rpc-server
+%endif
 %{_datadir}/applications/%{name}.desktop
 %{_datadir}/icons/hicolor/*/apps/%{name}.png

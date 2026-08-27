@@ -2,6 +2,11 @@
 /target/
 **/target/
 Cargo.lock.bak
+# `cargo vendor` output, generated locally for offline builds inside the
+# Sailfish SDK chroot (scratchbox2 has no reliable network path to
+# crates.io in this environment) -- see docs/MILESTONES.md milestone 6
+/rust/vendor/
+/rust/.cargo/
 
 # Sailfish SDK / mb2 / sfdk build artifacts
 RPMS/

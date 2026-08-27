@@ -9,6 +9,7 @@
 
 mod core;
 mod models;
+mod runtime;
 
 pub use crate::core::DeltaChatCore;
 pub use models::{ChatListItem, ChatListModel, MessageListItem, MessageListModel};

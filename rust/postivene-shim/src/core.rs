@@ -4,11 +4,11 @@ use std::sync::Arc;
 
 use deltachat_jsonrpc::{spawn_event_loop, CoreEvent, RpcClient};
 use qmetaobject::*;
-use tokio::runtime::Runtime;
 
 use crate::models::{
     AccountItem, AccountListModel, ChatListItem, ChatListModel, MessageListItem, MessageListModel,
 };
+use crate::runtime::CoreRuntime;
 
 /// `DeltaChatCore` is the one QObject that owns the connection to a spawned
 /// `deltachat-rpc-server`: it starts the process, keeps the tokio runtime
@@ -120,7 +120,7 @@ pub struct DeltaChatCore {
     pub qr_error: qt_signal!(message: QString),
 
     rpc: Option<Arc<RpcClient>>,
-    runtime: Option<Arc<Runtime>>,
+    runtime: Option<CoreRuntime>,
 }
 
 impl DeltaChatCore {
@@ -129,8 +129,10 @@ impl DeltaChatCore {
             return;
         }
 
-        let runtime = match Runtime::new() {
-            Ok(rt) => Arc::new(rt),
+        // Built on its own thread -- see `crate::runtime` for why the Qt
+        // main thread must not build (or drop) the runtime itself.
+        let runtime = match CoreRuntime::new() {
+            Ok(runtime) => runtime,
             Err(err) => {
                 self.status = format!("error: failed to start async runtime: {err}").into();
                 self.status_changed();
@@ -226,7 +228,7 @@ impl DeltaChatCore {
     fn forward_events(
         ptr: QPointer<Self>,
         rpc: Option<Arc<RpcClient>>,
-        runtime: Option<Arc<Runtime>>,
+        runtime: Option<CoreRuntime>,
     ) {
         let (Some(rpc), Some(runtime)) = (rpc, runtime) else {
             return;

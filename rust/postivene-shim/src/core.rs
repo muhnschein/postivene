@@ -1,14 +1,30 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use deltachat_jsonrpc::{spawn_event_loop, CoreEvent, RpcClient};
 use qmetaobject::*;
 
-use crate::models::{
-    AccountItem, AccountListModel, ChatListItem, ChatListModel, MessageListItem, MessageListModel,
-};
+use crate::models::{AccountItem, AccountListModel};
 use crate::runtime::CoreRuntime;
+
+/// The one live connection to the spawned server, shared with the models
+/// QML instantiates per chat. There is exactly one per process:
+/// [`DeltaChatCore::start`] refuses a second.
+static CONNECTION: Mutex<Option<(Arc<RpcClient>, CoreRuntime)>> = Mutex::new(None);
+
+/// The transport and runtime, once [`DeltaChatCore::start`] has completed.
+pub(crate) fn connection() -> Option<(Arc<RpcClient>, CoreRuntime)> {
+    CONNECTION
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .clone()
+}
+
+fn set_connection(value: Option<(Arc<RpcClient>, CoreRuntime)>) {
+    *CONNECTION
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = value;
+}
 
 /// Default chatmail server, as the `dcaccount:` payload
 /// `add_transport_from_qr` takes. See `docs/ONBOARDING.md`.
@@ -50,12 +66,6 @@ pub struct DeltaChatCore {
     /// Configuration of `account_id` finished, successfully or not.
     pub configure_done: qt_signal!(account_id: u32, success: bool, error: QString),
 
-    /// A message was accepted by the core and appended to
-    /// [`DeltaChatCore::message_list`].
-    pub message_sent: qt_signal!(account_id: u32, chat_id: u32, message_id: u32),
-    /// Sending a message failed; nothing was appended.
-    pub send_error: qt_signal!(message: QString),
-
     /// Spawn `rpc_server_path` and drain its event stream. No-op if
     /// already started.
     pub start: qt_method!(fn(&mut self, rpc_server_path: QString)),
@@ -70,29 +80,6 @@ pub struct DeltaChatCore {
     /// `create_profile_with_email` (`docs/ONBOARDING.md`).
     pub configure_account:
         qt_method!(fn(&mut self, account_id: u32, addr: QString, password: QString)),
-
-    /// Send a plain-text message.
-    pub send_text: qt_method!(fn(&mut self, account_id: u32, chat_id: u32, text: QString)),
-
-    /// Chat list model, repopulated by `refresh_chat_list`.
-    pub chat_list: qt_property!(RefCell<ChatListModel>; CONST),
-
-    /// Conversation model, repopulated by `open_chat` and appended to by
-    /// `send_text`.
-    pub message_list: qt_property!(RefCell<MessageListModel>; CONST),
-
-    /// Repopulate `chat_list`; errors via `chat_list_error`.
-    pub refresh_chat_list: qt_method!(fn(&mut self, account_id: u32)),
-
-    /// Repopulate `message_list` with `chat_id`'s messages.
-    pub open_chat: qt_method!(fn(&mut self, account_id: u32, chat_id: u32)),
-
-    /// Repopulating [`DeltaChatCore::chat_list`] failed; the model still
-    /// holds whatever it held before.
-    pub chat_list_error: qt_signal!(message: QString),
-    /// Repopulating [`DeltaChatCore::message_list`] failed; the model
-    /// still holds whatever it held before.
-    pub message_list_error: qt_signal!(message: QString),
 
     /// All accounts known to the core.
     pub account_list: qt_property!(RefCell<AccountListModel>; CONST),
@@ -188,8 +175,9 @@ impl DeltaChatCore {
                 Ok(rpc) => {
                     {
                         let mut this_mut = this.borrow_mut();
-                        this_mut.rpc = Some(rpc);
+                        this_mut.rpc = Some(rpc.clone());
                         this_mut.status = QString::from("ready");
+                        set_connection(this_mut.runtime.clone().map(|rt| (rpc, rt)));
                     }
                     this.borrow().status_changed();
                     Self::forward_events(
@@ -203,6 +191,7 @@ impl DeltaChatCore {
                     // by the already-started guard.
                     let mut this_mut = this.borrow_mut();
                     this_mut.runtime = None;
+                    set_connection(None);
                     this_mut.status = format!("error: {err}").into();
                     drop(this_mut);
                     this.borrow().status_changed();
@@ -394,262 +383,6 @@ impl DeltaChatCore {
             .await;
             done((account_id, result));
         });
-    }
-
-    /// Send a plain-text message to `chat_id`.
-    pub fn send_text(&mut self, account_id: u32, chat_id: u32, text: QString) {
-        let Some((rpc, runtime)) = self.connection() else {
-            self.send_error(QString::from("not started"));
-            return;
-        };
-
-        let ptr: QPointer<Self> = QPointer::from(&*self);
-        let done = queued_callback(
-            move |result: (u32, u32, Result<(u32, String, i64, bool, u32), String>)| {
-                let Some(this) = ptr.as_pinned() else { return };
-                let (account_id, chat_id, result) = result;
-                match result {
-                    Ok((message_id, text, timestamp, show_padlock, state)) => {
-                        this.borrow_mut()
-                            .message_list
-                            .borrow_mut()
-                            .push(MessageListItem {
-                                message_id,
-                                text: text.into(),
-                                is_outgoing: true,
-                                timestamp,
-                                show_padlock,
-                                state,
-                            });
-                        this.borrow().message_sent(account_id, chat_id, message_id);
-                    }
-                    Err(err) => this.borrow().send_error(err.into()),
-                }
-            },
-        );
-
-        let text = text.to_string();
-        runtime.spawn(async move {
-            // `misc_send_msg` params, positional: account_id, chat_id, text,
-            // file, filename, location, quoted_message_id.
-            let result = rpc
-                .call::<_, (u32, serde_json::Value)>(
-                    "misc_send_msg",
-                    (
-                        account_id,
-                        chat_id,
-                        Some(text),
-                        Option::<String>::None,
-                        Option::<String>::None,
-                        Option::<(f64, f64)>::None,
-                        Option::<u32>::None,
-                    ),
-                )
-                .await
-                .map(|(message_id, message)| {
-                    let text = message
-                        .get("text")
-                        .and_then(serde_json::Value::as_str)
-                        .unwrap_or_default()
-                        .to_string();
-                    let timestamp = message
-                        .get("timestamp")
-                        .and_then(serde_json::Value::as_i64)
-                        .unwrap_or(0);
-                    let show_padlock = message
-                        .get("showPadlock")
-                        .and_then(serde_json::Value::as_bool)
-                        .unwrap_or(false);
-                    // DC_STATE_* constants are small; anything else reads
-                    // as "no state".
-                    let state = message
-                        .get("state")
-                        .and_then(serde_json::Value::as_u64)
-                        .and_then(|v| u32::try_from(v).ok())
-                        .unwrap_or(0);
-                    (message_id, text, timestamp, show_padlock, state)
-                })
-                .map_err(|err| err.to_string());
-            done((account_id, chat_id, result));
-        });
-    }
-
-    /// Repopulate [`DeltaChatCore::chat_list`] from the core.
-    pub fn refresh_chat_list(&mut self, account_id: u32) {
-        let Some((rpc, runtime)) = self.connection() else {
-            self.chat_list_error(QString::from("not started"));
-            return;
-        };
-
-        let ptr: QPointer<Self> = QPointer::from(&*self);
-        let done = queued_callback(move |result: Result<Vec<ChatListItem>, String>| {
-            let Some(this) = ptr.as_pinned() else { return };
-            match result {
-                Ok(items) => this.borrow_mut().chat_list.borrow_mut().reset_data(items),
-                Err(err) => this.borrow().chat_list_error(err.into()),
-            }
-        });
-
-        runtime.spawn(async move {
-            let result = Self::fetch_chat_list(&rpc, account_id)
-                .await
-                .map_err(|err| err.to_string());
-            done(result);
-        });
-    }
-
-    async fn fetch_chat_list(
-        rpc: &RpcClient,
-        account_id: u32,
-    ) -> Result<Vec<ChatListItem>, deltachat_jsonrpc::RpcError> {
-        let entries: Vec<u32> = rpc
-            .call(
-                "get_chatlist_entries",
-                (
-                    account_id,
-                    Option::<u32>::None,
-                    Option::<String>::None,
-                    Option::<u32>::None,
-                ),
-            )
-            .await?;
-        let items: HashMap<u32, serde_json::Value> = rpc
-            .call(
-                "get_chatlist_items_by_entries",
-                (account_id, entries.clone()),
-            )
-            .await?;
-
-        let mut result = Vec::with_capacity(entries.len());
-        for chat_id in entries {
-            let Some(item) = items.get(&chat_id) else {
-                continue;
-            };
-            if item.get("kind").and_then(serde_json::Value::as_str) != Some("ChatListItem") {
-                continue;
-            }
-            result.push(ChatListItem {
-                chat_id,
-                name: item
-                    .get("name")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or_default()
-                    .into(),
-                preview: item
-                    .get("summaryText2")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or_default()
-                    .into(),
-                unread_count: item
-                    .get("freshMessageCounter")
-                    .and_then(serde_json::Value::as_u64)
-                    .and_then(|v| u32::try_from(v).ok())
-                    .unwrap_or(0),
-                is_encrypted: item
-                    .get("isEncrypted")
-                    .and_then(serde_json::Value::as_bool)
-                    .unwrap_or(false),
-            });
-        }
-        Ok(result)
-    }
-
-    /// Repopulate [`DeltaChatCore::message_list`] with `chat_id`'s
-    /// messages and clear the chat's fresh-message badge.
-    pub fn open_chat(&mut self, account_id: u32, chat_id: u32) {
-        let Some((rpc, runtime)) = self.connection() else {
-            self.message_list_error(QString::from("not started"));
-            return;
-        };
-
-        let ptr: QPointer<Self> = QPointer::from(&*self);
-        let done = queued_callback(move |result: Result<Vec<MessageListItem>, String>| {
-            let Some(this) = ptr.as_pinned() else { return };
-            match result {
-                Ok(items) => this
-                    .borrow_mut()
-                    .message_list
-                    .borrow_mut()
-                    .reset_data(items),
-                Err(err) => this.borrow().message_list_error(err.into()),
-            }
-        });
-
-        runtime.spawn(async move {
-            let result = Self::fetch_messages(&rpc, account_id, chat_id)
-                .await
-                .map_err(|err| err.to_string());
-            let fetched_ok = result.is_ok();
-            done(result);
-            if fetched_ok {
-                // Clear the fresh-message badge. The chat list refreshes
-                // its unread counts on the resulting MsgsNoticed event.
-                let _ = rpc
-                    .call::<_, ()>("marknoticed_chat", (account_id, chat_id))
-                    .await;
-            }
-        });
-    }
-
-    async fn fetch_messages(
-        rpc: &RpcClient,
-        account_id: u32,
-        chat_id: u32,
-    ) -> Result<Vec<MessageListItem>, deltachat_jsonrpc::RpcError> {
-        let items: Vec<serde_json::Value> = rpc
-            .call(
-                "get_message_list_items",
-                (account_id, chat_id, false, false),
-            )
-            .await?;
-
-        let mut result = Vec::with_capacity(items.len());
-        for item in items {
-            if item.get("kind").and_then(serde_json::Value::as_str) != Some("message") {
-                continue;
-            }
-            // `rename_all` sits at the enum level upstream, renaming
-            // variants but not fields: this really is snake_case on the
-            // wire. `msgId` accepted in case that changes.
-            let Some(message_id) = item
-                .get("msg_id")
-                .or_else(|| item.get("msgId"))
-                .and_then(serde_json::Value::as_u64)
-            else {
-                continue;
-            };
-            // An id that does not fit u32 is not addressable by the core's
-            // own API; skip rather than wrap into another message's id.
-            let Ok(message_id) = u32::try_from(message_id) else {
-                continue;
-            };
-            let message: serde_json::Value =
-                rpc.call("get_message", (account_id, message_id)).await?;
-            result.push(MessageListItem {
-                message_id,
-                text: message
-                    .get("text")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or_default()
-                    .into(),
-                // Contact id 1 is the well-known DC_CONTACT_ID_SELF.
-                is_outgoing: message.get("fromId").and_then(serde_json::Value::as_u64) == Some(1),
-                timestamp: message
-                    .get("timestamp")
-                    .and_then(serde_json::Value::as_i64)
-                    .unwrap_or(0),
-                show_padlock: message
-                    .get("showPadlock")
-                    .and_then(serde_json::Value::as_bool)
-                    .unwrap_or(false),
-                state: message
-                    .get("state")
-                    .and_then(serde_json::Value::as_u64)
-                    .and_then(|v| u32::try_from(v).ok())
-                    .unwrap_or(0),
-            });
-        }
-        Ok(result)
     }
 
     /// Repopulate [`DeltaChatCore::account_list`] from the core.

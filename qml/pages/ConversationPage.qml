@@ -1,6 +1,11 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
+import Postivene 1.0
 
+/*
+ * One conversation. The messages come from a ChatMessages instance owned by
+ * this page, so a second open conversation cannot reset this one's model.
+ */
 Page {
     id: page
 
@@ -8,32 +13,26 @@ Page {
     property int chatId
     property string chatName
 
-    Component.onCompleted: core.open_chat(accountId, chatId)
+    ChatMessages {
+        id: messages
+        objectName: "messages"
+        account_id: page.accountId
+        chat_id: page.chatId
+        onError: page.errorMessage = message
+        onSent: textField.text = ""
+    }
 
+    property string errorMessage: ""
+
+    // Qt 5.6 handler syntax; see WelcomePage.qml.
     Connections {
         target: core
-
-        // Qt 5.6 handler syntax; see WelcomePage.qml.
-        onMessage_sent: {
-            if (account_id === page.accountId && chat_id === page.chatId) {
-                textField.text = ""
-            }
-        }
-
-        onCore_event: {
-            if (context_id !== page.accountId) {
-                return
-            }
-            // Delivery-state events update ticks; the others change
-            // content.
-            if (kind === "IncomingMsg" || kind === "MsgsChanged"
-                    || kind === "MsgDelivered" || kind === "MsgRead"
-                    || kind === "MsgFailed") {
-                // MsgsChanged carries chatId 0 for "several chats".
-                var eventChatId = JSON.parse(payload_json).chatId
-                if (eventChatId === page.chatId || eventChatId === 0) {
-                    core.open_chat(page.accountId, page.chatId)
-                }
+        // The model ignores events for other accounts and chats itself.
+        onCore_event: messages.handle_event(context_id, kind, payload_json)
+        // A model created before the core is up has nothing to load from.
+        onStatus_changed: {
+            if (core.status === "ready") {
+                messages.reload()
             }
         }
     }
@@ -46,7 +45,7 @@ Page {
             right: parent.right
             bottom: inputRow.top
         }
-        model: core.message_list
+        model: messages.rows
 
         header: PageHeader {
             title: page.chatName
@@ -62,6 +61,7 @@ Page {
 
             Label {
                 id: messageLabel
+                objectName: "messageLabel"
                 anchors {
                     left: parent.left
                     right: parent.right
@@ -93,6 +93,21 @@ Page {
         }
     }
 
+    Label {
+        objectName: "errorLabel"
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: inputRow.top
+            leftMargin: Theme.horizontalPageMargin
+            rightMargin: Theme.horizontalPageMargin
+        }
+        wrapMode: Text.Wrap
+        visible: page.errorMessage.length > 0
+        color: Theme.errorColor
+        text: page.errorMessage
+    }
+
     Row {
         id: inputRow
         anchors {
@@ -104,6 +119,7 @@ Page {
 
         TextField {
             id: textField
+            objectName: "messageField"
             width: parent.width - sendButton.width
             placeholderText: qsTr("Message")
             EnterKey.iconSource: "image://theme/icon-m-enter-accept"
@@ -112,6 +128,7 @@ Page {
 
         IconButton {
             id: sendButton
+            objectName: "sendButton"
             icon.source: "image://theme/icon-m-send"
             onClicked: page.sendCurrentText()
         }
@@ -119,7 +136,8 @@ Page {
 
     function sendCurrentText() {
         if (textField.text.length > 0) {
-            core.send_text(accountId, chatId, textField.text)
+            page.errorMessage = ""
+            messages.send(textField.text)
         }
     }
 }

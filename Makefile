@@ -18,7 +18,7 @@ CARGO ?= cargo
 export QT_QPA_PLATFORM = offscreen
 
 ## What CI runs, in the same order. Keep in step with ci.yml.
-check: fmt lint test doc-lint qml-lint lockfile-lint packaging-lint
+check: fmt lint test doc-lint msrv qml-lint lockfile-lint packaging-lint
 
 ## Unit, integration, and Qt event-loop tests.
 test:
@@ -47,7 +47,9 @@ lockfile-lint:
 doc-lint:
 	cd rust && RUSTDOCFLAGS="-D warnings" $(CARGO) doc --workspace --no-deps
 
-## Compile against the toolchain floor Sailfish ships.
+## Compile against the toolchain floor Sailfish ships. Part of `check`:
+## clippy on a modern toolchain does not reliably catch newer std methods or
+## syntax, so only a real 1.75 build proves the device still builds.
 msrv:
 	rustup toolchain install 1.75.0 --profile minimal
 	cd rust && RUSTFLAGS="-D warnings" $(CARGO) +1.75.0 check --workspace --all-targets

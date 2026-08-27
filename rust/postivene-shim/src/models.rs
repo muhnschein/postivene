@@ -3,7 +3,7 @@ use qmetaobject::QString;
 
 /// One chat-list row from `get_chatlist_items_by_entries`. Carries only the
 /// fields the UI uses; upstream's has ~20 more.
-#[derive(Default, Clone, qmetaobject::SimpleListItem)]
+#[derive(Default, Clone, PartialEq, qmetaobject::SimpleListItem)]
 pub struct ChatListItem {
     /// The core's chat id.
     pub chat_id: u32,

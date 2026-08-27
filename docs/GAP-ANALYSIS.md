@@ -28,16 +28,16 @@ avatars, pinned/archived/muted, search, context menu, or account switcher
 
 ## Defects in what exists
 
-- `open_chat` does 1 + N round trips over the whole history, and re-runs it
-  on every incoming or delivery event. Upstream has a batch `get_messages`.
-- Every refresh is `reset_data`: scroll position lost, whole list redrawn.
-- One shared `message_list` and `chat_list` for the app. A second
-  conversation resets the first page's model underneath it, and `send_text`
-  appends to whichever list is loaded.
-- `send_error`, `chat_list_error`, `message_list_error`, `io_started` and
-  `qr_error` have no QML listeners. A failed send vanishes silently.
-- A dead `deltachat-rpc-server` leaves `status` at `"ready"`; nothing
-  restarts it.
+The shared models are gone. `ChatMessages` and `ChatList` are
+QML-instantiable, so a page owns its model; both load in one batch call and
+apply events rather than rebuilding.
+
+What is left here:
+
+- `io_started` and `qr_error` have no QML listeners. A failure vanishes
+  silently.
+- Nothing notices when `deltachat-rpc-server` dies: `status` stays
+  `"ready"` and nothing restarts it.
 - Only `marknoticed_chat`, never `markseen_msgs`: read receipts never go
   out and messages are never marked seen on IMAP or other devices.
 
@@ -55,12 +55,8 @@ form of every invite payload already works, so the camera is polish.
 
 ## Order of work
 
-1. Restructure the shim: per-chat models created on demand, incremental
-   updates from event payloads instead of blanket re-fetches. This causes
-   the shared-model bugs and the refetch storms; doing it first is cheaper
-   than retrofitting.
-2. Contacts, new chat, groups; batch message fetch; error surfacing;
-   `markseen_msgs`.
+1. Contacts, new chat, groups -- the largest gap, above.
+2. Error surfacing in the UI, and `markseen_msgs`.
 3. Conversation UX: sender names, timestamps, day markers, attachments,
    quotes.
 4. Chat list: unread badges, times, context actions, account switcher.

@@ -6,7 +6,7 @@ import "cover"
 ApplicationWindow {
     id: appWindow
 
-    initialPage: Component { SetupPage {} }
+    initialPage: Component { WelcomePage {} }
     cover: Component { CoverPage {} }
 
     Component.onCompleted: {

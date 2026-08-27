@@ -35,7 +35,13 @@ chat. Even with a working account you can only look at conversations that
 arrive on their own -- you cannot start one. That alone makes it
 non-functional as a messenger.
 
-### Onboarding covers one case out of four
+### Onboarding covers one case out of four  *(addressed 2026-08-27)*
+
+**Update:** rebuilt. See the "Onboarding & security UX" entry in
+`MILESTONES.md`; the paragraph below is what it looked like before, kept
+because the rest of this document is still accurate and the reasoning still
+applies to the paths not yet built (camera QR, second device, backup).
+
 
 `qml/pages/SetupPage.qml` is address + password -> `configure`. No
 chatmail account creation on the default server, no invite link /
@@ -113,9 +119,9 @@ retrofitting.
 
 Then, in order of what unblocks actual use:
 
-1. **Onboarding that matches the product** -- chatmail account creation
-   and invite/QR links. See `ONBOARDING.md`; this outranks everything
-   else because today a new user cannot get an account at all.
+1. ~~**Onboarding that matches the product**~~ -- done; see
+   `MILESTONES.md`. What remains of it: camera QR scanning, add-as-second-
+   device, restore-from-backup.
 2. **Contacts + new chat + groups**, batch message fetch, error surfacing
    in the UI, `markseen_msgs`. The difference between "not a messenger"
    and "a messenger".

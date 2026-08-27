@@ -90,9 +90,14 @@ with `make check`; nothing needs a phone, an account, or a network.
 3. **Qt event-loop tests** under `QT_QPA_PLATFORM=offscreen`: the async
    round trip from a `qt_method` through a background runtime and back onto
    the Qt thread via `queued_callback`.
-4. **QML load tests** against stub Silica components: the real page files,
-   loaded and driven headlessly, asserting navigation and what they call on
-   the core.
+4. **QML load tests** against stub Silica components (`tests/silica-stubs/`):
+   the real page files, loaded and driven headlessly by `objectName`,
+   asserting navigation and what they call on the core. Two limits are
+   worth stating: the stubs imitate no layout or behaviour, so nothing here
+   says a page *looks* right; and Silica's `EnterKey` attached property
+   cannot be stubbed at all -- QML forbids capitalised property names and
+   `qmetaobject` cannot register attached types -- so a page using it
+   cannot be loaded by this harness.
 5. **Static QML dialect tests**: the Qt 5.6 rules host Qt will not enforce.
 6. **Real-core integration** (`--test real_server`, `--test real_core`):
    gated on `DELTACHAT_RPC_SERVER`, offline, against the pinned binary.

@@ -161,9 +161,17 @@ pub struct DeltaChatCore {
     /// 0 means failure, 1..=999 is permille, 1000 means done.
     pub configure_progress: qt_signal!(account_id: u32, permille: u32),
 
-    /// Abort a running configure. The core answers with a final
-    /// `ConfigureProgress` of 0.
-    pub cancel_ongoing: qt_method!(fn(&mut self, account_id: u32)),
+    /// Abort a running configure. Takes no account id because onboarding
+    /// has none to give: the account being configured is the one
+    /// unconfigured account, and the shim finds it. The core answers with a
+    /// final `ConfigureProgress` of 0.
+    pub cancel_ongoing: qt_method!(fn(&mut self)),
+
+    /// Classify a pasted invite or login link during onboarding, when
+    /// there is no account id to pass yet. Resolves (or creates) the
+    /// profile account first, then answers on `qr_checked`/`qr_error` like
+    /// `check_qr`.
+    pub check_invite: qt_method!(fn(&mut self, qr_content: QString)),
 
     /// List the email transports configured on an account, as raw JSON
     /// (an array of upstream `EnteredLoginParam`). Result via
@@ -871,17 +879,68 @@ impl DeltaChatCore {
     }
 
     /// Abort a running configure.
-    pub fn cancel_ongoing(&mut self, account_id: u32) {
+    pub fn cancel_ongoing(&mut self) {
         let Some((rpc, runtime)) = self.connection() else {
             return;
         };
         runtime.spawn(async move {
+            // The account configuring is the unconfigured one; if there
+            // isn't one, there is nothing to stop. Deliberately does not
+            // fall back to creating an account the way `profile_account`
+            // does -- cancelling must never make one.
+            let Ok(Some(account_id)) = Self::find_unconfigured(&rpc).await else {
+                return;
+            };
             // Fire and forget: the outcome the UI reacts to is the final
             // ConfigureProgress(0) the core emits in response, not this
             // call's own return.
             let _ = rpc
                 .call::<_, ()>("stop_ongoing_process", (account_id,))
                 .await;
+        });
+    }
+
+    /// Classify a pasted invite or login link during onboarding.
+    pub fn check_invite(&mut self, qr_content: QString) {
+        let Some((rpc, runtime)) = self.connection() else {
+            self.qr_error(QString::from("not started"));
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: (u32, Result<serde_json::Value, String>)| {
+            let Some(this) = ptr.as_pinned() else { return };
+            let (account_id, result) = result;
+            match result {
+                Ok(qr) => {
+                    let kind = qr
+                        .get("kind")
+                        .and_then(serde_json::Value::as_str)
+                        .unwrap_or("unknown")
+                        .to_string();
+                    let payload = serde_json::to_string(&qr).unwrap_or_default();
+                    this.borrow()
+                        .qr_checked(account_id, kind.into(), payload.into());
+                }
+                Err(err) => this.borrow().qr_error(err.into()),
+            }
+        });
+
+        let qr_content = qr_content.to_string();
+        runtime.spawn(async move {
+            let outcome = async {
+                let account_id = Self::profile_account(&rpc).await?;
+                let qr = rpc
+                    .call::<_, serde_json::Value>("check_qr", (account_id, qr_content))
+                    .await
+                    .map_err(|err| err.to_string())?;
+                Ok::<_, String>((account_id, qr))
+            }
+            .await;
+            match outcome {
+                Ok((account_id, qr)) => done((account_id, Ok(qr))),
+                Err(err) => done((0, Err(err))),
+            }
         });
     }
 
@@ -929,25 +988,29 @@ impl DeltaChatCore {
     /// Reusing it is what keeps a failed signup from leaving an orphan
     /// account behind on every retry.
     async fn profile_account(rpc: &RpcClient) -> Result<u32, String> {
-        let accounts: Vec<serde_json::Value> = rpc
-            .call_unit("get_all_accounts")
-            .await
-            .map_err(|err| err.to_string())?;
-        for account in &accounts {
-            if account.get("kind").and_then(serde_json::Value::as_str) != Some("Unconfigured") {
-                continue;
-            }
-            if let Some(id) = account
-                .get("id")
-                .and_then(serde_json::Value::as_u64)
-                .and_then(|id| u32::try_from(id).ok())
-            {
-                return Ok(id);
-            }
+        if let Some(account_id) = Self::find_unconfigured(rpc).await? {
+            return Ok(account_id);
         }
         rpc.call_unit::<u32>("add_account")
             .await
             .map_err(|err| err.to_string())
+    }
+
+    /// The first account the core reports as `Unconfigured`, if any.
+    async fn find_unconfigured(rpc: &RpcClient) -> Result<Option<u32>, String> {
+        let accounts: Vec<serde_json::Value> = rpc
+            .call_unit("get_all_accounts")
+            .await
+            .map_err(|err| err.to_string())?;
+        Ok(accounts.iter().find_map(|account| {
+            if account.get("kind").and_then(serde_json::Value::as_str) != Some("Unconfigured") {
+                return None;
+            }
+            account
+                .get("id")
+                .and_then(serde_json::Value::as_u64)
+                .and_then(|id| u32::try_from(id).ok())
+        }))
     }
 
     /// Set the profile's display name. Sent before the transport call, so

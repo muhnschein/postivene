@@ -201,9 +201,29 @@ setup, encryption-state indicators.
       offline against the real core with a `DCACCOUNT:` code (kind
       `account`, snake_case payload fields -- same enum-level-rename
       serde trap as MessageListItem, now documented on the method).
-- [ ] Camera-based QR scanning UI, `secure_join`/`set_config_from_qr`
-      flows, account creation on the default chatmail server (needs
-      network to the relay; also camera only exists on-device).
+- [x] **Account creation on the default chatmail server, and an onboarding
+      flow shaped like the product's.** The setup page asked for an address
+      and a password, which is not how anyone joins Delta Chat; it also used
+      `set_config` + `configure`, deprecated upstream since 2025-02.
+      `docs/ONBOARDING.md` records the real journey, read out of
+      `deltachat/deltachat-android`. What landed:
+  - `create_profile` (display name + `add_transport_from_qr` on
+    `dcaccount:nine.testrun.org`), `create_profile_with_email`
+    (`add_or_update_transport` with an `EnteredLoginParam`),
+    `check_invite`, `cancel_ongoing`, `list_transports`, and a typed
+    `configure_progress` signal carrying the core's permille.
+  - `WelcomePage` ("Create New Profile" / "I Already Have a Profile", no
+    credential field in sight), `CreateProfilePage` (name, provider,
+    progress with cancel, and a paste-an-invite field), `EmailLoginPage`
+    one level in. `SetupPage.qml` is gone.
+  - Both create paths reuse an existing *unconfigured* account, so a failed
+    signup does not strand a new one on every retry.
+- [ ] Camera-based QR scanning UI and `secure_join`. The *link* form of
+      every payload is already handled (paste a `dcaccount:`/`dclogin:`/
+      `https://i.delta.chat/` string), so the camera is now polish rather
+      than the only way in.
+- [ ] "Add as second device" and "restore from backup", the reference
+      client's other two answers to "I already have a profile".
 
 ## 6. Packaging & release
 
@@ -328,6 +348,34 @@ Checked 2026-08-27, since 5.2 is what the current Jolla phone ships:
   proven on Sailfish by Whisperfish. Everything in this repo has only ever
   been compiled against Qt 5.15, so the Qt 5.6 compile itself remains
   unverified.
+
+## Verification, as of the CI landing
+
+`make check` from a clean checkout runs everything below; nothing needs a
+phone, an account, or a network. See `docs/ENGINEERING.md` for the
+reasoning behind the layers.
+
+- Lints at `clippy::pedantic`, `missing_docs` and `unsafe_code` denied,
+  plus two project-specific method bans (`rust/clippy.toml`) for bugs this
+  codebase has already hit on device.
+- A `msrv` job compiles the workspace on **Rust 1.75.0**, the toolchain
+  Sailfish ships, with warnings denied -- and checks `Cargo.lock` is still
+  v3, which cargo 1.75 can read.
+- **The QML pages now load and run in tests.** `tests/silica-stubs/` is a
+  minimal `Sailfish.Silica` module, so `qml_pages.rs` loads the real page
+  files under offscreen Qt, drives them by `objectName`, and asserts what
+  they call and where they navigate. Limits worth knowing: the stubs
+  imitate no layout or behaviour, so nothing here says a page *looks*
+  right; and a page using Silica's `EnterKey` attached property cannot be
+  loaded at all (QML forbids capitalised property names and `qmetaobject`
+  cannot register attached types), which is why the onboarding pages do
+  without it and `ConversationPage` is not yet covered.
+- Contract tests against a recording double (`fake-core-server`) pin the
+  exact JSON-RPC call sequence each onboarding action produces.
+- `real_core.rs` drives the shim against the real pinned binary, offline,
+  and distinguishes "the core could not decode your request" from "the core
+  could not reach that host" -- which is what proves our param shapes are
+  the core's.
 
 ## Environment constraint
 

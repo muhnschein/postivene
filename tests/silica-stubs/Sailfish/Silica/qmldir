@@ -1,0 +1,20 @@
+module Sailfish.Silica
+ApplicationWindow 1.0 ApplicationWindow.qml
+BusyIndicator 1.0 BusyIndicator.qml
+Button 1.0 Button.qml
+Column 1.0 Column.qml
+CoverBackground 1.0 CoverBackground.qml
+IconButton 1.0 IconButton.qml
+Label 1.0 Label.qml
+ListItem 1.0 ListItem.qml
+MenuItem 1.0 MenuItem.qml
+Page 1.0 Page.qml
+PageHeader 1.0 PageHeader.qml
+PasswordField 1.0 PasswordField.qml
+ProgressBar 1.0 ProgressBar.qml
+PullDownMenu 1.0 PullDownMenu.qml
+SilicaFlickable 1.0 SilicaFlickable.qml
+SilicaListView 1.0 SilicaListView.qml
+TextField 1.0 TextField.qml
+ViewPlaceholder 1.0 ViewPlaceholder.qml
+singleton Theme 1.0 Theme.qml

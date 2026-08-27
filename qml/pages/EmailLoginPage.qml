@@ -33,8 +33,8 @@ Page {
 
         onProfile_created: {
             page.busy = false
-            pageStack.replace(Qt.resolvedUrl("ChatListPage.qml"),
-                              { accountId: account_id })
+            pageStack.replaceAbove(null, Qt.resolvedUrl("ChatListPage.qml"),
+                                   { accountId: account_id })
         }
 
         onProfile_error: {

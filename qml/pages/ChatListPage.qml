@@ -30,13 +30,6 @@ Page {
             title: qsTr("Chats")
         }
 
-        PullDownMenu {
-            MenuItem {
-                text: qsTr("Refresh")
-                onClicked: core.refresh_chat_list(accountId)
-            }
-        }
-
         delegate: ListItem {
             id: delegateRoot
             contentHeight: Theme.itemSizeMedium

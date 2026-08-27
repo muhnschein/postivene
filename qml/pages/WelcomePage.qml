@@ -37,8 +37,8 @@ Page {
         onAccounts_refreshed: {
             if (configured_count > 0) {
                 core.start_account_io(first_configured_id)
-                pageStack.replace(Qt.resolvedUrl("ChatListPage.qml"),
-                                  { accountId: first_configured_id })
+                pageStack.replaceAbove(null, Qt.resolvedUrl("ChatListPage.qml"),
+                                       { accountId: first_configured_id })
             } else {
                 page.probing = false
             }

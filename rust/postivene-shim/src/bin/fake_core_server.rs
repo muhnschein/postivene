@@ -87,6 +87,7 @@ fn should_fail(value: &str) -> bool {
     value.contains("fail")
 }
 
+#[allow(clippy::too_many_lines)]
 #[tokio::main]
 async fn main() {
     let state = Arc::new(Mutex::new(State::default()));
@@ -143,7 +144,9 @@ async fn main() {
                     });
                     ok(&id, &json!(next))
                 }
-                "set_config" | "start_io" | "stop_ongoing_process" => ok(&id, &Value::Null),
+                "set_config" | "start_io" | "stop_ongoing_process" | "marknoticed_chat" => {
+                    ok(&id, &Value::Null)
+                }
                 "add_transport_from_qr" => {
                     let qr = positional(1).as_str().unwrap_or_default().to_string();
                     if should_fail(&qr) {
@@ -175,6 +178,23 @@ async fn main() {
                     }
                 }
                 "list_transports" => ok(&id, &json!([{"addr": "someone@example.org"}])),
+                "get_message_list_items" => ok(&id, &json!([{"kind": "message", "msg_id": 1}])),
+                "get_message" => ok(
+                    &id,
+                    // Long on purpose: a device message runs to many wrapped
+                    // lines, which is what a fixed row height truncates.
+                    &json!({
+                        "text": "Get in contact! Tap \"QR code\" on the main \
+                                 screen of both devices. Choose \"Scan QR \
+                                 Code\" on one device, and point it at the \
+                                 other. If not in the same room, scan via \
+                                 video call or share an invite link.",
+                        "fromId": 10,
+                        "timestamp": 0,
+                        "showPadlock": true,
+                        "state": 16,
+                    }),
+                ),
                 "get_next_event_batch" => {
                     // Blocks when empty, like the real long poll.
                     loop {

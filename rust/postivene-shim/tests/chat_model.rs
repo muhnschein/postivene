@@ -91,7 +91,7 @@ fn each_chat_has_its_own_model_and_loads_in_one_batch() {
 
     let engine_ptr = std::ptr::addr_of_mut!(engine);
     let mut counts_after_load = String::new();
-    let counts_ptr: *mut String = &raw mut counts_after_load;
+    let counts_ptr: *mut String = std::ptr::addr_of_mut!(counts_after_load);
 
     // The models load as soon as the QML sets their ids, which needs the
     // core to be up: load the probe a tick after start.
@@ -111,7 +111,7 @@ fn each_chat_has_its_own_model_and_loads_in_one_batch() {
     });
 
     let mut counts_after_send = String::new();
-    let sent_ptr: *mut String = &raw mut counts_after_send;
+    let sent_ptr: *mut String = std::ptr::addr_of_mut!(counts_after_send);
     single_shot(Duration::from_secs(6), move || unsafe {
         let value = (*engine_ptr).invoke_method("counts".into(), &[]);
         *sent_ptr = QString::from_qvariant(value)
@@ -169,7 +169,7 @@ fn each_chat_has_its_own_model_and_loads_in_one_batch() {
         .and_then(Value::as_array)
         .map(Vec::len);
     assert!(
-        after_send.is_none_or(|len| len <= 1),
+        after_send.map_or(true, |len| len <= 1),
         "the event refetched the whole chat instead of the new message: {after_send:?}"
     );
 }

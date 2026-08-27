@@ -1,11 +1,8 @@
 import QtQuick 2.0
 
-// Note what is *missing*: Silica's `EnterKey` attached property. QML forbids
-// property names beginning with a capital letter, and qmetaobject cannot
-// register an attached type, so no stub can provide it -- a page using
-// `EnterKey.onClicked:` cannot be loaded by this harness at all. The
-// onboarding pages therefore do without it; see the note in
-// rust/postivene-shim/tests/qml_pages.rs.
+// Silica's `EnterKey` attached property is missing and cannot be stubbed:
+// QML forbids capitalised property names and qmetaobject cannot register
+// attached types. Pages using it cannot be loaded here.
 Item {
     property string text: ""
     property string label

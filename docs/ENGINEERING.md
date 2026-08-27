@@ -1,121 +1,81 @@
 # Engineering standards
 
-What this project holds itself to, and why each rule exists. The reference
-is [clove](https://github.com/muhnschein/clove)'s §9 — pinned toolchain,
-pedantic lints, CI-parity `make` targets, tests that drive the real
-binaries — adapted where Postivene's shape genuinely differs.
+The reference is [clove](https://github.com/muhnschein/clove)'s §9: pinned
+toolchain, pedantic lints, CI-parity `make` targets, tests that drive the
+real binaries.
 
-## Where Postivene differs from that reference
+## Comments and documentation
 
-Clove is a daemon that parses hostile input off a network, so its testing
-centre of gravity is fuzzing and chaos: adversarial bytes, crash
-resilience, a fake SAM bridge.
+One sentence where one will do. A comment states what is true now and why.
+It is not a changelog, a bug report, or a story about how the code got
+here — that belongs in git history. Delete a comment rather than update it
+into a history of its own subject.
 
-Postivene parses almost nothing. `docs/SCOPE.md` §3 makes protocol and
-crypto work a non-goal: all of it lives in the upstream core, and this
-repository is a UI shell plus a JSON-RPC transport to a *trusted*
-subprocess we spawn ourselves. Fuzzing our own parsers would be fuzzing
-`serde_json`.
+If the reasoning needs a paragraph, it is a design note in `docs/`, and the
+comment is a pointer to it.
 
-The failure mode that actually bites here is different, and the whole test
-strategy is aimed at it: **we misread what the core says, or we call it
-wrongly, and nothing notices until the app is on a phone.** That has
-happened repeatedly on this codebase already — a `msgId`/`msg_id` spelling,
-a Qt 5.15-only signal-handler syntax that silently never connects on Qt 5.6,
-a tokio runtime built on the wrong thread, a Silica window loaded into an
-engine that never shows it. Every one was invisible to a host build.
+## Where this differs from clove
 
-So the equivalents of clove's fuzzing and chaos jobs are:
+Clove parses hostile network input, so it leans on fuzzing and chaos
+testing. Postivene parses almost nothing: protocol and crypto are the
+core's (`docs/SCOPE.md` §3), and the subprocess we talk to is one we
+spawned.
 
-- **Wire-shape pinning against the real core.** Offline, but against the
-  actual pinned `deltachat-rpc-server`, asserting the exact JSON we send
-  and the exact field spellings we read back.
-- **Protocol-contract tests against a recording fake.** For each UI action,
-  assert precisely which RPC calls it makes, in order, with which params —
-  so a refactor cannot quietly start calling a deprecated method again.
-- **Dialect tests for the Qt version we do not have.** Host Qt is 5.15 and
-  accepts syntax that Sailfish's 5.6 silently ignores, so the rules Qt
-  cannot enforce for us are enforced as tests.
+The failure mode here is misreading the core's JSON, or calling it wrongly,
+with nothing noticing until the app is on a phone. The tests aim at that:
 
-## The rules
+- **Wire-shape pinning** against the real `deltachat-rpc-server`, offline.
+- **Protocol-contract tests** asserting which calls each UI action makes.
+- **Dialect tests** for Qt 5.6 rules that host Qt 5.15 accepts silently.
 
-### Toolchains: two, deliberately
+## Toolchains
 
-`rust-toolchain.toml` pins **1.94.1** so lint results are reproducible and a
-new lint in a later stable cannot fail CI out from under a green local run.
+`rust-toolchain.toml` pins 1.94.1 so lint results are reproducible. The
+device floor is 1.75.0, what Sailfish ships, enforced by CI's `msrv` job
+with warnings denied. `rust-toolchain.toml` is a rustup mechanism; the
+Sailfish SDK's cargo ignores it.
 
-The device floor is **1.75.0**, which is what Sailfish ships, declared as
-`rust-version` in `rust/Cargo.toml` and enforced by CI's `msrv` job with
-warnings denied. A workspace that only builds on modern stable is a
-workspace that does not build for the phone. `rust-toolchain.toml` is a
-rustup mechanism; the Sailfish SDK's cargo is not rustup-managed and
-ignores it.
+`rust/Cargo.lock` stays at v3: cargo learned v4 in 1.78, and a `cargo
+update` on a modern host rewrites it silently. `ci/check-lockfile.sh`
+catches that.
 
-`rust/Cargo.lock` stays at lockfile **v3**: cargo learned v4 in 1.78, and a
-`cargo update` on a modern host rewrites the file silently. `ci/check-lockfile.sh`
-fails the build instead of letting the SDK discover it days later.
+## Lints
 
-### Lints
+Workspace-level, so a bare `cargo clippy` fails the way CI does:
+`clippy::all` and `pedantic` at deny, `unwrap_used`/`expect_used` denied
+outside tests, `missing_docs` and `unsafe_code` denied.
 
-Workspace-level, so a bare `cargo clippy` fails the same way CI does:
-`clippy::all` and `clippy::pedantic` at deny, `unwrap_used`/`expect_used`
-denied outside tests, `missing_docs` denied, `unsafe_code` denied.
+`unsafe_code` is deny rather than forbid because the Qt harness tests need
+`env::set_var` before Qt initialises. Every exception is at the narrowest
+scope and says why.
 
-`unsafe_code` is **deny**, not `forbid`, for one reason: the Qt harness
-tests need `env::set_var` before Qt initialises, and a local `allow` with a
-stated justification is better than a test suite that cannot run. Every
-exception in this repository is at the narrowest possible scope and says
-why in a comment above it.
+`rust/clippy.toml` bans two methods that have already caused device-only
+failures: `tokio::runtime::Runtime::new` (must go through `CoreRuntime`)
+and `qmetaobject::single_shot` (truncates sub-second `Duration`s).
 
-`rust/clippy.toml` bans two methods outright, both because this project has
-already been bitten by them on device and neither reproduces on a host:
+## Testing
 
-- `tokio::runtime::Runtime::new` — building a runtime on the Qt main thread
-  panics on the Sailfish aarch64 build. Everything goes through
-  `CoreRuntime`, which owns a thread of its own.
-- `qmetaobject::single_shot` — qmetaobject 0.2.10 truncates the sub-second
-  part of a `Duration` to zero. Whole seconds are safe; the ban makes the
-  next person read the note instead of rediscovering it.
+`make check` runs all of it from a clean checkout — no phone, account, or
+network.
 
-### Testing
+1. **Transport unit tests** against a fake stdio server.
+2. **Protocol-contract tests** against a recording double that journals
+   every request.
+3. **Qt event-loop tests** under `QT_QPA_PLATFORM=offscreen`.
+4. **QML load tests** against stub Silica components
+   (`tests/silica-stubs/`): the real page files, driven by `objectName`.
+   The stubs imitate no layout, so nothing here says a page *looks* right.
+   Silica's `EnterKey` attached property cannot be stubbed — QML forbids
+   capitalised property names and `qmetaobject` cannot register attached
+   types — so pages using it cannot be loaded.
+5. **Static QML dialect tests** for the Qt 5.6 rules.
+6. **Real-core integration** (`real_server`, `real_core`), gated on
+   `DELTACHAT_RPC_SERVER`, offline.
+7. **Packaging checks**: spec parses, desktop entry validates, shell
+   scripts clean.
 
-The layers, cheapest first. Every one of them runs from a clean checkout
-with `make check`; nothing needs a phone, an account, or a network.
+Aspiration, tracked not gated: test volume exceeds source volume.
 
-1. **Transport unit tests** against a fake stdio server: request/response
-   correlation, out-of-order replies, error propagation, event batching.
-2. **Protocol-contract tests**: a recording fake core that journals every
-   request, so a test can assert the exact call sequence a UI action
-   produces.
-3. **Qt event-loop tests** under `QT_QPA_PLATFORM=offscreen`: the async
-   round trip from a `qt_method` through a background runtime and back onto
-   the Qt thread via `queued_callback`.
-4. **QML load tests** against stub Silica components (`tests/silica-stubs/`):
-   the real page files, loaded and driven headlessly by `objectName`,
-   asserting navigation and what they call on the core. Two limits are
-   worth stating: the stubs imitate no layout or behaviour, so nothing here
-   says a page *looks* right; and Silica's `EnterKey` attached property
-   cannot be stubbed at all -- QML forbids capitalised property names and
-   `qmetaobject` cannot register attached types -- so a page using it
-   cannot be loaded by this harness.
-5. **Static QML dialect tests**: the Qt 5.6 rules host Qt will not enforce.
-6. **Real-core integration** (`--test real_server`, `--test real_core`):
-   gated on `DELTACHAT_RPC_SERVER`, offline, against the pinned binary.
-7. **Packaging checks**: the spec parses, the desktop entry validates, the
-   shell scripts are clean.
-
-Aspiration, tracked and not gated: test code volume exceeds source volume.
-
-What none of this reaches, and what therefore stays explicitly unproven
-until someone runs it on hardware: Silica's real rendering and layout,
-notifications, background sync and device suspend, and the on-device
-behaviour of the packaged RPM. `docs/MILESTONES.md` says so per item rather
-than implying coverage that does not exist.
-
-### Documentation
-
-`missing_docs` is denied, and `cargo doc` runs with `-D warnings` in CI, so
-a link to a renamed item is a build failure. Module docs explain *why*.
-Every deviation — an `allow`, a workaround, a bug worked around upstream —
-carries the reasoning at the point of deviation, because the person who
-needs it is reading the code, not the commit log.
+Out of reach until someone runs it on hardware: Silica's real rendering,
+notifications, background sync and suspend, and the packaged RPM's
+on-device behaviour. `docs/MILESTONES.md` says so per item.

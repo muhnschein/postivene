@@ -1,28 +1,18 @@
-//! Loads the real onboarding pages and drives them, headlessly.
+//! Loads the real onboarding pages and drives them headlessly.
 //!
-//! Sailfish's `Sailfish.Silica` module ships only inside the Sailfish SDK,
-//! so until now nothing in this repository could load a page file at all --
-//! the pages were checked by `qmllint` for syntax and read by eye for
-//! everything else. That is how two device-only bugs shipped (a window that
-//! was never shown, signal handlers that never connected), and it is why
-//! `tests/silica-stubs/` exists: a minimal `Sailfish.Silica` module,
-//! declaring just enough of each component for the page files to
-//! instantiate under host Qt.
+//! `Sailfish.Silica` ships only in the SDK, so `tests/silica-stubs/`
+//! declares just enough of each component for the page files to instantiate
+//! under host Qt. The stubs imitate no layout or behaviour: this says what a
+//! page *does* -- which shim methods it calls, where it navigates, how it
+//! reacts -- not how it looks.
 //!
-//! What the stubs deliberately do *not* do is imitate Silica's behaviour or
-//! layout. Nothing here can tell you a page looks right. What it can tell
-//! you is what the page *does*: which shim methods it calls, with which
-//! arguments, what it navigates to, and how it reacts to the core's
-//! answers. That is the logic that used to be verifiable only by flashing a
-//! phone.
-//!
-//! Interaction goes through `objectName`, which the pages set on the
-//! controls a test needs to reach. That is production-safe (Silica and
-//! accessibility tools use it too), unlike exposing test hooks.
+//! Interaction goes through `objectName`, which is production-safe, rather
+//! than test hooks in the pages.
 
-// See tests/smoke.rs for why this Qt harness needs the first three allows;
-// `expect_used` covers the whole file because the helpers below are test
-// code too.
+// Qt harness: needs `unsafe` for `env::set_var` before Qt starts
+// (`unused_unsafe` because it is only unsafe from edition 2024 on),
+// `borrow_as_ptr` for the engine pointer, and `single_shot` with
+// whole-second Durations.
 #![allow(
     unsafe_code,
     unused_unsafe,
@@ -44,9 +34,8 @@ use postivene_shim::DeltaChatCore;
 use qmetaobject::*;
 use serde_json::Value;
 
-/// Silica's `BusyIndicatorSize` is a C++ enum namespace, and QML forbids
-/// property names starting with a capital letter, so a `.qml` stub cannot
-/// provide `BusyIndicatorSize.Large`. Registering a real enum from here can.
+/// QML forbids capitalised property names, so a `.qml` stub cannot provide
+/// `BusyIndicatorSize.Large`; a registered enum can.
 #[derive(QEnum)]
 #[repr(u8)]
 enum BusyIndicatorSize {
@@ -63,12 +52,9 @@ enum TruncationMode {
     Fade = 1,
 }
 
-/// A stand-in for Silica's `pageStack`, which is a context property in the
-/// app and therefore has to be one here too (a QML object declared in the
-/// probe would not be visible inside a separately loaded page component).
-///
-/// It records rather than navigates: what a test wants to know is that
-/// tapping *this* went to *that* page with *those* properties.
+/// Records navigation instead of performing it. A context property, as in
+/// the app: a QML object in the probe would not be visible inside a
+/// separately loaded page.
 #[derive(QObject, Default)]
 struct PageStackProbe {
     base: qt_base_class!(trait QObject),
@@ -85,16 +71,13 @@ struct PageStackProbe {
 
 impl PageStackProbe {
     fn record(&mut self, action: &str, page: &QString, properties: &QVariantMap) {
-        // Only the file name matters to a test; the rest of the URL is the
-        // absolute path of whatever checkout this is.
+        // Only the file name matters; the rest is a checkout path.
         let page = page.to_string();
         let name = page.rsplit('/').next().unwrap_or(&page).to_string();
         let current = self.log.to_string();
         self.log = format!("{current}{action}:{name}|").into();
-        // `QVariantMap` in qttypes 0.2 cannot be iterated, only queried, so
-        // the probe reads the keys the pages actually pass. Adding a new one
-        // here is the price of asserting on it -- which is fine: a test that
-        // checks a property nobody passes is not a test.
+        // `QVariantMap` in qttypes 0.2 can be queried but not iterated, so
+        // these are the keys the pages pass.
         let mut rendered = Vec::new();
         for key in ["accountId", "chatId", "chatName"] {
             let value = properties.value(QString::from(key), QVariant::default());
@@ -124,8 +107,7 @@ impl PageStackProbe {
     }
 }
 
-/// The harness object the test drives the pages through. It owns a `Loader`
-/// and walks the loaded page's children by `objectName`.
+/// Owns a `Loader` and walks the loaded page's children by `objectName`.
 const PROBE_QML: &str = r"
     import QtQuick 2.0
     Item {
@@ -181,9 +163,8 @@ fn page_url(name: &str) -> String {
     format!("file://{}", qml_dir().join("pages").join(name).display())
 }
 
-/// Every step the test takes, and what it recorded. Steps run one per
-/// event-loop tick because the shim answers asynchronously and
-/// `qmetaobject`'s `single_shot` only handles whole seconds.
+/// Each step and what it recorded. One step per tick: the shim answers
+/// asynchronously and `single_shot` only handles whole seconds.
 type Steps = Rc<RefCell<Vec<(String, String)>>>;
 
 fn record(steps: &Steps, label: &str, value: QString) {
@@ -199,14 +180,13 @@ fn value_of<'a>(steps: &'a [(String, String)], label: &str) -> &'a str {
         .map_or("<step did not run>", |(_, value)| value.as_str())
 }
 
-/// Temp directories and the three environment variables the harness needs,
-/// returning the journal path the double will write to.
+/// Temp directories and environment, returning the journal path.
 fn prepare_environment() -> PathBuf {
     let temp = std::env::temp_dir().join(format!("postivene-qml-pages-{}", std::process::id()));
     let journal = temp.join("journal.jsonl");
     std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
-    // SAFETY: single-threaded test binary; all three must be set before Qt
-    // starts and before the shim spawns the server that inherits them.
+    // SAFETY: single-threaded, and set before Qt starts and before the
+    // server inherits them.
     unsafe {
         std::env::set_var("QT_QPA_PLATFORM", "offscreen");
         std::env::set_var("POSTIVENE_FAKE_JOURNAL", &journal);
@@ -215,11 +195,8 @@ fn prepare_environment() -> PathBuf {
     journal
 }
 
-// The engine, the two QObject boxes and every scheduled step have to share
-// one scope: all of them must outlive `exec()`, and each step needs the
-// engine pointer. The assertions are already factored out into the helpers
-// below; what is left is the event loop and its schedule, which does not
-// decompose further without making it harder to read.
+// The engine, the QObject boxes and every step share one scope: all must
+// outlive `exec()`. The assertions are in the helpers below.
 #[allow(clippy::too_many_lines)]
 #[test]
 fn onboarding_pages_drive_the_core_and_navigate() {
@@ -229,8 +206,7 @@ fn onboarding_pages_drive_the_core_and_navigate() {
     let stack_box = QObjectBox::new(PageStackProbe::default());
 
     let mut engine = QmlEngine::new();
-    // The stub Sailfish.Silica module. Without this the page files do not
-    // even parse their imports.
+    // Without this the page files do not parse their imports.
     engine.add_import_path(QString::from(stubs_dir().to_string_lossy().into_owned()));
     // The two enum namespaces the .qml stubs cannot express.
     let uri = CString::new("Sailfish.Silica").expect("static uri");
@@ -258,9 +234,8 @@ fn onboarding_pages_drive_the_core_and_navigate() {
     let steps: Steps = Rc::new(RefCell::new(Vec::new()));
     let engine_ptr = std::ptr::addr_of_mut!(engine);
 
-    // SAFETY for every block below: these callbacks only fire while
-    // `engine.exec()` is running on this same thread, and `engine` is not
-    // dropped until after `exec()` returns. Same argument as tests/smoke.rs.
+    // SAFETY: these callbacks fire only while `exec()` is running on this
+    // thread, and `engine` outlives it.
     macro_rules! call {
         ($name:expr $(, $arg:expr)*) => {{
             let result = unsafe {
@@ -273,8 +248,7 @@ fn onboarding_pages_drive_the_core_and_navigate() {
         }};
     }
 
-    // One step per tick: the shim answers asynchronously, and
-    // qmetaobject 0.2.10 only schedules whole seconds (see clippy.toml).
+    // One step per tick; whole seconds only (clippy.toml).
     let s = steps.clone();
     single_shot(Duration::from_secs(1), move || {
         record(
@@ -319,8 +293,7 @@ fn onboarding_pages_drive_the_core_and_navigate() {
 
     let s = steps.clone();
     single_shot(Duration::from_secs(7), move || {
-        // Nothing filled in: the page must refuse locally rather than
-        // sending an empty address to the core.
+        // The page must refuse locally rather than call the core.
         record(&s, "email-click-empty", call!("click", "loginButton"));
     });
 
@@ -352,18 +325,15 @@ fn onboarding_pages_drive_the_core_and_navigate() {
     assert_wire_calls(&journal);
 }
 
-/// Every page file must instantiate. A missing stub or a typo shows up here
-/// first, and nothing else would mean anything without it.
+/// Every page file must instantiate; nothing below means anything if not.
 fn assert_pages_loaded(steps: &[(String, String)], context: &str) {
     for step in ["welcome-load", "create-load", "email-load"] {
         assert_eq!(value_of(steps, step), "ok", "{step} failed. {context}");
     }
 }
 
-/// The welcome page settles -- no configured account exists in the double,
-/// so it stops probing and shows its buttons rather than spinning forever,
-/// which is what the old setup page did on device -- and its button opens
-/// the profile page, which on success lands in the chat list.
+/// With no configured account the welcome page stops probing and shows its
+/// buttons, and its button opens the profile page.
 fn assert_welcome_and_navigation(
     steps: &[(String, String)],
     navigation: &str,
@@ -390,8 +360,7 @@ fn assert_welcome_and_navigation(
     );
 }
 
-/// The page takes its provider from the shim rather than hardcoding a
-/// hostname, and the core's progress reaches it.
+/// The provider comes from the shim, and progress reaches the page.
 fn assert_profile_creation(steps: &[(String, String)], context: &str) {
     assert_eq!(
         value_of(steps, "create-provider"),
@@ -410,7 +379,7 @@ fn assert_profile_creation(steps: &[(String, String)], context: &str) {
     );
 }
 
-/// An empty login form must produce a visible message and no RPC.
+/// An empty login form: a visible message, no RPC.
 fn assert_email_validation(steps: &[(String, String)], context: &str) {
     assert!(
         !value_of(steps, "email-error").is_empty(),
@@ -423,7 +392,7 @@ fn assert_email_validation(steps: &[(String, String)], context: &str) {
     );
 }
 
-/// And the whole way down: a tap produced the right calls on the wire.
+/// A tap produced the right calls on the wire.
 fn assert_wire_calls(journal: &std::path::Path) {
     let calls: Vec<Value> = std::fs::read_to_string(journal)
         .unwrap_or_default()

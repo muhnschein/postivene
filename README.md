@@ -40,10 +40,9 @@ vendor/                deltachat-rpc-server binaries per target arch
 scripts/               fetch-rpc-server.sh: pinned, checksum-verified
                        fetch of upstream's static-musl rpc-server builds.
 docs/                  Scope, architecture notes, licensing analysis.
-                       GAP-ANALYSIS.md (what is missing between here and
-                       a usable client) and ONBOARDING.md (how Delta Chat
-                       really onboards a user -- read out of the official
-                       Android client) are the current planning docs.
+                       GAP-ANALYSIS.md (what is missing), ONBOARDING.md
+                       (how Delta Chat onboards a user), ENGINEERING.md
+                       (standards).
 ```
 
 ## Building
@@ -79,11 +78,10 @@ only learned v4 in 1.78) and the workspace declares `rust-version = 1.75`.
 
 ### Checks
 
-`make check` runs what CI runs -- formatting, clippy at the workspace lint
-level, the test suite, qmllint, and the packaging checks -- from a clean
-checkout, with no phone, account, or network needed. `make msrv` compiles
-against the Rust 1.75 floor Sailfish ships. See
-[`docs/ENGINEERING.md`](docs/ENGINEERING.md) for what each layer is for.
+`make check` runs what CI runs -- formatting, clippy, tests, qmllint,
+packaging checks -- from a clean checkout, with no phone, account, or
+network. `make msrv` compiles against Sailfish's Rust 1.75 floor. See
+[`docs/ENGINEERING.md`](docs/ENGINEERING.md).
 
 ### Host builds (development)
 
@@ -95,12 +93,10 @@ cd rust
 cargo test -p deltachat-jsonrpc
 ```
 
-`rust/postivene-shim` and `rust/postivene-app` additionally require Qt5
-packages for local iteration outside the Sailfish SDK -- on
-Debian/Ubuntu-family hosts `qtbase5-dev`, `qtdeclarative5-dev`,
+`rust/postivene-shim` and `rust/postivene-app` need Qt5 packages: on
+Debian/Ubuntu `qtbase5-dev`, `qtdeclarative5-dev`,
 `qtdeclarative5-dev-tools` (for `qmllint`) and `qml-module-qtquick2` (the
-QtQuick runtime plugin, which the -dev packages do not pull in and without
-which every QML the tests load fails to import):
+QtQuick runtime plugin, which the -dev packages omit):
 
 ```sh
 cd rust
@@ -117,13 +113,9 @@ DELTACHAT_RPC_SERVER=vendor/deltachat-rpc-server/x86_64/deltachat-rpc-server \
     cargo test -p deltachat-jsonrpc --test real_server
 ```
 
-A relative `DELTACHAT_RPC_SERVER` is resolved from the repository root, not
-from the shell's directory: cargo runs an integration test with its working
-directory set to the *package* root, so anything cwd-relative would mean
-something different for each crate.
-
-The same gate covers `cargo test -p postivene-shim --test real_core`, which
-drives the shim itself against the real core.
+A relative `DELTACHAT_RPC_SERVER` resolves from the repository root, since
+cargo runs integration tests from the package root. The same gate covers
+`cargo test -p postivene-shim --test real_core`.
 
 Note: `qml/`'s pages import `Sailfish.Silica`, which only ships with the
 Sailfish SDK/target, so `postivene-app` won't actually render anything on

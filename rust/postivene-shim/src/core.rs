@@ -10,30 +10,19 @@ use crate::models::{
 };
 use crate::runtime::CoreRuntime;
 
-/// The chatmail server a new profile is created on unless the user picks
-/// another one. Expressed the way the core wants it -- a `dcaccount:` QR
-/// payload -- because that is the single input `add_transport_from_qr`
-/// takes, whether it came from this default, a scanned code, or a pasted
-/// invite link. Matches the reference client's `DEFAULT_CHATMAIL_HOST`;
-/// see `docs/ONBOARDING.md`.
+/// Default chatmail server, as the `dcaccount:` payload
+/// `add_transport_from_qr` takes. See `docs/ONBOARDING.md`.
 pub const DEFAULT_PROVIDER_QR: &str = "dcaccount:nine.testrun.org";
 
-/// `DeltaChatCore` is the one `QObject` that owns the connection to a spawned
-/// `deltachat-rpc-server`: it starts the process, keeps the tokio runtime
-/// that drives it alive, forwards the core's event stream to QML as a
-/// signal, and exposes a handful of fire-and-forget methods (each paired
-/// with a result signal) for the operations the minimal UI needs.
+/// The one `QObject` owning the connection to a spawned
+/// `deltachat-rpc-server`.
 ///
-/// This mirrors the scope's architecture note: "core events run off the
-/// main thread and are marshalled to the Qt main thread via queued
-/// signals" -- every async completion here goes through
-/// [`qmetaobject::queued_callback`] so it lands back on the Qt thread
-/// before touching any `qt_property`/`qt_signal`.
+/// Methods are fire-and-forget, each paired with a result signal. Every
+/// async completion goes through [`qmetaobject::queued_callback`] so it
+/// lands on the Qt thread before touching a `qt_property` or `qt_signal`.
 ///
-/// It deliberately exposes only a thin slice of the core's ~100 JSON-RPC
-/// methods (enough for account bootstrap + single-conversation send/health
-/// check); more methods should be added the same way as the UI grows,
-/// rather than trying to cover the whole API up front.
+/// Only a slice of the core's ~100 JSON-RPC methods is exposed; add more
+/// the same way as the UI needs them.
 #[derive(QObject, Default)]
 pub struct DeltaChatCore {
     base: qt_base_class!(trait QObject),
@@ -49,11 +38,8 @@ pub struct DeltaChatCore {
     /// Emitted when [`DeltaChatCore::system_info`] is refreshed.
     pub system_info_changed: qt_signal!(),
 
-    /// Raw core event, forwarded as-is: `kind` is the event's `"kind"`
-    /// tag (e.g. `"IncomingMsg"`, `"ConfigureProgress"`) and `payload_json`
-    /// is the full event object serialized as JSON, so QML can pick out
-    /// whatever fields a given event kind carries without this crate
-    /// needing a hand-typed struct for every one of the ~40 event kinds.
+    /// Raw core event: `kind` is the event's tag, `payload_json` the whole
+    /// event as JSON. Untyped so QML can read any of the ~40 event kinds.
     pub core_event: qt_signal!(context_id: u32, kind: QString, payload_json: QString),
 
     /// A new, still unconfigured account was created.
@@ -70,43 +56,35 @@ pub struct DeltaChatCore {
     /// Sending a message failed; nothing was appended.
     pub send_error: qt_signal!(message: QString),
 
-    /// Spawn `rpc_server_path` (typically the bundled
-    /// `deltachat-rpc-server` binary) and start draining its event stream.
-    /// No-op if already started.
+    /// Spawn `rpc_server_path` and drain its event stream. No-op if
+    /// already started.
     pub start: qt_method!(fn(&mut self, rpc_server_path: QString)),
 
-    /// Trigger a `get_system_info` round trip; result lands in
-    /// `systemInfo`/`status`.
+    /// `get_system_info` round trip; result lands in `system_info`.
     pub check_health: qt_method!(fn(&mut self)),
 
-    /// Create a new (unconfigured) account; result via `accountAdded`/
-    /// `accountError`.
+    /// Create a new unconfigured account.
     pub add_account: qt_method!(fn(&mut self)),
 
-    /// Set `addr`/`mail_pw` and run `configure`; result via
-    /// `configureDone`. Progress is observable through `coreEvent`
-    /// (`kind == "ConfigureProgress"`).
+    /// Legacy path: `set_config` + `configure`. Prefer
+    /// `create_profile_with_email` (`docs/ONBOARDING.md`).
     pub configure_account:
         qt_method!(fn(&mut self, account_id: u32, addr: QString, password: QString)),
 
-    /// Send a plain-text message; result via `messageSent`/`sendError`.
+    /// Send a plain-text message.
     pub send_text: qt_method!(fn(&mut self, account_id: u32, chat_id: u32, text: QString)),
 
-    /// Backing model for a chat list `SilicaListView`. Repopulated by
-    /// `refresh_chat_list`.
+    /// Chat list model, repopulated by `refresh_chat_list`.
     pub chat_list: qt_property!(RefCell<ChatListModel>; CONST),
 
-    /// Backing model for a conversation `SilicaListView`. Repopulated by
-    /// `open_chat`, appended to by a successful `send_text`.
+    /// Conversation model, repopulated by `open_chat` and appended to by
+    /// `send_text`.
     pub message_list: qt_property!(RefCell<MessageListModel>; CONST),
 
-    /// Repopulate `chatList` from the core; result observable via
-    /// `chatList`'s own change notifications, errors via
-    /// `chatListError`.
+    /// Repopulate `chat_list`; errors via `chat_list_error`.
     pub refresh_chat_list: qt_method!(fn(&mut self, account_id: u32)),
 
-    /// Repopulate `messageList` with `chat_id`'s messages; errors via
-    /// `messageListError`.
+    /// Repopulate `message_list` with `chat_id`'s messages.
     pub open_chat: qt_method!(fn(&mut self, account_id: u32, chat_id: u32)),
 
     /// Repopulating [`DeltaChatCore::chat_list`] failed; the model still
@@ -116,39 +94,30 @@ pub struct DeltaChatCore {
     /// still holds whatever it held before.
     pub message_list_error: qt_signal!(message: QString),
 
-    /// All accounts known to the core. Repopulated by `refresh_accounts`.
+    /// All accounts known to the core.
     pub account_list: qt_property!(RefCell<AccountListModel>; CONST),
 
-    /// Repopulate `accountList`; completion via `accountsRefreshed`
-    /// (errors via `accountError`). QML uses this at startup to decide
-    /// between the setup wizard and the chat list: if
-    /// `configured_count > 0`, `first_configured_id` is the account to
-    /// resume (call `start_account_io` and go straight to chats).
+    /// Repopulate `account_list`. QML uses the `accounts_refreshed` result
+    /// at startup to choose between onboarding and resuming an account.
     pub refresh_accounts: qt_method!(fn(&mut self)),
     /// [`DeltaChatCore::account_list`] was repopulated. `configured_count`
     /// is how many accounts are usable, and `first_configured_id` is the
     /// one to resume (0 when there is none).
     pub accounts_refreshed: qt_signal!(configured_count: u32, first_configured_id: u32),
 
-    /// Resume IO for an already-configured account (app start / account
-    /// switch); result via `ioStarted`.
+    /// Resume IO for an already-configured account.
     pub start_account_io: qt_method!(fn(&mut self, account_id: u32)),
     /// Result of resuming IO for an already-configured account.
     pub io_started: qt_signal!(account_id: u32, success: bool, error: QString),
 
-    /// The `dcaccount:` payload for the default chatmail server, so QML
-    /// does not have to hardcode a hostname.
+    /// The default chatmail server's `dcaccount:` payload.
     pub default_provider_qr: qt_method!(fn(&mut self) -> QString),
 
-    /// Create a profile on a chatmail server: set `display_name` on a
-    /// fresh (or reused unconfigured) account, then hand `provider_qr` to
-    /// the core, which mints an address and credentials there. Result via
-    /// `profile_created`/`profile_error`, progress via
-    /// `configure_progress`.
+    /// Create a profile on a chatmail server: the core mints the address
+    /// and credentials. Result via `profile_created`/`profile_error`.
     pub create_profile: qt_method!(fn(&mut self, display_name: QString, provider_qr: QString)),
 
-    /// The classic path: configure an existing mailbox as this profile's
-    /// transport. Same result signals as `create_profile`.
+    /// Configure an existing mailbox as this profile's transport.
     pub create_profile_with_email:
         qt_method!(fn(&mut self, display_name: QString, addr: QString, password: QString)),
 
@@ -161,30 +130,22 @@ pub struct DeltaChatCore {
     /// 0 means failure, 1..=999 is permille, 1000 means done.
     pub configure_progress: qt_signal!(account_id: u32, permille: u32),
 
-    /// Abort a running configure. Takes no account id because onboarding
-    /// has none to give: the account being configured is the one
-    /// unconfigured account, and the shim finds it. The core answers with a
-    /// final `ConfigureProgress` of 0.
+    /// Abort a running configure. Takes no account id: onboarding has none
+    /// to give, so the unconfigured account is found here.
     pub cancel_ongoing: qt_method!(fn(&mut self)),
 
-    /// Classify a pasted invite or login link during onboarding, when
-    /// there is no account id to pass yet. Resolves (or creates) the
-    /// profile account first, then answers on `qr_checked`/`qr_error` like
-    /// `check_qr`.
+    /// `check_qr` for onboarding, where there is no account id to pass
+    /// yet: resolves the profile account first.
     pub check_invite: qt_method!(fn(&mut self, qr_content: QString)),
 
-    /// List the email transports configured on an account, as raw JSON
-    /// (an array of upstream `EnteredLoginParam`). Result via
-    /// `transports_listed`.
+    /// The account's email transports, as a JSON array of upstream
+    /// `EnteredLoginParam`.
     pub list_transports: qt_method!(fn(&mut self, account_id: u32)),
     /// The account's transports, as a raw JSON array.
     pub transports_listed: qt_signal!(account_id: u32, transports_json: QString),
 
-    /// Parse/classify a QR code's payload via the core. Result via
-    /// `qrChecked` with the upstream `Qr` object as raw JSON: `kind` is
-    /// camelCase (e.g. "account", "askVerifyContact", "login"), while the
-    /// payload's *fields* are `snake_case` (upstream's serde `rename_all` sits
-    /// at the enum level, exactly like `MessageListItem`'s).
+    /// Classify a QR payload. `qr_checked` carries the upstream `Qr`
+    /// object as JSON: `kind` is camelCase, its fields `snake_case`.
     pub check_qr: qt_method!(fn(&mut self, account_id: u32, qr_content: QString)),
     /// A QR/invite payload was classified by the core.
     pub qr_checked: qt_signal!(account_id: u32, kind: QString, payload_json: QString),
@@ -203,8 +164,7 @@ impl DeltaChatCore {
             return;
         }
 
-        // Built on its own thread -- see `crate::runtime` for why the Qt
-        // main thread must not build (or drop) the runtime itself.
+        // Built on its own thread; see `crate::runtime`.
         let runtime = match CoreRuntime::new() {
             Ok(runtime) => runtime,
             Err(err) => {
@@ -239,9 +199,8 @@ impl DeltaChatCore {
                     );
                 }
                 Err(err) => {
-                    // Drop the runtime so a later `start()` (e.g. after the
-                    // user fixes the server path) isn't blocked by the
-                    // is-already-started guard.
+                    // Drop the runtime so a later `start()` is not blocked
+                    // by the already-started guard.
                     let mut this_mut = this.borrow_mut();
                     this_mut.runtime = None;
                     this_mut.status = format!("error: {err}").into();
@@ -268,11 +227,9 @@ impl DeltaChatCore {
         });
     }
 
-    /// Where the core keeps all account state. Without this,
-    /// `deltachat-rpc-server` defaults to `./accounts` relative to whatever
-    /// working directory the app happened to be launched from -- account
-    /// data would land in a different place per launch context.
-    /// `POSTIVENE_ACCOUNTS_DIR` overrides; otherwise the XDG data dir.
+    /// Where the core keeps account state: `POSTIVENE_ACCOUNTS_DIR`, else
+    /// the XDG data dir. Without it the core would use `./accounts`,
+    /// relative to whatever directory the app was launched from.
     fn accounts_dir() -> Result<String, String> {
         let dir = if let Ok(dir) = std::env::var("POSTIVENE_ACCOUNTS_DIR") {
             std::path::PathBuf::from(dir)
@@ -291,14 +248,12 @@ impl DeltaChatCore {
         Ok(dir.to_string_lossy().into_owned())
     }
 
-    /// Start draining the core's event stream and forwarding each event to
-    /// the `coreEvent` signal via a queued callback. Runs for as long as
-    /// the transport lives; `spawn_event_loop` itself must be called from
-    /// *within* a task already running on `runtime` (its internal
-    /// `tokio::spawn` needs ambient runtime context), which is why this is
-    /// one `runtime.spawn` wrapping both the event-loop setup and the
-    /// forwarding loop, rather than calling `spawn_event_loop` directly
-    /// from the Qt thread.
+    /// Forward the core's event stream to `core_event` via queued
+    /// callbacks, for as long as the transport lives.
+    ///
+    /// The setup and the loop share one `runtime.spawn` because
+    /// `spawn_event_loop`'s internal `tokio::spawn` needs ambient runtime
+    /// context.
     fn forward_events(
         ptr: QPointer<Self>,
         rpc: Option<Arc<RpcClient>>,
@@ -316,10 +271,8 @@ impl DeltaChatCore {
                     .unwrap_or("Unknown")
                     .to_string();
                 let payload = serde_json::to_string(&event.event).unwrap_or_default();
-                // Configuration progress gets a typed signal as well as the
-                // raw event: it drives a progress bar during onboarding, and
-                // a UI should not have to parse JSON to move one. Both fire
-                // for these events -- listeners of `core_event` still see it.
+                // A typed signal too, so a progress bar need not parse
+                // JSON. Both fire for these events.
                 if kind == "ConfigureProgress" {
                     if let Some(permille) = event
                         .event
@@ -507,9 +460,8 @@ impl DeltaChatCore {
                         .get("showPadlock")
                         .and_then(serde_json::Value::as_bool)
                         .unwrap_or(false);
-                    // The core's DC_STATE_* constants are small; anything
-                    // that does not fit is not a state we know, so it reads
-                    // as "no state" rather than silently wrapping.
+                    // DC_STATE_* constants are small; anything else reads
+                    // as "no state".
                     let state = message
                         .get("state")
                         .and_then(serde_json::Value::as_u64)
@@ -630,10 +582,8 @@ impl DeltaChatCore {
             let fetched_ok = result.is_ok();
             done(result);
             if fetched_ok {
-                // Opening a chat means the user has seen it: clear its
-                // "fresh" badge. The core answers with a MsgsNoticed
-                // event, which the chat list listens to for refreshing
-                // its unread counts -- so no extra UI plumbing here.
+                // Clear the fresh-message badge. The chat list refreshes
+                // its unread counts on the resulting MsgsNoticed event.
                 let _ = rpc
                     .call::<_, ()>("marknoticed_chat", (account_id, chat_id))
                     .await;
@@ -658,13 +608,9 @@ impl DeltaChatCore {
             if item.get("kind").and_then(serde_json::Value::as_str) != Some("message") {
                 continue;
             }
-            // Upstream's JsonrpcMessageListItem has serde's `rename_all`
-            // only at the *enum* level, which renames variants ("message",
-            // "dayMarker") but not their fields -- so this field really is
-            // snake_case `msg_id` on the wire, unlike MessageObject's
-            // camelCase fields. Verified by serializing the exact upstream
-            // attribute shape. `msgId` is also accepted in case upstream
-            // ever switches to `rename_all_fields`.
+            // `rename_all` sits at the enum level upstream, renaming
+            // variants but not fields: this really is snake_case on the
+            // wire. `msgId` accepted in case that changes.
             let Some(message_id) = item
                 .get("msg_id")
                 .or_else(|| item.get("msgId"))
@@ -672,9 +618,8 @@ impl DeltaChatCore {
             else {
                 continue;
             };
-            // A message id that does not fit u32 is not one the core's own
-            // API can address, so such a row is skipped rather than wrapped
-            // into a different message's id.
+            // An id that does not fit u32 is not addressable by the core's
+            // own API; skip rather than wrap into another message's id.
             let Ok(message_id) = u32::try_from(message_id) else {
                 continue;
             };
@@ -719,9 +664,7 @@ impl DeltaChatCore {
             let Some(this) = ptr.as_pinned() else { return };
             match result {
                 Ok(items) => {
-                    // Saturating rather than wrapping: an account count
-                    // that overflows u32 is impossible, and if it ever
-                    // happened "very many" is the right answer for a
+                    // Saturating: "very many" is the right answer for a
                     // has-any-configured-account check.
                     let configured_count =
                         u32::try_from(items.iter().filter(|item| item.is_configured).count())
@@ -742,9 +685,8 @@ impl DeltaChatCore {
         });
 
         runtime.spawn(async move {
-            // Upstream `Account`: tagged `kind` ("Configured"/
-            // "Unconfigured", verbatim variant names), camelCase fields
-            // (per-variant rename_all).
+            // Upstream `Account`: `kind` is "Configured"/"Unconfigured",
+            // fields camelCase.
             let result = rpc
                 .call_unit::<Vec<serde_json::Value>>("get_all_accounts")
                 .await
@@ -826,11 +768,9 @@ impl DeltaChatCore {
             let result = async {
                 let account_id = Self::profile_account(&rpc).await?;
                 Self::set_display_name(&rpc, account_id, display_name).await?;
-                // One call does the whole thing: the core asks the chatmail
-                // server for an account, stores the credentials it hands
-                // back, and restarts IO around the change. `configure` is
-                // deliberately not involved -- upstream deprecated it in
-                // 2025-02 in favour of exactly this (docs/ONBOARDING.md).
+                // The core asks the server for an account, stores the
+                // credentials, and restarts IO. Not `configure`, which
+                // upstream deprecated (docs/ONBOARDING.md).
                 rpc.call::<_, ()>("add_transport_from_qr", (account_id, provider_qr))
                     .await
                     .map_err(|err| err.to_string())?;
@@ -861,12 +801,8 @@ impl DeltaChatCore {
             let result = async {
                 let account_id = Self::profile_account(&rpc).await?;
                 Self::set_display_name(&rpc, account_id, display_name).await?;
-                // `addr` and `password` only: every other field of upstream's
-                // EnteredLoginParam is optional and autoconfigured. Sending
-                // the pair through add_or_update_transport, rather than
-                // set_config + configure, is what makes this the supported
-                // path and gives the account a *transport* rather than a
-                // single credential pair (docs/ONBOARDING.md).
+                // `addr` and `password` only; the rest of
+                // EnteredLoginParam autoconfigures (docs/ONBOARDING.md).
                 let param = serde_json::json!({ "addr": addr, "password": password });
                 rpc.call::<_, ()>("add_or_update_transport", (account_id, param))
                     .await
@@ -884,16 +820,13 @@ impl DeltaChatCore {
             return;
         };
         runtime.spawn(async move {
-            // The account configuring is the unconfigured one; if there
-            // isn't one, there is nothing to stop. Deliberately does not
-            // fall back to creating an account the way `profile_account`
-            // does -- cancelling must never make one.
+            // The configuring account is the unconfigured one. Never
+            // creates one, unlike `profile_account`.
             let Ok(Some(account_id)) = Self::find_unconfigured(&rpc).await else {
                 return;
             };
-            // Fire and forget: the outcome the UI reacts to is the final
-            // ConfigureProgress(0) the core emits in response, not this
-            // call's own return.
+            // Fire and forget: the UI reacts to the core's final
+            // ConfigureProgress(0), not to this call's return.
             let _ = rpc
                 .call::<_, ()>("stop_ongoing_process", (account_id,))
                 .await;
@@ -983,10 +916,9 @@ impl DeltaChatCore {
         })
     }
 
-    /// The account a new profile is built on: an existing *unconfigured*
-    /// one if a previous attempt left one behind, otherwise a fresh one.
-    /// Reusing it is what keeps a failed signup from leaving an orphan
-    /// account behind on every retry.
+    /// The account a new profile is built on: an existing unconfigured one
+    /// if there is one, else a fresh one. Reuse keeps a failed signup from
+    /// stranding an account per retry.
     async fn profile_account(rpc: &RpcClient) -> Result<u32, String> {
         if let Some(account_id) = Self::find_unconfigured(rpc).await? {
             return Ok(account_id);
@@ -1013,8 +945,8 @@ impl DeltaChatCore {
         }))
     }
 
-    /// Set the profile's display name. Sent before the transport call, so
-    /// the name is already in place when the core announces the account.
+    /// Set the display name, before the transport call so it is in place
+    /// when the core announces the account.
     async fn set_display_name(
         rpc: &RpcClient,
         account_id: u32,
@@ -1028,9 +960,8 @@ impl DeltaChatCore {
         .map_err(|err| err.to_string())
     }
 
-    /// The transport and the runtime, once [`DeltaChatCore::start`] has
-    /// completed. Callers report the `None` case themselves, because each
-    /// has its own error signal to report it on.
+    /// The transport and runtime, once [`DeltaChatCore::start`] completed.
+    /// Callers report `None` on their own error signal.
     fn connection(&self) -> Option<(Arc<RpcClient>, CoreRuntime)> {
         Some((self.rpc.clone()?, self.runtime.clone()?))
     }

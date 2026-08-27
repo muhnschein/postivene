@@ -1,10 +1,7 @@
-//! Guards the QML files against syntax that only exists in Qt versions
-//! newer than the one Sailfish ships.
+//! Guards the QML against syntax newer than Sailfish's Qt 5.6.
 //!
-//! This is a plain text scan on purpose: a *behavioural* test cannot catch
-//! the regression, because host Qt (5.15) happily accepts the newer form
-//! and merely warns. On device (Qt 5.6) the same file loads without any
-//! error and the handlers simply never fire.
+//! A text scan on purpose: host Qt 5.15 accepts the newer form and only
+//! warns, while on device the handlers silently never fire.
 
 use std::fs;
 use std::path::{Path, PathBuf};

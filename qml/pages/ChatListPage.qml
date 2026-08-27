@@ -11,8 +11,7 @@ Page {
     Connections {
         target: core
 
-        // Qt 5.6 handler syntax with the shim's snake_case parameter
-        // names -- see the note in SetupPage.qml.
+        // Qt 5.6 handler syntax; see WelcomePage.qml.
         onCore_event: {
             if (context_id === page.accountId
                     && (kind === "IncomingMsg" || kind === "MsgsChanged"
@@ -54,9 +53,8 @@ Page {
 
                 Label {
                     width: parent.width
-                    // Unencrypted chats ("address contacts", plain email)
-                    // get a letter mark, per upstream UI guidance;
-                    // encrypted chats are the unmarked normal case.
+                    // Unencrypted chats get a letter mark; encrypted is the
+                    // unmarked normal case.
                     text: model.is_encrypted ? model.name : "✉ " + model.name
                     truncationMode: TruncationMode.Fade
                 }

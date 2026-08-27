@@ -1,15 +1,14 @@
 name: ci
 
-# `main` only on push: a bare `push:` beside `pull_request:` runs everything
-# twice on every PR branch.
+# `main` only: a bare `push:` beside `pull_request:` runs everything twice.
 on:
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
 
-# A pull request groups by branch, so a new push supersedes the run in
-# flight. Everything else falls through to run_id: a group of one.
+# A new push supersedes the run in flight; everything else is a group of
+# one.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
@@ -21,37 +20,30 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # Lints, unit tests, and the Qt event-loop tests. The shim links against
-  # Qt5, so this job installs the dev packages; the toolchain itself comes
-  # from rust-toolchain.toml, which rustup honours on the first cargo call.
+  # Lints, unit tests, and the Qt event-loop tests. The toolchain comes from
+  # rust-toolchain.toml.
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update
-      # qml-module-qtquick2 is the runtime plugin, not a header package:
-      # without it every QML the tests load dies with `module "QtQuick" is
-      # not installed`, which surfaces as a confusing assertion rather than
-      # an obvious missing dependency. The -dev packages do not pull it in.
+      # qml-module-qtquick2 is the QtQuick runtime plugin, which the -dev
+      # packages do not pull in.
       - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qtdeclarative5-dev-tools qml-module-qtquick2
       - run: rustc --version && cargo --version
       - run: cd rust && cargo fmt --all --check
       - run: cd rust && cargo clippy --workspace --all-targets -- -D warnings
-      # QT_QPA_PLATFORM is set by the tests themselves, but setting it here
-      # too means a failure is a real failure and not a missing display.
+      # Also set by the tests; here so a failure is never a missing
+      # display.
       - run: cd rust && cargo test --workspace
         env:
           QT_QPA_PLATFORM: offscreen
-      # Broken intra-doc links are errors: the shim's docs are the reference
-      # for what QML may call, and a link to a renamed item is a lie.
+      # Broken intra-doc links are errors.
       - run: cd rust && RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
 
-  # The device toolchain floor. Sailfish ships Rust 1.75.0 and does not get
-  # to pick a newer one, so a workspace that only builds on modern stable is
-  # a workspace that does not build for the phone. Warnings are denied here
-  # because a warning on 1.75 is often an error-in-waiting on the SDK's
-  # stricter packaging build.
+  # The device toolchain floor: Sailfish ships Rust 1.75.0 and does not get
+  # to pick a newer one.
   msrv:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -63,27 +55,20 @@ jobs:
       - run: cd rust && cargo +1.75.0 check --workspace --all-targets
         env:
           RUSTFLAGS: -D warnings
-      # Cargo 1.75 cannot read a v4 lockfile, and a `cargo update` on a
-      # modern host rewrites it silently. Checked here, next to the toolchain
-      # it constrains.
+      # Checked here, next to the toolchain it constrains.
       - run: ./ci/check-lockfile.sh
 
-  # The half of the surface no fake server can prove: that the shapes we
-  # send and parse are the shapes the *real* Delta Chat core uses. Runs
-  # entirely offline -- no account is configured against any server -- but
-  # against the actual pinned v2.53.0 binary.
+  # What no fake server can prove: that our shapes are the real core's.
+  # Offline, against the pinned binary.
   integration:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update
-      # real_core drives the shim through a QML probe, so this job needs the
-      # QtQuick runtime plugin too.
+      # real_core drives the shim through a QML probe.
       - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qml-module-qtquick2
-      # Checksum-pinned on both the wheel and the extracted binary; a
-      # tampered or moved upstream artifact fails here rather than being
-      # tested against.
+      # Checksum-pinned on the wheel and the extracted binary.
       - run: ./scripts/fetch-rpc-server.sh
       - run: cd rust && cargo test -p deltachat-jsonrpc --test real_server
         env:
@@ -93,9 +78,8 @@ jobs:
           DELTACHAT_RPC_SERVER: vendor/deltachat-rpc-server/x86_64/deltachat-rpc-server
           QT_QPA_PLATFORM: offscreen
 
-  # Everything that decides whether the RPM installs and the launcher works.
-  # None of it is reachable from `cargo test`, and all of it has broken at
-  # least once (see docs/MILESTONES.md, milestone 6).
+  # What decides whether the RPM installs and the launcher works; none of it
+  # is reachable from `cargo test`.
   packaging:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -106,9 +90,8 @@ jobs:
       - run: ./ci/qml-lint.sh
       - run: ./ci/packaging-lint.sh
 
-  # Licences first: this app bundles a GPL-family core binary, so an
-  # incompatible dependency licence is a distribution problem, not a style
-  # one (docs/LICENSING.md). Advisories come along for the ride.
+  # Licences matter here: we ship beside a GPL-family binary
+  # (docs/LICENSING.md).
   deny:
     runs-on: ubuntu-latest
     timeout-minutes: 10

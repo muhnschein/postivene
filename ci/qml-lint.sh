@@ -1,15 +1,8 @@
 #!/bin/sh
-# Parse every .qml file in the repository.
+# Parse every .qml file.
 #
-# `qmllint` is a syntax check, not a semantic one: it cannot resolve
-# `Sailfish.Silica`, which does not exist outside the Sailfish SDK, so it
-# will not tell us whether a `Page` has the properties we think it has.
-# What it does catch is the whole class of typo that would otherwise first
-# show up as a blank screen on a phone.
-#
-# The Qt-5.6 dialect rules that qmllint cannot express (host Qt accepts
-# newer syntax happily) are enforced separately, as a Rust test:
-# rust/postivene-shim/tests/qml_syntax.rs.
+# Syntax only: qmllint cannot resolve `Sailfish.Silica`. The Qt 5.6 dialect
+# rules it cannot express live in rust/postivene-shim/tests/qml_syntax.rs.
 set -eu
 
 root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)

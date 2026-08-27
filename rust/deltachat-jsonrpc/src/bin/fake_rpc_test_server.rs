@@ -1,11 +1,7 @@
-//! Stand-in for `deltachat-rpc-server` used only by this crate's own tests.
+//! Stand-in for `deltachat-rpc-server`, for this crate's tests.
 //!
-//! Speaks the same wire format (newline-delimited JSON-RPC 2.0 on
-//! stdin/stdout) and handles requests concurrently (each line is dispatched
-//! to its own task), so the test suite can exercise request/response
-//! correlation, out-of-order concurrent replies, error propagation, and the
-//! `get_next_event_batch` long-poll pattern without needing a real Delta
-//! Chat core binary.
+//! Same wire format, one task per request, so the suite can exercise
+//! correlation, out-of-order replies, errors, and the event long poll.
 
 use std::sync::Arc;
 
@@ -73,9 +69,8 @@ async fn main() {
                             }]),
                         )
                     } else {
-                        // No more events: emulate the real long-poll
-                        // behavior of blocking until something new
-                        // happens, which in this test double is "never".
+                        // Blocks forever, like the real long poll with no
+                        // events.
                         drop(count);
                         std::future::pending::<()>().await;
                         unreachable!("pending future never resolves")

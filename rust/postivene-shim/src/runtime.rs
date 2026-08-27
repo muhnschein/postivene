@@ -1,29 +1,10 @@
 //! The tokio runtime, kept off the Qt main thread.
 //!
-//! Building a tokio runtime is not a passive operation: `Builder::build`
-//! finishes with `Handle::enter()`, and dropping a `Runtime` re-enters the
-//! runtime context, so both touch tokio's thread-local context. On the
-//! Sailfish aarch64 build that thread-local turns out not to be usable on
-//! the Qt main thread -- `Runtime::new()` panics with
-//! `already borrowed: BorrowMutError` inside `Builder::build`, before any
-//! of our own code gets to run:
-//!
-//! ```text
-//! tokio::runtime::context::current::Context::set_current
-//! tokio::runtime::builder::Builder::build
-//! tokio::runtime::runtime::Runtime::new
-//! postivene_shim::core::DeltaChatCore::start
-//! <postivene_shim::core::DeltaChatCore as qmetaobject::QObject>::static_metacall
-//! ```
-//!
-//! (Reproduced on a Jolla phone; the same `Runtime::new()` in a non-Qt
-//! binary built from the same toolchain works, so it is specific to doing
-//! it on the Qt main thread of this build.)
-//!
-//! `CoreRuntime` therefore creates the runtime on a thread of its own and
-//! hands back only a `Handle`. `Handle::spawn` never touches the runtime
-//! context, so the Qt thread can keep spawning work exactly as before, and
-//! the `Runtime` itself is both created and dropped on its own thread.
+//! `Runtime::new` and dropping a `Runtime` both touch tokio's thread-local
+//! context, which panics with `already borrowed: BorrowMutError` on the Qt
+//! main thread of the Sailfish aarch64 build. `CoreRuntime` therefore
+//! builds and drops the runtime on a thread of its own and hands back only
+//! a `Handle`, whose `spawn` never enters the runtime context.
 
 use std::future::Future;
 use std::sync::mpsc;
@@ -33,14 +14,12 @@ use std::time::Duration;
 use tokio::runtime::{Handle, Runtime};
 use tokio::task::JoinHandle;
 
-/// How long `CoreRuntime::new` waits for its thread to hand back a handle.
-/// This is a thread spawn plus a runtime build, i.e. milliseconds; the
-/// timeout only exists so a wedged thread cannot hang the UI forever.
+/// Bounded so a wedged thread cannot hang the UI. A thread spawn plus a
+/// runtime build is milliseconds.
 const HANDLE_TIMEOUT: Duration = Duration::from_secs(5);
 
-/// A handle to a tokio runtime living on its own thread. Cloning is cheap
-/// and shares the one runtime; when the last clone goes away, the owning
-/// thread is told to shut down and drops the runtime there.
+/// Handle to a tokio runtime on its own thread. Clones share it; when the
+/// last one drops, that thread shuts down and drops the runtime.
 #[derive(Clone)]
 pub struct CoreRuntime(Arc<RuntimeThread>);
 
@@ -58,9 +37,7 @@ impl CoreRuntime {
         std::thread::Builder::new()
             .name("postivene-tokio".to_string())
             .spawn(move || {
-                // The one place a runtime may be built: this is that
-                // thread, which is the whole point of this type. See the
-                // module docs, and clippy.toml for the ban this opts out of.
+                // The one place a runtime may be built: this thread.
                 #[allow(clippy::disallowed_methods)]
                 let runtime = match Runtime::new() {
                     Ok(runtime) => runtime,
@@ -72,9 +49,8 @@ impl CoreRuntime {
                 if handle_tx.send(Ok(runtime.handle().clone())).is_err() {
                     return;
                 }
-                // Park until every `CoreRuntime` clone is gone (the send
-                // half is dropped, so `recv` returns `Err`). The runtime is
-                // then dropped here, on this thread -- never on the Qt one.
+                // Parks until every clone is gone, then drops the runtime
+                // here rather than on the Qt thread.
                 let _ = shutdown_rx.recv();
             })
             .map_err(|err| format!("could not start runtime thread: {err}"))?;
@@ -89,9 +65,7 @@ impl CoreRuntime {
         }
     }
 
-    /// Spawn onto the runtime. Deliberately goes through `Handle`, which
-    /// only enqueues the task -- see the module docs for why the Qt thread
-    /// must not enter the runtime context.
+    /// Spawn onto the runtime. Goes through `Handle`, which only enqueues.
     pub fn spawn<F>(&self, future: F) -> JoinHandle<F::Output>
     where
         F: Future + Send + 'static,

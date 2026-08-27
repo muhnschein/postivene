@@ -1,8 +1,6 @@
 #!/bin/sh
-# Sailfish ships cargo 1.75.0, which cannot read a v4 Cargo.lock (that
-# format arrived in 1.78). A `cargo update` on a modern host silently
-# rewrites the lockfile to v4, and the failure then surfaces only inside
-# the SDK, days later, as an unreadable lockfile.
+# Sailfish's cargo 1.75.0 cannot read a v4 lockfile (v4 arrived in 1.78),
+# and `cargo update` on a modern host rewrites it silently.
 set -eu
 
 root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)

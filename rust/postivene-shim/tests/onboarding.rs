@@ -1,21 +1,14 @@
-//! What the onboarding actions actually say to the core.
+//! What the onboarding actions say to the core.
 //!
-//! These are contract tests, not behaviour tests: they drive a real Qt
-//! event loop against the recording double (`src/bin/fake_core_server.rs`)
-//! and then assert on the *journal* of JSON-RPC calls it wrote. What is
-//! being pinned is the thing that silently rots -- that creating a profile
-//! sets a display name and hands a `dcaccount:` payload to
-//! `add_transport_from_qr`, that an email login sends an
-//! `EnteredLoginParam` to `add_or_update_transport`, and that neither one
-//! ever calls the deprecated `configure` again (docs/ONBOARDING.md).
-//!
-//! Everything runs in one event loop and one process because a second
-//! `QGuiApplication` in the same process is not a thing Qt allows.
+//! Contract tests: they drive a Qt event loop against the recording double
+//! (`src/bin/fake_core_server.rs`) and assert on its journal of JSON-RPC
+//! calls. One process and one event loop, because Qt allows only one
+//! `QGuiApplication`.
 
-// See tests/smoke.rs for why this Qt harness needs the first three allows.
-// `expect_used` is allowed for the whole file rather than just the `#[test]`
-// function clippy recognises: the assertion helpers below are test code too,
-// and a missing recorded call should stop the test with its message.
+// Qt harness: needs `unsafe` for `env::set_var` before Qt starts
+// (`unused_unsafe` because it is only unsafe from edition 2024 on),
+// `borrow_as_ptr` for the engine pointer, and `single_shot` with
+// whole-second Durations.
 #![allow(
     unsafe_code,
     unused_unsafe,
@@ -31,13 +24,9 @@ use postivene_shim::DeltaChatCore;
 use qmetaobject::*;
 use serde_json::Value;
 
-/// The probe object the test loads beside the real shim.
-///
-/// It is part of the assertion, not scaffolding: it records what the shim
-/// *signalled*, which is the half of the contract the call journal cannot
-/// show. Written in the Qt 5.6 dialect the device needs, with the shim's
-/// `snake_case` signal and parameter names -- so a renamed signal or a
-/// changed parameter name fails here rather than on a phone.
+/// Records what the shim signalled, the half of the contract the journal
+/// cannot show. In the Qt 5.6 dialect with `snake_case` names, so a rename
+/// fails here rather than on a phone.
 const PROBE_QML: &str = r"
         import QtQuick 2.0
         Item {
@@ -126,9 +115,7 @@ fn onboarding_speaks_the_current_transport_api() {
     let server = QString::from(env!("CARGO_BIN_EXE_fake-core-server"));
     core_box.pinned().borrow_mut().start(server);
 
-    // Whole seconds only: qmetaobject 0.2.10 truncates sub-second Durations
-    // (see clippy.toml). Each step gets its own tick so the journal reads in
-    // the order the actions were taken.
+    // Whole seconds only (clippy.toml); one step per tick.
     let core_ptr: QPointer<DeltaChatCore> = QPointer::from(core_box.pinned().borrow());
 
     let chatmail = core_ptr.clone();
@@ -143,7 +130,7 @@ fn onboarding_speaks_the_current_transport_api() {
     let failing = core_ptr.clone();
     single_shot(Duration::from_secs(3), move || {
         if let Some(this) = failing.as_pinned() {
-            // `fail` is what the double treats as an unreachable server.
+            // The double treats `fail` as an unreachable server.
             this.borrow_mut().create_profile(
                 QString::from("Ada"),
                 QString::from("dcaccount:fail.invalid"),
@@ -179,10 +166,7 @@ fn onboarding_speaks_the_current_transport_api() {
     assert_email_profile(&calls);
     assert_failed_attempt_left_no_orphan(&calls);
 
-    // The other half of the contract: the signals QML binds to actually
-    // fired, with the values it binds to. A journal cannot show this, and a
-    // signal renamed or given different parameter names would sail past
-    // every assertion above.
+    // The signals QML binds to fired, with the values it binds to.
     let summary = QString::from_qvariant(engine.invoke_method("summary".into(), &[]))
         .map(|value| value.to_string())
         .unwrap_or_default();
@@ -215,9 +199,7 @@ fn onboarding_speaks_the_current_transport_api() {
     );
 }
 
-/// The deprecated path must stay gone. This is the most valuable assertion
-/// in the file: `set_config(mail_pw)` + `configure` is what the app used to
-/// do, and it is what a careless revert would restore.
+/// The deprecated `set_config(mail_pw)` + `configure` path must stay gone.
 fn assert_current_transport_api(calls: &[Call]) {
     let names = methods(calls);
     assert!(
@@ -246,8 +228,7 @@ fn assert_current_transport_api(calls: &[Call]) {
     }
 }
 
-/// A display name, then the provider payload -- and the default provider is
-/// the one the reference client uses.
+/// A display name, then the provider payload.
 fn assert_chatmail_profile(calls: &[Call]) {
     let names = methods(calls);
     let display_name = calls
@@ -270,8 +251,8 @@ fn assert_chatmail_profile(calls: &[Call]) {
         "the default provider payload changed"
     );
 
-    // The display name is set *before* the transport call, so it is in place
-    // when the core announces the account to the network.
+    // Before the transport call, so it is in place when the core announces
+    // the account.
     let name_index = names.iter().position(|method| *method == "set_config");
     let transport_index = names
         .iter()
@@ -282,8 +263,7 @@ fn assert_chatmail_profile(calls: &[Call]) {
     );
 }
 
-/// Exactly the two required fields of `EnteredLoginParam`, as an object --
-/// not positional arguments, not `set_config` calls.
+/// The two required fields of `EnteredLoginParam`, as an object.
 fn assert_email_profile(calls: &[Call]) {
     let transport = find(calls, "add_or_update_transport")
         .expect("create_profile_with_email must go through add_or_update_transport");
@@ -298,8 +278,7 @@ fn assert_email_profile(calls: &[Call]) {
     );
 }
 
-/// A failed attempt must not strand an account: the retry reuses the
-/// unconfigured one rather than adding another.
+/// A failed attempt must not strand an account.
 fn assert_failed_attempt_left_no_orphan(calls: &[Call]) {
     let names = methods(calls);
     let added = names

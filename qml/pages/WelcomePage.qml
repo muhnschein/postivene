@@ -2,23 +2,17 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 
 /*
- * The first screen. Deliberately offers no address and no password: a new
- * Delta Chat user does not have either yet, and the reference client asks
- * for neither here. See docs/ONBOARDING.md.
- *
- * It doubles as the resume path -- if the core already has a configured
- * account, this page never really shows, it just hands over to the chat
- * list.
+ * The first screen: no address, no password -- a new Delta Chat user has
+ * neither (docs/ONBOARDING.md). Also the resume path: with a configured
+ * account it hands straight over to the chat list.
  */
 Page {
     id: page
 
-    // True until we know whether a configured account already exists, so
-    // the buttons don't flash before an auto-resume takes over.
+    // Hides the buttons until we know whether an account exists.
     property bool probing: true
 
-    // The core may already be "ready" before this page's handlers exist,
-    // in which case onStatus_changed never fires for us -- probe directly.
+    // The core may be ready before the handler below exists.
     Component.onCompleted: {
         if (core.status === "ready") {
             core.refresh_accounts()
@@ -27,12 +21,8 @@ Page {
         }
     }
 
-    // NB: Sailfish is on Qt 5.6, where `Connections` only recognises
-    // `onFoo:` script bindings -- the `function onFoo() {}` form is Qt 5.15+
-    // and is silently treated as an ordinary function declaration that is
-    // never connected. Parameters arrive under the names the shim declares,
-    // i.e. snake_case. tests/qml_syntax.rs fails the build if the newer
-    // form comes back.
+    // Qt 5.6 recognises only `onFoo:` bindings, and injects parameters
+    // under the shim's snake_case names. tests/qml_syntax.rs enforces it.
     Connections {
         target: core
 
@@ -92,11 +82,8 @@ Page {
             anchors.horizontalCenter: parent.horizontalCenter
             text: qsTr("I Already Have a Profile")
             enabled: core.status === "ready"
-            // Only the mailbox path is offered so far. "Add as second
-            // device" and "restore from backup" are the reference client's
-            // other two answers here and need shim work first
-            // (docs/GAP-ANALYSIS.md); a button that does nothing would be
-            // worse than one that isn't there yet.
+            // Only the mailbox path so far; second device and backup
+            // restore need shim work (docs/GAP-ANALYSIS.md).
             onClicked: pageStack.push(Qt.resolvedUrl("EmailLoginPage.qml"), {})
         }
     }

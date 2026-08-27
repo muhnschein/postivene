@@ -13,8 +13,7 @@ Page {
     Connections {
         target: core
 
-        // Qt 5.6 handler syntax with the shim's snake_case parameter
-        // names -- see the note in SetupPage.qml.
+        // Qt 5.6 handler syntax; see WelcomePage.qml.
         onMessage_sent: {
             if (account_id === page.accountId && chat_id === page.chatId) {
                 textField.text = ""
@@ -25,13 +24,12 @@ Page {
             if (context_id !== page.accountId) {
                 return
             }
-            // MsgDelivered/MsgRead/MsgFailed update the delivery-state
-            // ticks on outgoing messages; the others add/change content.
+            // Delivery-state events update ticks; the others change
+            // content.
             if (kind === "IncomingMsg" || kind === "MsgsChanged"
                     || kind === "MsgDelivered" || kind === "MsgRead"
                     || kind === "MsgFailed") {
-                // MsgsChanged carries chatId 0 when more than one chat is
-                // affected; refresh for our chat or for "unspecified".
+                // MsgsChanged carries chatId 0 for "several chats".
                 var eventChatId = JSON.parse(payload_json).chatId
                 if (eventChatId === page.chatId || eventChatId === 0) {
                     core.open_chat(page.accountId, page.chatId)
@@ -65,12 +63,8 @@ Page {
                     leftMargin: Theme.horizontalPageMargin
                     rightMargin: Theme.horizontalPageMargin
                 }
-                // Upstream guidance: mark messages that were NOT correctly
-                // encrypted & signed (show_padlock false) with a small
-                // email icon; encrypted is the unmarked normal case.
-                // Outgoing messages carry a delivery-state suffix (the
-                // DC_STATE_* constants: 20 pending, 24 failed,
-                // 26 delivered, 28 read).
+                // A mail icon marks messages that were not encrypted and
+                // signed. Outgoing messages get a DC_STATE_* suffix.
                 text: (model.show_padlock ? "" : "✉ ") + model.text
                       + (model.is_outgoing ? " " + stateMark(model.state) : "")
                 wrapMode: Text.Wrap

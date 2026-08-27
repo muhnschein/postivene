@@ -18,13 +18,9 @@ type PendingMap = Arc<Mutex<HashMap<u64, oneshot::Sender<Result<serde_json::Valu
 
 /// Lock a mutex, recovering the guard if a previous holder panicked.
 ///
-/// Every mutex in this file guards a plain collection (the pending-call
-/// map, the child handle, the stderr ring). A panic while one is held
-/// leaves that collection structurally intact, and the alternative --
-/// propagating the poison -- would take down the whole transport, and with
-/// it a running app, over a fault that has already happened elsewhere.
-/// Recovering is the more useful behaviour here, so it is spelled once,
-/// deliberately, rather than as `.unwrap()` at fifteen call sites.
+/// These mutexes guard plain collections, which a panic leaves structurally
+/// intact. Killing the transport over a fault that happened elsewhere is
+/// the worse outcome.
 fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     mutex
         .lock()
@@ -32,13 +28,10 @@ fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
 }
 
 /// A running `deltachat-rpc-server` subprocess, addressable via JSON-RPC 2.0
-/// calls over its stdio.
+/// over its stdio.
 ///
-/// This type owns *transport only*: request/response correlation, framing,
-/// and process lifecycle. It has no knowledge of any particular RPC method
-/// -- callers pass method names and JSON params/results through
-/// [`RpcClient::call`]. All Delta Chat protocol semantics live in the
-/// upstream core; this crate never interprets them.
+/// Transport only: correlation, framing, process lifecycle. Method names and
+/// payloads pass through uninterpreted.
 pub struct RpcClient {
     stdin_tx: mpsc::UnboundedSender<String>,
     pending: PendingMap,
@@ -71,20 +64,16 @@ impl RpcClient {
         Self::spawn_with_env(program, args, std::iter::empty::<(&OsStr, &OsStr)>()).await
     }
 
-    /// Like [`RpcClient::spawn`], but with extra environment variables set
-    /// on the child (on top of the inherited environment). The one that
-    /// matters in practice is `DC_ACCOUNTS_PATH`: `deltachat-rpc-server`
-    /// stores all account state under `./accounts` relative to its *current
-    /// working directory* unless this is set, which is never what a
-    /// launched GUI app wants.
+    /// Like [`RpcClient::spawn`], with extra environment variables on the
+    /// child. `DC_ACCOUNTS_PATH` is the one that matters: without it the
+    /// server stores account state under `./accounts`, relative to its
+    /// working directory.
     ///
     /// # Errors
     ///
     /// Same as [`RpcClient::spawn`].
-    // Nothing here awaits, but the signature stays `async` deliberately:
-    // `tokio::process::Command::spawn` requires an active reactor, and an
-    // `async fn` can only be driven inside one. The compiler thus enforces
-    // at every call site the invariant this function actually has.
+    // Stays `async` though nothing awaits: `Command::spawn` needs an active
+    // reactor, and an `async fn` can only run inside one.
     #[allow(clippy::unused_async)]
     pub async fn spawn_with_env<S, I, A, E, K, V>(
         program: S,
@@ -140,19 +129,14 @@ impl RpcClient {
                 if line.trim().is_empty() {
                     continue;
                 }
-                // Anything that does not parse as a JSON-RPC response is
-                // skipped: the core writes only responses to stdout, so such
-                // a line is a truncated write or a future wire change, and
-                // neither is worth tearing down a live transport.
+                // Skip anything that is not a JSON-RPC response rather than
+                // tearing down a live transport.
                 let Ok(envelope) = serde_json::from_str::<ResponseEnvelope>(&line) else {
                     continue;
                 };
                 let Some(id) = envelope.id else {
-                    // A notification with no id. The core's JSON-RPC API
-                    // delivers events via the polling `get_next_event`/
-                    // `get_next_event_batch` methods rather than unsolicited
-                    // notifications, so we don't expect these in practice;
-                    // ignore rather than crash if the server ever sends one.
+                    // The core delivers events by polling, not by
+                    // notification, so this should not happen.
                     continue;
                 };
                 let outcome = match (envelope.result, envelope.error) {
@@ -195,13 +179,11 @@ impl RpcClient {
         })
     }
 
-    /// Call an RPC method, serializing `params` as the JSON-RPC params array
-    /// (or object) and deserializing the result as `R`.
+    /// Call an RPC method, serializing `params` and deserializing the
+    /// result as `R`.
     ///
-    /// Method names and param/result shapes are defined entirely by the
-    /// core's JSON-RPC API (see the `--openrpc` output of
-    /// `deltachat-rpc-server`); this crate doesn't hardcode or validate
-    /// them.
+    /// Method names and shapes come from the core's API (`--openrpc`); this
+    /// crate neither hardcodes nor validates them.
     ///
     /// # Errors
     ///
@@ -265,10 +247,8 @@ impl RpcClient {
         rx.await.unwrap_or(Err(RpcError::TransportClosed))
     }
 
-    /// The last `STDERR_TAIL_CAPACITY` lines the server has written to
-    /// stderr, oldest first. (Named rather than linked: the constant is
-    /// private, and a link to it fails the doc build.) Useful for surfacing diagnostics when a call
-    /// fails or the process exits unexpectedly.
+    /// The last `STDERR_TAIL_CAPACITY` lines of the server's stderr, oldest
+    /// first. Diagnostics for a failed call or an unexpected exit.
     pub fn stderr_tail(&self) -> Vec<String> {
         lock(&self.stderr_tail).clone()
     }

@@ -1,22 +1,11 @@
-//! Confirms how `qmetaobject`'s `QObject` derive exposes Rust identifiers
-//! to QML: does it keep `snake_case` verbatim, or `camelCase` it? This is
-//! load-bearing for every `.qml` file that calls into `DeltaChatCore`, so
-//! it's worth pinning down with a real QML load rather than assuming.
+//! `qmetaobject` exposes Rust identifiers to QML verbatim, `snake_case` and
+//! all. Every `.qml` file depends on that, so it is pinned with a real load
+//! rather than assumed.
 
-// This is Qt harness code: it drives a real event loop from a test, which
-// needs three things the workspace lints otherwise deny, each already
-// carrying its own SAFETY/justification note below:
-//
-// * `unsafe`: setting `QT_QPA_PLATFORM=offscreen` before Qt initialises.
-//   `unused_unsafe` rides along because `std::env::set_var` is safe on the
-//   Rust 1.75 floor but unsafe from edition 2024 on: the block is required
-//   by the newer compiler and merely redundant on the older one, and the
-//   MSRV job builds with warnings denied.
-// * `borrow_as_ptr`: handing the engine to a timer callback that outlives
-//   the borrow but not the engine.
-// * `single_shot`: allowed here because every call passes a *whole-second*
-//   `Duration`, which is the case qmetaobject 0.2.10 converts correctly
-//   (see clippy.toml for the bug this lint guards).
+// Qt harness: needs `unsafe` for `env::set_var` before Qt starts
+// (`unused_unsafe` because it is only unsafe from edition 2024 on),
+// `borrow_as_ptr` for the engine pointer, and `single_shot` with
+// whole-second Durations.
 #![allow(
     unsafe_code,
     unused_unsafe,
@@ -43,10 +32,7 @@ fn methods_properties_and_signals_are_exposed_verbatim_snake_case() {
     let server_path = QString::from(env!("CARGO_BIN_EXE_fake-health-server"));
     core_box.pinned().borrow_mut().start(server_path);
 
-    // If any of `core.check_health`, `core.status`, or the
-    // `system_info_changed` signal handler name were wrong, this QML would
-    // fail to bind/compile and `sawSystemInfoChanged` would stay false, or
-    // Qt would print "ReferenceError"/"is not a function" to stderr.
+    // A wrong method, property or handler name leaves this QML unbound.
     let qml = r"
         import QtQuick 2.0
         Item {

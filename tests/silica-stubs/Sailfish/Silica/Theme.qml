@@ -1,8 +1,8 @@
 pragma Singleton
 import QtQuick 2.0
 
-// Silica's Theme, reduced to the constants the pages read. The values are
-// arbitrary: nothing here is asserting layout, only that a binding resolves.
+// The constants the pages read. Values are arbitrary; only that a binding
+// resolves is being checked.
 QtObject {
     property int paddingSmall: 4
     property int paddingMedium: 8

@@ -2,13 +2,10 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 
 /*
- * The classic path: an existing mailbox becomes this profile's transport.
- *
- * Kept one level in, behind "other options" and "I already have a
- * profile", which is where the reference client keeps it -- most Delta
- * Chat users never type an IMAP password (docs/ONBOARDING.md). Address and
- * password are all that is asked: every other setting in upstream's
- * EnteredLoginParam is autoconfigured.
+ * An existing mailbox as this profile's transport. One level in, where the
+ * reference client keeps it: most Delta Chat users never type an IMAP
+ * password (docs/ONBOARDING.md). Everything but address and password
+ * autoconfigures.
  */
 Page {
     id: page
@@ -30,7 +27,7 @@ Page {
                                        passwordField.text)
     }
 
-    // Qt 5.6 handler syntax, snake_case parameters -- see WelcomePage.qml.
+    // Qt 5.6 handler syntax; see WelcomePage.qml.
     Connections {
         target: core
 

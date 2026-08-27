@@ -1,24 +1,17 @@
-//! Does the *real* core accept the shapes this shim sends?
+//! Does the real core accept the shapes this shim sends?
 //!
-//! The fake double in `tests/onboarding.rs` proves which calls a UI action
-//! makes; it cannot prove those calls are well-formed, because the double
-//! is written from the same reading of the API as the code under test. If
-//! that reading is wrong -- a field named `mail_pw` instead of `password`,
-//! positional arguments where an object belongs -- both agree and both are
-//! wrong, and the failure surfaces on a phone.
+//! The double in `tests/onboarding.rs` is written from the same reading of
+//! the API as the code, so a wrong reading passes both. This drives the shim
+//! against the pinned binary and distinguishes a request the core could not
+//! decode from one it could not deliver. Offline: every address is in a
+//! reserved TLD.
 //!
-//! So this drives the shim against the actual pinned `deltachat-rpc-server`
-//! and looks at *what kind* of error comes back. A misshapen request is
-//! rejected by serde before the core does anything, with a
-//! deserialization message; a well-formed request for an unreachable
-//! server fails later, while configuring. Distinguishing the two is the
-//! whole test, and it needs no reachable mail server: every address here is
-//! in a reserved TLD that cannot resolve.
-//!
-//! Gated on `DELTACHAT_RPC_SERVER`, like `deltachat-jsonrpc`'s own
-//! `real_server` test.
+//! Gated on `DELTACHAT_RPC_SERVER`.
 
-// See tests/smoke.rs for why this Qt harness needs these allows.
+// Qt harness: needs `unsafe` for `env::set_var` before Qt starts
+// (`unused_unsafe` because it is only unsafe from edition 2024 on),
+// `borrow_as_ptr` for the engine pointer, and `single_shot` with
+// whole-second Durations.
 #![allow(
     unsafe_code,
     unused_unsafe,
@@ -31,9 +24,7 @@ use std::time::Duration;
 use postivene_shim::DeltaChatCore;
 use qmetaobject::*;
 
-/// Substrings that mean "the core could not even decode the request".
-/// These are what serde emits when a param shape is wrong, and any of them
-/// is a failure of this test rather than of the network.
+/// Serde's vocabulary for a wrong param shape.
 const SHAPE_ERRORS: &[&str] = &[
     "invalid type",
     "missing field",
@@ -98,8 +89,7 @@ fn the_real_core_accepts_the_shapes_we_send() {
     let mut engine = QmlEngine::new();
     engine.set_object_property("core".into(), core_box.pinned());
 
-    // Collect every error message the shim reports, plus how the core
-    // classified a `dcaccount:` payload -- the QR path's own shape check.
+    // Errors reported, plus how the core classified a `dcaccount:` payload.
     let qml = r"
         import QtQuick 2.0
         Item {
@@ -126,8 +116,7 @@ fn the_real_core_accepts_the_shapes_we_send() {
         if let Some(this) = email.as_pinned() {
             this.borrow_mut().create_profile_with_email(
                 QString::from("Ada"),
-                // `.invalid` is reserved by RFC 2606 and cannot resolve, so
-                // this fails at connect time, never at parse time.
+                // RFC 2606 reserved: fails at connect time, not parse time.
                 QString::from("ada@postivene-test.invalid"),
                 QString::from("not-a-real-password"),
             );
@@ -137,7 +126,7 @@ fn the_real_core_accepts_the_shapes_we_send() {
     let qr = core_ptr;
     single_shot(Duration::from_secs(9), move || {
         if let Some(this) = qr.as_pinned() {
-            // Account 1 exists by now: create_profile_with_email made it.
+            // Account 1 exists by now.
             this.borrow_mut()
                 .check_qr(1, QString::from("dcaccount:postivene-test.invalid"));
         }
@@ -181,9 +170,8 @@ fn the_real_core_accepts_the_shapes_we_send() {
         );
     }
 
-    // The QR path's shape: the core parsed a `dcaccount:` payload and said
-    // so. A wrong `check_qr` param shape would land in `qr_error` instead
-    // and leave this empty.
+    // A wrong `check_qr` shape would land in `qr_error` and leave this
+    // empty.
     assert_eq!(
         qr_kind, "account",
         "check_qr did not classify a dcaccount: payload as an account \

@@ -1,8 +1,7 @@
 import QtQuick 2.0
 
-// A Silica Page is an Item with a few extra properties. `pageStack` is not
-// declared here: in the app it is a context property, and the test harness
-// injects a recording stand-in under the same name.
+// `pageStack` is not declared here: it is a context property, which the
+// harness injects.
 Item {
     property bool allowedOrientations
     property int orientation

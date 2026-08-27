@@ -1,28 +1,15 @@
-# Two landmines this project has already stepped on, encoded so it cannot
-# step on them again. Both are runtime failures on device that no host build
-# or test reproduces, which is exactly the class of bug a lint is worth
-# paying for.
+# Two failures that only reproduce on device, encoded so they cannot recur.
 
 disallowed-methods = [
-    # Building a tokio runtime touches tokio's thread-local context, and on
-    # the Sailfish aarch64 build that panics with `already borrowed:
-    # BorrowMutError` when it happens on the Qt main thread -- the app died
-    # before any of our code ran. Everything goes through
-    # `crate::runtime::CoreRuntime`, which builds (and drops) the runtime on
-    # a thread of its own. See rust/postivene-shim/src/runtime.rs.
-    #
-    # Only `Runtime::new` is banned, not `Builder::build`: `#[tokio::main]`
-    # and `#[tokio::test]` expand to the latter, so banning it would fire on
-    # macro-generated code in every test and test double rather than on the
-    # mistake. The one legitimate `Runtime::new` carries a local `allow`.
-    { path = "tokio::runtime::Runtime::new", reason = "build the runtime via CoreRuntime, never on the Qt main thread (postivene-shim/src/runtime.rs)" },
+    # Building a tokio runtime on the Qt main thread panics on the Sailfish
+    # aarch64 build. Everything goes through `CoreRuntime`, which owns its
+    # own thread. `Builder::build` is not banned: `#[tokio::main]` and
+    # `#[tokio::test]` expand to it.
+    { path = "tokio::runtime::Runtime::new", reason = "use CoreRuntime (postivene-shim/src/runtime.rs)" },
 
-    # qmetaobject 0.2.10's single_shot() converts the sub-second part of a
-    # Duration with `subsec_nanos() * (1e-6 as u32)`, and `1e-6 as u32`
-    # truncates to 0 -- so any non-whole-second Duration fires immediately.
-    # Whole seconds are safe; the lint is here so the next person does not
-    # rediscover it. See docs/MILESTONES.md, milestone 2.
-    { path = "qmetaobject::single_shot", reason = "qmetaobject 0.2.10 mis-converts sub-second Durations; pass whole seconds (docs/MILESTONES.md M2)" },
+    # qmetaobject 0.2.10 truncates the sub-second part of a Duration to 0,
+    # so anything under a second fires immediately. Pass whole seconds.
+    { path = "qmetaobject::single_shot", reason = "pass whole-second Durations only" },
 ]
 
 allow-unwrap-in-tests = true

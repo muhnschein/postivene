@@ -1,7 +1,6 @@
 import QtQuick 2.0
 
-// Only what a test needs: a label, an enabled flag, and a clicked() signal
-// the harness can emit to stand in for a tap.
+// A label and a clicked() signal the harness can emit for a tap.
 Item {
     property string text
     property bool down: false

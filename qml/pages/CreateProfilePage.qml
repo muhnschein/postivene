@@ -2,28 +2,24 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 
 /*
- * Create a profile on a chatmail server. The user types a display name;
- * the server mints the address and the credentials. One shim call does it
- * (docs/ONBOARDING.md).
+ * Create a profile on a chatmail server: the user types a name, the server
+ * mints the address and credentials (docs/ONBOARDING.md).
  *
- * "Use an invite or login link" covers the same ground as the reference
- * client's QR scanner without needing a camera: every dcaccount:, dclogin:
- * and https://i.delta.chat/ payload is plain text, so a field accepts all
- * of them.
+ * The link field covers the QR scanner's ground without a camera -- every
+ * dcaccount:, dclogin: and i.delta.chat payload is plain text.
  */
 Page {
     id: page
 
-    // The `dcaccount:` payload handed to the core. Starts as the default
-    // chatmail server and is replaced when the user pastes a link.
+    // Handed to the core; replaced when the user pastes a link.
     property string providerQr: core.default_provider_qr()
     property string providerLabel: hostOf(providerQr)
-    // True from tapping create until the core reports success or failure.
+    // True from tapping create until the core answers.
     property bool busy: false
     property int permille: 0
     property string errorMessage: ""
 
-    // "dcaccount:nine.testrun.org" -> "nine.testrun.org", for display only.
+    // For display only.
     function hostOf(qr) {
         var colon = qr.indexOf(":")
         return colon < 0 ? qr : qr.substring(colon + 1)
@@ -40,8 +36,7 @@ Page {
         core.create_profile(nameField.text, page.providerQr)
     }
 
-    // Qt 5.6 handler syntax with the shim's snake_case parameter names --
-    // see the note in WelcomePage.qml.
+    // Qt 5.6 handler syntax; see WelcomePage.qml.
     Connections {
         target: core
 
@@ -58,9 +53,8 @@ Page {
 
         onConfigure_progress: page.permille = permille
 
-        // A pasted link is classified by the core rather than by us: it
-        // knows the payload formats, and guessing at them here would be
-        // exactly the protocol work docs/SCOPE.md rules out.
+        // The core classifies the link; parsing it here would be the
+        // protocol work docs/SCOPE.md rules out.
         onQr_checked: {
             if (kind === "account" || kind === "login") {
                 page.providerQr = linkField.text

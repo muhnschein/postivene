@@ -1,21 +1,13 @@
-//! A `deltachat-rpc-server` double that *records* what it was asked.
+//! A `deltachat-rpc-server` double that records what it was asked.
 //!
-//! The onboarding tests care less about what comes back than about what
-//! goes out: which JSON-RPC methods a UI action issues, in what order, with
-//! what parameters. That is the contract this repository keeps with the
-//! core, and it is exactly what a refactor breaks silently -- calling the
-//! deprecated `configure` again, dropping the display name, sending the
-//! login parameters in the wrong shape.
+//! Every request is appended as one JSON line to `POSTIVENE_FAKE_JOURNAL`,
+//! so tests can assert which calls a UI action makes, in what order, with
+//! what parameters. `get_next_event_batch` is left out: the client polls it
+//! in a loop and would bury the sequence.
 //!
-//! So every request is appended as one JSON line to the file named by
-//! `POSTIVENE_FAKE_JOURNAL`, and tests assert against that journal.
-//! `get_next_event_batch` is left out of it: the client polls it in a loop,
-//! and its noise would bury the sequence being checked.
-//!
-//! Behaviour is keyed on the *input*, never on an environment switch, so a
-//! single test process can drive both a success and a failure:
-//! a QR payload or address containing `fail` is rejected the way the real
-//! core rejects an unreachable server.
+//! Behaviour is keyed on input rather than an environment switch, so one
+//! process can drive success and failure: a QR payload or address
+//! containing `fail` is rejected.
 
 use std::collections::VecDeque;
 use std::io::Write;
@@ -55,8 +47,8 @@ impl State {
         )
     }
 
-    /// Mark an account configured and queue the progress events the real
-    /// core emits while doing so: some permille steps, then 1000 for done.
+    /// Configure an account and queue the progress events the core emits:
+    /// permille steps, then 1000 for done.
     fn configure(&mut self, account_id: u32) {
         for account in &mut self.accounts {
             if account.id == account_id {
@@ -76,7 +68,7 @@ fn journal(method: &str, params: &Value) {
     let Ok(path) = std::env::var("POSTIVENE_FAKE_JOURNAL") else {
         return;
     };
-    // Polling noise would bury the call sequence a test is reading.
+    // Polling noise would bury the sequence.
     if method == "get_next_event_batch" {
         return;
     }
@@ -172,10 +164,8 @@ async fn main() {
                         .and_then(Value::as_str)
                         .is_some_and(|password| !password.is_empty());
                     if addr.is_empty() || !has_password {
-                        // The real core answers a malformed EnteredLoginParam
-                        // with an invalid-params error, and so does this: a
-                        // test that sends the wrong shape should fail here
-                        // rather than pass and break on a phone.
+                        // Matches the real core: a malformed
+                        // EnteredLoginParam is an invalid-params error.
                         err(&id, "invalid params: addr and password are required")
                     } else if should_fail(addr) {
                         err(&id, "could not connect to server")
@@ -186,8 +176,7 @@ async fn main() {
                 }
                 "list_transports" => ok(&id, &json!([{"addr": "someone@example.org"}])),
                 "get_next_event_batch" => {
-                    // Hand out whatever is queued; when nothing is, block
-                    // forever, which is what the real long poll does.
+                    // Blocks when empty, like the real long poll.
                     loop {
                         let queued: Vec<Value> = state.lock().await.events.drain(..).collect();
                         if !queued.is_empty() {

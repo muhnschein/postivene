@@ -10,6 +10,14 @@ use crate::models::{
 };
 use crate::runtime::CoreRuntime;
 
+/// The chatmail server a new profile is created on unless the user picks
+/// another one. Expressed the way the core wants it -- a `dcaccount:` QR
+/// payload -- because that is the single input `add_transport_from_qr`
+/// takes, whether it came from this default, a scanned code, or a pasted
+/// invite link. Matches the reference client's `DEFAULT_CHATMAIL_HOST`;
+/// see `docs/ONBOARDING.md`.
+pub const DEFAULT_PROVIDER_QR: &str = "dcaccount:nine.testrun.org";
+
 /// `DeltaChatCore` is the one `QObject` that owns the connection to a spawned
 /// `deltachat-rpc-server`: it starts the process, keeps the tokio runtime
 /// that drives it alive, forwards the core's event stream to QML as a
@@ -127,6 +135,42 @@ pub struct DeltaChatCore {
     pub start_account_io: qt_method!(fn(&mut self, account_id: u32)),
     /// Result of resuming IO for an already-configured account.
     pub io_started: qt_signal!(account_id: u32, success: bool, error: QString),
+
+    /// The `dcaccount:` payload for the default chatmail server, so QML
+    /// does not have to hardcode a hostname.
+    pub default_provider_qr: qt_method!(fn(&mut self) -> QString),
+
+    /// Create a profile on a chatmail server: set `display_name` on a
+    /// fresh (or reused unconfigured) account, then hand `provider_qr` to
+    /// the core, which mints an address and credentials there. Result via
+    /// `profile_created`/`profile_error`, progress via
+    /// `configure_progress`.
+    pub create_profile: qt_method!(fn(&mut self, display_name: QString, provider_qr: QString)),
+
+    /// The classic path: configure an existing mailbox as this profile's
+    /// transport. Same result signals as `create_profile`.
+    pub create_profile_with_email:
+        qt_method!(fn(&mut self, display_name: QString, addr: QString, password: QString)),
+
+    /// A profile is ready to use; `account_id` has a working transport.
+    pub profile_created: qt_signal!(account_id: u32),
+    /// Creating a profile failed. The message is the core's own.
+    pub profile_error: qt_signal!(message: QString),
+
+    /// Configuration progress for `account_id`, as the core reports it:
+    /// 0 means failure, 1..=999 is permille, 1000 means done.
+    pub configure_progress: qt_signal!(account_id: u32, permille: u32),
+
+    /// Abort a running configure. The core answers with a final
+    /// `ConfigureProgress` of 0.
+    pub cancel_ongoing: qt_method!(fn(&mut self, account_id: u32)),
+
+    /// List the email transports configured on an account, as raw JSON
+    /// (an array of upstream `EnteredLoginParam`). Result via
+    /// `transports_listed`.
+    pub list_transports: qt_method!(fn(&mut self, account_id: u32)),
+    /// The account's transports, as a raw JSON array.
+    pub transports_listed: qt_signal!(account_id: u32, transports_json: QString),
 
     /// Parse/classify a QR code's payload via the core. Result via
     /// `qrChecked` with the upstream `Qr` object as raw JSON: `kind` is
@@ -264,6 +308,20 @@ impl DeltaChatCore {
                     .unwrap_or("Unknown")
                     .to_string();
                 let payload = serde_json::to_string(&event.event).unwrap_or_default();
+                // Configuration progress gets a typed signal as well as the
+                // raw event: it drives a progress bar during onboarding, and
+                // a UI should not have to parse JSON to move one. Both fire
+                // for these events -- listeners of `core_event` still see it.
+                if kind == "ConfigureProgress" {
+                    if let Some(permille) = event
+                        .event
+                        .get("progress")
+                        .and_then(serde_json::Value::as_u64)
+                        .and_then(|value| u32::try_from(value).ok())
+                    {
+                        this.borrow().configure_progress(event.context_id, permille);
+                    }
+                }
                 this.borrow()
                     .core_event(event.context_id, kind.into(), payload.into());
             }
@@ -279,12 +337,9 @@ impl DeltaChatCore {
     /// Run a `get_system_info` round trip into
     /// [`DeltaChatCore::system_info`].
     pub fn check_health(&mut self) {
-        let Some(rpc) = self.rpc.clone() else {
+        let Some((rpc, runtime)) = self.connection() else {
             self.status = QString::from("error: not started");
             self.status_changed();
-            return;
-        };
-        let Some(runtime) = self.runtime.clone() else {
             return;
         };
 
@@ -315,11 +370,8 @@ impl DeltaChatCore {
 
     /// Create a new, unconfigured account.
     pub fn add_account(&mut self) {
-        let Some(rpc) = self.rpc.clone() else {
+        let Some((rpc, runtime)) = self.connection() else {
             self.account_error(QString::from("not started"));
-            return;
-        };
-        let Some(runtime) = self.runtime.clone() else {
             return;
         };
 
@@ -343,11 +395,8 @@ impl DeltaChatCore {
 
     /// Configure `account_id` from an address and password.
     pub fn configure_account(&mut self, account_id: u32, addr: QString, password: QString) {
-        let Some(rpc) = self.rpc.clone() else {
+        let Some((rpc, runtime)) = self.connection() else {
             self.configure_done(account_id, false, QString::from("not started"));
-            return;
-        };
-        let Some(runtime) = self.runtime.clone() else {
             return;
         };
 
@@ -388,11 +437,8 @@ impl DeltaChatCore {
 
     /// Send a plain-text message to `chat_id`.
     pub fn send_text(&mut self, account_id: u32, chat_id: u32, text: QString) {
-        let Some(rpc) = self.rpc.clone() else {
+        let Some((rpc, runtime)) = self.connection() else {
             self.send_error(QString::from("not started"));
-            return;
-        };
-        let Some(runtime) = self.runtime.clone() else {
             return;
         };
 
@@ -470,11 +516,8 @@ impl DeltaChatCore {
 
     /// Repopulate [`DeltaChatCore::chat_list`] from the core.
     pub fn refresh_chat_list(&mut self, account_id: u32) {
-        let Some(rpc) = self.rpc.clone() else {
+        let Some((rpc, runtime)) = self.connection() else {
             self.chat_list_error(QString::from("not started"));
-            return;
-        };
-        let Some(runtime) = self.runtime.clone() else {
             return;
         };
 
@@ -554,11 +597,8 @@ impl DeltaChatCore {
     /// Repopulate [`DeltaChatCore::message_list`] with `chat_id`'s
     /// messages and clear the chat's fresh-message badge.
     pub fn open_chat(&mut self, account_id: u32, chat_id: u32) {
-        let Some(rpc) = self.rpc.clone() else {
+        let Some((rpc, runtime)) = self.connection() else {
             self.message_list_error(QString::from("not started"));
-            return;
-        };
-        let Some(runtime) = self.runtime.clone() else {
             return;
         };
 
@@ -661,11 +701,8 @@ impl DeltaChatCore {
 
     /// Repopulate [`DeltaChatCore::account_list`] from the core.
     pub fn refresh_accounts(&mut self) {
-        let Some(rpc) = self.rpc.clone() else {
+        let Some((rpc, runtime)) = self.connection() else {
             self.account_error(QString::from("not started"));
-            return;
-        };
-        let Some(runtime) = self.runtime.clone() else {
             return;
         };
 
@@ -735,11 +772,8 @@ impl DeltaChatCore {
 
     /// Resume IO for an already-configured account.
     pub fn start_account_io(&mut self, account_id: u32) {
-        let Some(rpc) = self.rpc.clone() else {
+        let Some((rpc, runtime)) = self.connection() else {
             self.io_started(account_id, false, QString::from("not started"));
-            return;
-        };
-        let Some(runtime) = self.runtime.clone() else {
             return;
         };
 
@@ -764,13 +798,184 @@ impl DeltaChatCore {
         });
     }
 
-    /// Classify a QR/invite payload via the core.
-    pub fn check_qr(&mut self, account_id: u32, qr_content: QString) {
-        let Some(rpc) = self.rpc.clone() else {
-            self.qr_error(QString::from("not started"));
+    /// The `dcaccount:` payload for the default chatmail server.
+    pub fn default_provider_qr(&mut self) -> QString {
+        QString::from(DEFAULT_PROVIDER_QR)
+    }
+
+    /// Create a profile on a chatmail server from a `dcaccount:`/`dclogin:`
+    /// payload.
+    pub fn create_profile(&mut self, display_name: QString, provider_qr: QString) {
+        let Some((rpc, runtime)) = self.connection() else {
+            self.profile_error(QString::from("not started"));
             return;
         };
-        let Some(runtime) = self.runtime.clone() else {
+        let done = self.profile_callback();
+
+        let display_name = display_name.to_string();
+        let provider_qr = provider_qr.to_string();
+        runtime.spawn(async move {
+            let result = async {
+                let account_id = Self::profile_account(&rpc).await?;
+                Self::set_display_name(&rpc, account_id, display_name).await?;
+                // One call does the whole thing: the core asks the chatmail
+                // server for an account, stores the credentials it hands
+                // back, and restarts IO around the change. `configure` is
+                // deliberately not involved -- upstream deprecated it in
+                // 2025-02 in favour of exactly this (docs/ONBOARDING.md).
+                rpc.call::<_, ()>("add_transport_from_qr", (account_id, provider_qr))
+                    .await
+                    .map_err(|err| err.to_string())?;
+                Ok(account_id)
+            }
+            .await;
+            done(result);
+        });
+    }
+
+    /// Create a profile backed by an existing mailbox.
+    pub fn create_profile_with_email(
+        &mut self,
+        display_name: QString,
+        addr: QString,
+        password: QString,
+    ) {
+        let Some((rpc, runtime)) = self.connection() else {
+            self.profile_error(QString::from("not started"));
+            return;
+        };
+        let done = self.profile_callback();
+
+        let display_name = display_name.to_string();
+        let addr = addr.to_string();
+        let password = password.to_string();
+        runtime.spawn(async move {
+            let result = async {
+                let account_id = Self::profile_account(&rpc).await?;
+                Self::set_display_name(&rpc, account_id, display_name).await?;
+                // `addr` and `password` only: every other field of upstream's
+                // EnteredLoginParam is optional and autoconfigured. Sending
+                // the pair through add_or_update_transport, rather than
+                // set_config + configure, is what makes this the supported
+                // path and gives the account a *transport* rather than a
+                // single credential pair (docs/ONBOARDING.md).
+                let param = serde_json::json!({ "addr": addr, "password": password });
+                rpc.call::<_, ()>("add_or_update_transport", (account_id, param))
+                    .await
+                    .map_err(|err| err.to_string())?;
+                Ok(account_id)
+            }
+            .await;
+            done(result);
+        });
+    }
+
+    /// Abort a running configure.
+    pub fn cancel_ongoing(&mut self, account_id: u32) {
+        let Some((rpc, runtime)) = self.connection() else {
+            return;
+        };
+        runtime.spawn(async move {
+            // Fire and forget: the outcome the UI reacts to is the final
+            // ConfigureProgress(0) the core emits in response, not this
+            // call's own return.
+            let _ = rpc
+                .call::<_, ()>("stop_ongoing_process", (account_id,))
+                .await;
+        });
+    }
+
+    /// List the account's email transports.
+    pub fn list_transports(&mut self, account_id: u32) {
+        let Some((rpc, runtime)) = self.connection() else {
+            self.profile_error(QString::from("not started"));
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: (u32, Result<String, String>)| {
+            let Some(this) = ptr.as_pinned() else { return };
+            let (account_id, result) = result;
+            match result {
+                Ok(json) => this.borrow().transports_listed(account_id, json.into()),
+                Err(err) => this.borrow().profile_error(err.into()),
+            }
+        });
+
+        runtime.spawn(async move {
+            let result = rpc
+                .call::<_, serde_json::Value>("list_transports", (account_id,))
+                .await
+                .map(|value| value.to_string())
+                .map_err(|err| err.to_string());
+            done((account_id, result));
+        });
+    }
+
+    /// The shared completion path of both `create_profile*` methods.
+    fn profile_callback(&self) -> impl Fn(Result<u32, String>) {
+        let ptr: QPointer<Self> = QPointer::from(self);
+        queued_callback(move |result: Result<u32, String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            match result {
+                Ok(account_id) => this.borrow().profile_created(account_id),
+                Err(err) => this.borrow().profile_error(err.into()),
+            }
+        })
+    }
+
+    /// The account a new profile is built on: an existing *unconfigured*
+    /// one if a previous attempt left one behind, otherwise a fresh one.
+    /// Reusing it is what keeps a failed signup from leaving an orphan
+    /// account behind on every retry.
+    async fn profile_account(rpc: &RpcClient) -> Result<u32, String> {
+        let accounts: Vec<serde_json::Value> = rpc
+            .call_unit("get_all_accounts")
+            .await
+            .map_err(|err| err.to_string())?;
+        for account in &accounts {
+            if account.get("kind").and_then(serde_json::Value::as_str) != Some("Unconfigured") {
+                continue;
+            }
+            if let Some(id) = account
+                .get("id")
+                .and_then(serde_json::Value::as_u64)
+                .and_then(|id| u32::try_from(id).ok())
+            {
+                return Ok(id);
+            }
+        }
+        rpc.call_unit::<u32>("add_account")
+            .await
+            .map_err(|err| err.to_string())
+    }
+
+    /// Set the profile's display name. Sent before the transport call, so
+    /// the name is already in place when the core announces the account.
+    async fn set_display_name(
+        rpc: &RpcClient,
+        account_id: u32,
+        display_name: String,
+    ) -> Result<(), String> {
+        rpc.call::<_, ()>(
+            "set_config",
+            (account_id, "displayname", Some(display_name)),
+        )
+        .await
+        .map_err(|err| err.to_string())
+    }
+
+    /// The transport and the runtime, once [`DeltaChatCore::start`] has
+    /// completed. Callers report the `None` case themselves, because each
+    /// has its own error signal to report it on.
+    fn connection(&self) -> Option<(Arc<RpcClient>, CoreRuntime)> {
+        Some((self.rpc.clone()?, self.runtime.clone()?))
+    }
+
+    /// Classify a QR/invite payload via the core.
+    pub fn check_qr(&mut self, account_id: u32, qr_content: QString) {
+        let Some((rpc, runtime)) = self.connection() else {
+            self.qr_error(QString::from("not started"));
             return;
         };
 

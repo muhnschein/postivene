@@ -21,5 +21,13 @@ path = "src/bin/fake_health_server.rs"
 test = false
 doc = false
 
+# The recording double the onboarding tests drive. See its module docs for
+# why the journal exists.
+[[bin]]
+name = "fake-core-server"
+path = "src/bin/fake_core_server.rs"
+test = false
+doc = false
+
 [lints]
 workspace = true

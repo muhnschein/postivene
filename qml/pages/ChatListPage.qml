@@ -33,8 +33,20 @@ Page {
         anchors.fill: parent
         model: chats.rows
 
-        header: PageHeader {
-            title: qsTr("Chats")
+        header: Column {
+            width: page.width
+
+            PageHeader {
+                title: qsTr("Chats")
+            }
+
+            Button {
+                objectName: "newChatButton"
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: qsTr("New Chat")
+                onClicked: pageStack.push(Qt.resolvedUrl("NewChatPage.qml"),
+                                          { accountId: page.accountId })
+            }
         }
 
         delegate: ListItem {

@@ -13,6 +13,7 @@ PageHeader 1.0 PageHeader.qml
 PasswordField 1.0 PasswordField.qml
 ProgressBar 1.0 ProgressBar.qml
 PullDownMenu 1.0 PullDownMenu.qml
+SearchField 1.0 SearchField.qml
 SilicaFlickable 1.0 SilicaFlickable.qml
 SilicaListView 1.0 SilicaListView.qml
 TextField 1.0 TextField.qml

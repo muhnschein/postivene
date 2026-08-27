@@ -57,3 +57,21 @@ pub struct AccountItem {
 
 /// Account model, for the account switcher.
 pub type AccountListModel = SimpleListModel<AccountItem>;
+
+/// One contact from `get_contacts`.
+#[derive(Default, Clone, PartialEq, qmetaobject::SimpleListItem)]
+pub struct ContactItem {
+    /// The core's contact id.
+    pub contact_id: u32,
+    /// Name to show: the contact's own, else their address.
+    pub display_name: QString,
+    /// Email address.
+    pub address: QString,
+    /// Verified through a secure-join.
+    pub is_verified: bool,
+    /// Reachable with encryption. An address contact is not.
+    pub is_key_contact: bool,
+}
+
+/// Contact model, for pickers and the contact list.
+pub type ContactListModel = SimpleListModel<ContactItem>;

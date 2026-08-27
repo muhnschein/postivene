@@ -17,12 +17,14 @@
 
 mod chat;
 mod chatlist;
+mod contacts;
 mod core;
 mod models;
 mod runtime;
 
 pub use crate::chat::ChatMessages;
 pub use crate::chatlist::ChatList;
+pub use crate::contacts::ContactList;
 pub use crate::core::DeltaChatCore;
 
 /// Register the shim's QML-instantiable types. The app and the tests share
@@ -37,7 +39,11 @@ pub fn register_qml_types() {
     ) else {
         return;
     };
+    let Ok(contacts) = std::ffi::CStr::from_bytes_with_nul(b"ContactList\0") else {
+        return;
+    };
     qmetaobject::qml_register_type::<ChatMessages>(uri, 1, 0, messages);
     qmetaobject::qml_register_type::<ChatList>(uri, 1, 0, list);
+    qmetaobject::qml_register_type::<ContactList>(uri, 1, 0, contacts);
 }
 pub use models::{ChatListItem, ChatListModel, MessageListItem, MessageListModel};

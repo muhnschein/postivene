@@ -5,13 +5,15 @@ What stands between Postivene and a usable Delta Chat client. Companion to
 
 Written against `5308322`, updated as items close.
 
-## Cannot start a conversation
+## Starting a conversation  *(done)*
 
-The shim wires 13 of the core's ~100 JSON-RPC methods. Missing:
-`get_contacts`, `create_contact`, `create_chat_by_contact_id`,
-`create_group_chat`, `get_chat_contacts`, `add_contact_to_chat`. No UI
-creates a chat, so only conversations that arrive on their own are
-reachable. This is the largest gap.
+`ContactList` lists contacts and opens a chat three ways: tapping a known
+contact, adding an address, or creating a group. `NewChatPage`,
+`NewContactPage` and `NewGroupPage` sit behind "New Chat" on the chat list.
+
+What is still missing here: group member management after creation
+(`get_chat_contacts`, removing members, renaming), contact profile pages,
+and blocking.
 
 ## The conversation view
 
@@ -55,10 +57,10 @@ form of every invite payload already works, so the camera is polish.
 
 ## Order of work
 
-1. Contacts, new chat, groups -- the largest gap, above.
-2. Error surfacing in the UI, and `markseen_msgs`.
-3. Conversation UX: sender names, timestamps, day markers, attachments,
+1. Error surfacing in the UI, and `markseen_msgs` -- read receipts never go
+   out today.
+2. Conversation UX: sender names, timestamps, day markers, attachments,
    quotes.
-4. Chat list: unread badges, times, context actions, account switcher.
-5. Platform: notifications, background and suspend, cover actions,
+3. Chat list: unread badges, times, context actions, account switcher.
+4. Platform: notifications, background and suspend, cover actions,
    sailjail, translations.

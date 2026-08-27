@@ -33,6 +33,12 @@ struct State {
     /// Chat ids in display order, most recent first.
     chat_order: Vec<u32>,
     next_message_id: u32,
+    /// Contact id -> address. Seeded with two known contacts.
+    contacts: std::collections::BTreeMap<u32, String>,
+    next_contact_id: u32,
+    next_chat_id: u32,
+    /// Members added to each created group.
+    group_members: std::collections::BTreeMap<u32, Vec<u32>>,
 }
 
 impl State {
@@ -60,6 +66,10 @@ impl State {
             self.chats.insert(2, vec![10]);
             self.chat_order = vec![1, 2];
             self.next_message_id = 100;
+            self.contacts.insert(10, "ada@example.org".to_string());
+            self.contacts.insert(11, "grace@example.org".to_string());
+            self.next_contact_id = 100;
+            self.next_chat_id = 500;
         }
     }
 
@@ -212,6 +222,77 @@ async fn main() {
                     }
                 }
                 "list_transports" => ok(&id, &json!([{"addr": "someone@example.org"}])),
+                "get_contacts" => {
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    let query = positional(2).as_str().unwrap_or_default().to_lowercase();
+                    let contacts: Vec<Value> = state
+                        .contacts
+                        .iter()
+                        .filter(|(_, address)| {
+                            query.is_empty() || address.to_lowercase().contains(&query)
+                        })
+                        .map(|(contact, address)| {
+                            json!({
+                                "id": contact,
+                                "address": address,
+                                "displayName": address.split('@').next().unwrap_or(address),
+                                "isVerified": false,
+                                "isKeyContact": true,
+                            })
+                        })
+                        .collect();
+                    ok(&id, &Value::Array(contacts))
+                }
+                "create_contact" => {
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    let address = positional(1).as_str().unwrap_or_default().to_string();
+                    // An address already known keeps its id, as upstream does.
+                    let existing = state
+                        .contacts
+                        .iter()
+                        .find(|(_, known)| **known == address)
+                        .map(|(contact, _)| *contact);
+                    let contact = existing.unwrap_or_else(|| {
+                        state.next_contact_id += 1;
+                        state.next_contact_id
+                    });
+                    state.contacts.insert(contact, address);
+                    ok(&id, &json!(contact))
+                }
+                "create_chat_by_contact_id" => {
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    state.next_chat_id += 1;
+                    let chat = state.next_chat_id;
+                    state.chats.insert(chat, Vec::new());
+                    state.chat_order.insert(0, chat);
+                    ok(&id, &json!(chat))
+                }
+                "create_group_chat" => {
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    state.next_chat_id += 1;
+                    let chat = state.next_chat_id;
+                    state.chats.insert(chat, Vec::new());
+                    state.chat_order.insert(0, chat);
+                    state.group_members.insert(chat, Vec::new());
+                    ok(&id, &json!(chat))
+                }
+                "add_contact_to_chat" => {
+                    let mut state = state.lock().await;
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let contact = positional(2)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    state.group_members.entry(chat).or_default().push(contact);
+                    ok(&id, &Value::Null)
+                }
                 "get_chatlist_entries" => {
                     let mut state = state.lock().await;
                     state.seed_chats();

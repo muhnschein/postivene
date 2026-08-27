@@ -137,22 +137,22 @@ fn each_chat_has_its_own_model_and_loads_in_one_batch() {
         !names.contains(&"get_message"),
         "messages were fetched one at a time: {names:?}"
     );
-    let batches: Vec<&Value> = calls
+    let batches: Vec<usize> = calls
         .iter()
         .filter(|(name, _)| name == "get_messages")
-        .map(|(_, params)| params)
+        .map(|(_, params)| {
+            params
+                .pointer("/1")
+                .and_then(Value::as_array)
+                .map_or(0, Vec::len)
+        })
         .collect();
+    // One load per model. The two race, so which lands first is not fixed --
+    // assert on the set, not the order.
+    assert_eq!(batches.len(), 2, "expected one batch per model: {names:?}");
     assert!(
-        batches.len() >= 2,
-        "expected a batch fetch per model: {names:?}"
-    );
-    assert_eq!(
-        batches[0]
-            .pointer("/1")
-            .and_then(Value::as_array)
-            .map(Vec::len),
-        Some(2),
-        "the first chat's two messages did not come back in one call"
+        batches.contains(&2),
+        "the two-message chat did not come back in one call: {batches:?}"
     );
 
     // Sending appends to the sending model only, and the IncomingMsg the
@@ -162,14 +162,21 @@ fn each_chat_has_its_own_model_and_loads_in_one_batch() {
         "a sent message did not land exactly once in its own chat"
     );
 
-    // The event path fetched only what it did not have.
-    let after_send = batches
-        .last()
-        .and_then(|params| params.pointer("/1"))
-        .and_then(Value::as_array)
-        .map(Vec::len);
+    // The event path fetched only what it did not have -- which, after a
+    // send, is nothing: the row is already in the model. So the event costs
+    // one id-list call and no message fetch at all.
+    let after_send: Vec<&str> = names
+        .iter()
+        .skip_while(|name| **name != "misc_send_msg")
+        .skip(1)
+        .copied()
+        .collect();
     assert!(
-        after_send.map_or(true, |len| len <= 1),
-        "the event refetched the whole chat instead of the new message: {after_send:?}"
+        after_send.contains(&"get_message_list_items"),
+        "the event did not reach the model: {names:?}"
+    );
+    assert!(
+        !after_send.contains(&"get_messages"),
+        "the event refetched messages the model already had: {names:?}"
     );
 }

@@ -59,14 +59,14 @@ fn qml_avoids_qt_5_15_only_signal_handler_syntax() {
 /// message runs to a dozen wrapped lines -- overlaps its neighbours and the
 /// header.
 ///
-/// A text scan because `ConversationPage` uses Silica's `EnterKey` attached
-/// property, which cannot be stubbed, so `tests/qml_pages.rs` cannot load
-/// the page to measure it (see docs/ENGINEERING.md).
+/// A scan rather than a measurement: `tests/qml_conversation_list.rs` loads
+/// the list, but a row collapsed to nothing would leave its assertions
+/// about scrolling passing anyway.
 #[test]
 fn wrapping_list_rows_size_to_their_text() {
     let path =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/pages/ConversationPage.qml");
-    let text = fs::read_to_string(&path).expect("read ConversationPage.qml");
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/components/ConversationList.qml");
+    let text = fs::read_to_string(&path).expect("read ConversationList.qml");
 
     let height = text
         .lines()
@@ -86,8 +86,8 @@ fn wrapping_list_rows_size_to_their_text() {
 #[test]
 fn the_conversation_delegate_binds_only_real_message_roles() {
     let path =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/pages/ConversationPage.qml");
-    let text = fs::read_to_string(&path).expect("read ConversationPage.qml");
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/components/ConversationList.qml");
+    let text = fs::read_to_string(&path).expect("read ConversationList.qml");
 
     let roles: Vec<String> =
         <postivene_shim::MessageListItem as qmetaobject::listmodel::SimpleListItem>::names()
@@ -122,14 +122,18 @@ fn the_conversation_delegate_binds_only_real_message_roles() {
 /// error banner -- that the content then shows through.
 #[test]
 fn list_pages_clip_and_leave_room_for_what_sits_below_them() {
-    for page in ["ConversationPage.qml", "ChatListPage.qml"] {
-        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../qml/pages")
-            .join(page);
-        let text = fs::read_to_string(&path).unwrap_or_else(|err| panic!("read {page}: {err}"));
+    for (page, list) in [
+        ("ConversationPage.qml", "../components/ConversationList.qml"),
+        ("ChatListPage.qml", "ChatListPage.qml"),
+    ] {
+        let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/pages");
+        let text =
+            fs::read_to_string(dir.join(page)).unwrap_or_else(|err| panic!("read {page}: {err}"));
+        let list_text =
+            fs::read_to_string(dir.join(list)).unwrap_or_else(|err| panic!("read {list}: {err}"));
         assert!(
-            text.contains("clip: true"),
-            "{page}'s list does not clip, so messages draw over what is below it"
+            list_text.contains("clip: true"),
+            "{list} does not clip, so its rows draw over what is below them"
         );
         assert!(
             text.contains("bottom: banner.top"),

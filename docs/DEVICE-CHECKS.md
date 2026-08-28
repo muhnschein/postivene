@@ -16,6 +16,8 @@ What only a phone can answer. `make check` covers everything else.
 - **Onboarding pulley menu** (`CreateProfilePage`): email login and invite
   link. Only reachable before an account exists, so it needs a fresh
   install or a second profile.
+- Reopening a chat lands on the newest message, and a message arriving
+  while you are reading history leaves you where you are.
 - Group chats: sender names and colours, and the invite flow for one.
 - Quoted messages, and attachments other than images.
 - Orientation changes, and the cover.

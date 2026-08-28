@@ -46,72 +46,20 @@ Page {
         onCore_error: page.errorMessage = message
     }
 
-    SilicaListView {
+    ConversationList {
         id: listView
+        objectName: "messageList"
         anchors {
             top: parent.top
             left: parent.left
             right: parent.right
             bottom: banner.top
         }
-        // A list draws its delegates outside its own box unless told not
-        // to, and the message field below is translucent: without this the
-        // last messages show through it.
-        clip: true
         model: messages.rows
-
-        header: PageHeader {
-            title: page.chatName
-        }
-
-        // The model counts days in the viewer's timezone, so grouping by
-        // that number is enough to break the list into days.
-        section.property: "day_number"
-        section.delegate: Label {
-            objectName: "dayLabel"
-            width: listView.width
-            horizontalAlignment: Text.AlignHCenter
-            font.pixelSize: Theme.fontSizeExtraSmall
-            color: Theme.secondaryColor
-            // Local midnight of that day, back from the day number.
-            text: Qt.formatDate(new Date((parseInt(section, 10) * 86400
-                                          - page.utcOffset) * 1000),
-                                Qt.DefaultLocaleLongDate)
-        }
-
-        delegate: ListItem {
-            objectName: "messageRow"
-            // Sized by its content, not fixed: a device message runs to a
-            // dozen wrapped lines, and a fixed row height makes them
-            // overlap each other and the header.
-            contentHeight: body.height
-
-            MessageDelegate {
-                id: body
-                width: parent.width
-                messageText: model.text
-                isOutgoing: model.is_outgoing
-                isInfo: model.is_info
-                showPadlock: model.show_padlock
-                deliveryState: model.state
-                sentAt: model.timestamp
-                senderName: model.sender_name
-                senderColor: model.sender_color
-                showSender: messages.is_group
-                quoteText: model.quote_text
-                quoteAuthor: model.quote_author
-                filePath: model.file_path
-                fileName: model.file_name
-                viewType: model.view_type
-                imageWidth: model.image_width
-                imageHeight: model.image_height
-            }
-        }
-
-        ViewPlaceholder {
-            enabled: listView.count === 0
-            text: qsTr("No messages yet")
-        }
+        title: page.chatName
+        utcOffset: page.utcOffset
+        showSender: messages.is_group
+        placeholderText: qsTr("No messages yet")
     }
 
     // Between the list and the field rather than over the list: it is

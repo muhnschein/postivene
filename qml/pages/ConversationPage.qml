@@ -27,7 +27,15 @@ Page {
         // What the reader can actually see decides what counts as read.
         reading_history: !page.readerIsLooking
         onError: page.errorMessage = message
-        onSent: textField.text = ""
+        // Sending is its own answer to "have I read this": go to the
+        // message just sent rather than counting it as one that was missed.
+        onSent: {
+            textField.text = ""
+            page.replyBody = ""
+            page.replyAuthor = ""
+            listView.jumpToNewest()
+        }
+        onArrived: listView.noteArrivals(count)
     }
 
     // Everything that has to hold for an arriving message to count as seen:
@@ -197,10 +205,10 @@ Page {
     function sendCurrentText() {
         if (textField.text.length > 0) {
             page.errorMessage = ""
-            // The model clears the quote itself; this is the bar's copy.
+            // The bar is cleared from `onSent`, with the model's own copy:
+            // clearing it here would drop the reply the reader chose on a
+            // send that never happened.
             messages.send(textField.text)
-            page.replyBody = ""
-            page.replyAuthor = ""
         }
     }
 }

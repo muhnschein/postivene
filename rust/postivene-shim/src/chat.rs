@@ -88,6 +88,11 @@ pub struct ChatMessages {
     pub resend_message: qt_method!(fn(&mut self, message_id: u32)),
     /// A message of ours reached the core and is in `rows`.
     pub sent: qt_signal!(message_id: u32),
+    /// This many messages from other people were just added. Said outright
+    /// rather than left to be inferred from the row count, which a deletion
+    /// moves too -- and which does not move at all when a removal and an
+    /// arrival land in the same reload.
+    pub arrived: qt_signal!(count: u32),
 }
 
 impl ChatMessages {
@@ -248,9 +253,28 @@ impl ChatMessages {
                             // fetch, so a reader who scrolled away while it
                             // ran is not credited with seeing what arrived.
                             let looking = !this.borrow().reading_history;
+                            let incoming = u32::try_from(
+                                appended.iter().filter(|item| !item.is_outgoing).count(),
+                            )
+                            .unwrap_or(u32::MAX);
                             if looking {
                                 this.borrow().mark_items_seen(appended);
                             }
+                            if incoming > 0 {
+                                this.borrow().arrived(incoming);
+                            }
+                        } else if let Some(gone) = removals(&rows, &ids) {
+                            // A pure removal, so the rows that remain are
+                            // still right: take the others out rather than
+                            // resetting the model, which drops the view's
+                            // place and lands the reader at the oldest
+                            // message in the chat.
+                            for index in gone.into_iter().rev() {
+                                rows.remove(index);
+                            }
+                            drop(rows);
+                            drop(this_mut);
+                            this.borrow().rows_changed();
                         } else {
                             drop(rows);
                             drop(this_mut);
@@ -448,18 +472,18 @@ impl ChatMessages {
                         }
                     }
                     this.borrow().rows_changed();
+                    // Cleared once the message is really gone, not before
+                    // it is sent: a send that fails leaves the reader with
+                    // the reply they chose rather than silently dropping it.
+                    if quoted != 0 {
+                        this.borrow_mut().quoted_message_id = 0;
+                        this.borrow().quote_changed();
+                    }
                     this.borrow().sent(message_id);
                 }
                 Err(err) => this.borrow().error(err.into()),
             }
         });
-
-        // Cleared here rather than on the reply: the reader has sent it,
-        // and a second send should not quote the same message again.
-        if quoted != 0 {
-            self.quoted_message_id = 0;
-            self.quote_changed();
-        }
 
         let text = text.to_string();
         runtime.spawn(async move {
@@ -484,6 +508,25 @@ impl ChatMessages {
             done(result);
         });
     }
+}
+
+/// The row indices to drop, when `ids` is the model's own list with some
+/// taken out and nothing added or moved. `None` when it is anything else,
+/// which has to go through a reload.
+fn removals(rows: &MessageListModel, ids: &[u32]) -> Option<Vec<usize>> {
+    let mut wanted = ids.iter();
+    let mut next = wanted.next();
+    let mut gone = Vec::new();
+    for (index, row) in rows.iter().enumerate() {
+        if next == Some(&row.message_id) {
+            next = wanted.next();
+        } else {
+            gone.push(index);
+        }
+    }
+    // Anything left over is an id the model does not have, in the order the
+    // core wants it -- an arrival or a reorder, not a removal.
+    (next.is_none() && wanted.next().is_none() && !gone.is_empty()).then_some(gone)
 }
 
 /// The chat's message ids, oldest first.

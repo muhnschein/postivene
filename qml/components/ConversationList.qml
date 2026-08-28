@@ -24,9 +24,18 @@ SilicaListView {
     // the view: `count` there only changes when the view has laid out, and
     // an arrival has to be noticed whether or not it is on screen yet.
     property int messageCount: 0
-    // How many have arrived since the reader scrolled away.
+    // How many have arrived since the reader scrolled away. Counted from
+    // what the model says arrived, not by differencing `messageCount`: a
+    // deletion moves that too, and a removal landing with an arrival in one
+    // reload does not move it at all.
     property int missedCount: 0
-    property int lastCount: 0
+
+    /// Messages from other people have just been added.
+    function noteArrivals(count) {
+        if (!root.following) {
+            root.missedCount += count
+        }
+    }
 
     // Raised rather than acted on: the component knows nothing about the
     // core, which is what makes it loadable on its own.
@@ -77,15 +86,7 @@ SilicaListView {
 
     // Both of these, because a row arriving and that row being measured are
     // separate steps: the first moves `count`, the second `contentHeight`.
-    onMessageCountChanged: {
-        if (root.following) {
-            toEnd.restart()
-        } else if (root.messageCount > root.lastCount) {
-            // Only arrivals count: deleting a message also moves this.
-            root.missedCount += root.messageCount - root.lastCount
-        }
-        root.lastCount = root.messageCount
-    }
+    onMessageCountChanged: if (root.following) toEnd.restart()
     onContentHeightChanged: if (root.following) toEnd.restart()
     // Where the reader left off, once they stop moving. `atYEnd` is the
     // view's own answer; the arithmetic version has to know about `originY`

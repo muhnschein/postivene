@@ -49,6 +49,26 @@ const PROBE_QML: &str = r"
                     image_width: 0, image_height: 0
                 })
             }
+            // As the page does: the model says what arrived, the view
+            // counts it. Differencing the row count instead would count a
+            // message the reader sent, and miss an arrival that landed in
+            // the same reload as a deletion.
+            if (loader.item) { loader.item.noteArrivals(count) }
+            return '' + rows.count
+        }
+
+        // A row the reader sent. It moves the count without being an
+        // arrival, so nothing tells the view about it.
+        function appendOwn() {
+            rows.append({
+                message_id: rows.count + 1, text: 'mine',
+                is_outgoing: true, is_info: false, show_padlock: true,
+                state: 26, timestamp: 1700000000 + rows.count,
+                day_number: 19675, sender_name: 'Me',
+                sender_color: '#00875a', quote_text: '', quote_author: '',
+                file_path: '', file_name: '', view_type: 'Text',
+                image_width: 0, image_height: 0
+            })
             return '' + rows.count
         }
 
@@ -237,6 +257,13 @@ fn a_conversation_opens_at_the_newest_message_and_stays_where_it_is_left() {
         record!("delete", call!("raisedSignal"));
         record!("missed", call!("get", QString::from("missedCount")));
 
+        // The reader's own message is not one they missed.
+        call!("appendOwn");
+        record!(
+            "missed-after-own",
+            call!("get", QString::from("missedCount"))
+        );
+
         call!("jump");
     });
 
@@ -381,6 +408,12 @@ fn assert_outcome(steps: &[(&str, String)]) {
         value("missed"),
         "2",
         "messages arriving out of sight were not counted. {context}"
+    );
+    assert_eq!(
+        value("missed-after-own"),
+        "2",
+        "a message the reader sent themselves was counted as one they \
+         missed, which is what differencing the row count does. {context}"
     );
     assert_eq!(
         value("held-follows"),

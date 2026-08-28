@@ -56,7 +56,8 @@ and `qmetaobject::single_shot` (truncates sub-second `Duration`s).
 ## Testing
 
 `make check` runs all of it from a clean checkout — no phone, account, or
-network.
+Sailfish SDK. Not quite offline: `msrv` fetches the 1.75 toolchain the
+first time, and `deny` wants the advisory database.
 
 1. **Transport unit tests** against a fake stdio server.
 2. **Protocol-contract tests** against a recording double that journals
@@ -78,6 +79,19 @@ network.
    scripts clean.
 
 Aspiration, tracked not gated: test volume exceeds source volume.
+
+### Waiting for the thing, not the clock
+
+The Qt tests schedule their steps with `single_shot` at fixed seconds. That
+is a bet that the work is done by then, and under a loaded `make check` it
+is not always: `chat_model` failed about one run in three that way, on an
+assertion about calls that had simply not been made yet.
+
+Where a step depends on work finishing, wait for the work. A repeating
+`Timer` in the probe that checks the condition and acts once is the pattern
+-- `chat_model.rs` and `qml_naming.rs` both do this -- with the `single_shot`
+left as a backstop that reads results and quits. The other Qt tests still
+schedule on the clock and should move over as they are touched.
 
 Out of reach until someone runs it on hardware: Silica's real rendering,
 notifications, background sync and suspend, and the packaged RPM's

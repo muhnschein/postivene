@@ -82,7 +82,8 @@ pub struct ChatMessages {
     /// Mark every unread message now loaded as read. Called when the
     /// reader reaches the newest message.
     pub mark_seen_all: qt_method!(fn(&mut self)),
-    /// Delete a message on this device.
+    /// Delete a message. Not only here: the core also removes it from the
+    /// mail server, which for this client is where it lived.
     pub delete_message: qt_method!(fn(&mut self, message_id: u32)),
     /// Try a failed message again.
     pub resend_message: qt_method!(fn(&mut self, message_id: u32)),
@@ -405,7 +406,7 @@ impl ChatMessages {
         });
     }
 
-    /// Delete a message on this device.
+    /// Delete a message, here and on the mail server.
     pub fn delete_message(&mut self, message_id: u32) {
         self.act("delete_messages", message_id);
     }

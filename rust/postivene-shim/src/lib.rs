@@ -46,4 +46,6 @@ pub fn register_qml_types() {
     qmetaobject::qml_register_type::<ChatList>(uri, 1, 0, list);
     qmetaobject::qml_register_type::<ContactList>(uri, 1, 0, contacts);
 }
-pub use models::{ChatListItem, ChatListModel, MessageListItem, MessageListModel};
+pub use models::{
+    ChatListItem, ChatListModel, ContactItem, ContactListModel, MessageListItem, MessageListModel,
+};

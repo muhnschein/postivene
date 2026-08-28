@@ -92,41 +92,67 @@ fn wrapping_list_rows_size_to_their_text() {
     );
 }
 
-/// Every `model.<role>` the conversation delegate binds has to be a field
-/// the model actually has: a rename on either side is otherwise a blank
-/// message row that nothing catches.
+/// Every `model.<role>` a delegate binds has to be a field the model
+/// actually has: a rename on either side is otherwise a blank row that
+/// nothing catches.
 #[test]
-fn the_conversation_delegate_binds_only_real_message_roles() {
-    let path =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/components/ConversationList.qml");
-    let text = fs::read_to_string(&path).expect("read ConversationList.qml");
+fn delegates_bind_only_roles_their_models_have() {
+    /// The `model.<role>` names a file reads.
+    fn bound_roles(text: &str) -> Vec<String> {
+        text.split("model.")
+            .skip(1)
+            .map(|tail| {
+                tail.chars()
+                    .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+                    .collect::<String>()
+            })
+            .filter(|role| !role.is_empty())
+            .collect()
+    }
 
-    let roles: Vec<String> =
-        <postivene_shim::MessageListItem as qmetaobject::listmodel::SimpleListItem>::names()
-            .iter()
-            .map(std::string::ToString::to_string)
-            .collect();
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let cases: [(&str, Vec<String>); 4] = [
+        (
+            "qml/components/ConversationList.qml",
+            names_of::<postivene_shim::MessageListItem>(),
+        ),
+        (
+            "qml/pages/ChatListPage.qml",
+            names_of::<postivene_shim::ChatListItem>(),
+        ),
+        (
+            "qml/pages/NewChatPage.qml",
+            names_of::<postivene_shim::ContactItem>(),
+        ),
+        (
+            "qml/pages/NewGroupPage.qml",
+            names_of::<postivene_shim::ContactItem>(),
+        ),
+    ];
 
-    let mut bound = Vec::new();
-    for tail in text.split("model.").skip(1) {
-        let role: String = tail
-            .chars()
-            .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
-            .collect();
-        if !role.is_empty() {
-            bound.push(role);
+    for (file, roles) in cases {
+        let text =
+            fs::read_to_string(root.join(file)).unwrap_or_else(|err| panic!("read {file}: {err}"));
+        let bound = bound_roles(&text);
+        assert!(
+            !bound.is_empty(),
+            "{file} binds nothing from its model any more"
+        );
+        for role in &bound {
+            assert!(
+                roles.contains(role),
+                "{file} binds model.{role}, which its model does not have: {roles:?}"
+            );
         }
     }
-    assert!(
-        !bound.is_empty(),
-        "the delegate binds nothing from the model any more"
-    );
-    for role in &bound {
-        assert!(
-            roles.contains(role),
-            "the delegate binds model.{role}, which MessageListItem does not have: {roles:?}"
-        );
-    }
+}
+
+/// The role names a model row exposes to QML.
+fn names_of<T: qmetaobject::listmodel::SimpleListItem>() -> Vec<String> {
+    T::names()
+        .iter()
+        .map(std::string::ToString::to_string)
+        .collect()
 }
 
 /// A list draws its delegates outside its own box unless told not to, and

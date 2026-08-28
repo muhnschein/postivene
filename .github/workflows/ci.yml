@@ -7,10 +7,11 @@ on:
   pull_request:
   workflow_dispatch:
 
-# A new push supersedes the run in flight; everything else is a group of
-# one.
+# A new push supersedes the run in flight. `github.ref`, not `run_id`:
+# `head_ref` is set only for pull_request, so on a push the old fallback
+# gave every run a group of its own and nothing was ever cancelled.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -97,6 +98,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      # TODO: pin by commit digest. A tag on a third-party action can be
+      # repointed at any commit by whoever owns it, and this one runs on
+      # every pull request. Replace `@v2` with the full SHA of the release
+      # you want, keeping the version in a trailing comment.
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           manifest-path: rust/Cargo.toml

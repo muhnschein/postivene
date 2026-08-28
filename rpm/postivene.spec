@@ -222,6 +222,9 @@ install -Dm 644 icons/256x256/postivene.png \
 %{_bindir}/postivene
 %{appdatadir}
 %if 0%{?bundle_rpc_server}
+# The directory as well as the file: listing only the file leaves
+# /usr/libexec/postivene behind on uninstall.
+%dir %{appexecdir}
 %{appexecdir}/deltachat-rpc-server
 %endif
 %{_datadir}/applications/%{name}.desktop

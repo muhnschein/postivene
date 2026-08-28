@@ -67,4 +67,5 @@ sfdk -c target="$target" build
 
 echo
 echo "RPMs:"
-find RPMS -name '*.rpm' -newermt '-10 minutes' 2>/dev/null || find RPMS -name '*.rpm' 2>/dev/null
+# Plain `find`: -newermt is a GNU extension and this is /bin/sh.
+find RPMS -name '*.rpm' 2>/dev/null || echo "  (none under RPMS/)"

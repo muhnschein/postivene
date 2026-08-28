@@ -125,7 +125,6 @@ impl ChatMessages {
         };
 
         let offset = self.utc_offset;
-        let reading_history = self.reading_history;
         let ptr: QPointer<Self> = QPointer::from(&*self);
         let done = queued_callback(
             move |result: Result<(bool, Vec<MessageListItem>), String>| {
@@ -139,6 +138,12 @@ impl ChatMessages {
                         }
                         this.borrow().is_group_changed();
                         this.borrow().rows_changed();
+                        // Asked now, not before the fetch: the reader can
+                        // scroll away, or the app go behind, while it runs.
+                        let looking = !this.borrow().reading_history;
+                        if looking {
+                            this.borrow_mut().mark_chat_seen();
+                        }
                     }
                     Err(err) => this.borrow().error(err.into()),
                 }
@@ -150,17 +155,8 @@ impl ChatMessages {
                 let is_group = chat_is_group(&rpc, account_id, chat_id).await;
                 let ids = message_ids(&rpc, account_id, chat_id).await?;
                 let items = fetch_messages(&rpc, account_id, &ids, offset).await?;
-                // Opening a chat means the user has seen it; the chat
-                // list refreshes its unread counts on the resulting
-                // MsgsNoticed. Not while they are up in the history,
-                // though -- a reload there must not clear the badge for
-                // messages still out of sight.
-                if !reading_history {
-                    let _ = rpc
-                        .call::<_, ()>("marknoticed_chat", (account_id, chat_id))
-                        .await;
-                    mark_seen(&rpc, account_id, &items).await;
-                }
+                // Marking read is the callback's job, not this one's: what
+                // the reader can see is only knowable once the rows land.
                 Ok::<_, String>((is_group, items))
             }
             .await;
@@ -207,7 +203,6 @@ impl ChatMessages {
     fn sync_rows(&mut self) {
         let (account_id, chat_id) = (self.account_id, self.chat_id);
         let offset = self.utc_offset;
-        let reading_history = self.reading_history;
         let Some((rpc, runtime)) = connection() else {
             return;
         };
@@ -238,15 +233,24 @@ impl ChatMessages {
                             // fetch also carries: the id list was read
                             // before that reply landed. Appending it again
                             // is the duplicate that survives until reload.
+                            let mut appended = Vec::new();
                             for item in fetched {
                                 if rows.iter().any(|row| row.message_id == item.message_id) {
                                     continue;
                                 }
+                                appended.push(item.clone());
                                 rows.push(item);
                             }
                             drop(rows);
                             drop(this_mut);
                             this.borrow().rows_changed();
+                            // Asked after the push rather than before the
+                            // fetch, so a reader who scrolled away while it
+                            // ran is not credited with seeing what arrived.
+                            let looking = !this.borrow().reading_history;
+                            if looking {
+                                this.borrow().mark_items_seen(appended);
+                            }
                         } else {
                             drop(rows);
                             drop(this_mut);
@@ -267,12 +271,6 @@ impl ChatMessages {
                     .filter(|id| !known.contains(id))
                     .collect();
                 let fetched = fetch_messages(&rpc, account_id, &missing, offset).await?;
-                // Only if the reader is at the bottom looking at it.
-                // Marking a message read that is still out of sight loses
-                // its unread badge in the chat list as well.
-                if !reading_history {
-                    mark_seen(&rpc, account_id, &fetched).await;
-                }
                 Ok::<_, String>((ids, fetched))
             }
             .await;
@@ -316,11 +314,50 @@ impl ChatMessages {
     /// Mark every unread message now loaded as read.
     pub fn mark_seen_all(&mut self) {
         let account_id = self.account_id;
+        if account_id == 0 {
+            return;
+        }
         let items: Vec<MessageListItem> = self.rows.borrow().iter().cloned().collect();
         let Some((rpc, runtime)) = connection() else {
             return;
         };
         runtime.spawn(async move {
+            mark_seen(&rpc, account_id, &items).await;
+        });
+    }
+
+    /// Send read receipts for these rows, whichever of them are unread and
+    /// incoming. Takes what to mark rather than reading the model, so a
+    /// sync marks what it just added instead of the whole chat again.
+    fn mark_items_seen(&self, items: Vec<MessageListItem>) {
+        let account_id = self.account_id;
+        if account_id == 0 || items.is_empty() {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            return;
+        };
+        runtime.spawn(async move {
+            mark_seen(&rpc, account_id, &items).await;
+        });
+    }
+
+    /// The whole chat has been looked at: tell the core so the chat list
+    /// drops its badge, and send the read receipts for what is loaded.
+    /// `mark_seen_all` alone does not do the first.
+    fn mark_chat_seen(&mut self) {
+        let (account_id, chat_id) = (self.account_id, self.chat_id);
+        if account_id == 0 || chat_id == 0 {
+            return;
+        }
+        let items: Vec<MessageListItem> = self.rows.borrow().iter().cloned().collect();
+        let Some((rpc, runtime)) = connection() else {
+            return;
+        };
+        runtime.spawn(async move {
+            let _ = rpc
+                .call::<_, ()>("marknoticed_chat", (account_id, chat_id))
+                .await;
             mark_seen(&rpc, account_id, &items).await;
         });
     }

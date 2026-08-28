@@ -122,6 +122,9 @@ fn component_url(name: &str) -> String {
     )
 }
 
+// A script of timed steps, in the order they happen; splitting it would
+// hide that order for no gain.
+#[allow(clippy::too_many_lines)]
 #[test]
 fn a_conversation_opens_at_the_newest_message_and_stays_where_it_is_left() {
     // SAFETY: single-threaded test binary; set before Qt starts.
@@ -246,6 +249,18 @@ fn a_conversation_opens_at_the_newest_message_and_stays_where_it_is_left() {
 
     single_shot(Duration::from_secs(8), move || unsafe {
         record!("held-stayed", call!("ended"));
+
+        // Away from the newest message, then a flick still gliding when
+        // the jump button is tapped. The button is not part of the list,
+        // so nothing else stops that flick.
+        call!("toTop");
+        call!("settle");
+        call!("beginDrag");
+        call!("jump");
+    });
+
+    single_shot(Duration::from_secs(9), move || unsafe {
+        record!("jumped-mid-flick", call!("ended"));
         (*engine_ptr).quit();
     });
 
@@ -344,6 +359,18 @@ fn assert_outcome(steps: &[(&str, String)]) {
         "the view still follows while the reader has hold of it, which hauls \
          them back down the moment they scroll up. {context}"
     );
+    // The jump has to move the view even when the reader tapped it during
+    // a flick: it clears the missed badge and tells the page the newest
+    // message has been reached, and doing that without scrolling marks
+    // messages read that are still out of sight.
+    assert_eq!(
+        value("jumped-mid-flick"),
+        "true",
+        "tapping jump-to-newest during a flick left the view up in the \
+         history, having already cleared the badge and reported arrival. \
+         {context}"
+    );
+
     assert_eq!(
         value("held-stayed"),
         "false",

@@ -37,6 +37,13 @@ SilicaListView {
 
     /// Back to the newest message, and following again.
     function jumpToNewest() {
+        // The button sits over the list rather than inside it, so a tap
+        // does not stop an inertial flick the way touching the list would.
+        // Left running, `held` stays true, `following` stays false, and the
+        // scroll below never happens -- while the state this sets has
+        // already told the page the reader is at the newest message.
+        root.cancelFlick()
+        root.held = false
         root.stickToBottom = true
         root.missedCount = 0
         toEnd.restart()

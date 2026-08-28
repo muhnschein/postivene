@@ -25,10 +25,21 @@ Page {
         chat_id: page.chatId
         utc_offset: page.utcOffset
         // What the reader can actually see decides what counts as read.
-        reading_history: !listView.stickToBottom
+        reading_history: !page.readerIsLooking
         onError: page.errorMessage = message
         onSent: textField.text = ""
     }
+
+    // Everything that has to hold for an arriving message to count as seen:
+    // the app is in front, this page is the one on screen, and the view is
+    // at the newest message and not mid-gesture. `following` rather than
+    // `stickToBottom` because the latter is only recomputed when a drag
+    // ends, so it still reads true throughout a drag away from the bottom.
+    // Any one of these false means a read receipt would be a lie.
+    readonly property bool readerIsLooking:
+        Qt.application.state === Qt.ApplicationActive
+        && page.status === PageStatus.Active
+        && listView.following
 
     property string errorMessage: ""
     readonly property string coreStoppedMessage:

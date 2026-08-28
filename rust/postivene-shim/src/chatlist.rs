@@ -85,8 +85,9 @@ impl ChatList {
         if context_id != self.account_id || self.account_id == 0 {
             return;
         }
+        let kind = kind.to_string();
         if !matches!(
-            kind.to_string().as_str(),
+            kind.as_str(),
             "IncomingMsg"
                 | "MsgsChanged"
                 | "MsgsNoticed"
@@ -98,6 +99,10 @@ impl ChatList {
                 | "ChatDeleted"
                 | "ChatlistChanged"
                 | "ChatlistItemChanged"
+                // The core dropped events it could not queue. Whatever it
+                // was, this model did not see it, so nothing it holds can
+                // be trusted.
+                | "EventChannelOverflow"
         ) {
             return;
         }
@@ -109,6 +114,11 @@ impl ChatList {
         // Upstream's own words for `ChatlistItemChanged`: "If chat_id is
         // set to None, then all currently visible chats need to be
         // rerendered".
+        // An overflow carries no chat id and could have hidden anything.
+        if kind == "EventChannelOverflow" {
+            self.refresh(Refresh::All);
+            return;
+        }
         let scope = payload
             .get("chatId")
             .and_then(serde_json::Value::as_u64)

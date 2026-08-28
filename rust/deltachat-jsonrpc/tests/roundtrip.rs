@@ -142,8 +142,13 @@ async fn event_loop_streams_batches_in_order() {
     assert_eq!(first.context_id, 1);
     assert_eq!(first.event["msg"], json!("batch 1"));
 
-    let second = events.recv().await.expect("second event");
-    assert_eq!(second.event["msg"], json!("batch 2"));
+    // The server answers the next poll with an error object. That is one
+    // bad answer, not the transport going away, and the stream has to
+    // carry on past it -- ending here would stop every event for the life
+    // of the process, and the shim reads the stream ending as the core
+    // having died, so the app would report a dead core that is running.
+    let third = events.recv().await.expect("the loop stopped on one error");
+    assert_eq!(third.event["msg"], json!("batch 3"));
 
     // The fake server now simulates an indefinite long-poll with no new
     // events; stopping the handle must not hang the test.

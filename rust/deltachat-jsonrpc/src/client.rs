@@ -3,6 +3,7 @@ use std::ffi::OsStr;
 use std::process::Stdio;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -45,6 +46,14 @@ pub struct RpcClient {
 }
 
 const STDERR_TAIL_CAPACITY: usize = 200;
+
+/// How long an ordinary call waits for its answer. Generous: the core does
+/// real work behind some of these, and a slow phone is not a broken one.
+/// Without any bound at all, a request the server accepts and never answers
+/// -- a panic in the task handling it leaves the process up and its stdout
+/// open -- hangs the caller for the life of the app, with no error and
+/// nothing to cancel.
+const CALL_TIMEOUT: Duration = Duration::from_secs(60);
 
 impl RpcClient {
     /// Spawn `program` (typically the path to a bundled
@@ -196,7 +205,7 @@ impl RpcClient {
         P: Serialize,
         R: DeserializeOwned,
     {
-        let value = self.call_raw(method, &params).await?;
+        let value = self.call_raw(method, &params, Some(CALL_TIMEOUT)).await?;
         serde_json::from_value(value).map_err(|source| RpcError::Decode {
             method: method.to_string(),
             source,
@@ -215,10 +224,28 @@ impl RpcClient {
         self.call(method, ()).await
     }
 
+    /// Call a method that blocks server-side until it has something to say,
+    /// such as `get_next_event_batch`. No timeout: waiting is the point.
+    ///
+    /// # Errors
+    ///
+    /// Same as [`RpcClient::call`], less [`RpcError::Timeout`].
+    pub async fn call_polling<R>(&self, method: &str) -> Result<R, RpcError>
+    where
+        R: DeserializeOwned,
+    {
+        let value = self.call_raw(method, &(), None).await?;
+        serde_json::from_value(value).map_err(|source| RpcError::Decode {
+            method: method.to_string(),
+            source,
+        })
+    }
+
     async fn call_raw(
         &self,
         method: &str,
         params: &impl Serialize,
+        timeout: Option<Duration>,
     ) -> Result<serde_json::Value, RpcError> {
         let params = serde_json::to_value(params).map_err(|source| RpcError::Encode {
             method: method.to_string(),
@@ -244,7 +271,19 @@ impl RpcClient {
             return Err(RpcError::TransportClosed);
         }
 
-        rx.await.unwrap_or(Err(RpcError::TransportClosed))
+        let Some(limit) = timeout else {
+            return rx.await.unwrap_or(Err(RpcError::TransportClosed));
+        };
+        let Ok(answer) = tokio::time::timeout(limit, rx).await else {
+            // Nothing will read this now, and the reader would only find a
+            // sender nobody is waiting on.
+            lock(&self.pending).remove(&id);
+            return Err(RpcError::Timeout {
+                method: method.to_string(),
+                seconds: limit.as_secs(),
+            });
+        };
+        answer.unwrap_or(Err(RpcError::TransportClosed))
     }
 
     /// The last `STDERR_TAIL_CAPACITY` lines of the server's stderr, oldest

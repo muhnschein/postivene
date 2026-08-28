@@ -181,7 +181,8 @@ impl ChatMessages {
             .get("chatId")
             .and_then(serde_json::Value::as_u64)
             .unwrap_or(0);
-        // MsgsChanged carries chatId 0 for "several chats".
+        // MsgsChanged carries chatId 0 for "several chats", and an
+        // overflow carries none at all.
         if event_chat != 0 && event_chat != u64::from(self.chat_id) {
             return;
         }
@@ -189,6 +190,10 @@ impl ChatMessages {
         match kind.as_str() {
             // New or changed content: take in what we do not have yet.
             "IncomingMsg" | "MsgsChanged" | "MsgDeleted" => self.sync_rows(),
+            // The core dropped events it could not queue, so what this
+            // model holds may already be wrong in ways no later event will
+            // mention. Start again rather than patch.
+            "EventChannelOverflow" => self.reload(),
             // Delivery state only: refresh the one row it names.
             "MsgDelivered" | "MsgRead" | "MsgFailed" => {
                 if let Some(message_id) = payload

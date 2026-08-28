@@ -5,7 +5,7 @@
 //! than refetching the whole history per message.
 
 use std::cell::RefCell;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 use deltachat_jsonrpc::RpcClient;
 use qmetaobject::*;
@@ -216,7 +216,9 @@ impl ChatMessages {
         let Some((rpc, runtime)) = connection() else {
             return;
         };
-        let known: Vec<u32> = self
+        // A set: this is asked once per message in the chat, and a long
+        // history would otherwise make the scan quadratic.
+        let known: HashSet<u32> = self
             .rows
             .borrow()
             .iter()

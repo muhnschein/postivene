@@ -71,6 +71,11 @@ pub struct ContactList {
 
     /// A chat is ready to be shown.
     pub chat_ready: qt_signal!(chat_id: u32),
+
+    /// Counts loads, so a slow answer to an old query cannot land on top of
+    /// a newer one. Typing "anna" starts four of these and they are not
+    /// answered in the order they were asked.
+    generation: u64,
 }
 
 impl ContactList {
@@ -107,10 +112,17 @@ impl ContactList {
             return;
         };
         let query = self.query.to_string();
+        self.generation = self.generation.wrapping_add(1);
+        let generation = self.generation;
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
         let done = queued_callback(move |result: Result<Vec<ContactItem>, String>| {
             let Some(this) = ptr.as_pinned() else { return };
+            // Answered after something newer was asked: these are results
+            // for a query the reader has already typed past.
+            if this.borrow().generation != generation {
+                return;
+            }
             match result {
                 Ok(items) => {
                     this.borrow_mut().rows.borrow_mut().reset_data(items);

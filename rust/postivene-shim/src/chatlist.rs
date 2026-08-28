@@ -278,23 +278,50 @@ enum Refresh {
 /// insert, so every other row keeps its identity and the view keeps its
 /// place.
 fn reconcile(rows: &mut ChatListModel, target: Vec<ChatListItem>) {
+    // The ids as they stand, kept in step with the model rather than read
+    // back out of it each time round: rebuilding this per row, and reaching
+    // into the model with `nth`, is what made a no-op refresh cost a scan
+    // of the whole list for every chat in it.
+    let mut current: Vec<u32> = rows.iter().map(|row| row.chat_id).collect();
+    let keep: HashSet<u32> = target.iter().map(|row| row.chat_id).collect();
+
+    // Gone from the core: dropped first, so what follows only ever moves
+    // rows that are staying.
+    let mut index = 0;
+    while index < current.len() {
+        if keep.contains(&current[index]) {
+            index += 1;
+        } else {
+            rows.remove(index);
+            current.remove(index);
+        }
+    }
+
     for (index, wanted) in target.iter().enumerate() {
-        let current: Vec<u32> = rows.iter().map(|row| row.chat_id).collect();
-        match current.iter().position(|id| *id == wanted.chat_id) {
-            Some(found) if found == index => {
-                if rows.iter().nth(index).is_some_and(|row| row != wanted) {
+        // Everything before `index` is already where the core wants it, so
+        // only the tail is worth looking through.
+        let found = current
+            .iter()
+            .skip(index)
+            .position(|id| *id == wanted.chat_id)
+            .map(|offset| index + offset);
+        match found {
+            Some(at) if at == index => {
+                if rows[index] != *wanted {
                     rows.change_line(index, wanted.clone());
                 }
             }
-            Some(found) => {
-                rows.remove(found);
+            Some(at) => {
+                rows.remove(at);
                 rows.insert(index, wanted.clone());
+                let id = current.remove(at);
+                current.insert(index, id);
             }
-            None => rows.insert(index, wanted.clone()),
+            None => {
+                rows.insert(index, wanted.clone());
+                current.insert(index, wanted.chat_id);
+            }
         }
-    }
-    while rows.iter().count() > target.len() {
-        rows.remove(target.len());
     }
 }
 

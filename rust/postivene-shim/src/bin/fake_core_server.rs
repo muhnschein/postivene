@@ -116,19 +116,33 @@ fn journal(method: &str, params: &Value) {
     if method == "get_next_event_batch" {
         return;
     }
-    let line = json!({"method": method, "params": params}).to_string();
+    let line = json!({"method": method, "params": params}).to_string() + "\n";
     if let Ok(mut file) = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
         .open(path)
     {
-        let _ = writeln!(file, "{line}");
+        // One write, not `writeln!`'s two: requests are handled
+        // concurrently, and the newline landing separately tore lines into
+        // each other.
+        let _ = file.write_all(line.as_bytes());
     }
 }
 
 /// True for the inputs that stand in for "the server cannot be reached".
 fn should_fail(value: &str) -> bool {
     value.contains("fail")
+}
+
+/// A reply delay in milliseconds, from `var`. Lets a test fix the order in
+/// which two replies land.
+fn delay(var: &str) -> std::time::Duration {
+    std::time::Duration::from_millis(
+        std::env::var(var)
+            .ok()
+            .and_then(|value| value.parse().ok())
+            .unwrap_or(0),
+    )
 }
 
 #[allow(clippy::too_many_lines)]
@@ -261,7 +275,8 @@ async fn main() {
                     state.contacts.insert(contact, address);
                     ok(&id, &json!(contact))
                 }
-                "create_chat_by_contact_id" => {
+                // A join and a one-to-one both end in a fresh chat at the top.
+                "create_chat_by_contact_id" | "secure_join" => {
                     let mut state = state.lock().await;
                     state.seed_chats();
                     state.next_chat_id += 1;
@@ -293,6 +308,26 @@ async fn main() {
                     state.group_members.entry(chat).or_default().push(contact);
                     ok(&id, &Value::Null)
                 }
+                "check_qr" => {
+                    let content = positional(1).as_str().unwrap_or_default().to_string();
+                    // Enough to tell an invite from anything else, which is
+                    // the only distinction the shim makes.
+                    let kind = if content.contains("i.delta.chat")
+                        || content.starts_with("OPENPGP4FPR:")
+                    {
+                        "askVerifyContact"
+                    } else if content.starts_with("dcaccount:") || content.starts_with("DCACCOUNT:")
+                    {
+                        "account"
+                    } else {
+                        "text"
+                    };
+                    ok(&id, &json!({"kind": kind}))
+                }
+                "get_chat_securejoin_qr_code" => ok(
+                    &id,
+                    &json!("https://i.delta.chat/#ABCDEF&a=me%40example.org&n=Me"),
+                ),
                 "get_chatlist_entries" => {
                     let mut state = state.lock().await;
                     state.seed_chats();
@@ -336,6 +371,7 @@ async fn main() {
                     ok(&id, &Value::Array(items))
                 }
                 "get_messages" => {
+                    tokio::time::sleep(delay("POSTIVENE_FAKE_FETCH_DELAY_MS")).await;
                     // One call for many ids: the point of the batch.
                     let ids: Vec<u64> = positional(1)
                         .as_array()
@@ -365,6 +401,11 @@ async fn main() {
                         .unwrap_or_default();
                     let text = positional(2).as_str().unwrap_or_default().to_string();
                     let msg = state.lock().await.add_message(account, chat);
+                    // The event is queued above, so a delay here puts it
+                    // ahead of this call's own reply -- the ordering the
+                    // real core can produce, and the one that duplicated a
+                    // sent row.
+                    tokio::time::sleep(delay("POSTIVENE_FAKE_SEND_DELAY_MS")).await;
                     ok(
                         &id,
                         &json!([

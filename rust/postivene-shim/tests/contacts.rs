@@ -15,12 +15,13 @@
     clippy::expect_used
 )]
 
-use std::path::PathBuf;
 use std::time::Duration;
 
 use postivene_shim::DeltaChatCore;
 use qmetaobject::*;
 use serde_json::Value;
+
+mod common;
 
 const PROBE_QML: &str = r"
     import QtQuick 2.0
@@ -28,6 +29,7 @@ const PROBE_QML: &str = r"
     Item {
         property string opened: ''
         property string lastError: ''
+        property string myInvite: ''
         property bool started: false
         ContactList {
             id: contacts
@@ -43,8 +45,12 @@ const PROBE_QML: &str = r"
                     contacts.open_chat_with(rows.itemAt(0).cid)
                     contacts.start_chat_with_address('new@example.org', 'New Person')
                     contacts.create_group('Team', [rows.itemAt(0).cid, rows.itemAt(1).cid])
+                    contacts.join_by_invite('https://i.delta.chat/#ABC&a=them%40example.org')
+                    contacts.join_by_invite('just some text')
+                    contacts.fetch_invite()
                 }
             }
+            onInvite_ready: myInvite = link
         }
         Connections {
             target: core
@@ -66,29 +72,12 @@ const PROBE_QML: &str = r"
             return out
         }
         function firstId() { return rows.count > 0 ? rows.itemAt(0).cid : 0 }
-        function report() { return opened + '#' + lastError }
+        function report() { return opened + '#' + lastError + '#' + myInvite }
     }
 ";
 
-fn calls(journal: &PathBuf) -> Vec<(String, Value)> {
-    std::fs::read_to_string(journal)
-        .unwrap_or_default()
-        .lines()
-        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
-        .map(|call| {
-            (
-                call.get("method")
-                    .and_then(Value::as_str)
-                    .unwrap_or_default()
-                    .to_string(),
-                call.get("params").cloned().unwrap_or(Value::Null),
-            )
-        })
-        .collect()
-}
-
 #[test]
-fn a_chat_can_be_started_three_ways() {
+fn a_chat_can_be_started_four_ways() {
     let temp = std::env::temp_dir().join(format!("postivene-contacts-{}", std::process::id()));
     let journal = temp.join("journal.jsonl");
     std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
@@ -138,7 +127,11 @@ fn a_chat_can_be_started_three_ways() {
 
     engine.exec();
 
-    let calls = calls(&journal);
+    assert_routes(&common::calls(&journal), &listed, &report);
+}
+
+/// Each way in produced the calls it should, and no others.
+fn assert_routes(calls: &[(String, Value)], listed: &str, report: &str) {
     let names: Vec<&str> = calls.iter().map(|(name, _)| name.as_str()).collect();
 
     assert_eq!(
@@ -146,12 +139,34 @@ fn a_chat_can_be_started_three_ways() {
         "the contact list did not load. Calls were: {names:?}"
     );
 
-    let (opened, error) = report.split_once('#').unwrap_or(("", ""));
-    assert_eq!(error, "", "a chat could not be started: {error}");
+    let mut parts = report.splitn(3, '#');
+    let opened = parts.next().unwrap_or_default();
+    let error = parts.next().unwrap_or_default();
+    let invite = parts.next().unwrap_or_default();
     assert_eq!(
         opened.split(',').filter(|part| !part.is_empty()).count(),
-        3,
-        "expected a chat from each of the three ways in, got {opened:?}"
+        4,
+        "expected a chat from each of the four ways in, got {opened:?}"
+    );
+
+    // Following an invite: classified first, then joined. Plain text is
+    // refused before any join is attempted.
+    assert!(
+        names.contains(&"secure_join"),
+        "the invite link was never followed: {names:?}"
+    );
+    assert_eq!(
+        names.iter().filter(|name| **name == "secure_join").count(),
+        1,
+        "plain text should not have been sent to secure_join: {names:?}"
+    );
+    assert!(
+        error.contains("not a contact or group invite"),
+        "pasting plain text should have said so, got {error:?}"
+    );
+    assert!(
+        invite.starts_with("https://i.delta.chat/"),
+        "the account's own invite link was not fetched, got {invite:?}"
     );
 
     // Contact tapped: straight to a chat, no contact created.

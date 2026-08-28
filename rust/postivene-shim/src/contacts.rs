@@ -57,6 +57,18 @@ pub struct ContactList {
     /// Answers on `chat_ready`.
     pub create_group: qt_method!(fn(&mut self, name: QString, member_ids: QVariantList)),
 
+    /// Follow an invite -- a scanned QR payload or a pasted
+    /// `https://i.delta.chat/...` link -- and open the chat it leads to.
+    /// This is how a Delta Chat contact is normally added: an address alone
+    /// cannot be encrypted to (docs/ONBOARDING.md). Answers on `chat_ready`.
+    pub join_by_invite: qt_method!(fn(&mut self, qr_content: QString)),
+
+    /// Fetch this account's own invite, the one to hand out. Answers on
+    /// `invite_ready`.
+    pub fetch_invite: qt_method!(fn(&mut self)),
+    /// This account's invite link.
+    pub invite_ready: qt_signal!(link: QString),
+
     /// A chat is ready to be shown.
     pub chat_ready: qt_signal!(chat_id: u32),
 }
@@ -197,6 +209,75 @@ impl ContactList {
                 Ok::<_, String>(chat_id)
             }
             .await;
+            done(result);
+        });
+    }
+
+    /// Follow an invite and open the chat it leads to.
+    pub fn join_by_invite(&mut self, qr_content: QString) {
+        let account_id = self.account_id;
+        let Some((rpc, runtime)) = connection() else {
+            self.error(QString::from("not started"));
+            return;
+        };
+        let done = self.chat_callback();
+
+        let qr_content = qr_content.to_string();
+        runtime.spawn(async move {
+            let result = async {
+                // Ask the core what the payload is before acting on it: it
+                // knows the formats, and guessing at them here would be the
+                // protocol work docs/SCOPE.md rules out.
+                let qr: serde_json::Value = rpc
+                    .call("check_qr", (account_id, qr_content.clone()))
+                    .await
+                    .map_err(|err| err.to_string())?;
+                let kind = qr
+                    .get("kind")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or_default();
+                if !matches!(kind, "askVerifyContact" | "askVerifyGroup") {
+                    return Err(format!(
+                        "that link is not a contact or group invite ({kind})"
+                    ));
+                }
+                // Returns as soon as the chat exists; the handshake itself
+                // finishes in the background.
+                rpc.call::<_, u32>("secure_join", (account_id, qr_content))
+                    .await
+                    .map_err(|err| err.to_string())
+            }
+            .await;
+            done(result);
+        });
+    }
+
+    /// Fetch this account's own invite link.
+    pub fn fetch_invite(&mut self) {
+        let account_id = self.account_id;
+        let Some((rpc, runtime)) = connection() else {
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<String, String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            match result {
+                Ok(link) => this.borrow().invite_ready(link.into()),
+                Err(err) => this.borrow().error(err.into()),
+            }
+        });
+
+        runtime.spawn(async move {
+            // A null chat gives the account's own contact invite; a chat id
+            // would give that group's.
+            let result = rpc
+                .call::<_, String>(
+                    "get_chat_securejoin_qr_code",
+                    (account_id, Option::<u32>::None),
+                )
+                .await
+                .map_err(|err| err.to_string());
             done(result);
         });
     }

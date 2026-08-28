@@ -11,9 +11,14 @@ Written against `5308322`, updated as items close.
 contact, adding an address, or creating a group. `NewChatPage`,
 `NewContactPage` and `NewGroupPage` sit behind "New Chat" on the chat list.
 
-What is still missing here: group member management after creation
-(`get_chat_contacts`, removing members, renaming), contact profile pages,
-and blocking.
+Invites work in both directions: a pasted `https://i.delta.chat/...` link
+is classified by the core and followed with `secure_join`, and the
+account's own invite link can be copied out. This is the normal way a Delta
+Chat contact is added -- an address alone cannot be encrypted to.
+
+What is still missing here: reading an invite off the camera (a scanner is
+platform work, below), showing one's own invite as a QR image, group member
+management after creation, contact profile pages, and blocking.
 
 ## The conversation view
 
@@ -63,4 +68,4 @@ form of every invite payload already works, so the camera is polish.
    quotes.
 3. Chat list: unread badges, times, context actions, account switcher.
 4. Platform: notifications, background and suspend, cover actions,
-   sailjail, translations.
+   sailjail, translations, and camera QR scanning.

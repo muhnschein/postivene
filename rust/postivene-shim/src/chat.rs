@@ -182,7 +182,14 @@ impl ChatMessages {
                                 .zip(ids.iter())
                                 .all(|(row, id)| row.message_id == *id);
                         if unchanged_prefix {
+                            // A send in flight may have pushed a row this
+                            // fetch also carries: the id list was read
+                            // before that reply landed. Appending it again
+                            // is the duplicate that survives until reload.
                             for item in fetched {
+                                if rows.iter().any(|row| row.message_id == item.message_id) {
+                                    continue;
+                                }
                                 rows.push(item);
                             }
                             drop(rows);
@@ -261,7 +268,18 @@ impl ChatMessages {
             match result {
                 Ok(item) => {
                     let message_id = item.message_id;
-                    this.borrow_mut().rows.borrow_mut().push(item);
+                    {
+                        let this_mut = this.borrow_mut();
+                        let mut rows = this_mut.rows.borrow_mut();
+                        // The event for our own send can beat this reply,
+                        // in which case the row is already there.
+                        let existing = rows.iter().position(|row| row.message_id == message_id);
+                        if let Some(index) = existing {
+                            rows.change_line(index, item);
+                        } else {
+                            rows.push(item);
+                        }
+                    }
                     this.borrow().rows_changed();
                     this.borrow().sent(message_id);
                 }

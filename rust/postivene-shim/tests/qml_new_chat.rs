@@ -19,12 +19,13 @@
     clippy::needless_pass_by_value
 )]
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use postivene_shim::DeltaChatCore;
 use qmetaobject::*;
-use serde_json::Value;
+
+mod common;
 
 /// Silica's `pageStack`, recorded rather than performed. A context property,
 /// as in the app.
@@ -104,6 +105,11 @@ const PROBE_QML: &str = r"
             if (!item) { return 'missing:' + name }
             item.text = value
             return 'ok'
+        }
+        function get(name, property) {
+            var item = findIn(loader.item, name)
+            if (!item) { return 'missing:' + name }
+            return '' + item[property]
         }
     }
 ";
@@ -195,6 +201,28 @@ fn the_new_chat_pages_create_chats_and_open_them() {
     });
 
     single_shot(Duration::from_secs(8), move || unsafe {
+        call!("load", QString::from(page_url("InvitePage.qml")), 1);
+    });
+
+    single_shot(Duration::from_secs(10), move || unsafe {
+        (*steps_ptr).push(("invite-page", call!("status")));
+        // The account's own invite, for handing out.
+        (*steps_ptr).push((
+            "my-invite",
+            call!("get", QString::from("myInviteLabel"), QString::from("text")),
+        ));
+        (*steps_ptr).push((
+            "paste",
+            call!(
+                "setText",
+                QString::from("linkField"),
+                QString::from("https://i.delta.chat/#ABC&a=them%40example.org")
+            ),
+        ));
+        (*steps_ptr).push(("follow", call!("click", QString::from("followButton"))));
+    });
+
+    single_shot(Duration::from_secs(12), move || unsafe {
         (*engine_ptr).quit();
     });
 
@@ -210,10 +238,18 @@ fn the_new_chat_pages_create_chats_and_open_them() {
 
 /// Both routes end in a conversation the core made, and each made exactly
 /// one chat.
-fn assert_outcome(steps: &[(&str, String)], navigation: &str, chat_id: u32, journal: &PathBuf) {
+fn assert_outcome(steps: &[(&str, String)], navigation: &str, chat_id: u32, journal: &Path) {
     let context = format!("steps: {steps:?}\nnavigation: {navigation}");
 
     for (name, value) in steps {
+        // `my-invite` reports the link itself, not a status.
+        if *name == "my-invite" {
+            assert!(
+                value.starts_with("https://i.delta.chat/"),
+                "the page did not show the account's own invite: {value:?}. {context}"
+            );
+            continue;
+        }
         assert!(
             value == "ok" || value == "set",
             "step {name} returned {value:?}. {context}"
@@ -223,24 +259,15 @@ fn assert_outcome(steps: &[(&str, String)], navigation: &str, chat_id: u32, jour
     // Both routes end in a conversation, with a chat the core made.
     assert_eq!(
         navigation.matches("replace:ConversationPage.qml").count(),
-        2,
-        "tapping a contact and adding an address should each open a chat. {context}"
+        3,
+        "each of contact, address and invite should open a chat. {context}"
     );
     assert!(
         chat_id > 0,
         "a conversation was opened without a chat id. {context}"
     );
 
-    let calls: Vec<String> = std::fs::read_to_string(journal)
-        .unwrap_or_default()
-        .lines()
-        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
-        .filter_map(|call| {
-            call.get("method")
-                .and_then(Value::as_str)
-                .map(ToString::to_string)
-        })
-        .collect();
+    let calls = common::methods(journal);
     assert!(
         calls.iter().any(|name| name == "get_contacts"),
         "the page never asked for contacts: {calls:?}"
@@ -248,6 +275,10 @@ fn assert_outcome(steps: &[(&str, String)], navigation: &str, chat_id: u32, jour
     assert!(
         calls.iter().any(|name| name == "create_contact"),
         "the address was not turned into a contact: {calls:?}"
+    );
+    assert!(
+        calls.iter().any(|name| name == "secure_join"),
+        "the pasted invite was never followed: {calls:?}"
     );
     assert_eq!(
         calls

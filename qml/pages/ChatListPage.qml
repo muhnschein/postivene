@@ -1,5 +1,6 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
+import "../components"
 import Postivene 1.0
 
 Page {
@@ -24,6 +25,15 @@ Page {
         onStatus_changed: {
             if (core.status === "ready") {
                 chats.reload()
+            } else if (core.status === "stopped") {
+                page.errorMessage = qsTr("Lost the connection to the Delta Chat core. Restart Postivene.")
+            }
+        }
+        // Failures that used to reach no one.
+        onCore_error: page.errorMessage = message
+        onIo_started: {
+            if (!success) {
+                page.errorMessage = error
             }
         }
     }
@@ -89,5 +99,18 @@ Page {
             text: qsTr("No chats yet")
             hintText: qsTr("Pull down to start one")
         }
+    }
+
+    ErrorBanner {
+        objectName: "errorBanner"
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+        text: page.errorMessage
+        // A dead core does not fix itself, so that one stays put.
+        timeout: core.status === "stopped" ? 0 : 8
+        onDismissed: page.errorMessage = ""
     }
 }

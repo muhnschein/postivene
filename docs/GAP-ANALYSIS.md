@@ -41,12 +41,15 @@ apply events rather than rebuilding.
 
 What is left here:
 
-- `io_started` and `qr_error` have no QML listeners. A failure vanishes
-  silently.
-- Nothing notices when `deltachat-rpc-server` dies: `status` stays
-  `"ready"` and nothing restarts it.
-- Only `marknoticed_chat`, never `markseen_msgs`: read receipts never go
-  out and messages are never marked seen on IMAP or other devices.
+Failures reach the user: every page shows them in a shared `ErrorBanner`,
+the core's own `Error` events arrive as a typed `core_error` signal, and the
+server dying flips `status` to `"stopped"` rather than leaving it claiming
+`"ready"`. Opening a chat calls `markseen_msgs`, so read receipts go out.
+
+What is left here:
+
+- Nothing restarts `deltachat-rpc-server` after it dies; the app says so
+  and asks for a restart.
 
 ## Platform integration
 
@@ -62,10 +65,8 @@ form of every invite payload already works, so the camera is polish.
 
 ## Order of work
 
-1. Error surfacing in the UI, and `markseen_msgs` -- read receipts never go
-   out today.
-2. Conversation UX: sender names, timestamps, day markers, attachments,
+1. Conversation UX: sender names, timestamps, day markers, attachments,
    quotes.
-3. Chat list: unread badges, times, context actions, account switcher.
-4. Platform: notifications, background and suspend, cover actions,
+2. Chat list: unread badges, times, context actions, account switcher.
+3. Platform: notifications, background and suspend, cover actions,
    sailjail, translations, and camera QR scanning.

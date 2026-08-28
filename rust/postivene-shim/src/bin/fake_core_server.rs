@@ -150,6 +150,16 @@ fn delay(var: &str) -> std::time::Duration {
 async fn main() {
     let state = Arc::new(Mutex::new(State::default()));
     let stdout = Arc::new(Mutex::new(tokio::io::stdout()));
+
+    // Stands in for the server dying under the client.
+    if let Ok(after) = std::env::var("POSTIVENE_FAKE_EXIT_AFTER_MS") {
+        if let Ok(millis) = after.parse() {
+            tokio::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_millis(millis)).await;
+                std::process::exit(0);
+            });
+        }
+    }
     let mut lines = BufReader::new(tokio::io::stdin()).lines();
 
     while let Ok(Some(line)) = lines.next_line().await {
@@ -202,9 +212,11 @@ async fn main() {
                     });
                     ok(&id, &json!(next))
                 }
-                "set_config" | "start_io" | "stop_ongoing_process" | "marknoticed_chat" => {
-                    ok(&id, &Value::Null)
-                }
+                "set_config"
+                | "start_io"
+                | "stop_ongoing_process"
+                | "marknoticed_chat"
+                | "markseen_msgs" => ok(&id, &Value::Null),
                 "add_transport_from_qr" => {
                     let qr = positional(1).as_str().unwrap_or_default().to_string();
                     if should_fail(&qr) {
@@ -387,7 +399,9 @@ async fn main() {
                                 "fromId": 10,
                                 "timestamp": 0,
                                 "showPadlock": true,
-                                "state": 16,
+                                // One seeded message is unread, so a test
+                                // can watch the read receipt go out.
+                                "state": if msg == 2 { 10 } else { 16 },
                             }),
                         );
                     }
@@ -400,20 +414,30 @@ async fn main() {
                         .and_then(|value| u32::try_from(value).ok())
                         .unwrap_or_default();
                     let text = positional(2).as_str().unwrap_or_default().to_string();
-                    let msg = state.lock().await.add_message(account, chat);
-                    // The event is queued above, so a delay here puts it
-                    // ahead of this call's own reply -- the ordering the
-                    // real core can produce, and the one that duplicated a
-                    // sent row.
-                    tokio::time::sleep(delay("POSTIVENE_FAKE_SEND_DELAY_MS")).await;
-                    ok(
-                        &id,
-                        &json!([
-                            msg,
-                            {"text": text, "fromId": 1, "timestamp": 0,
-                             "showPadlock": true, "state": 20}
-                        ]),
-                    )
+                    if should_fail(&text) {
+                        // The real core reports a failed send as an Error
+                        // event, not only as a failed call.
+                        state.lock().await.events.push_back(json!({
+                            "contextId": account,
+                            "event": {"kind": "Error", "msg": "could not send"},
+                        }));
+                        err(&id, "could not send")
+                    } else {
+                        let msg = state.lock().await.add_message(account, chat);
+                        // The event is queued above, so a delay here puts it
+                        // ahead of this call's own reply -- the ordering the
+                        // real core can produce, and the one that duplicated a
+                        // sent row.
+                        tokio::time::sleep(delay("POSTIVENE_FAKE_SEND_DELAY_MS")).await;
+                        ok(
+                            &id,
+                            &json!([
+                                msg,
+                                {"text": text, "fromId": 1, "timestamp": 0,
+                                 "showPadlock": true, "state": 20}
+                            ]),
+                        )
+                    }
                 }
                 "get_next_event_batch" => {
                     // Blocks when empty, like the real long poll.

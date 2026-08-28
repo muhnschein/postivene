@@ -17,4 +17,8 @@ QtObject {
     property color secondaryColor: "#a0a0a0"
     property color highlightColor: "#80c0ff"
     property color errorColor: "#ff4040"
+
+    function rgba(color, opacity) {
+        return Qt.rgba(color.r, color.g, color.b, opacity)
+    }
 }

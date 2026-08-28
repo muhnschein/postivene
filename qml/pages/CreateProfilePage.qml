@@ -1,5 +1,6 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
+import "../components"
 
 /*
  * Create a profile on a chatmail server: the user types a name, the server
@@ -126,14 +127,11 @@ Page {
                 text: qsTr("Your address will be created on %1.").arg(page.providerLabel)
             }
 
-            Label {
-                objectName: "errorLabel"
-                x: Theme.horizontalPageMargin
-                width: parent.width - 2 * Theme.horizontalPageMargin
-                wrapMode: Text.Wrap
-                visible: page.errorMessage.length > 0
-                color: Theme.errorColor
+            ErrorBanner {
+                objectName: "errorBanner"
+                width: parent.width
                 text: page.errorMessage
+                onDismissed: page.errorMessage = ""
             }
 
             Button {

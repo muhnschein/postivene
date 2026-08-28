@@ -13,6 +13,10 @@ use qmetaobject::*;
 use crate::core::connection;
 use crate::models::{MessageListItem, MessageListModel};
 
+/// `DC_STATE_IN_FRESH` and `DC_STATE_IN_NOTICED`: an incoming message the
+/// account has not read yet.
+const UNSEEN_STATES: [u32; 2] = [10, 13];
+
 /// The messages of one chat.
 ///
 /// ```qml
@@ -111,6 +115,7 @@ impl ChatMessages {
                 let _ = rpc
                     .call::<_, ()>("marknoticed_chat", (account_id, chat_id))
                     .await;
+                mark_seen(&rpc, account_id, &items).await;
                 Ok::<_, String>(items)
             }
             .await;
@@ -215,6 +220,8 @@ impl ChatMessages {
                     .filter(|id| !known.contains(id))
                     .collect();
                 let fetched = fetch_messages(&rpc, account_id, &missing).await?;
+                // The chat is open, so what just arrived has been read.
+                mark_seen(&rpc, account_id, &fetched).await;
                 Ok::<_, String>((ids, fetched))
             }
             .await;
@@ -362,6 +369,23 @@ async fn fetch_messages(
             Some(row_from(*id, message))
         })
         .collect())
+}
+
+/// Mark the incoming messages among these read: clears their fresh state
+/// here and on the other devices, and sends the read receipt the sender
+/// asked for. `marknoticed_chat` alone does neither.
+async fn mark_seen(rpc: &RpcClient, account_id: u32, items: &[MessageListItem]) {
+    let unseen: Vec<u32> = items
+        .iter()
+        .filter(|item| !item.is_outgoing && UNSEEN_STATES.contains(&item.state))
+        .map(|item| item.message_id)
+        .collect();
+    if unseen.is_empty() {
+        return;
+    }
+    let _ = rpc
+        .call::<_, ()>("markseen_msgs", (account_id, unseen))
+        .await;
 }
 
 /// One row from the core's message object.

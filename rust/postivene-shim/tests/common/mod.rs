@@ -3,7 +3,7 @@
 // Not every test uses every helper.
 #![allow(dead_code)]
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 
@@ -39,4 +39,20 @@ pub fn calls(journal: &Path) -> Vec<(String, Value)> {
 /// Method names only, in order.
 pub fn methods(journal: &Path) -> Vec<String> {
     calls(journal).into_iter().map(|(name, _)| name).collect()
+}
+
+/// The stub Silica module tree, for `QmlEngine::add_import_path`.
+pub fn stubs_dir() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/silica-stubs")
+}
+
+/// A `file://` URL for one of the app's pages.
+pub fn page_url(name: &str) -> String {
+    format!(
+        "file://{}",
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../qml/pages")
+            .join(name)
+            .display()
+    )
 }

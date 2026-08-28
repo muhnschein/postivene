@@ -39,27 +39,33 @@ Item {
             readonly property real slope:
                 Math.atan2(height, width / 2) * 180 / Math.PI
 
+            // Turned about the middle of the left edge, not the corner:
+            // about the corner it is the stroke's top edge that follows
+            // the line, so each half shifts by half its thickness and the
+            // two no longer meet squarely.
             Rectangle {
+                objectName: "chevronLeft"
                 x: 0
-                y: 0
+                y: -chevron.thickness / 2
                 width: chevron.stroke
                 height: chevron.thickness
                 radius: height / 2
                 color: Theme.primaryColor
                 antialiasing: true
-                transformOrigin: Item.TopLeft
+                transformOrigin: Item.Left
                 rotation: chevron.slope
             }
 
             Rectangle {
+                objectName: "chevronRight"
                 x: chevron.width
-                y: 0
+                y: -chevron.thickness / 2
                 width: chevron.stroke
                 height: chevron.thickness
                 radius: height / 2
                 color: Theme.primaryColor
                 antialiasing: true
-                transformOrigin: Item.TopLeft
+                transformOrigin: Item.Left
                 rotation: 180 - chevron.slope
             }
         }

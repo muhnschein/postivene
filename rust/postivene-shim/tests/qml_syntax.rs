@@ -166,4 +166,10 @@ fn the_conversation_page_uses_the_pieces_that_are_tested() {
         text.contains("Clipboard.text = body") && text.contains("notice.show("),
         "copying a message does not say that it happened"
     );
+    // The field insets itself on the left; without the same on the right
+    // the send button sits nearer the edge than the field does.
+    assert!(
+        text.contains("rightMargin: Theme.horizontalPageMargin"),
+        "the send button is flush against the edge of the screen"
+    );
 }

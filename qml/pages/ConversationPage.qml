@@ -159,6 +159,9 @@ Page {
         anchors {
             left: parent.left
             right: parent.right
+            // The field carries its own inset on the left; without the
+            // same on this side the send button sits nearer the edge.
+            rightMargin: Theme.horizontalPageMargin
             bottom: parent.bottom
         }
         spacing: Theme.paddingSmall

@@ -162,6 +162,33 @@ fn the_reply_bar_wraps_the_jump_button_is_opaque_and_a_notice_is_quiet() {
             "jump-no-icon",
             call!("get", QString::from("jumpIcon"), QString::from("source"))
         );
+        // Item.Left, not Item.TopLeft: about the corner it is the stroke's
+        // top edge that follows the line, and the two halves come out
+        // crooked.
+        record!(
+            "chevron-origin",
+            call!(
+                "get",
+                QString::from("chevronLeft"),
+                QString::from("transformOrigin")
+            )
+        );
+        record!(
+            "chevron-mirrored",
+            call!(
+                "get",
+                QString::from("chevronRight"),
+                QString::from("transformOrigin")
+            )
+        );
+        record!(
+            "chevron-left-y",
+            call!("get", QString::from("chevronLeft"), QString::from("y"))
+        );
+        record!(
+            "chevron-right-y",
+            call!("get", QString::from("chevronRight"), QString::from("y"))
+        );
         record!(
             "badge-hidden",
             call!("get", QString::from("jumpBadge"), QString::from("visible"))
@@ -264,6 +291,27 @@ fn assert_outcome(steps: &[(&str, String)]) {
         value("jump-no-icon"),
         "missing:jumpIcon",
         "the button is back to a themed icon, which brings a second circle. {context}"
+    );
+    // `Item.Left` is 3; `Item.TopLeft`, which draws it crooked, is 0.
+    assert_eq!(
+        value("chevron-origin"),
+        "3",
+        "the chevron's halves turn about their corner, which draws them \
+         crooked. {context}"
+    );
+    assert_eq!(
+        value("chevron-mirrored"),
+        value("chevron-origin"),
+        "the chevron's halves turn about different points. {context}"
+    );
+    // Lifted by half a stroke, so the line through the middle -- not the
+    // top edge -- starts where the corner of the chevron is.
+    let left_y: f64 = value("chevron-left-y").parse().unwrap_or_default();
+    assert!(
+        left_y < 0.0 && (left_y - value("chevron-right-y").parse().unwrap_or(0.0)).abs() < 0.01,
+        "the chevron's halves do not sit on the same line: {} and {}. {context}",
+        value("chevron-left-y"),
+        value("chevron-right-y")
     );
     assert_eq!(
         value("badge-hidden"),

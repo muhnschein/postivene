@@ -65,6 +65,14 @@ Page {
             }
 
             Button {
+                objectName: "inviteButton"
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: qsTr("Use an Invite Link")
+                onClicked: pageStack.push(Qt.resolvedUrl("InvitePage.qml"),
+                                          { accountId: page.accountId })
+            }
+
+            Button {
                 objectName: "newContactButton"
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: qsTr("New Contact")

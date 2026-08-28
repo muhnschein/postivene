@@ -261,7 +261,8 @@ async fn main() {
                     state.contacts.insert(contact, address);
                     ok(&id, &json!(contact))
                 }
-                "create_chat_by_contact_id" => {
+                // A join and a one-to-one both end in a fresh chat at the top.
+                "create_chat_by_contact_id" | "secure_join" => {
                     let mut state = state.lock().await;
                     state.seed_chats();
                     state.next_chat_id += 1;
@@ -293,6 +294,26 @@ async fn main() {
                     state.group_members.entry(chat).or_default().push(contact);
                     ok(&id, &Value::Null)
                 }
+                "check_qr" => {
+                    let content = positional(1).as_str().unwrap_or_default().to_string();
+                    // Enough to tell an invite from anything else, which is
+                    // the only distinction the shim makes.
+                    let kind = if content.contains("i.delta.chat")
+                        || content.starts_with("OPENPGP4FPR:")
+                    {
+                        "askVerifyContact"
+                    } else if content.starts_with("dcaccount:") || content.starts_with("DCACCOUNT:")
+                    {
+                        "account"
+                    } else {
+                        "text"
+                    };
+                    ok(&id, &json!({"kind": kind}))
+                }
+                "get_chat_securejoin_qr_code" => ok(
+                    &id,
+                    &json!("https://i.delta.chat/#ABCDEF&a=me%40example.org&n=Me"),
+                ),
                 "get_chatlist_entries" => {
                     let mut state = state.lock().await;
                     state.seed_chats();

@@ -192,6 +192,20 @@ fn assert_outcome(calls: &[(String, Value)], steps: &[(&str, String)]) {
         vec![serde_json::json!([1, [1]])],
         "resending did not name its message. {context}"
     );
+    // A resend leaves the id list alone, so the sync a core event triggers
+    // fetches nothing: without an explicit re-read the row keeps the failed
+    // state it had, mark and "Send again" and all.
+    let refetched_after_resend = calls
+        .iter()
+        .skip_while(|(name, _)| name != "resend_messages")
+        .any(|(name, params)| {
+            name == "get_messages" && params.pointer("/1") == Some(&serde_json::json!([1]))
+        });
+    assert!(
+        refetched_after_resend,
+        "the resent message was never re-read, so its row still shows as \
+         failed and still offers Send again. {context}"
+    );
     assert_eq!(value("error"), "", "an action failed. {context}");
 
     // A message arriving while the reader is up in the history is not read

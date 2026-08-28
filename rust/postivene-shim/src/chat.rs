@@ -282,14 +282,14 @@ impl ChatMessages {
     fn refresh_one(&mut self, message_id: u32) {
         let account_id = self.account_id;
         let offset = self.utc_offset;
-        let Some(index) = self
+        if !self
             .rows
             .borrow()
             .iter()
-            .position(|item| item.message_id == message_id)
-        else {
+            .any(|item| item.message_id == message_id)
+        {
             return;
-        };
+        }
         let Some((rpc, runtime)) = connection() else {
             return;
         };
@@ -299,6 +299,18 @@ impl ChatMessages {
             let Some(this) = ptr.as_pinned() else { return };
             if let Ok(items) = result {
                 if let Some(item) = items.into_iter().next() {
+                    // Found again here rather than carried from before the
+                    // fetch: a reload in between replaces the rows, and an
+                    // index from the old ones addresses the wrong message
+                    // -- or, once the list is shorter, nothing at all.
+                    // `change_line` indexes without checking.
+                    let existing = this
+                        .borrow()
+                        .rows
+                        .borrow()
+                        .iter()
+                        .position(|row| row.message_id == item.message_id);
+                    let Some(index) = existing else { return };
                     this.borrow_mut().rows.borrow_mut().change_line(index, item);
                     this.borrow().rows_changed();
                 }
@@ -372,8 +384,13 @@ impl ChatMessages {
         self.act("resend_messages", message_id);
     }
 
-    /// Call `method` with `(account, [message])`. The core announces what
-    /// it did, and the event brings the rows in line.
+    /// Call `method` with `(account, [message])`, then re-read that row.
+    ///
+    /// A deletion changes the id list, so the event it raises reloads the
+    /// model on its own. A resend does not: the list is the same, the sync
+    /// fetches only ids it is missing, and the row keeps the failed state
+    /// it had -- mark and "Send again" and all -- until something else
+    /// refetches it.
     fn act(&mut self, method: &'static str, message_id: u32) {
         let account_id = self.account_id;
         if account_id == 0 || message_id == 0 {
@@ -386,8 +403,10 @@ impl ChatMessages {
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
         let done = queued_callback(move |result: Result<(), String>| {
-            if let (Some(this), Err(err)) = (ptr.as_pinned(), result) {
-                this.borrow().error(err.into());
+            let Some(this) = ptr.as_pinned() else { return };
+            match result {
+                Ok(()) => this.borrow_mut().refresh_one(message_id),
+                Err(err) => this.borrow().error(err.into()),
             }
         });
 

@@ -10,6 +10,7 @@ use std::collections::HashMap;
 
 use deltachat_jsonrpc::RpcClient;
 use qmetaobject::*;
+use serde_json::json;
 
 use crate::core::connection;
 use crate::models::{ChatListItem, ChatListModel};
@@ -46,6 +47,17 @@ pub struct ChatList {
     /// Feed a `core_event` in. Events for other accounts are ignored.
     pub handle_event:
         qt_method!(fn(&mut self, context_id: u32, kind: QString, payload_json: QString)),
+
+    /// Mark everything in a chat read, without opening it.
+    pub mark_read: qt_method!(fn(&mut self, chat_id: u32)),
+    /// Keep a chat at the top of the list, or let it sort by time again.
+    pub set_pinned: qt_method!(fn(&mut self, chat_id: u32, pinned: bool)),
+    /// Silence a chat, or let it speak again.
+    pub set_muted: qt_method!(fn(&mut self, chat_id: u32, muted: bool)),
+    /// Move a chat out of the list.
+    pub archive: qt_method!(fn(&mut self, chat_id: u32)),
+    /// Delete a chat and its messages on this device.
+    pub delete_chat: qt_method!(fn(&mut self, chat_id: u32)),
 }
 
 impl ChatList {
@@ -75,7 +87,16 @@ impl ChatList {
         }
         if !matches!(
             kind.to_string().as_str(),
-            "IncomingMsg" | "MsgsChanged" | "MsgsNoticed" | "MsgDelivered" | "MsgFailed"
+            "IncomingMsg"
+                | "MsgsChanged"
+                | "MsgsNoticed"
+                | "MsgDelivered"
+                | "MsgFailed"
+                // Pinning, muting, archiving and deleting land here.
+                | "ChatModified"
+                | "ChatDeleted"
+                | "ChatlistChanged"
+                | "ChatlistItemChanged"
         ) {
             return;
         }
@@ -88,6 +109,68 @@ impl ChatList {
             .and_then(|id| u32::try_from(id).ok())
             .filter(|id| *id != 0);
         self.refresh(changed);
+    }
+
+    /// Mark everything in a chat read.
+    pub fn mark_read(&mut self, chat_id: u32) {
+        self.act(chat_id, "marknoticed_chat", serde_json::Value::Null);
+    }
+
+    /// Pin a chat, or unpin it.
+    pub fn set_pinned(&mut self, chat_id: u32, pinned: bool) {
+        let visibility = if pinned { "Pinned" } else { "Normal" };
+        self.act(chat_id, "set_chat_visibility", json!([visibility]));
+    }
+
+    /// Mute a chat, or unmute it.
+    pub fn set_muted(&mut self, chat_id: u32, muted: bool) {
+        let kind = if muted { "Forever" } else { "NotMuted" };
+        self.act(chat_id, "set_chat_mute_duration", json!([{"kind": kind}]));
+    }
+
+    /// Move a chat out of the list.
+    pub fn archive(&mut self, chat_id: u32) {
+        self.act(chat_id, "set_chat_visibility", json!(["Archived"]));
+    }
+
+    /// Delete a chat and its messages on this device.
+    pub fn delete_chat(&mut self, chat_id: u32) {
+        self.act(chat_id, "delete_chat", serde_json::Value::Null);
+    }
+
+    /// Call `method` with `(account, chat)` plus `extra`, then refresh the
+    /// row it acted on: the core does not announce every one of these.
+    fn act(&mut self, chat_id: u32, method: &'static str, extra: serde_json::Value) {
+        let account_id = self.account_id;
+        if account_id == 0 || chat_id == 0 {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            self.error(QString::from("not started"));
+            return;
+        };
+
+        let mut params = vec![json!(account_id), json!(chat_id)];
+        if let serde_json::Value::Array(rest) = extra {
+            params.extend(rest);
+        }
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<(), String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            match result {
+                Ok(()) => this.borrow_mut().refresh(Some(chat_id)),
+                Err(err) => this.borrow().error(err.into()),
+            }
+        });
+
+        runtime.spawn(async move {
+            let result = rpc
+                .call::<_, ()>(method, params)
+                .await
+                .map_err(|err| err.to_string());
+            done(result);
+        });
     }
 
     /// Bring the model in line with the core.
@@ -221,22 +304,48 @@ async fn chat_items(
                         .and_then(serde_json::Value::as_str)
                         .unwrap_or_default()
                         .into(),
-                    preview: item
-                        .get("summaryText2")
-                        .and_then(serde_json::Value::as_str)
-                        .unwrap_or_default()
-                        .into(),
-                    unread_count: item
-                        .get("freshMessageCounter")
-                        .and_then(serde_json::Value::as_u64)
-                        .and_then(|value| u32::try_from(value).ok())
-                        .unwrap_or(0),
-                    is_encrypted: item
-                        .get("isEncrypted")
-                        .and_then(serde_json::Value::as_bool)
-                        .unwrap_or(false),
+                    preview: text_at(&item, "summaryText2"),
+                    preview_sender: text_at(&item, "summaryText1"),
+                    unread_count: number_at(&item, "freshMessageCounter"),
+                    // The core counts in milliseconds here and in seconds
+                    // on a message; the UI wants one unit.
+                    last_updated: item
+                        .get("lastUpdated")
+                        .and_then(serde_json::Value::as_i64)
+                        .unwrap_or(0)
+                        / 1000,
+                    summary_state: number_at(&item, "summaryStatus"),
+                    is_encrypted: flag_at(&item, "isEncrypted"),
+                    is_pinned: flag_at(&item, "isPinned"),
+                    is_muted: flag_at(&item, "isMuted"),
+                    is_contact_request: flag_at(&item, "isContactRequest"),
+                    color: text_at(&item, "color"),
+                    avatar_path: text_at(&item, "avatarPath"),
                 },
             )
         })
         .collect())
+}
+
+/// A string field, empty when absent or null.
+fn text_at(item: &serde_json::Value, field: &str) -> QString {
+    item.get(field)
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_default()
+        .into()
+}
+
+/// A counter, 0 when absent.
+fn number_at(item: &serde_json::Value, field: &str) -> u32 {
+    item.get(field)
+        .and_then(serde_json::Value::as_u64)
+        .and_then(|value| u32::try_from(value).ok())
+        .unwrap_or(0)
+}
+
+/// A flag, false when absent.
+fn flag_at(item: &serde_json::Value, field: &str) -> bool {
+    item.get(field)
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false)
 }

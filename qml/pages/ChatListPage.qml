@@ -66,32 +66,54 @@ Page {
 
         delegate: ListItem {
             id: delegateRoot
-            contentHeight: Theme.itemSizeMedium
+            contentHeight: body.height
 
-            Column {
-                anchors {
-                    left: parent.left
-                    right: parent.right
-                    verticalCenter: parent.verticalCenter
-                    leftMargin: Theme.horizontalPageMargin
-                    rightMargin: Theme.horizontalPageMargin
+            ChatListDelegate {
+                id: body
+                width: parent.width
+                chatName: model.name
+                preview: model.preview
+                previewSender: model.preview_sender
+                unreadCount: model.unread_count
+                lastUpdated: model.last_updated
+                isEncrypted: model.is_encrypted
+                isPinned: model.is_pinned
+                isMuted: model.is_muted
+                isContactRequest: model.is_contact_request
+                chatColor: model.color
+                avatarPath: model.avatar_path
+                summaryState: model.summary_state
+            }
+
+            menu: ContextMenu {
+                MenuItem {
+                    objectName: "markReadItem"
+                    visible: model.unread_count > 0
+                    text: qsTr("Mark as read")
+                    onClicked: chats.mark_read(model.chat_id)
                 }
-                spacing: Theme.paddingSmall
-
-                Label {
-                    width: parent.width
-                    // Unencrypted chats get a letter mark; encrypted is the
-                    // unmarked normal case.
-                    text: model.is_encrypted ? model.name : "✉ " + model.name
-                    truncationMode: TruncationMode.Fade
+                MenuItem {
+                    objectName: "pinItem"
+                    text: model.is_pinned ? qsTr("Unpin") : qsTr("Pin")
+                    onClicked: chats.set_pinned(model.chat_id, !model.is_pinned)
                 }
-
-                Label {
-                    width: parent.width
-                    text: model.preview
-                    font.pixelSize: Theme.fontSizeExtraSmall
-                    color: Theme.secondaryColor
-                    truncationMode: TruncationMode.Fade
+                MenuItem {
+                    objectName: "muteItem"
+                    text: model.is_muted ? qsTr("Unmute") : qsTr("Mute")
+                    onClicked: chats.set_muted(model.chat_id, !model.is_muted)
+                }
+                MenuItem {
+                    objectName: "archiveItem"
+                    text: qsTr("Archive")
+                    onClicked: chats.archive(model.chat_id)
+                }
+                MenuItem {
+                    objectName: "deleteItem"
+                    text: qsTr("Delete")
+                    onClicked: delegateRoot.remorseAction(qsTr("Deleting"),
+                                                          function() {
+                                                              chats.delete_chat(model.chat_id)
+                                                          })
                 }
             }
 

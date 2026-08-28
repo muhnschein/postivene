@@ -36,9 +36,15 @@ unread divider, paging for long histories, and sending attachments.
 
 ## The chat list
 
-`unread_count` is populated and never rendered. No last-message time,
-avatars, pinned/archived/muted, search, context menu, or account switcher
-(the `account_list` model has no UI).
+Rows carry an unread badge, the last message's time (a clock today, a
+weekday this week, a date beyond that), who wrote it or how far ours got,
+an avatar, and marks for unencrypted, pinned and muted chats
+(`components/ChatListDelegate.qml`). The context menu marks read, pins,
+mutes, archives and deletes.
+
+What is still missing here: an account switcher (the `account_list` model
+has no UI), search, a way back to archived chats, and contact requests --
+they show as ordinary chats rather than asking to be accepted.
 
 ## Defects in what exists
 

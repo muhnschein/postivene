@@ -49,9 +49,47 @@ const PROBE_QML: &str = r"
             return '' + rows.count
         }
 
+        property string raised: ''
+        property int arrivals: 0
+
         function load(url) {
             loader.setSource(url, { model: rows, title: 'Ada' })
-            return loader.status === Loader.Ready ? 'ok' : 'load-failed'
+            if (loader.status !== Loader.Ready) { return 'load-failed' }
+            var view = loader.item
+            // As the page binds it.
+            view.messageCount = Qt.binding(function() { return rows.count })
+            view.replyRequested.connect(function(id, body, author) {
+                raised = 'reply:' + id + ':' + body + ':' + author
+            })
+            view.copyRequested.connect(function(body) { raised = 'copy:' + body })
+            view.deleteRequested.connect(function(id) { raised = 'delete:' + id })
+            view.resendRequested.connect(function(id) { raised = 'resend:' + id })
+            view.arrivedAtNewest.connect(function() { arrivals += 1 })
+            return 'ok'
+        }
+        function raisedSignal() { return raised }
+        function findIn(node, name) {
+            if (!node) { return null }
+            if (node.objectName === name) { return node }
+            var kids = node.children
+            for (var i = 0; kids && i < kids.length; i++) {
+                var hit = findIn(kids[i], name)
+                if (hit) { return hit }
+            }
+            if (node.contentItem && node.contentItem !== node) {
+                return findIn(node.contentItem, name)
+            }
+            return null
+        }
+        // The menu is a property of the row, not a visual child of it.
+        function pickMenu(name) {
+            var row = findIn(loader.item, 'messageRow')
+            if (!row) { return 'missing:messageRow' }
+            if (!row.menu) { return 'no-menu' }
+            var item = findIn(row.menu, name)
+            if (!item) { return 'missing:' + name }
+            item.clicked()
+            return 'ok'
         }
         function get(property) { return '' + loader.item[property] }
         function set(property, value) {
@@ -61,7 +99,12 @@ const PROBE_QML: &str = r"
         // Scrolling up into the history, the way a reader would: the view's
         // own call, so it re-anchors rather than being shoved by contentY.
         function toTop() { loader.item.positionViewAtBeginning(); return 'ok' }
+        // Silica raises these around a drag. A row is measured as it comes
+        // into view, so scrolling up grows contentHeight by itself.
+        function beginDrag() { loader.item.movementStarted(); return 'ok' }
+        function arrivedCount() { return '' + arrivals }
         function toBottom() { loader.item.positionViewAtEnd(); return 'ok' }
+        function jump() { loader.item.jumpToNewest(); return 'ok' }
         // Silica sends this when a drag or flick settles.
         function settle() { loader.item.movementEnded(); return 'ok' }
         // The view's own answer to 'is the end on screen'.
@@ -160,6 +203,49 @@ fn a_conversation_opens_at_the_newest_message_and_stays_where_it_is_left() {
 
     single_shot(Duration::from_secs(5), move || unsafe {
         record!("resumed", call!("ended"));
+
+        // The menu raises what the page then acts on.
+        record!(
+            "reply-picked",
+            call!("pickMenu", QString::from("replyItem"))
+        );
+        record!("reply", call!("raisedSignal"));
+        call!("pickMenu", QString::from("copyItem"));
+        record!("copy", call!("raisedSignal"));
+        call!("pickMenu", QString::from("deleteItem"));
+        record!("delete", call!("raisedSignal"));
+        call!("pickMenu", QString::from("resendItem"));
+        record!("resend", call!("raisedSignal"));
+
+        // Scrolled away again, so an arrival is counted rather than shown.
+        call!("toTop");
+        call!("settle");
+        call!("append", 2);
+    });
+
+    single_shot(Duration::from_secs(6), move || unsafe {
+        record!("missed", call!("get", QString::from("missedCount")));
+
+        call!("jump");
+    });
+
+    single_shot(Duration::from_secs(7), move || unsafe {
+        record!("jumped", call!("ended"));
+        record!("missed-cleared", call!("get", QString::from("missedCount")));
+        record!("arrived", call!("arrivedCount"));
+
+        // Following the newest message, as after opening a chat. The
+        // reader takes hold and drags up into the history.
+        call!("beginDrag");
+        record!("held-follows", call!("get", QString::from("following")));
+        call!("toTop");
+        // A row measured mid-drag, or a message arriving: either moves
+        // `contentHeight`, which is what hauled the reader back down.
+        call!("append", 1);
+    });
+
+    single_shot(Duration::from_secs(8), move || unsafe {
+        record!("held-stayed", call!("ended"));
         (*engine_ptr).quit();
     });
 
@@ -170,6 +256,8 @@ fn a_conversation_opens_at_the_newest_message_and_stays_where_it_is_left() {
 
 /// Opening lands on the newest message; an arrival moves the view only
 /// when the reader is already there.
+// One assertion per thing checked, in the order the steps ran.
+#[allow(clippy::too_many_lines)]
 fn assert_outcome(steps: &[(&str, String)]) {
     let value = |label: &str| {
         steps
@@ -216,5 +304,64 @@ fn assert_outcome(steps: &[(&str, String)]) {
         value("resumed"),
         "true",
         "the next message did not scroll in after following resumed. {context}"
+    );
+
+    assert_eq!(
+        value("reply-picked"),
+        "ok",
+        "the row has no context menu. {context}"
+    );
+    // The reply carries what the page needs to show what is being answered.
+    assert_eq!(
+        value("reply"),
+        "reply:0:message number 0, long enough to take a line of its own in the list:Ada",
+        "Reply did not name the message it is replying to. {context}"
+    );
+    assert!(
+        value("copy").starts_with("copy:message number 0"),
+        "Copy did not carry the message's text: {}. {context}",
+        value("copy")
+    );
+    assert_eq!(
+        value("delete"),
+        "delete:0",
+        "Delete did not name its message. {context}"
+    );
+    assert_eq!(
+        value("resend"),
+        "resend:0",
+        "Send again did not name its message. {context}"
+    );
+
+    assert_eq!(
+        value("missed"),
+        "2",
+        "messages arriving out of sight were not counted. {context}"
+    );
+    assert_eq!(
+        value("held-follows"),
+        "false",
+        "the view still follows while the reader has hold of it, which hauls \
+         them back down the moment they scroll up. {context}"
+    );
+    assert_eq!(
+        value("held-stayed"),
+        "false",
+        "the reader was dragged back to the newest message mid-drag. {context}"
+    );
+    assert!(
+        value("arrived").parse::<i32>().unwrap_or_default() >= 1,
+        "reaching the newest message was not announced, so nothing marks it \
+         read. {context}"
+    );
+    assert_eq!(
+        value("jumped"),
+        "true",
+        "jumping to the newest message did not move the view. {context}"
+    );
+    assert_eq!(
+        value("missed-cleared"),
+        "0",
+        "the count of missed messages survived jumping to them. {context}"
     );
 }

@@ -24,6 +24,8 @@ Page {
         account_id: page.accountId
         chat_id: page.chatId
         utc_offset: page.utcOffset
+        // What the reader can actually see decides what counts as read.
+        reading_history: !listView.stickToBottom
         onError: page.errorMessage = message
         onSent: textField.text = ""
     }
@@ -46,6 +48,17 @@ Page {
         onCore_error: page.errorMessage = message
     }
 
+    // What the reader picked Reply on, for the bar above the field. The id
+    // itself lives on the model, which is what the send reads.
+    property string replyBody: ""
+    property string replyAuthor: ""
+
+    function cancelReply() {
+        messages.quoted_message_id = 0
+        page.replyBody = ""
+        page.replyAuthor = ""
+    }
+
     ConversationList {
         id: listView
         objectName: "messageList"
@@ -56,21 +69,52 @@ Page {
             bottom: banner.top
         }
         model: messages.rows
+        // The model's own count, which changes when a row arrives rather
+        // than when the view gets round to showing it.
+        messageCount: messages.count
         title: page.chatName
         utcOffset: page.utcOffset
         showSender: messages.is_group
         placeholderText: qsTr("No messages yet")
+
+        // Reaching the newest message is what marks what is there read.
+        onArrivedAtNewest: messages.mark_seen_all()
+        onReplyRequested: {
+            messages.quoted_message_id = messageId
+            page.replyBody = body
+            page.replyAuthor = author
+        }
+        onCopyRequested: {
+            Clipboard.text = body
+            notice.show(qsTr("Copied to clipboard"))
+        }
+        onDeleteRequested: messages.delete_message(messageId)
+        onResendRequested: messages.resend_message(messageId)
+    }
+
+    // Only up when the reader has scrolled away from the newest message.
+    JumpButton {
+        objectName: "jumpButton"
+        visible: !listView.stickToBottom
+        count: listView.missedCount
+        anchors {
+            right: parent.right
+            rightMargin: Theme.horizontalPageMargin
+            bottom: banner.top
+            bottomMargin: Theme.paddingMedium
+        }
+        onClicked: listView.jumpToNewest()
     }
 
     // Between the list and the field rather than over the list: it is
     // translucent, and the messages behind it showed through.
-    ErrorBanner {
+    Banner {
         id: banner
         objectName: "errorBanner"
         anchors {
             left: parent.left
             right: parent.right
-            bottom: inputRow.top
+            bottom: notice.top
         }
         // A dead core outranks whatever failed before it, and a page opened
         // after it died never saw the transition -- so read the status
@@ -81,11 +125,43 @@ Page {
         onDismissed: page.errorMessage = ""
     }
 
+    // What the next send replies to, and a way out of replying.
+    ReplyBar {
+        id: replyBar
+        objectName: "replyBar"
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: inputRow.top
+        }
+        author: page.replyAuthor
+        body: page.replyBody
+        onCancelled: page.cancelReply()
+    }
+
+    // Says what just happened where the page has no state for it, such as
+    // a message going to the clipboard.
+    Banner {
+        id: notice
+        objectName: "notice"
+        tone: "info"
+        timeout: 4
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: replyBar.top
+        }
+        onDismissed: notice.text = ""
+    }
+
     Row {
         id: inputRow
         anchors {
             left: parent.left
             right: parent.right
+            // The field carries its own inset on the left; without the
+            // same on this side the send button sits nearer the edge.
+            rightMargin: Theme.horizontalPageMargin
             bottom: parent.bottom
         }
         spacing: Theme.paddingSmall
@@ -110,7 +186,10 @@ Page {
     function sendCurrentText() {
         if (textField.text.length > 0) {
             page.errorMessage = ""
+            // The model clears the quote itself; this is the bar's copy.
             messages.send(textField.text)
+            page.replyBody = ""
+            page.replyAuthor = ""
         }
     }
 }

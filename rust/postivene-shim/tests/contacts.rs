@@ -79,7 +79,7 @@ const PROBE_QML: &str = r"
 #[test]
 fn a_chat_can_be_started_four_ways() {
     let temp = std::env::temp_dir().join(format!("postivene-contacts-{}", std::process::id()));
-    let journal = temp.join("journal.jsonl");
+    let journal = common::fresh_journal(&temp);
     std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
 
     // SAFETY: single-threaded test binary; set before Qt starts and before

@@ -36,7 +36,7 @@ const PROBE_QML: &str = r"
 #[test]
 fn a_send_answered_mid_fetch_lands_once() {
     let temp = std::env::temp_dir().join(format!("postivene-sync-race-{}", std::process::id()));
-    let journal = temp.join("journal.jsonl");
+    let journal = common::fresh_journal(&temp);
     std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
 
     // SAFETY: single-threaded test binary; set before Qt starts and before

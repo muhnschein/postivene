@@ -63,8 +63,29 @@ pub struct ChatMessages {
     pub handle_event:
         qt_method!(fn(&mut self, context_id: u32, kind: QString, payload_json: QString)),
 
+    /// True while the reader is up in the history rather than at the
+    /// newest message. Only what they can see is marked read; a message
+    /// arriving further down is left unread, badge and all, until they
+    /// come back to it. False by default, because that is the state a
+    /// chat opens in and the flag is set after the chat id.
+    pub reading_history: qt_property!(bool),
+
+    /// The message the next send replies to, 0 for none. The page sets it
+    /// when the reader picks Reply and shows what is being replied to;
+    /// sending clears it.
+    pub quoted_message_id: qt_property!(u32; NOTIFY quote_changed),
+    /// Emitted when `quoted_message_id` changes.
+    pub quote_changed: qt_signal!(),
+
     /// Send a plain-text message to this chat.
     pub send: qt_method!(fn(&mut self, text: QString)),
+    /// Mark every unread message now loaded as read. Called when the
+    /// reader reaches the newest message.
+    pub mark_seen_all: qt_method!(fn(&mut self)),
+    /// Delete a message on this device.
+    pub delete_message: qt_method!(fn(&mut self, message_id: u32)),
+    /// Try a failed message again.
+    pub resend_message: qt_method!(fn(&mut self, message_id: u32)),
     /// A message of ours reached the core and is in `rows`.
     pub sent: qt_signal!(message_id: u32),
 }
@@ -104,6 +125,7 @@ impl ChatMessages {
         };
 
         let offset = self.utc_offset;
+        let reading_history = self.reading_history;
         let ptr: QPointer<Self> = QPointer::from(&*self);
         let done = queued_callback(
             move |result: Result<(bool, Vec<MessageListItem>), String>| {
@@ -128,12 +150,17 @@ impl ChatMessages {
                 let is_group = chat_is_group(&rpc, account_id, chat_id).await;
                 let ids = message_ids(&rpc, account_id, chat_id).await?;
                 let items = fetch_messages(&rpc, account_id, &ids, offset).await?;
-                // Opening a chat means the user has seen it; the chat list
-                // refreshes its unread counts on the resulting MsgsNoticed.
-                let _ = rpc
-                    .call::<_, ()>("marknoticed_chat", (account_id, chat_id))
-                    .await;
-                mark_seen(&rpc, account_id, &items).await;
+                // Opening a chat means the user has seen it; the chat
+                // list refreshes its unread counts on the resulting
+                // MsgsNoticed. Not while they are up in the history,
+                // though -- a reload there must not clear the badge for
+                // messages still out of sight.
+                if !reading_history {
+                    let _ = rpc
+                        .call::<_, ()>("marknoticed_chat", (account_id, chat_id))
+                        .await;
+                    mark_seen(&rpc, account_id, &items).await;
+                }
                 Ok::<_, String>((is_group, items))
             }
             .await;
@@ -180,6 +207,7 @@ impl ChatMessages {
     fn sync_rows(&mut self) {
         let (account_id, chat_id) = (self.account_id, self.chat_id);
         let offset = self.utc_offset;
+        let reading_history = self.reading_history;
         let Some((rpc, runtime)) = connection() else {
             return;
         };
@@ -239,8 +267,12 @@ impl ChatMessages {
                     .filter(|id| !known.contains(id))
                     .collect();
                 let fetched = fetch_messages(&rpc, account_id, &missing, offset).await?;
-                // The chat is open, so what just arrived has been read.
-                mark_seen(&rpc, account_id, &fetched).await;
+                // Only if the reader is at the bottom looking at it.
+                // Marking a message read that is still out of sight loses
+                // its unread badge in the chat list as well.
+                if !reading_history {
+                    mark_seen(&rpc, account_id, &fetched).await;
+                }
                 Ok::<_, String>((ids, fetched))
             }
             .await;
@@ -281,10 +313,61 @@ impl ChatMessages {
         });
     }
 
+    /// Mark every unread message now loaded as read.
+    pub fn mark_seen_all(&mut self) {
+        let account_id = self.account_id;
+        let items: Vec<MessageListItem> = self.rows.borrow().iter().cloned().collect();
+        let Some((rpc, runtime)) = connection() else {
+            return;
+        };
+        runtime.spawn(async move {
+            mark_seen(&rpc, account_id, &items).await;
+        });
+    }
+
+    /// Delete a message on this device.
+    pub fn delete_message(&mut self, message_id: u32) {
+        self.act("delete_messages", message_id);
+    }
+
+    /// Try a failed message again.
+    pub fn resend_message(&mut self, message_id: u32) {
+        self.act("resend_messages", message_id);
+    }
+
+    /// Call `method` with `(account, [message])`. The core announces what
+    /// it did, and the event brings the rows in line.
+    fn act(&mut self, method: &'static str, message_id: u32) {
+        let account_id = self.account_id;
+        if account_id == 0 || message_id == 0 {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            self.error(QString::from("not started"));
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<(), String>| {
+            if let (Some(this), Err(err)) = (ptr.as_pinned(), result) {
+                this.borrow().error(err.into());
+            }
+        });
+
+        runtime.spawn(async move {
+            let result = rpc
+                .call::<_, ()>(method, (account_id, vec![message_id]))
+                .await
+                .map_err(|err| err.to_string());
+            done(result);
+        });
+    }
+
     /// Send a plain-text message.
     pub fn send(&mut self, text: QString) {
         let (account_id, chat_id) = (self.account_id, self.chat_id);
         let offset = self.utc_offset;
+        let quoted = self.quoted_message_id;
         let Some((rpc, runtime)) = connection() else {
             self.error(QString::from("not started"));
             return;
@@ -315,6 +398,13 @@ impl ChatMessages {
             }
         });
 
+        // Cleared here rather than on the reply: the reader has sent it,
+        // and a second send should not quote the same message again.
+        if quoted != 0 {
+            self.quoted_message_id = 0;
+            self.quote_changed();
+        }
+
         let text = text.to_string();
         runtime.spawn(async move {
             // misc_send_msg params: account, chat, text, file, filename,
@@ -329,7 +419,7 @@ impl ChatMessages {
                         Option::<String>::None,
                         Option::<String>::None,
                         Option::<(f64, f64)>::None,
-                        Option::<u32>::None,
+                        (quoted != 0).then_some(quoted),
                     ),
                 )
                 .await

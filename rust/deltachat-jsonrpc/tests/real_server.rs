@@ -451,6 +451,18 @@ async fn offline_round_trip_against_real_core() {
         .await
         .expect("delete_chat");
 
+    // What a message's context menu does. Both take a list, not a single
+    // id, and a reply is `misc_send_msg` with the quoted message last --
+    // pinned by the quote assertion above.
+    client
+        .call::<_, ()>("resend_messages", (sender_id, vec![first]))
+        .await
+        .expect("resend_messages");
+    client
+        .call::<_, ()>("delete_messages", (sender_id, vec![second]))
+        .await
+        .expect("delete_messages");
+
     // Read receipts, as ChatMessages sends them when a chat is opened.
     client
         .call::<_, ()>("markseen_msgs", (sender_id, vec![first]))

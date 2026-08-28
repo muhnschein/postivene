@@ -91,7 +91,7 @@ Page {
                 placeholderText: label
             }
 
-            ErrorBanner {
+            Banner {
                 objectName: "errorBanner"
                 width: parent.width
                 text: page.errorMessage

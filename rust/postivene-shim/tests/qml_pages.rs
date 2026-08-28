@@ -231,7 +231,7 @@ fn value_of<'a>(steps: &'a [(String, String)], label: &str) -> &'a str {
 /// Temp directories and environment, returning the journal path.
 fn prepare_environment() -> PathBuf {
     let temp = std::env::temp_dir().join(format!("postivene-qml-pages-{}", std::process::id()));
-    let journal = temp.join("journal.jsonl");
+    let journal = common::fresh_journal(&temp);
     std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
     // SAFETY: single-threaded, and set before Qt starts and before the
     // server inherits them.

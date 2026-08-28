@@ -86,7 +86,7 @@ Page {
                 text: qsTr("Messages to an address the app has no key for are sent as plain email. Scan or paste an invite link to chat encrypted.")
             }
 
-            ErrorBanner {
+            Banner {
                 objectName: "errorBanner"
                 width: parent.width
                 text: page.errorMessage

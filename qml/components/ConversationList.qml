@@ -20,6 +20,27 @@ SilicaListView {
     property string placeholderText
 
     property bool stickToBottom: true
+    // How many rows the model holds. Bound by the page rather than read off
+    // the view: `count` there only changes when the view has laid out, and
+    // an arrival has to be noticed whether or not it is on screen yet.
+    property int messageCount: 0
+    // How many have arrived since the reader scrolled away.
+    property int missedCount: 0
+    property int lastCount: 0
+
+    // Raised rather than acted on: the component knows nothing about the
+    // core, which is what makes it loadable on its own.
+    signal replyRequested(int messageId, string body, string author)
+    signal copyRequested(string body)
+    signal deleteRequested(int messageId)
+    signal resendRequested(int messageId)
+
+    /// Back to the newest message, and following again.
+    function jumpToNewest() {
+        root.stickToBottom = true
+        root.missedCount = 0
+        toEnd.restart()
+    }
 
     // A list draws its delegates outside its own box unless told not to,
     // and what sits below this one is translucent.
@@ -33,17 +54,47 @@ SilicaListView {
         interval: 0
         // Checked again here: the reader can scroll away between the
         // arrival that started this and the pass it fires on.
-        onTriggered: if (root.stickToBottom) root.positionViewAtEnd()
+        onTriggered: if (root.following) root.positionViewAtEnd()
     }
+
+    // True between the start and end of a drag or flick. Tracked rather
+    // than read off `moving`, which no test can set.
+    property bool held: false
+
+    // Not while the reader has hold of it. Rows are measured as they come
+    // into view, so a drag upwards grows `contentHeight` on its own, and
+    // following that hauls them straight back down again.
+    readonly property bool following: root.stickToBottom && !root.held
+
+    onMovementStarted: root.held = true
 
     // Both of these, because a row arriving and that row being measured are
     // separate steps: the first moves `count`, the second `contentHeight`.
-    onCountChanged: if (root.stickToBottom) toEnd.restart()
-    onContentHeightChanged: if (root.stickToBottom) toEnd.restart()
+    onMessageCountChanged: {
+        if (root.following) {
+            toEnd.restart()
+        } else if (root.messageCount > root.lastCount) {
+            // Only arrivals count: deleting a message also moves this.
+            root.missedCount += root.messageCount - root.lastCount
+        }
+        root.lastCount = root.messageCount
+    }
+    onContentHeightChanged: if (root.following) toEnd.restart()
     // Where the reader left off, once they stop moving. `atYEnd` is the
     // view's own answer; the arithmetic version has to know about `originY`
     // and gets it wrong.
-    onMovementEnded: root.stickToBottom = root.atYEnd
+    onMovementEnded: {
+        root.held = false
+        root.stickToBottom = root.atYEnd
+        if (root.atYEnd) {
+            root.missedCount = 0
+        }
+    }
+
+    // Arriving at the newest message, by scrolling or by the button, is
+    // what counts as having read what is there.
+    onStickToBottomChanged: if (root.stickToBottom) root.arrivedAtNewest()
+    signal arrivedAtNewest()
 
     header: PageHeader {
         title: root.title
@@ -65,7 +116,36 @@ SilicaListView {
     }
 
     delegate: ListItem {
+        id: messageRow
         objectName: "messageRow"
+
+        menu: ContextMenu {
+            MenuItem {
+                objectName: "replyItem"
+                text: qsTr("Reply")
+                onClicked: root.replyRequested(model.message_id, model.text,
+                                               model.sender_name)
+            }
+            MenuItem {
+                objectName: "copyItem"
+                text: qsTr("Copy")
+                onClicked: root.copyRequested(model.text)
+            }
+            MenuItem {
+                objectName: "resendItem"
+                // DC_STATE_OUT_FAILED: the only state worth retrying.
+                visible: model.state === 24
+                text: qsTr("Send again")
+                onClicked: root.resendRequested(model.message_id)
+            }
+            MenuItem {
+                objectName: "deleteItem"
+                text: qsTr("Delete")
+                onClicked: messageRow.remorseAction(qsTr("Deleting"), function() {
+                    root.deleteRequested(model.message_id)
+                })
+            }
+        }
         // Sized by its content, not fixed: a device message runs to a
         // dozen wrapped lines, and a fixed row height makes them overlap
         // each other and the header.

@@ -22,6 +22,8 @@ use std::time::Duration;
 
 use postivene_shim::DeltaChatCore;
 use qmetaobject::*;
+
+mod common;
 use serde_json::Value;
 
 /// Records what the shim signalled, the half of the contract the journal
@@ -88,7 +90,7 @@ fn find<'a>(calls: &'a [Call], method: &str) -> Option<&'a Call> {
 #[test]
 fn onboarding_speaks_the_current_transport_api() {
     let temp = std::env::temp_dir().join(format!("postivene-onboarding-{}", std::process::id()));
-    let journal = temp.join("journal.jsonl");
+    let journal = common::fresh_journal(&temp);
     let accounts = temp.join("accounts");
     std::fs::create_dir_all(&accounts).expect("create temp dirs");
 

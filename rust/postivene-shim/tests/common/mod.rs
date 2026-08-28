@@ -41,6 +41,15 @@ pub fn methods(journal: &Path) -> Vec<String> {
     calls(journal).into_iter().map(|(name, _)| name).collect()
 }
 
+/// A journal path with nothing in it yet. The temp directory is keyed by
+/// process id, and a recycled one otherwise leaves the last run's calls in
+/// place -- which reads as this run having made them.
+pub fn fresh_journal(temp: &Path) -> PathBuf {
+    let journal = temp.join("journal.jsonl");
+    let _ = std::fs::remove_file(&journal);
+    journal
+}
+
 /// The stub Silica module tree, for `QmlEngine::add_import_path`.
 pub fn stubs_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/silica-stubs")

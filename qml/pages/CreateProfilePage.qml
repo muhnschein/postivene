@@ -127,7 +127,7 @@ Page {
                 text: qsTr("Your address will be created on %1.").arg(page.providerLabel)
             }
 
-            ErrorBanner {
+            Banner {
                 objectName: "errorBanner"
                 width: parent.width
                 text: page.errorMessage

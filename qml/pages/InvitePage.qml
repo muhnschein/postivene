@@ -94,7 +94,7 @@ Page {
                 onClicked: page.follow()
             }
 
-            ErrorBanner {
+            Banner {
                 objectName: "errorBanner"
                 width: parent.width
                 text: page.errorMessage

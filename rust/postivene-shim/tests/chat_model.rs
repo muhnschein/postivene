@@ -19,7 +19,7 @@ use std::time::Duration;
 
 use postivene_shim::DeltaChatCore;
 use qmetaobject::*;
-use serde_json::Value;
+use serde_json::{json, Value};
 
 mod common;
 
@@ -144,6 +144,19 @@ fn each_chat_has_its_own_model_and_loads_in_one_batch() {
     assert_eq!(
         counts_after_send, "3/1",
         "a sent message did not land exactly once in its own chat"
+    );
+
+    // Opening a chat marks its unread messages read, which is what sends
+    // the read receipt. Only the unread ones, and only once.
+    let seen: Vec<Value> = calls
+        .iter()
+        .filter(|(name, _)| name == "markseen_msgs")
+        .map(|(_, params)| params.pointer("/1").cloned().unwrap_or(Value::Null))
+        .collect();
+    assert_eq!(
+        seen,
+        vec![json!([2])],
+        "the unread message was not marked seen exactly once: {names:?}"
     );
 
     // The event path fetched only what it did not have -- which, after a

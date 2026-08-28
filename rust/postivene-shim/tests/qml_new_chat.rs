@@ -19,7 +19,7 @@
     clippy::needless_pass_by_value
 )]
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::time::Duration;
 
 use postivene_shim::DeltaChatCore;
@@ -114,20 +114,6 @@ const PROBE_QML: &str = r"
     }
 ";
 
-fn stubs_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/silica-stubs")
-}
-
-fn page_url(name: &str) -> String {
-    format!(
-        "file://{}",
-        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../qml/pages")
-            .join(name)
-            .display()
-    )
-}
-
 #[test]
 fn the_new_chat_pages_create_chats_and_open_them() {
     let temp = std::env::temp_dir().join(format!("postivene-new-chat-{}", std::process::id()));
@@ -147,7 +133,9 @@ fn the_new_chat_pages_create_chats_and_open_them() {
     let core_box = QObjectBox::new(DeltaChatCore::default());
     let stack_box = QObjectBox::new(PageStackProbe::default());
     let mut engine = QmlEngine::new();
-    engine.add_import_path(QString::from(stubs_dir().to_string_lossy().into_owned()));
+    engine.add_import_path(QString::from(
+        common::stubs_dir().to_string_lossy().into_owned(),
+    ));
     engine.set_object_property("core".into(), core_box.pinned());
     engine.set_object_property("pageStack".into(), stack_box.pinned());
     engine.load_data(QByteArray::from(PROBE_QML));
@@ -174,7 +162,11 @@ fn the_new_chat_pages_create_chats_and_open_them() {
     }
 
     single_shot(Duration::from_secs(1), move || unsafe {
-        call!("load", QString::from(page_url("NewChatPage.qml")), 1);
+        call!(
+            "load",
+            QString::from(common::page_url("NewChatPage.qml")),
+            1
+        );
     });
 
     single_shot(Duration::from_secs(3), move || unsafe {
@@ -184,7 +176,11 @@ fn the_new_chat_pages_create_chats_and_open_them() {
     });
 
     single_shot(Duration::from_secs(5), move || unsafe {
-        call!("load", QString::from(page_url("NewContactPage.qml")), 1);
+        call!(
+            "load",
+            QString::from(common::page_url("NewContactPage.qml")),
+            1
+        );
     });
 
     single_shot(Duration::from_secs(6), move || unsafe {
@@ -201,7 +197,7 @@ fn the_new_chat_pages_create_chats_and_open_them() {
     });
 
     single_shot(Duration::from_secs(8), move || unsafe {
-        call!("load", QString::from(page_url("InvitePage.qml")), 1);
+        call!("load", QString::from(common::page_url("InvitePage.qml")), 1);
     });
 
     single_shot(Duration::from_secs(10), move || unsafe {

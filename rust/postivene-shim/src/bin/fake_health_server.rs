@@ -22,6 +22,12 @@ async fn main() {
         let Some(id) = request.get("id").cloned() else {
             continue;
         };
+        // The real core's event long poll blocks until there is something
+        // to say. Answering it with anything else looks like the server
+        // died, which is what the client would then report.
+        if request.get("method").and_then(Value::as_str) == Some("get_next_event_batch") {
+            continue;
+        }
         let response = json!({
             "jsonrpc": "2.0",
             "id": id,

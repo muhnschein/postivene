@@ -12,9 +12,15 @@ QtObject {
     property int itemSizeMedium: 90
     property int fontSizeExtraSmall: 10
     property int fontSizeSmall: 12
+    property int fontSizeMedium: 18
     property int fontSizeLarge: 24
     property color primaryColor: "#ffffff"
     property color secondaryColor: "#a0a0a0"
     property color highlightColor: "#80c0ff"
+    property color highlightBackgroundColor: "#2060a0"
     property color errorColor: "#ff4040"
+
+    function rgba(color, opacity) {
+        return Qt.rgba(color.r, color.g, color.b, opacity)
+    }
 }

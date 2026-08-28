@@ -3,7 +3,8 @@
 What stands between Postivene and a usable Delta Chat client. Companion to
 `MILESTONES.md`, which tracks what is built; this tracks what is missing.
 
-Written against `5308322`, updated as items close.
+Written against `5308322`, updated as items close. What only a phone can
+answer is in `DEVICE-CHECKS.md`.
 
 ## Starting a conversation  *(done)*
 
@@ -22,10 +23,16 @@ management after creation, contact profile pages, and blocking.
 
 ## The conversation view
 
-One `Label` per message (`ConversationPage.qml`). No sender name, so group
-chats are unreadable. No timestamps, though the model carries them. No day
-markers, avatars, bubbles, images, files, voice, quotes, reactions, message
-actions, drafts, unread divider, or paging.
+Messages are bubbles (`components/MessageDelegate.qml`, loaded and measured
+on its own by `tests/qml_conversation.rs`): sender name and colour in
+groups, time and delivery mark, quoted message, image previews, named
+attachments that open in the system's handler, and core notices set apart.
+Day separators come from a section over the local day, which the model
+counts from an offset QML hands it.
+
+What is still missing here: avatars, voice messages and audio playback,
+reactions, message actions (reply, forward, delete, copy), drafts, an
+unread divider, paging for long histories, and sending attachments.
 
 ## The chat list
 
@@ -41,12 +48,15 @@ apply events rather than rebuilding.
 
 What is left here:
 
-- `io_started` and `qr_error` have no QML listeners. A failure vanishes
-  silently.
-- Nothing notices when `deltachat-rpc-server` dies: `status` stays
-  `"ready"` and nothing restarts it.
-- Only `marknoticed_chat`, never `markseen_msgs`: read receipts never go
-  out and messages are never marked seen on IMAP or other devices.
+Failures reach the user: every page shows them in a shared `ErrorBanner`,
+the core's own `Error` events arrive as a typed `core_error` signal, and the
+server dying flips `status` to `"stopped"` rather than leaving it claiming
+`"ready"`. Opening a chat calls `markseen_msgs`, so read receipts go out.
+
+What is left here:
+
+- Nothing restarts `deltachat-rpc-server` after it dies; the app says so
+  and asks for a restart.
 
 ## Platform integration
 
@@ -62,10 +72,8 @@ form of every invite payload already works, so the camera is polish.
 
 ## Order of work
 
-1. Error surfacing in the UI, and `markseen_msgs` -- read receipts never go
-   out today.
-2. Conversation UX: sender names, timestamps, day markers, attachments,
+1. Conversation UX: sender names, timestamps, day markers, attachments,
    quotes.
-3. Chat list: unread badges, times, context actions, account switcher.
-4. Platform: notifications, background and suspend, cover actions,
+2. Chat list: unread badges, times, context actions, account switcher.
+3. Platform: notifications, background and suspend, cover actions,
    sailjail, translations, and camera QR scanning.

@@ -43,7 +43,8 @@ pub const DEFAULT_PROVIDER_QR: &str = "dcaccount:nine.testrun.org";
 pub struct DeltaChatCore {
     base: qt_base_class!(trait QObject),
 
-    /// One of: "idle", "starting", "ready", or `"error: ..."`.
+    /// One of: "idle", "starting", "ready", "stopped" (the server died),
+    /// or `"error: ..."`.
     pub status: qt_property!(QString; NOTIFY status_changed),
     /// Emitted whenever [`DeltaChatCore::status`] changes.
     pub status_changed: qt_signal!(),
@@ -138,6 +139,11 @@ pub struct DeltaChatCore {
     pub qr_checked: qt_signal!(account_id: u32, kind: QString, payload_json: QString),
     /// Classifying a QR/invite payload failed.
     pub qr_error: qt_signal!(message: QString),
+
+    /// The core reported a failure of its own -- an `Error` event, which
+    /// carries a message meant for the user. Typed so a page need not
+    /// parse the event payload.
+    pub core_error: qt_signal!(message: QString),
 
     rpc: Option<Arc<RpcClient>>,
     runtime: Option<CoreRuntime>,
@@ -251,6 +257,21 @@ impl DeltaChatCore {
         let (Some(rpc), Some(runtime)) = (rpc, runtime) else {
             return;
         };
+        // The stream ends when the server dies. Nothing restarts it yet,
+        // but `status` has to stop claiming the core is there.
+        let stopped_ptr = ptr.clone();
+        let stopped = queued_callback(move |()| {
+            let Some(this) = stopped_ptr.as_pinned() else {
+                return;
+            };
+            set_connection(None);
+            {
+                let mut this_mut = this.borrow_mut();
+                this_mut.rpc = None;
+                this_mut.status = QString::from("stopped");
+            }
+            this.borrow().status_changed();
+        });
         let emit = queued_callback(move |event: CoreEvent| {
             if let Some(this) = ptr.as_pinned() {
                 let kind = event
@@ -262,6 +283,14 @@ impl DeltaChatCore {
                 let payload = serde_json::to_string(&event.event).unwrap_or_default();
                 // A typed signal too, so a progress bar need not parse
                 // JSON. Both fire for these events.
+                if kind == "Error" {
+                    let text = event
+                        .event
+                        .get("msg")
+                        .and_then(serde_json::Value::as_str)
+                        .unwrap_or("the core reported an error");
+                    this.borrow().core_error(text.into());
+                }
                 if kind == "ConfigureProgress" {
                     if let Some(permille) = event
                         .event
@@ -281,6 +310,7 @@ impl DeltaChatCore {
             while let Some(event) = events.recv().await {
                 emit(event);
             }
+            stopped(());
         });
     }
 

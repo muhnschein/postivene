@@ -41,16 +41,23 @@ fn methods_properties_and_signals_are_exposed_verbatim_snake_case() {
                 target: core
                 onSystem_info_changed: sawSystemInfoChanged = true
             }
+            // Retried rather than fired once: the server is a process, and
+            // under a loaded `make check` it is not always up by the first
+            // tick.
             Timer {
-                interval: 300; running: true; repeat: false
-                onTriggered: core.check_health()
+                id: poll
+                interval: 300; running: true; repeat: true
+                onTriggered: {
+                    if (core.system_info.length > 0) { poll.running = false }
+                    else { core.check_health() }
+                }
             }
         }
     ";
     engine.load_data(QByteArray::from(qml));
 
     let engine_ptr = &engine as *const QmlEngine;
-    single_shot(Duration::from_secs(2), move || {
+    single_shot(Duration::from_secs(8), move || {
         // SAFETY: see tests/smoke.rs -- same lifetime argument.
         unsafe {
             (*engine_ptr).quit();

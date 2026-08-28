@@ -1,5 +1,6 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
+import "../components"
 import Postivene 1.0
 
 /*
@@ -85,14 +86,11 @@ Page {
                 text: qsTr("Messages to an address the app has no key for are sent as plain email. Scan or paste an invite link to chat encrypted.")
             }
 
-            Label {
-                objectName: "errorLabel"
-                x: Theme.horizontalPageMargin
-                width: parent.width - 2 * Theme.horizontalPageMargin
-                wrapMode: Text.Wrap
-                visible: page.errorMessage.length > 0
-                color: Theme.errorColor
+            ErrorBanner {
+                objectName: "errorBanner"
+                width: parent.width
                 text: page.errorMessage
+                onDismissed: page.errorMessage = ""
             }
 
             Button {

@@ -129,6 +129,49 @@ fn journal(method: &str, params: &Value) {
     }
 }
 
+/// One message, shaped like the real core's. Seeded message 1 quotes,
+/// 2 is unread, and 10 carries an image, so one fetch covers the cases the
+/// conversation view has to render.
+fn message_object(msg: u64) -> Value {
+    // 2023-11-14T22:13:20Z and a day later, so a day separator has
+    // something to separate.
+    let timestamp = if msg == 1 {
+        1_700_000_000
+    } else {
+        1_700_090_000
+    };
+    let mut message = json!({
+        "kind": "message",
+        "text": format!("message {msg}"),
+        "fromId": 10,
+        "timestamp": timestamp,
+        "showPadlock": true,
+        // One seeded message is unread, so a test can watch the read
+        // receipt go out.
+        "state": if msg == 2 { 10 } else { 16 },
+        "isInfo": false,
+        "viewType": "Text",
+        "sender": {"id": 10, "displayName": "Ada Lovelace", "color": "#00875a"},
+        "overrideSenderName": null,
+        "quote": null,
+        "file": null,
+        "fileName": null,
+        "dimensionsWidth": 0,
+        "dimensionsHeight": 0,
+    });
+    if msg == 1 {
+        message["quote"] = json!({"text": "earlier", "authorDisplayName": "Grace Hopper"});
+    }
+    if msg == 10 {
+        message["viewType"] = json!("Image");
+        message["file"] = json!("/tmp/postivene-fake/photo.jpg");
+        message["fileName"] = json!("photo.jpg");
+        message["dimensionsWidth"] = json!(640);
+        message["dimensionsHeight"] = json!(480);
+    }
+    message
+}
+
 /// True for the inputs that stand in for "the server cannot be reached".
 fn should_fail(value: &str) -> bool {
     value.contains("fail")
@@ -150,6 +193,16 @@ fn delay(var: &str) -> std::time::Duration {
 async fn main() {
     let state = Arc::new(Mutex::new(State::default()));
     let stdout = Arc::new(Mutex::new(tokio::io::stdout()));
+
+    // Stands in for the server dying under the client.
+    if let Ok(after) = std::env::var("POSTIVENE_FAKE_EXIT_AFTER_MS") {
+        if let Ok(millis) = after.parse() {
+            tokio::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_millis(millis)).await;
+                std::process::exit(0);
+            });
+        }
+    }
     let mut lines = BufReader::new(tokio::io::stdin()).lines();
 
     while let Ok(Some(line)) = lines.next_line().await {
@@ -202,9 +255,11 @@ async fn main() {
                     });
                     ok(&id, &json!(next))
                 }
-                "set_config" | "start_io" | "stop_ongoing_process" | "marknoticed_chat" => {
-                    ok(&id, &Value::Null)
-                }
+                "set_config"
+                | "start_io"
+                | "stop_ongoing_process"
+                | "marknoticed_chat"
+                | "markseen_msgs" => ok(&id, &Value::Null),
                 "add_transport_from_qr" => {
                     let qr = positional(1).as_str().unwrap_or_default().to_string();
                     if should_fail(&qr) {
@@ -328,6 +383,18 @@ async fn main() {
                     &id,
                     &json!("https://i.delta.chat/#ABCDEF&a=me%40example.org&n=Me"),
                 ),
+                "get_basic_chat_info" => {
+                    let chat = positional(1).as_u64().unwrap_or_default();
+                    // Chat 2 is the group, so a test has both kinds.
+                    ok(
+                        &id,
+                        &json!({
+                            "id": chat,
+                            "chatType": if chat == 2 { "Group" } else { "Single" },
+                            "name": format!("chat {chat}"),
+                        }),
+                    )
+                }
                 "get_chatlist_entries" => {
                     let mut state = state.lock().await;
                     state.seed_chats();
@@ -379,17 +446,7 @@ async fn main() {
                         .unwrap_or_default();
                     let mut loaded = serde_json::Map::new();
                     for msg in ids {
-                        loaded.insert(
-                            msg.to_string(),
-                            json!({
-                                "kind": "message",
-                                "text": format!("message {msg}"),
-                                "fromId": 10,
-                                "timestamp": 0,
-                                "showPadlock": true,
-                                "state": 16,
-                            }),
-                        );
+                        loaded.insert(msg.to_string(), message_object(msg));
                     }
                     ok(&id, &Value::Object(loaded))
                 }
@@ -400,20 +457,30 @@ async fn main() {
                         .and_then(|value| u32::try_from(value).ok())
                         .unwrap_or_default();
                     let text = positional(2).as_str().unwrap_or_default().to_string();
-                    let msg = state.lock().await.add_message(account, chat);
-                    // The event is queued above, so a delay here puts it
-                    // ahead of this call's own reply -- the ordering the
-                    // real core can produce, and the one that duplicated a
-                    // sent row.
-                    tokio::time::sleep(delay("POSTIVENE_FAKE_SEND_DELAY_MS")).await;
-                    ok(
-                        &id,
-                        &json!([
-                            msg,
-                            {"text": text, "fromId": 1, "timestamp": 0,
-                             "showPadlock": true, "state": 20}
-                        ]),
-                    )
+                    if should_fail(&text) {
+                        // The real core reports a failed send as an Error
+                        // event, not only as a failed call.
+                        state.lock().await.events.push_back(json!({
+                            "contextId": account,
+                            "event": {"kind": "Error", "msg": "could not send"},
+                        }));
+                        err(&id, "could not send")
+                    } else {
+                        let msg = state.lock().await.add_message(account, chat);
+                        // The event is queued above, so a delay here puts it
+                        // ahead of this call's own reply -- the ordering the
+                        // real core can produce, and the one that duplicated a
+                        // sent row.
+                        tokio::time::sleep(delay("POSTIVENE_FAKE_SEND_DELAY_MS")).await;
+                        ok(
+                            &id,
+                            &json!([
+                                msg,
+                                {"text": text, "fromId": 1, "timestamp": 0,
+                                 "showPadlock": true, "state": 20}
+                            ]),
+                        )
+                    }
                 }
                 "get_next_event_batch" => {
                     // Blocks when empty, like the real long poll.

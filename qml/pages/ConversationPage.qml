@@ -1,5 +1,6 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
+import "../components"
 import Postivene 1.0
 
 /*
@@ -13,16 +14,23 @@ Page {
     property int chatId
     property string chatName
 
+    // Seconds east of UTC: the model groups messages by local day and has
+    // no timezone of its own.
+    property int utcOffset: -(new Date()).getTimezoneOffset() * 60
+
     ChatMessages {
         id: messages
         objectName: "messages"
         account_id: page.accountId
         chat_id: page.chatId
+        utc_offset: page.utcOffset
         onError: page.errorMessage = message
         onSent: textField.text = ""
     }
 
     property string errorMessage: ""
+    readonly property string coreStoppedMessage:
+        qsTr("Lost the connection to the Delta Chat core. Restart Postivene.")
 
     // Qt 5.6 handler syntax; see WelcomePage.qml.
     Connections {
@@ -35,77 +43,42 @@ Page {
                 messages.reload()
             }
         }
+        onCore_error: page.errorMessage = message
     }
 
-    SilicaListView {
+    ConversationList {
         id: listView
+        objectName: "messageList"
         anchors {
             top: parent.top
             left: parent.left
             right: parent.right
-            bottom: inputRow.top
+            bottom: banner.top
         }
         model: messages.rows
-
-        header: PageHeader {
-            title: page.chatName
-        }
-
-        delegate: ListItem {
-            objectName: "messageRow"
-            // Sized by its text, not fixed: a device message runs to a dozen
-            // wrapped lines, and a fixed row height makes them overlap each
-            // other and the header.
-            contentHeight: Math.max(Theme.itemSizeSmall,
-                                    messageLabel.implicitHeight + 2 * Theme.paddingMedium)
-
-            Label {
-                id: messageLabel
-                objectName: "messageLabel"
-                anchors {
-                    left: parent.left
-                    right: parent.right
-                    verticalCenter: parent.verticalCenter
-                    leftMargin: Theme.horizontalPageMargin
-                    rightMargin: Theme.horizontalPageMargin
-                }
-                // A mail icon marks messages that were not encrypted and
-                // signed. Outgoing messages get a DC_STATE_* suffix.
-                text: (model.show_padlock ? "" : "✉ ") + model.text
-                      + (model.is_outgoing ? " " + stateMark(model.state) : "")
-                wrapMode: Text.Wrap
-                horizontalAlignment: model.is_outgoing ? Text.AlignRight : Text.AlignLeft
-                color: model.is_outgoing ? Theme.highlightColor : Theme.primaryColor
-
-                function stateMark(state) {
-                    if (state === 28) return "✓✓"
-                    if (state === 26) return "✓"
-                    if (state === 24) return "✗"
-                    if (state === 20) return "…"
-                    return ""
-                }
-            }
-        }
-
-        ViewPlaceholder {
-            enabled: listView.count === 0
-            text: qsTr("No messages yet")
-        }
+        title: page.chatName
+        utcOffset: page.utcOffset
+        showSender: messages.is_group
+        placeholderText: qsTr("No messages yet")
     }
 
-    Label {
-        objectName: "errorLabel"
+    // Between the list and the field rather than over the list: it is
+    // translucent, and the messages behind it showed through.
+    ErrorBanner {
+        id: banner
+        objectName: "errorBanner"
         anchors {
             left: parent.left
             right: parent.right
             bottom: inputRow.top
-            leftMargin: Theme.horizontalPageMargin
-            rightMargin: Theme.horizontalPageMargin
         }
-        wrapMode: Text.Wrap
-        visible: page.errorMessage.length > 0
-        color: Theme.errorColor
-        text: page.errorMessage
+        // A dead core outranks whatever failed before it, and a page opened
+        // after it died never saw the transition -- so read the status
+        // rather than waiting for it to change.
+        text: core.status === "stopped" ? page.coreStoppedMessage : page.errorMessage
+        // That one does not fix itself, so it stays put.
+        timeout: core.status === "stopped" ? 0 : 8
+        onDismissed: page.errorMessage = ""
     }
 
     Row {

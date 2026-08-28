@@ -47,9 +47,33 @@ an avatar, and marks for unencrypted, pinned and muted chats
 (`components/ChatListDelegate.qml`). The context menu marks read, pins,
 mutes, archives and deletes.
 
-What is still missing here: an account switcher (the `account_list` model
-has no UI), search, a way back to archived chats, and contact requests --
-they show as ordinary chats rather than asking to be accepted.
+What is still missing here:
+
+- **A real avatar renders square.** The disc behind it is round and the
+  generated initial sits on it correctly, but an `Image` does not take its
+  parent's corner radius, so a chat with a picture reads as a rectangle
+  among circles. Rounding it wants `OpacityMask` from QtGraphicalEffects,
+  or a shader -- `clip` only cuts to the bounding box.
+- An account switcher (the `account_list` model has no UI), search, a way
+  back to archived chats, and contact requests -- they show as ordinary
+  chats rather than asking to be accepted.
+
+## Starting a conversation: the pages behind "New chat"
+
+`NewChatPage` and `NewGroupPage` predate the chat list's rebuild and look
+it: contacts are a name and an address on a fixed-height row, with the
+page's actions as buttons stacked in the header.
+
+What is still missing here:
+
+- Both pages should carry the chat list's row: a round avatar in the
+  contact's own colour, and its spacing.
+- Their actions belong in a pulley menu, as on the chat list. No context
+  menu on the rows -- picking a contact is the only thing to do with one.
+- "New Contact" should open the invite page rather than the
+  address-and-name form. Adding an address alone produces a chat that
+  cannot be encrypted; an invite is how a contact is actually added. The
+  entry keeps the name, since that is what the reader is trying to do.
 
 ## Defects in what exists
 
@@ -85,6 +109,8 @@ form of every invite payload already works, so the camera is polish.
    sailjail, translations, and camera QR scanning. Messages arrive only
    while the app is open and awake, which is what stops this being usable
    as one's actual client.
-2. Accounts: the switcher, and the rest of the chat list -- search,
+2. The pages behind "New chat", brought up to the chat list's own look,
+   and the round avatar everywhere.
+3. Accounts: the switcher, and the rest of the chat list -- search,
    archived chats, contact requests.
-3. Forwarding, which needs a chat picker the app does not have yet.
+4. Forwarding, which needs a chat picker the app does not have yet.

@@ -7,6 +7,18 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// The lines of the element that declares `marker`, up to the blank line
+/// that follows it. A whole-file `contains` cannot say which element a
+/// string came from, and once two of them carry it the check stops being
+/// able to fail.
+fn block_of(text: &str, marker: &str) -> String {
+    text.lines()
+        .skip_while(|line| !line.contains(marker))
+        .take_while(|line| !line.trim().is_empty())
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 fn qml_files() -> Vec<PathBuf> {
     fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
         let Ok(entries) = fs::read_dir(dir) else {
@@ -135,8 +147,12 @@ fn list_pages_clip_and_leave_room_for_what_sits_below_them() {
             list_text.contains("clip: true"),
             "{list} does not clip, so its rows draw over what is below them"
         );
+        // Scoped to the list's own block: the jump button anchors to the
+        // same thing, so searching the whole file finds a match whatever
+        // the list does.
+        let list_block = block_of(&text, "id: listView");
         assert!(
-            text.contains("bottom: banner.top"),
+            list_block.contains("bottom: banner.top"),
             "{page}'s list runs under the banner instead of stopping at it"
         );
         // The stopped state is a state: a page opened after the core died
@@ -167,9 +183,11 @@ fn the_conversation_page_uses_the_pieces_that_are_tested() {
         "copying a message does not say that it happened"
     );
     // The field insets itself on the left; without the same on the right
-    // the send button sits nearer the edge than the field does.
+    // the send button sits nearer the edge than the field does. Scoped to
+    // the row: the jump button carries the same inset, so a whole-file
+    // search cannot fail.
     assert!(
-        text.contains("rightMargin: Theme.horizontalPageMargin"),
+        block_of(&text, "id: inputRow").contains("rightMargin: Theme.horizontalPageMargin"),
         "the send button is flush against the edge of the screen"
     );
 }

@@ -195,10 +195,14 @@ impl ContactList {
             .collect();
         runtime.spawn(async move {
             let result = async {
-                // `protect` true: an encrypted group of key-contacts, which
-                // is what the reference client's "New Group" makes.
+                // Encrypted, of key-contacts, which is what the reference
+                // client's "New Group" makes. It is the method that decides
+                // that -- `create_group_chat_unencrypted` is the other one.
+                // The third argument is upstream's deprecated `protect`,
+                // which its own docs say to pass `false`; it is bound as
+                // `_protect` there and read by nothing.
                 let chat_id: u32 = rpc
-                    .call("create_group_chat", (account_id, name, true))
+                    .call("create_group_chat", (account_id, name, false))
                     .await
                     .map_err(|err| err.to_string())?;
                 for member in members {

@@ -91,6 +91,30 @@ const PROBE_QML: &str = r"
             return 'ok'
         }
         function raisedSignal() { return raised }
+        // Whether Send again is offered for a row in this delivery state.
+        // Clicking it says nothing about that: findIn reaches an invisible
+        // item just as well, so the gate needs asking about directly --
+        // and the row has to be laid out again first, which is why setting
+        // it up and reading it are separate calls a tick apart.
+        function resetToState(state) {
+            rows.clear()
+            rows.append({
+                message_id: 1, text: 'one', is_outgoing: true,
+                is_info: false, show_padlock: true, state: state,
+                timestamp: 1700000000, day_number: 19675,
+                sender_name: 'Me', sender_color: '#00875a',
+                quote_text: '', quote_author: '', file_path: '',
+                file_name: '', view_type: 'Text',
+                image_width: 0, image_height: 0
+            })
+            return 'ok'
+        }
+        function resendVisible() {
+            var row = findIn(loader.item, 'messageRow')
+            if (!row || !row.menu) { return 'no-menu' }
+            var item = findIn(row.menu, 'resendItem')
+            return item ? '' + item.visible : 'missing'
+        }
         function clearRaised() { raised = ''; return 'ok' }
         // Destroys the delegate the menu belongs to, as a reload or a
         // reorder does.
@@ -309,6 +333,18 @@ fn a_conversation_opens_at_the_newest_message_and_stays_where_it_is_left() {
 
     single_shot(Duration::from_secs(10), move || unsafe {
         record!("delete-after-removal", call!("raisedSignal"));
+
+        // Last, because it replaces the model's contents.
+        call!("resetToState", 24);
+    });
+
+    single_shot(Duration::from_secs(11), move || unsafe {
+        record!("resend-when-failed", call!("resendVisible"));
+        call!("resetToState", 26);
+    });
+
+    single_shot(Duration::from_secs(12), move || unsafe {
+        record!("resend-when-delivered", call!("resendVisible"));
         (*engine_ptr).quit();
     });
 
@@ -402,6 +438,21 @@ fn assert_outcome(steps: &[(&str, String)]) {
         "a delete whose row was destroyed mid-countdown did not name the \
          message that was picked -- read from the delegate as it went, \
          `model` resolves to nothing and the deletion is dropped. {context}"
+    );
+
+    // DC_STATE_OUT_FAILED is the only state worth offering it in. Clicking
+    // the item proves it is wired; whether a reader can ever reach it is a
+    // separate question, and was not being asked.
+    assert_eq!(
+        value("resend-when-failed"),
+        "true",
+        "Send again is hidden on a message that failed, which is the one \
+         case it exists for. {context}"
+    );
+    assert_eq!(
+        value("resend-when-delivered"),
+        "false",
+        "Send again is offered on a message that was delivered. {context}"
     );
 
     assert_eq!(

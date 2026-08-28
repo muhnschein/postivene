@@ -30,9 +30,19 @@ attachments that open in the system's handler, and core notices set apart.
 Day separators come from a section over the local day, which the model
 counts from an offset QML hands it.
 
-What is still missing here: avatars, voice messages and audio playback,
-reactions, message actions (reply, forward, delete, copy), drafts, an
-unread divider, paging for long histories, and sending attachments.
+The view opens on the newest message and follows arrivals, but only while
+the reader is at the bottom.
+
+What is still missing here:
+
+- **A message context menu**, the way the chat list has one: reply, quote,
+  forward, copy, delete, and resend for a failed message.
+- **Saying that a message arrived while the reader is scrolled up.** Not
+  being yanked down is right; not knowing there is something new is not.
+  A "jump to newest" button over the bottom of the list is the usual
+  answer, and it is worth having whether or not notifications land first.
+- Avatars, voice messages and audio playback, reactions, drafts, an unread
+  divider, paging for long histories, and sending attachments.
 
 ## The chat list
 
@@ -51,8 +61,6 @@ they show as ordinary chats rather than asking to be accepted.
 The shared models are gone. `ChatMessages` and `ChatList` are
 QML-instantiable, so a page owns its model; both load in one batch call and
 apply events rather than rebuilding.
-
-What is left here:
 
 Failures reach the user: every page shows them in a shared `ErrorBanner`,
 the core's own `Error` events arrive as a typed `core_error` signal, and the
@@ -78,8 +86,11 @@ form of every invite payload already works, so the camera is polish.
 
 ## Order of work
 
-1. Conversation UX: sender names, timestamps, day markers, attachments,
-   quotes.
-2. Chat list: unread badges, times, context actions, account switcher.
-3. Platform: notifications, background and suspend, cover actions,
-   sailjail, translations, and camera QR scanning.
+1. Platform: notifications, background and suspend, cover actions,
+   sailjail, translations, and camera QR scanning. Messages arrive only
+   while the app is open and awake, which is what stops this being usable
+   as one's actual client.
+2. Message actions: a context menu, and a way to know a message arrived
+   while reading further up.
+3. Accounts: the switcher, and the rest of the chat list -- search,
+   archived chats, contact requests.

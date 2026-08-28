@@ -53,6 +53,7 @@ Item {
                 leftMargin: Theme.horizontalPageMargin
                 rightMargin: Theme.horizontalPageMargin
             }
+            textFormat: Text.PlainText
             text: root.text
             color: root.toneColor
             font.pixelSize: Theme.fontSizeSmall

@@ -30,7 +30,11 @@ Item {
         elide: Text.ElideRight
         font.pixelSize: Theme.fontSizeExtraSmall
         color: Theme.secondaryColor
-        text: qsTr("Replying to %1: %2").arg(root.author).arg(root.body)
+        textFormat: Text.PlainText
+        // One `arg`, then joined on: QML's takes a single argument, and
+        // a second call would rescan what the first produced -- so a
+        // contact named "%2" would get the body put where they belong.
+        text: qsTr("Replying to %1").arg(root.author) + ": " + root.body
     }
 
     IconButton {

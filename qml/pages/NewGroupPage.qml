@@ -119,6 +119,7 @@ Page {
                     leftMargin: Theme.horizontalPageMargin
                     rightMargin: Theme.horizontalPageMargin
                 }
+                textFormat: Text.PlainText
                 text: (page.isMember(model.contact_id) ? "✓ " : "") + model.display_name
                 color: page.isMember(model.contact_id) ? Theme.highlightColor
                                                        : Theme.primaryColor

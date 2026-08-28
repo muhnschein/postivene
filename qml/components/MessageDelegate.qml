@@ -6,6 +6,11 @@ import Sailfish.Silica 1.0
  * own: ConversationPage cannot, because Silica's EnterKey attached property
  * has no stub.
  *
+ * Every string here comes from whoever sent the message, so each one
+ * that shows it is pinned to PlainText: the default detects markup and
+ * switches to rich text, which would let a message body fetch a remote
+ * image the moment its row is drawn.
+ *
  * Laid out by bindings rather than by a Column: a positioner sizes itself in
  * a polish pass, which never runs headlessly, so a row built from one cannot
  * be measured in a test.
@@ -70,6 +75,7 @@ Item {
         id: textMetric
         visible: false
         font: messageLabel.font
+        textFormat: Text.PlainText
         text: root.messageText
     }
 
@@ -77,6 +83,7 @@ Item {
         id: attachmentMetric
         visible: false
         font: attachmentLabel.font
+        textFormat: Text.PlainText
         text: attachmentLabel.text
     }
 
@@ -92,6 +99,7 @@ Item {
         wrapMode: Text.Wrap
         font.pixelSize: Theme.fontSizeExtraSmall
         color: Theme.secondaryColor
+        textFormat: Text.PlainText
         text: root.messageText
     }
 
@@ -119,6 +127,7 @@ Item {
             truncationMode: TruncationMode.Fade
             font.pixelSize: Theme.fontSizeExtraSmall
             color: root.senderColor.length > 0 ? root.senderColor : Theme.highlightColor
+            textFormat: Text.PlainText
             text: root.senderName
         }
 
@@ -145,6 +154,7 @@ Item {
                 truncationMode: TruncationMode.Fade
                 font.pixelSize: Theme.fontSizeExtraSmall
                 color: Theme.highlightColor
+                textFormat: Text.PlainText
                 text: root.quoteAuthor
             }
 
@@ -159,6 +169,7 @@ Item {
                 truncationMode: TruncationMode.Elide
                 font.pixelSize: Theme.fontSizeExtraSmall
                 color: Theme.secondaryColor
+                textFormat: Text.PlainText
                 text: root.quoteText
             }
         }
@@ -189,6 +200,7 @@ Item {
             width: root.contentWidth
             truncationMode: TruncationMode.Fade
             color: Theme.highlightColor
+            textFormat: Text.PlainText
             text: "📎 " + (root.fileName.length > 0 ? root.fileName : root.filePath)
 
             MouseArea {
@@ -207,6 +219,7 @@ Item {
             width: root.contentWidth
             wrapMode: Text.Wrap
             color: Theme.primaryColor
+            textFormat: Text.PlainText
             text: root.messageText
         }
 

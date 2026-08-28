@@ -104,6 +104,7 @@ Page {
 
                 Label {
                     width: parent.width
+                    textFormat: Text.PlainText
                     // An address contact cannot be written to encrypted, so
                     // it carries the same letter mark the chat list uses.
                     text: model.is_key_contact ? model.display_name
@@ -113,6 +114,7 @@ Page {
 
                 Label {
                     width: parent.width
+                    textFormat: Text.PlainText
                     text: model.address
                     font.pixelSize: Theme.fontSizeExtraSmall
                     color: Theme.secondaryColor

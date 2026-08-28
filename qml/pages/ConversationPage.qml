@@ -80,35 +80,37 @@ Page {
             page.replyBody = body
             page.replyAuthor = author
         }
-        onCopyRequested: Clipboard.text = body
+        onCopyRequested: {
+            Clipboard.text = body
+            notice.show(qsTr("Copied to clipboard"))
+        }
         onDeleteRequested: messages.delete_message(messageId)
         onResendRequested: messages.resend_message(messageId)
     }
 
     // Only up when the reader has scrolled away from the newest message.
-    Button {
+    JumpButton {
         objectName: "jumpButton"
         visible: !listView.stickToBottom
+        count: listView.missedCount
         anchors {
-            horizontalCenter: parent.horizontalCenter
+            right: parent.right
+            rightMargin: Theme.horizontalPageMargin
             bottom: banner.top
             bottomMargin: Theme.paddingMedium
         }
-        text: listView.missedCount > 0
-              ? qsTr("%n new message(s)", "", listView.missedCount)
-              : qsTr("Newest")
         onClicked: listView.jumpToNewest()
     }
 
     // Between the list and the field rather than over the list: it is
     // translucent, and the messages behind it showed through.
-    ErrorBanner {
+    Banner {
         id: banner
         objectName: "errorBanner"
         anchors {
             left: parent.left
             right: parent.right
-            bottom: replyBar.top
+            bottom: notice.top
         }
         // A dead core outranks whatever failed before it, and a page opened
         // after it died never saw the transition -- so read the status
@@ -120,40 +122,32 @@ Page {
     }
 
     // What the next send replies to, and a way out of replying.
-    Item {
+    ReplyBar {
         id: replyBar
         objectName: "replyBar"
-        visible: messages.quoted_message_id > 0
-        height: visible ? replyLabel.height + 2 * Theme.paddingSmall : 0
         anchors {
             left: parent.left
             right: parent.right
             bottom: inputRow.top
         }
+        author: page.replyAuthor
+        body: page.replyBody
+        onCancelled: page.cancelReply()
+    }
 
-        Label {
-            id: replyLabel
-            objectName: "replyLabel"
-            anchors.verticalCenter: parent.verticalCenter
-            x: Theme.horizontalPageMargin
-            width: parent.width - x - cancelReplyButton.width - Theme.paddingMedium
-            truncationMode: TruncationMode.Fade
-            font.pixelSize: Theme.fontSizeExtraSmall
-            color: Theme.secondaryColor
-            text: qsTr("Replying to %1: %2").arg(page.replyAuthor).arg(page.replyBody)
+    // Says what just happened where the page has no state for it, such as
+    // a message going to the clipboard.
+    Banner {
+        id: notice
+        objectName: "notice"
+        tone: "info"
+        timeout: 4
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: replyBar.top
         }
-
-        IconButton {
-            id: cancelReplyButton
-            objectName: "cancelReplyButton"
-            anchors {
-                verticalCenter: parent.verticalCenter
-                right: parent.right
-                rightMargin: Theme.horizontalPageMargin
-            }
-            icon.source: "image://theme/icon-m-clear"
-            onClicked: page.cancelReply()
-        }
+        onDismissed: notice.text = ""
     }
 
     Row {

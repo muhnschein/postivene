@@ -81,7 +81,7 @@ Page {
                                           { accountId: page.accountId })
             }
 
-            ErrorBanner {
+            Banner {
                 objectName: "errorBanner"
                 width: parent.width
                 text: page.errorMessage

@@ -131,7 +131,7 @@ Page {
         }
     }
 
-    ErrorBanner {
+    Banner {
         id: banner
         objectName: "errorBanner"
         anchors {

@@ -147,3 +147,23 @@ fn list_pages_clip_and_leave_room_for_what_sits_below_them() {
         );
     }
 }
+
+/// Copying a message says so, and the reply bar and jump button are the
+/// components the tests measure rather than one-off items on the page.
+#[test]
+fn the_conversation_page_uses_the_pieces_that_are_tested() {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/pages/ConversationPage.qml");
+    let text = fs::read_to_string(&path).expect("read ConversationPage.qml");
+
+    for piece in ["ReplyBar {", "JumpButton {", "Banner {"] {
+        assert!(
+            text.contains(piece),
+            "the page does not use {piece} -- what a test measures is then not what runs"
+        );
+    }
+    assert!(
+        text.contains("Clipboard.text = body") && text.contains("notice.show("),
+        "copying a message does not say that it happened"
+    );
+}

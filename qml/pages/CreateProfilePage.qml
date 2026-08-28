@@ -17,6 +17,8 @@ Page {
     property string providerLabel: hostOf(providerQr)
     // True from tapping create until the core answers.
     property bool busy: false
+    // True while the core is working out what a pasted link is.
+    property bool checkingLink: false
     property int permille: 0
     property string errorMessage: ""
 
@@ -24,6 +26,17 @@ Page {
     function hostOf(qr) {
         var colon = qr.indexOf(":")
         return colon < 0 ? qr : qr.substring(colon + 1)
+    }
+
+    // The core says what a link is; guessing at the formats here would be
+    // the protocol work docs/SCOPE.md rules out.
+    function useLink() {
+        if (linkField.text.length === 0) {
+            return
+        }
+        page.errorMessage = ""
+        page.checkingLink = true
+        core.check_invite(linkField.text)
     }
 
     function beginCreate() {
@@ -42,21 +55,33 @@ Page {
         target: core
 
         onProfile_created: {
+            // Only the page that started it: both of these are on the
+            // stack at once -- this one pushes the other -- and both were
+            // asking the stack to replace itself on the same signal.
+            if (!page.busy) {
+                return
+            }
             page.busy = false
             pageStack.replaceAbove(null, Qt.resolvedUrl("ChatListPage.qml"),
                                    { accountId: account_id })
         }
 
         onProfile_error: {
+            if (!page.busy) {
+                return
+            }
             page.busy = false
             page.errorMessage = message
         }
 
+        // Not gated on `busy`: the core's last progress events can arrive
+        // after the call that started them has already been answered.
         onConfigure_progress: page.permille = permille
 
         // The core classifies the link; parsing it here would be the
         // protocol work docs/SCOPE.md rules out.
         onQr_checked: {
+            page.checkingLink = false
             if (kind === "account" || kind === "login") {
                 page.providerQr = linkField.text
                 page.providerLabel = page.hostOf(linkField.text)
@@ -66,7 +91,10 @@ Page {
             }
         }
 
-        onQr_error: page.errorMessage = message
+        onQr_error: {
+            page.checkingLink = false
+            page.errorMessage = message
+        }
     }
 
     SilicaFlickable {
@@ -117,6 +145,15 @@ Page {
                 placeholderText: "dcaccount:..."
             }
 
+            Button {
+                objectName: "useLinkButton"
+                visible: linkField.visible
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: qsTr("Check Link")
+                enabled: !page.checkingLink && linkField.text.length > 0
+                onClicked: page.useLink()
+            }
+
             Label {
                 objectName: "providerLabel"
                 x: Theme.horizontalPageMargin
@@ -138,7 +175,7 @@ Page {
                 objectName: "createButton"
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: qsTr("Agree & Create Profile")
-                enabled: !page.busy && nameField.text.length > 0
+                enabled: !page.busy && !page.checkingLink && nameField.text.length > 0
                 onClicked: page.beginCreate()
             }
         }

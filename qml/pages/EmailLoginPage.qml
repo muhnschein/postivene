@@ -33,16 +33,27 @@ Page {
         target: core
 
         onProfile_created: {
+            // Only the page that started it: both of these are on the
+            // stack at once -- this one pushes the other -- and both were
+            // asking the stack to replace itself on the same signal.
+            if (!page.busy) {
+                return
+            }
             page.busy = false
             pageStack.replaceAbove(null, Qt.resolvedUrl("ChatListPage.qml"),
                                    { accountId: account_id })
         }
 
         onProfile_error: {
+            if (!page.busy) {
+                return
+            }
             page.busy = false
             page.errorMessage = message
         }
 
+        // Not gated on `busy`: the core's last progress events can arrive
+        // after the call that started them has already been answered.
         onConfigure_progress: page.permille = permille
     }
 

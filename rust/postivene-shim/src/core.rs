@@ -8,8 +8,12 @@ use crate::models::{AccountItem, AccountListModel};
 use crate::runtime::CoreRuntime;
 
 /// The one live connection to the spawned server, shared with the models
-/// QML instantiates per chat. There is exactly one per process:
-/// [`DeltaChatCore::start`] refuses a second.
+/// QML instantiates per chat.
+///
+/// One per process in practice because the app makes one `DeltaChatCore`.
+/// [`DeltaChatCore::start`]'s guard is per object, not global, so a second
+/// instance would spawn a second server and take this over -- nothing
+/// enforces the singleton, and nothing needs to yet.
 static CONNECTION: Mutex<Option<(Arc<RpcClient>, CoreRuntime)>> = Mutex::new(None);
 
 /// The transport and runtime, once [`DeltaChatCore::start`] has completed.
@@ -322,8 +326,7 @@ impl DeltaChatCore {
     /// [`DeltaChatCore::system_info`].
     pub fn check_health(&mut self) {
         let Some((rpc, runtime)) = self.connection() else {
-            self.status = QString::from("error: not started");
-            self.status_changed();
+            self.core_error(QString::from("not started"));
             return;
         };
 
@@ -335,10 +338,12 @@ impl DeltaChatCore {
                     this.borrow_mut().system_info = info.into();
                     this.borrow().system_info_changed();
                 }
-                Err(err) => {
-                    this.borrow_mut().status = format!("error: {err}").into();
-                    this.borrow().status_changed();
-                }
+                // Reported on its own signal rather than written into
+                // `status`: that is the app's answer to "is the core
+                // there", and a health check that times out is not the
+                // same as a core that has gone away -- but every button
+                // enabled on `status === "ready"` would go dead.
+                Err(err) => this.borrow().core_error(err.into()),
             }
         });
 
@@ -607,24 +612,7 @@ impl DeltaChatCore {
             return;
         };
 
-        let ptr: QPointer<Self> = QPointer::from(&*self);
-        let done = queued_callback(move |result: (u32, Result<serde_json::Value, String>)| {
-            let Some(this) = ptr.as_pinned() else { return };
-            let (account_id, result) = result;
-            match result {
-                Ok(qr) => {
-                    let kind = qr
-                        .get("kind")
-                        .and_then(serde_json::Value::as_str)
-                        .unwrap_or("unknown")
-                        .to_string();
-                    let payload = serde_json::to_string(&qr).unwrap_or_default();
-                    this.borrow()
-                        .qr_checked(account_id, kind.into(), payload.into());
-                }
-                Err(err) => this.borrow().qr_error(err.into()),
-            }
-        });
+        let done = self.qr_callback();
 
         let qr_content = qr_content.to_string();
         runtime.spawn(async move {
@@ -669,6 +657,29 @@ impl DeltaChatCore {
                 .map_err(|err| err.to_string());
             done((account_id, result));
         });
+    }
+
+    /// The shared completion path of `check_invite` and `check_qr`, which
+    /// differ only in whether they resolve the account first.
+    fn qr_callback(&self) -> impl Fn((u32, Result<serde_json::Value, String>)) {
+        let ptr: QPointer<Self> = QPointer::from(self);
+        queued_callback(move |result: (u32, Result<serde_json::Value, String>)| {
+            let Some(this) = ptr.as_pinned() else { return };
+            let (account_id, result) = result;
+            match result {
+                Ok(qr) => {
+                    let kind = qr
+                        .get("kind")
+                        .and_then(serde_json::Value::as_str)
+                        .unwrap_or("unknown")
+                        .to_string();
+                    let payload = serde_json::to_string(&qr).unwrap_or_default();
+                    this.borrow()
+                        .qr_checked(account_id, kind.into(), payload.into());
+                }
+                Err(err) => this.borrow().qr_error(err.into()),
+            }
+        })
     }
 
     /// The shared completion path of both `create_profile*` methods.
@@ -740,24 +751,7 @@ impl DeltaChatCore {
             return;
         };
 
-        let ptr: QPointer<Self> = QPointer::from(&*self);
-        let done = queued_callback(move |result: (u32, Result<serde_json::Value, String>)| {
-            let Some(this) = ptr.as_pinned() else { return };
-            let (account_id, result) = result;
-            match result {
-                Ok(qr) => {
-                    let kind = qr
-                        .get("kind")
-                        .and_then(serde_json::Value::as_str)
-                        .unwrap_or("unknown")
-                        .to_string();
-                    let payload = serde_json::to_string(&qr).unwrap_or_default();
-                    this.borrow()
-                        .qr_checked(account_id, kind.into(), payload.into());
-                }
-                Err(err) => this.borrow().qr_error(err.into()),
-            }
-        });
+        let done = self.qr_callback();
 
         let qr_content = qr_content.to_string();
         runtime.spawn(async move {

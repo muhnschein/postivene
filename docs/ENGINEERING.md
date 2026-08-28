@@ -14,6 +14,13 @@ into a history of its own subject.
 If the reasoning needs a paragraph, it is a design note in `docs/`, and the
 comment is a pointer to it.
 
+## Interface conventions
+
+A count on a badge stops at `99+`. A row is a fixed width and three digits
+push everything around it; nobody needs the exact number past a hundred.
+Both badges do this today (`ChatListDelegate`, `JumpButton`); any new one
+follows.
+
 ## Where this differs from clove
 
 Clove parses hostile network input, so it leans on fuzzing and chaos

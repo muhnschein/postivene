@@ -25,6 +25,9 @@ const PROBE_QML: &str = r"
     Item {
         Loader { id: loader }
         function load(url, accountId) {
+            // Clear first, so loading the same page again really is a new
+            // instance rather than the one already there.
+            loader.setSource('', {})
             loader.setSource(url, { accountId: accountId })
             return loader.status === Loader.Ready ? 'ok' : 'load-failed'
         }
@@ -138,6 +141,23 @@ fn the_chat_list_shows_what_the_core_reports() {
                 QString::from("timeout")
             ),
         ));
+        // A page opened after the core died never saw it happen. It still
+        // has to say so, or it looks like an empty chat with no history.
+        (*steps_ptr).push((
+            "reopen",
+            call!(
+                "load",
+                QString::from(common::page_url("ChatListPage.qml")),
+                1
+            ),
+        ));
+    });
+
+    single_shot(Duration::from_secs(7), move || unsafe {
+        (*steps_ptr).push((
+            "reopened-shown",
+            call!("get", QString::from("errorLabel"), QString::from("text")),
+        ));
         (*engine_ptr).quit();
     });
 
@@ -177,5 +197,14 @@ fn assert_outcome(steps: &[(&str, String)]) {
         value("dead-timeout"),
         "0",
         "a message about a dead core must not time out. {context}"
+    );
+    assert_eq!(
+        value("reopen"),
+        "ok",
+        "the page did not load a second time. {context}"
+    );
+    assert!(
+        value("reopened-shown").contains("Restart"),
+        "a page opened after the core died says nothing about it. {context}"
     );
 }

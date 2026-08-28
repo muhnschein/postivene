@@ -3,7 +3,8 @@
 What stands between Postivene and a usable Delta Chat client. Companion to
 `MILESTONES.md`, which tracks what is built; this tracks what is missing.
 
-Written against `5308322`, updated as items close.
+Written against `5308322`, updated as items close. What only a phone can
+answer is in `DEVICE-CHECKS.md`.
 
 ## Starting a conversation  *(done)*
 

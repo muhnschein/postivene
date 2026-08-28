@@ -16,6 +16,8 @@ Page {
     }
 
     property string errorMessage: ""
+    readonly property string coreStoppedMessage:
+        qsTr("Lost the connection to the Delta Chat core. Restart Postivene.")
 
     Connections {
         target: core
@@ -25,8 +27,6 @@ Page {
         onStatus_changed: {
             if (core.status === "ready") {
                 chats.reload()
-            } else if (core.status === "stopped") {
-                page.errorMessage = qsTr("Lost the connection to the Delta Chat core. Restart Postivene.")
             }
         }
         // Failures that used to reach no one.
@@ -40,7 +40,15 @@ Page {
 
     SilicaListView {
         id: listView
-        anchors.fill: parent
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+            bottom: banner.top
+        }
+        // Delegates draw outside the list's own box otherwise, and the
+        // banner below is translucent.
+        clip: true
         model: chats.rows
 
         header: PageHeader {
@@ -102,14 +110,18 @@ Page {
     }
 
     ErrorBanner {
+        id: banner
         objectName: "errorBanner"
         anchors {
             left: parent.left
             right: parent.right
             bottom: parent.bottom
         }
-        text: page.errorMessage
-        // A dead core does not fix itself, so that one stays put.
+        // A dead core outranks whatever failed before it, and a page opened
+        // after it died never saw the transition -- so read the status
+        // rather than waiting for it to change.
+        text: core.status === "stopped" ? page.coreStoppedMessage : page.errorMessage
+        // That one does not fix itself, so it stays put.
         timeout: core.status === "stopped" ? 0 : 8
         onDismissed: page.errorMessage = ""
     }

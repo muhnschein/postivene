@@ -116,3 +116,30 @@ fn the_conversation_delegate_binds_only_real_message_roles() {
         );
     }
 }
+
+/// A list draws its delegates outside its own box unless told not to, and
+/// both list pages sit above translucent things -- a message field, an
+/// error banner -- that the content then shows through.
+#[test]
+fn list_pages_clip_and_leave_room_for_what_sits_below_them() {
+    for page in ["ConversationPage.qml", "ChatListPage.qml"] {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../qml/pages")
+            .join(page);
+        let text = fs::read_to_string(&path).unwrap_or_else(|err| panic!("read {page}: {err}"));
+        assert!(
+            text.contains("clip: true"),
+            "{page}'s list does not clip, so messages draw over what is below it"
+        );
+        assert!(
+            text.contains("bottom: banner.top"),
+            "{page}'s list runs under the banner instead of stopping at it"
+        );
+        // The stopped state is a state: a page opened after the core died
+        // never saw the transition that a handler would have caught.
+        assert!(
+            text.contains("core.status === \"stopped\" ? page.coreStoppedMessage"),
+            "{page} waits for the core to stop rather than reading that it has"
+        );
+    }
+}

@@ -29,6 +29,8 @@ Page {
     }
 
     property string errorMessage: ""
+    readonly property string coreStoppedMessage:
+        qsTr("Lost the connection to the Delta Chat core. Restart Postivene.")
 
     // Qt 5.6 handler syntax; see WelcomePage.qml.
     Connections {
@@ -39,8 +41,6 @@ Page {
         onStatus_changed: {
             if (core.status === "ready") {
                 messages.reload()
-            } else if (core.status === "stopped") {
-                page.errorMessage = qsTr("Lost the connection to the Delta Chat core. Restart Postivene.")
             }
         }
         onCore_error: page.errorMessage = message
@@ -52,8 +52,12 @@ Page {
             top: parent.top
             left: parent.left
             right: parent.right
-            bottom: inputRow.top
+            bottom: banner.top
         }
+        // A list draws its delegates outside its own box unless told not
+        // to, and the message field below is translucent: without this the
+        // last messages show through it.
+        clip: true
         model: messages.rows
 
         header: PageHeader {
@@ -110,15 +114,21 @@ Page {
         }
     }
 
+    // Between the list and the field rather than over the list: it is
+    // translucent, and the messages behind it showed through.
     ErrorBanner {
+        id: banner
         objectName: "errorBanner"
         anchors {
             left: parent.left
             right: parent.right
             bottom: inputRow.top
         }
-        text: page.errorMessage
-        // A dead core does not fix itself, so that one stays put.
+        // A dead core outranks whatever failed before it, and a page opened
+        // after it died never saw the transition -- so read the status
+        // rather than waiting for it to change.
+        text: core.status === "stopped" ? page.coreStoppedMessage : page.errorMessage
+        // That one does not fix itself, so it stays put.
         timeout: core.status === "stopped" ? 0 : 8
         onDismissed: page.errorMessage = ""
     }

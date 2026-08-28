@@ -163,6 +163,7 @@ Page {
     Banner {
         id: notice
         objectName: "notice"
+        labelObjectName: "noticeLabel"
         tone: "info"
         timeout: 4
         anchors {

@@ -13,6 +13,10 @@ Item {
     property string text: ""
     // "error" or "info": what happened, and how loudly to say it.
     property string tone: "error"
+    // What the label inside is called, for a test looking it up. A page
+    // with two of these -- a failure and a confirmation -- would otherwise
+    // have two nodes by the same name and find whichever came first.
+    property string labelObjectName: "errorLabel"
     // Seconds before the message clears itself; 0 keeps it.
     property int timeout: 8
     signal dismissed()
@@ -23,6 +27,13 @@ Item {
     /// Say something for a while. For the cases the page has no state for.
     function show(message) {
         root.text = message
+        // Restarted here rather than left to `onTextChanged`, which does
+        // not fire when the message is the one already showing -- so a
+        // second copy would have inherited the rest of the first one's
+        // four seconds and vanished almost at once.
+        if (root.text.length > 0 && root.timeout > 0) {
+            fade.restart()
+        }
     }
 
     width: parent ? parent.width : 0
@@ -45,7 +56,7 @@ Item {
 
         Label {
             id: label
-            objectName: "errorLabel"
+            objectName: root.labelObjectName
             anchors {
                 left: parent.left
                 right: parent.right

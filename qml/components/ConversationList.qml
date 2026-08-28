@@ -117,9 +117,12 @@ SilicaListView {
         horizontalAlignment: Text.AlignHCenter
         font.pixelSize: Theme.fontSizeExtraSmall
         color: Theme.secondaryColor
-        // Local midnight of that day, back from the day number.
+        // Midday of that day rather than midnight: the model counted the
+        // day with today's offset, and a day that was an hour off it --
+        // the other side of a daylight-saving change -- would land on the
+        // wrong date if it were read back from the boundary.
         text: Qt.formatDate(new Date((parseInt(section, 10) * 86400
-                                      - root.utcOffset) * 1000),
+                                      - root.utcOffset + 43200) * 1000),
                             Qt.DefaultLocaleLongDate)
     }
 
@@ -130,12 +133,17 @@ SilicaListView {
         menu: ContextMenu {
             MenuItem {
                 objectName: "replyItem"
+                // A core notice is nobody's message to answer.
+                visible: !model.is_info
                 text: qsTr("Reply")
                 onClicked: root.replyRequested(model.message_id, model.text,
                                                model.sender_name)
             }
             MenuItem {
                 objectName: "copyItem"
+                // An image or a voice message with no caption has no text:
+                // copying one emptied the clipboard and said it had worked.
+                visible: model.text.length > 0
                 text: qsTr("Copy")
                 onClicked: root.copyRequested(model.text)
             }

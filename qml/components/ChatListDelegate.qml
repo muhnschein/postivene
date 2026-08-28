@@ -84,7 +84,10 @@ Item {
             visible: root.avatarPath.length > 0
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
-            source: root.avatarPath.length > 0 ? "file://" + root.avatarPath : ""
+            // Encoded; see MessageDelegate.qml.
+            source: root.avatarPath.length > 0
+                    ? Qt.resolvedUrl("file://" + encodeURI(root.avatarPath))
+                    : ""
         }
     }
 

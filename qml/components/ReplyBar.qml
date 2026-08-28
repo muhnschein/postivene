@@ -16,7 +16,10 @@ Item {
     signal cancelled()
 
     visible: root.body.length > 0 || root.author.length > 0
-    height: visible ? quoted.height + 2 * Theme.paddingSmall : 0
+    // Both, not just the label: the cancel button is an icon's worth tall,
+    // which for a one-line quote is more, and measuring only the label let
+    // it hang out over the message field below.
+    height: visible ? Math.max(quoted.height, cancel.height) + 2 * Theme.paddingSmall : 0
 
     Label {
         id: quoted

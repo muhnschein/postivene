@@ -42,6 +42,11 @@ Item {
     property bool isPicture: viewType === "Image" || viewType === "Gif"
                              || viewType === "Sticker"
     property bool hasFile: filePath.length > 0
+    // Encoded, not concatenated: attachments are named by whoever sent
+    // them, and a "#" or a "%" in the name makes a plain "file://" + path
+    // into a URL that points somewhere else, or nowhere.
+    readonly property url fileUrl: root.hasFile ? Qt.resolvedUrl("file://" + encodeURI(root.filePath))
+                                                : ""
 
     // A bubble is as wide as its content, up to most of the screen. The
     // widths come off unconstrained copies of the text: measuring the real
@@ -186,7 +191,7 @@ Item {
                     : 0
             fillMode: Image.PreserveAspectFit
             asynchronous: true
-            source: root.hasFile ? "file://" + root.filePath : ""
+            source: root.fileUrl
         }
 
         // Anything else with a file: name it and let the system open it.
@@ -205,7 +210,7 @@ Item {
 
             MouseArea {
                 anchors.fill: parent
-                onClicked: Qt.openUrlExternally("file://" + root.filePath)
+                onClicked: Qt.openUrlExternally(root.fileUrl)
             }
         }
 

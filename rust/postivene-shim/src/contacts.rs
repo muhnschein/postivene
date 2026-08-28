@@ -197,7 +197,28 @@ impl ContactList {
             self.error(QString::from("not started"));
             return;
         };
-        let done = self.chat_callback();
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<(u32, Vec<String>), String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            match result {
+                Ok((chat_id, refused)) => {
+                    // Said first, then opened anyway: the group is real,
+                    // and leaving the reader on the picker with an error is
+                    // how one ends up stranded with no way back to it.
+                    if !refused.is_empty() {
+                        this.borrow().error(
+                            format!(
+                                "the group was made, but some people could not be added ({})",
+                                refused.join("; ")
+                            )
+                            .into(),
+                        );
+                    }
+                    this.borrow().chat_ready(chat_id);
+                }
+                Err(err) => this.borrow().error(err.into()),
+            }
+        });
 
         let name = name.to_string();
         let members: Vec<u32> = member_ids
@@ -217,12 +238,20 @@ impl ContactList {
                     .call("create_group_chat", (account_id, name, false))
                     .await
                     .map_err(|err| err.to_string())?;
+                // Every member attempted, and the chat handed back either
+                // way: it exists on the core from the call above, so
+                // failing out of here left a half-built group the reader
+                // was never shown and could not find.
+                let mut refused = Vec::new();
                 for member in members {
-                    rpc.call::<_, ()>("add_contact_to_chat", (account_id, chat_id, member))
+                    if let Err(err) = rpc
+                        .call::<_, ()>("add_contact_to_chat", (account_id, chat_id, member))
                         .await
-                        .map_err(|err| err.to_string())?;
+                    {
+                        refused.push(format!("{member}: {err}"));
+                    }
                 }
-                Ok::<_, String>(chat_id)
+                Ok::<_, String>((chat_id, refused))
             }
             .await;
             done(result);

@@ -649,6 +649,13 @@ fn row_from(message_id: u32, message: &serde_json::Value, utc_offset: i32) -> Me
         timestamp,
         // Floor division: a message before local midnight belongs to the
         // day before, and `-1 / 86400` is 0.
+        //
+        // The offset is the one in force now, which is the wrong one for a
+        // message from the other side of a daylight-saving change -- an
+        // hour out, so anything within an hour of local midnight lands
+        // under the wrong heading, and moves as the year turns. Doing it
+        // properly wants the zone rather than an offset; QML hands down
+        // what it can see. Tracked in docs/GAP-ANALYSIS.md.
         day_number: (timestamp + i64::from(utc_offset)).div_euclid(86_400),
         show_padlock: message
             .get("showPadlock")

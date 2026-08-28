@@ -15,17 +15,26 @@ Page {
 
     property int accountId
     property string errorMessage: ""
+    // True from tapping until the core answers, so a second tap cannot
+    // start a second chat.
+    property bool starting: false
 
     ContactList {
         id: contacts
         objectName: "contacts"
         account_id: page.accountId
-        onError: page.errorMessage = message
-        onChat_ready: pageStack.replace(Qt.resolvedUrl("ConversationPage.qml"), {
-            accountId: page.accountId,
-            chatId: chat_id,
-            chatName: nameField.text.length > 0 ? nameField.text : addressField.text
-        })
+        onError: {
+            page.starting = false
+            page.errorMessage = message
+        }
+        onChat_ready: {
+            page.starting = false
+            pageStack.replace(Qt.resolvedUrl("ConversationPage.qml"), {
+                accountId: page.accountId,
+                chatId: chat_id,
+                chatName: nameField.text.length > 0 ? nameField.text : addressField.text
+            })
+        }
     }
 
     function addContact() {
@@ -34,6 +43,7 @@ Page {
             return
         }
         page.errorMessage = ""
+        page.starting = true
         contacts.start_chat_with_address(addressField.text, nameField.text)
     }
 
@@ -97,7 +107,7 @@ Page {
                 objectName: "addButton"
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: qsTr("Start Chat")
-                enabled: addressField.text.length > 0
+                enabled: !page.starting && addressField.text.length > 0
                 onClicked: page.addContact()
             }
         }

@@ -15,12 +15,13 @@
     clippy::expect_used
 )]
 
-use std::path::PathBuf;
 use std::time::Duration;
 
 use postivene_shim::DeltaChatCore;
 use qmetaobject::*;
 use serde_json::Value;
+
+mod common;
 
 /// Two models over different chats, plus a way to read their row counts and
 /// to send. Written in the Qt 5.6 dialect with the shim's `snake_case`
@@ -46,23 +47,6 @@ const PROBE_QML: &str = r"
         function error() { return lastError }
     }
 ";
-
-fn journal_methods(journal: &PathBuf) -> Vec<(String, Value)> {
-    std::fs::read_to_string(journal)
-        .unwrap_or_default()
-        .lines()
-        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
-        .map(|call| {
-            (
-                call.get("method")
-                    .and_then(Value::as_str)
-                    .unwrap_or_default()
-                    .to_string(),
-                call.get("params").cloned().unwrap_or(Value::Null),
-            )
-        })
-        .collect()
-}
 
 #[test]
 fn each_chat_has_its_own_model_and_loads_in_one_batch() {
@@ -122,7 +106,7 @@ fn each_chat_has_its_own_model_and_loads_in_one_batch() {
 
     engine.exec();
 
-    let calls = journal_methods(&journal);
+    let calls = common::calls(&journal);
     let names: Vec<&str> = calls.iter().map(|(name, _)| name.as_str()).collect();
 
     // The two chats are seeded with two messages and one. Separate models,

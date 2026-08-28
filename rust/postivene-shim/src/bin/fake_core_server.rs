@@ -116,19 +116,33 @@ fn journal(method: &str, params: &Value) {
     if method == "get_next_event_batch" {
         return;
     }
-    let line = json!({"method": method, "params": params}).to_string();
+    let line = json!({"method": method, "params": params}).to_string() + "\n";
     if let Ok(mut file) = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
         .open(path)
     {
-        let _ = writeln!(file, "{line}");
+        // One write, not `writeln!`'s two: requests are handled
+        // concurrently, and the newline landing separately tore lines into
+        // each other.
+        let _ = file.write_all(line.as_bytes());
     }
 }
 
 /// True for the inputs that stand in for "the server cannot be reached".
 fn should_fail(value: &str) -> bool {
     value.contains("fail")
+}
+
+/// A reply delay in milliseconds, from `var`. Lets a test fix the order in
+/// which two replies land.
+fn delay(var: &str) -> std::time::Duration {
+    std::time::Duration::from_millis(
+        std::env::var(var)
+            .ok()
+            .and_then(|value| value.parse().ok())
+            .unwrap_or(0),
+    )
 }
 
 #[allow(clippy::too_many_lines)]
@@ -357,6 +371,7 @@ async fn main() {
                     ok(&id, &Value::Array(items))
                 }
                 "get_messages" => {
+                    tokio::time::sleep(delay("POSTIVENE_FAKE_FETCH_DELAY_MS")).await;
                     // One call for many ids: the point of the batch.
                     let ids: Vec<u64> = positional(1)
                         .as_array()
@@ -386,6 +401,11 @@ async fn main() {
                         .unwrap_or_default();
                     let text = positional(2).as_str().unwrap_or_default().to_string();
                     let msg = state.lock().await.add_message(account, chat);
+                    // The event is queued above, so a delay here puts it
+                    // ahead of this call's own reply -- the ordering the
+                    // real core can produce, and the one that duplicated a
+                    // sent row.
+                    tokio::time::sleep(delay("POSTIVENE_FAKE_SEND_DELAY_MS")).await;
                     ok(
                         &id,
                         &json!([

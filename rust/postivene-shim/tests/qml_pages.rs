@@ -34,6 +34,8 @@ use postivene_shim::DeltaChatCore;
 use qmetaobject::*;
 use serde_json::Value;
 
+mod common;
+
 /// QML forbids capitalised property names, so a `.qml` stub cannot provide
 /// `BusyIndicatorSize.Large`; a registered enum can.
 #[derive(QEnum)]
@@ -440,11 +442,7 @@ fn assert_email_validation(steps: &[(String, String)], context: &str) {
 
 /// A tap produced the right calls on the wire.
 fn assert_wire_calls(journal: &std::path::Path) {
-    let calls: Vec<Value> = std::fs::read_to_string(journal)
-        .unwrap_or_default()
-        .lines()
-        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
-        .collect();
+    let calls = common::records(journal);
     let method_names: Vec<&str> = calls
         .iter()
         .filter_map(|call| call.get("method").and_then(Value::as_str))

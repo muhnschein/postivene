@@ -33,17 +33,14 @@ Page {
         anchors.fill: parent
         model: chats.rows
 
-        header: Column {
-            width: page.width
+        header: PageHeader {
+            title: qsTr("Chats")
+        }
 
-            PageHeader {
-                title: qsTr("Chats")
-            }
-
-            Button {
-                objectName: "newChatButton"
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("New Chat")
+        PullDownMenu {
+            MenuItem {
+                objectName: "newChatMenuItem"
+                text: qsTr("New chat")
                 onClicked: pageStack.push(Qt.resolvedUrl("NewChatPage.qml"),
                                           { accountId: page.accountId })
             }
@@ -90,6 +87,7 @@ Page {
         ViewPlaceholder {
             enabled: chats.count === 0
             text: qsTr("No chats yet")
+            hintText: qsTr("Pull down to start one")
         }
     }
 }

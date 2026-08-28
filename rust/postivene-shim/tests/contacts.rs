@@ -15,12 +15,13 @@
     clippy::expect_used
 )]
 
-use std::path::PathBuf;
 use std::time::Duration;
 
 use postivene_shim::DeltaChatCore;
 use qmetaobject::*;
 use serde_json::Value;
+
+mod common;
 
 const PROBE_QML: &str = r"
     import QtQuick 2.0
@@ -75,23 +76,6 @@ const PROBE_QML: &str = r"
     }
 ";
 
-fn calls(journal: &PathBuf) -> Vec<(String, Value)> {
-    std::fs::read_to_string(journal)
-        .unwrap_or_default()
-        .lines()
-        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
-        .map(|call| {
-            (
-                call.get("method")
-                    .and_then(Value::as_str)
-                    .unwrap_or_default()
-                    .to_string(),
-                call.get("params").cloned().unwrap_or(Value::Null),
-            )
-        })
-        .collect()
-}
-
 #[test]
 fn a_chat_can_be_started_four_ways() {
     let temp = std::env::temp_dir().join(format!("postivene-contacts-{}", std::process::id()));
@@ -143,7 +127,7 @@ fn a_chat_can_be_started_four_ways() {
 
     engine.exec();
 
-    assert_routes(&calls(&journal), &listed, &report);
+    assert_routes(&common::calls(&journal), &listed, &report);
 }
 
 /// Each way in produced the calls it should, and no others.

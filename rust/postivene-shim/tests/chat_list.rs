@@ -15,12 +15,13 @@
     clippy::expect_used
 )]
 
-use std::path::PathBuf;
 use std::time::Duration;
 
 use postivene_shim::DeltaChatCore;
 use qmetaobject::*;
 use serde_json::Value;
+
+mod common;
 
 /// The `Repeater` is how the test reads the row order: a `QAbstractListModel`
 /// hands nothing to JavaScript directly, and driving it through a real view
@@ -50,23 +51,6 @@ const PROBE_QML: &str = r"
         function bump() { chatTwo.send('bump') }
     }
 ";
-
-fn calls(journal: &PathBuf) -> Vec<(String, Value)> {
-    std::fs::read_to_string(journal)
-        .unwrap_or_default()
-        .lines()
-        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
-        .map(|call| {
-            (
-                call.get("method")
-                    .and_then(Value::as_str)
-                    .unwrap_or_default()
-                    .to_string(),
-                call.get("params").cloned().unwrap_or(Value::Null),
-            )
-        })
-        .collect()
-}
 
 #[test]
 fn a_message_moves_one_row_instead_of_rebuilding_the_list() {
@@ -124,7 +108,7 @@ fn a_message_moves_one_row_instead_of_rebuilding_the_list() {
 
     engine.exec();
 
-    let calls = calls(&journal);
+    let calls = common::calls(&journal);
     let names: Vec<&str> = calls.iter().map(|(name, _)| name.as_str()).collect();
 
     assert_eq!(

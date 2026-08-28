@@ -19,12 +19,13 @@
     clippy::needless_pass_by_value
 )]
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use postivene_shim::DeltaChatCore;
 use qmetaobject::*;
-use serde_json::Value;
+
+mod common;
 
 /// Silica's `pageStack`, recorded rather than performed. A context property,
 /// as in the app.
@@ -237,7 +238,7 @@ fn the_new_chat_pages_create_chats_and_open_them() {
 
 /// Both routes end in a conversation the core made, and each made exactly
 /// one chat.
-fn assert_outcome(steps: &[(&str, String)], navigation: &str, chat_id: u32, journal: &PathBuf) {
+fn assert_outcome(steps: &[(&str, String)], navigation: &str, chat_id: u32, journal: &Path) {
     let context = format!("steps: {steps:?}\nnavigation: {navigation}");
 
     for (name, value) in steps {
@@ -266,16 +267,7 @@ fn assert_outcome(steps: &[(&str, String)], navigation: &str, chat_id: u32, jour
         "a conversation was opened without a chat id. {context}"
     );
 
-    let calls: Vec<String> = std::fs::read_to_string(journal)
-        .unwrap_or_default()
-        .lines()
-        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
-        .filter_map(|call| {
-            call.get("method")
-                .and_then(Value::as_str)
-                .map(ToString::to_string)
-        })
-        .collect();
+    let calls = common::methods(journal);
     assert!(
         calls.iter().any(|name| name == "get_contacts"),
         "the page never asked for contacts: {calls:?}"

@@ -72,6 +72,22 @@ Page {
         anchors.fill: parent
         contentHeight: column.height
 
+        PullDownMenu {
+            enabled: !page.busy
+
+            MenuItem {
+                objectName: "emailLoginMenuItem"
+                text: qsTr("Log in to an email account")
+                onClicked: pageStack.push(Qt.resolvedUrl("EmailLoginPage.qml"), {})
+            }
+
+            MenuItem {
+                objectName: "useLinkMenuItem"
+                text: qsTr("Use an invite or login link")
+                onClicked: linkField.visible = true
+            }
+        }
+
         Column {
             id: column
             width: page.width
@@ -126,21 +142,6 @@ Page {
                 text: qsTr("Agree & Create Profile")
                 enabled: !page.busy && nameField.text.length > 0
                 onClicked: page.beginCreate()
-            }
-
-            Button {
-                objectName: "useLinkButton"
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("Use an invite or login link")
-                visible: !linkField.visible
-                onClicked: linkField.visible = true
-            }
-
-            Button {
-                objectName: "emailLoginButton"
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("Log in to an email account")
-                onClicked: pageStack.push(Qt.resolvedUrl("EmailLoginPage.qml"), {})
             }
         }
 

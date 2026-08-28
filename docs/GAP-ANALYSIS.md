@@ -68,7 +68,4 @@ form of every invite payload already works, so the camera is polish.
    quotes.
 3. Chat list: unread badges, times, context actions, account switcher.
 4. Platform: notifications, background and suspend, cover actions,
-   sailjail, translations, camera QR scanning, and pulley menus. The
-   pulleys are the platform-native place for page actions; they were
-   removed because each one drew a line at the top of the screen, and
-   bringing them back without it needs a device to check against.
+   sailjail, translations, and camera QR scanning.

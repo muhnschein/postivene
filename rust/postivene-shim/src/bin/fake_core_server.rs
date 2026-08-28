@@ -261,7 +261,8 @@ async fn main() {
                 | "marknoticed_chat"
                 | "markseen_msgs"
                 | "set_chat_visibility"
-                | "set_chat_mute_duration" => ok(&id, &Value::Null),
+                | "set_chat_mute_duration"
+                | "resend_messages" => ok(&id, &Value::Null),
                 "add_transport_from_qr" => {
                     let qr = positional(1).as_str().unwrap_or_default().to_string();
                     if should_fail(&qr) {
@@ -385,6 +386,30 @@ async fn main() {
                     &id,
                     &json!("https://i.delta.chat/#ABCDEF&a=me%40example.org&n=Me"),
                 ),
+                "delete_messages" => {
+                    let ids: Vec<u32> = positional(1)
+                        .as_array()
+                        .map(|array| {
+                            array
+                                .iter()
+                                .filter_map(Value::as_u64)
+                                .filter_map(|value| u32::try_from(value).ok())
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    let account = account_id();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    for messages in state.chats.values_mut() {
+                        messages.retain(|msg| !ids.contains(msg));
+                    }
+                    // The core announces a deletion; the model reloads on it.
+                    state.events.push_back(json!({
+                        "contextId": account,
+                        "event": {"kind": "MsgsChanged", "chatId": 0, "msgId": 0},
+                    }));
+                    ok(&id, &Value::Null)
+                }
                 "delete_chat" => {
                     let chat = positional(1)
                         .as_u64()

@@ -117,7 +117,7 @@ const PROBE_QML: &str = r"
 #[test]
 fn the_new_chat_pages_create_chats_and_open_them() {
     let temp = std::env::temp_dir().join(format!("postivene-new-chat-{}", std::process::id()));
-    let journal = temp.join("journal.jsonl");
+    let journal = common::fresh_journal(&temp);
     std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
 
     // SAFETY: single-threaded test binary; set before Qt starts and before

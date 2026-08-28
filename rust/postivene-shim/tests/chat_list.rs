@@ -55,7 +55,7 @@ const PROBE_QML: &str = r"
 #[test]
 fn a_message_moves_one_row_instead_of_rebuilding_the_list() {
     let temp = std::env::temp_dir().join(format!("postivene-chat-list-{}", std::process::id()));
-    let journal = temp.join("journal.jsonl");
+    let journal = common::fresh_journal(&temp);
     std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
 
     // SAFETY: single-threaded test binary; set before Qt starts and before

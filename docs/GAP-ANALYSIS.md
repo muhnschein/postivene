@@ -31,18 +31,13 @@ Day separators come from a section over the local day, which the model
 counts from an offset QML hands it.
 
 The view opens on the newest message and follows arrivals, but only while
-the reader is at the bottom.
+the reader is at the bottom. When they are not, a button says how many
+have arrived and takes them there. A row's context menu replies (the send
+carries the quote), copies, deletes, and offers a failed message again.
 
-What is still missing here:
-
-- **A message context menu**, the way the chat list has one: reply, quote,
-  forward, copy, delete, and resend for a failed message.
-- **Saying that a message arrived while the reader is scrolled up.** Not
-  being yanked down is right; not knowing there is something new is not.
-  A "jump to newest" button over the bottom of the list is the usual
-  answer, and it is worth having whether or not notifications land first.
-- Avatars, voice messages and audio playback, reactions, drafts, an unread
-  divider, paging for long histories, and sending attachments.
+What is still missing here: forwarding, avatars, voice messages and audio
+playback, reactions, drafts, an unread divider, paging for long histories,
+and sending attachments.
 
 ## The chat list
 
@@ -90,7 +85,6 @@ form of every invite payload already works, so the camera is polish.
    sailjail, translations, and camera QR scanning. Messages arrive only
    while the app is open and awake, which is what stops this being usable
    as one's actual client.
-2. Message actions: a context menu, and a way to know a message arrived
-   while reading further up.
-3. Accounts: the switcher, and the rest of the chat list -- search,
+2. Accounts: the switcher, and the rest of the chat list -- search,
    archived chats, contact requests.
+3. Forwarding, which needs a chat picker the app does not have yet.

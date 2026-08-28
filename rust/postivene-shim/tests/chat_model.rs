@@ -51,7 +51,7 @@ const PROBE_QML: &str = r"
 #[test]
 fn each_chat_has_its_own_model_and_loads_in_one_batch() {
     let temp = std::env::temp_dir().join(format!("postivene-chat-model-{}", std::process::id()));
-    let journal = temp.join("journal.jsonl");
+    let journal = common::fresh_journal(&temp);
     std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
 
     // SAFETY: single-threaded test binary; set before Qt starts and before

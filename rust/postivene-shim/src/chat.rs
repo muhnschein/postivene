@@ -63,8 +63,19 @@ pub struct ChatMessages {
     pub handle_event:
         qt_method!(fn(&mut self, context_id: u32, kind: QString, payload_json: QString)),
 
+    /// The message the next send replies to, 0 for none. The page sets it
+    /// when the reader picks Reply and shows what is being replied to;
+    /// sending clears it.
+    pub quoted_message_id: qt_property!(u32; NOTIFY quote_changed),
+    /// Emitted when `quoted_message_id` changes.
+    pub quote_changed: qt_signal!(),
+
     /// Send a plain-text message to this chat.
     pub send: qt_method!(fn(&mut self, text: QString)),
+    /// Delete a message on this device.
+    pub delete_message: qt_method!(fn(&mut self, message_id: u32)),
+    /// Try a failed message again.
+    pub resend_message: qt_method!(fn(&mut self, message_id: u32)),
     /// A message of ours reached the core and is in `rows`.
     pub sent: qt_signal!(message_id: u32),
 }
@@ -281,10 +292,49 @@ impl ChatMessages {
         });
     }
 
+    /// Delete a message on this device.
+    pub fn delete_message(&mut self, message_id: u32) {
+        self.act("delete_messages", message_id);
+    }
+
+    /// Try a failed message again.
+    pub fn resend_message(&mut self, message_id: u32) {
+        self.act("resend_messages", message_id);
+    }
+
+    /// Call `method` with `(account, [message])`. The core announces what
+    /// it did, and the event brings the rows in line.
+    fn act(&mut self, method: &'static str, message_id: u32) {
+        let account_id = self.account_id;
+        if account_id == 0 || message_id == 0 {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            self.error(QString::from("not started"));
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<(), String>| {
+            if let (Some(this), Err(err)) = (ptr.as_pinned(), result) {
+                this.borrow().error(err.into());
+            }
+        });
+
+        runtime.spawn(async move {
+            let result = rpc
+                .call::<_, ()>(method, (account_id, vec![message_id]))
+                .await
+                .map_err(|err| err.to_string());
+            done(result);
+        });
+    }
+
     /// Send a plain-text message.
     pub fn send(&mut self, text: QString) {
         let (account_id, chat_id) = (self.account_id, self.chat_id);
         let offset = self.utc_offset;
+        let quoted = self.quoted_message_id;
         let Some((rpc, runtime)) = connection() else {
             self.error(QString::from("not started"));
             return;
@@ -315,6 +365,13 @@ impl ChatMessages {
             }
         });
 
+        // Cleared here rather than on the reply: the reader has sent it,
+        // and a second send should not quote the same message again.
+        if quoted != 0 {
+            self.quoted_message_id = 0;
+            self.quote_changed();
+        }
+
         let text = text.to_string();
         runtime.spawn(async move {
             // misc_send_msg params: account, chat, text, file, filename,
@@ -329,7 +386,7 @@ impl ChatMessages {
                         Option::<String>::None,
                         Option::<String>::None,
                         Option::<(f64, f64)>::None,
-                        Option::<u32>::None,
+                        (quoted != 0).then_some(quoted),
                     ),
                 )
                 .await

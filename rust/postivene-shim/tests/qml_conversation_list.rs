@@ -36,6 +36,9 @@ const PROBE_QML: &str = r"
         function append(count) {
             for (var i = 0; i < count; i++) {
                 rows.append({
+                    // 1-based and distinct: with every id 0 an assertion on
+                    // one cannot tell a right answer from a missing role.
+                    message_id: rows.count + 1,
                     text: 'message number ' + rows.count + ', long enough '
                           + 'to take a line of its own in the list',
                     is_outgoing: false, is_info: false, show_padlock: true,
@@ -68,6 +71,10 @@ const PROBE_QML: &str = r"
             return 'ok'
         }
         function raisedSignal() { return raised }
+        function clearRaised() { raised = ''; return 'ok' }
+        // Destroys the delegate the menu belongs to, as a reload or a
+        // reorder does.
+        function removeRow(index) { rows.remove(index); return 'ok' }
         function findIn(node, name) {
             if (!node) { return null }
             if (node.objectName === name) { return node }
@@ -215,10 +222,10 @@ fn a_conversation_opens_at_the_newest_message_and_stays_where_it_is_left() {
         record!("reply", call!("raisedSignal"));
         call!("pickMenu", QString::from("copyItem"));
         record!("copy", call!("raisedSignal"));
-        call!("pickMenu", QString::from("deleteItem"));
-        record!("delete", call!("raisedSignal"));
         call!("pickMenu", QString::from("resendItem"));
         record!("resend", call!("raisedSignal"));
+        // Deferred by the stub, as Silica defers it: read on the next step.
+        call!("pickMenu", QString::from("deleteItem"));
 
         // Scrolled away again, so an arrival is counted rather than shown.
         call!("toTop");
@@ -227,6 +234,7 @@ fn a_conversation_opens_at_the_newest_message_and_stays_where_it_is_left() {
     });
 
     single_shot(Duration::from_secs(6), move || unsafe {
+        record!("delete", call!("raisedSignal"));
         record!("missed", call!("get", QString::from("missedCount")));
 
         call!("jump");
@@ -261,6 +269,19 @@ fn a_conversation_opens_at_the_newest_message_and_stays_where_it_is_left() {
 
     single_shot(Duration::from_secs(9), move || unsafe {
         record!("jumped-mid-flick", call!("ended"));
+
+        // Picked, then the row destroyed before the countdown ends -- which
+        // is what a reload or a reorder does to it. Silica runs the action
+        // on the way out, so it must still name the message that was
+        // picked. Cleared first: a stale value would otherwise read as a
+        // fresh one and the assertion would hold either way.
+        call!("clearRaised");
+        call!("pickMenu", QString::from("deleteItem"));
+        call!("removeRow", 0);
+    });
+
+    single_shot(Duration::from_secs(10), move || unsafe {
+        record!("delete-after-removal", call!("raisedSignal"));
         (*engine_ptr).quit();
     });
 
@@ -329,7 +350,7 @@ fn assert_outcome(steps: &[(&str, String)]) {
     // The reply carries what the page needs to show what is being answered.
     assert_eq!(
         value("reply"),
-        "reply:0:message number 0, long enough to take a line of its own in the list:Ada",
+        "reply:1:message number 0, long enough to take a line of its own in the list:Ada",
         "Reply did not name the message it is replying to. {context}"
     );
     assert!(
@@ -339,13 +360,21 @@ fn assert_outcome(steps: &[(&str, String)]) {
     );
     assert_eq!(
         value("delete"),
-        "delete:0",
+        "delete:1",
         "Delete did not name its message. {context}"
     );
     assert_eq!(
         value("resend"),
-        "resend:0",
+        "resend:1",
         "Send again did not name its message. {context}"
+    );
+
+    assert_eq!(
+        value("delete-after-removal"),
+        "delete:1",
+        "a delete whose row was destroyed mid-countdown did not name the \
+         message that was picked -- read from the delegate as it went, \
+         `model` resolves to nothing and the deletion is dropped. {context}"
     );
 
     assert_eq!(

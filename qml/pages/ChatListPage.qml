@@ -110,10 +110,18 @@ Page {
                 MenuItem {
                     objectName: "deleteItem"
                     text: qsTr("Delete")
-                    onClicked: delegateRoot.remorseAction(qsTr("Deleting"),
-                                                          function() {
-                                                              chats.delete_chat(model.chat_id)
-                                                          })
+                    // The id is taken now, not read inside the callback: a
+                    // message arriving moves this chat up the list, which
+                    // is a remove and an insert, and the row this menu
+                    // belongs to is destroyed. Silica runs the action on
+                    // that destruction, and `model` no longer resolves.
+                    onClicked: {
+                        var doomed = model.chat_id
+                        delegateRoot.remorseAction(qsTr("Deleting"),
+                                                   function() {
+                                                       chats.delete_chat(doomed)
+                                                   })
+                    }
                 }
             }
 

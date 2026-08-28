@@ -30,6 +30,11 @@ const PROBE_QML: &str = r"
         }
         function fail() { chat.send('please fail') }
         function report() { return lastError + '#' + core.status }
+        // A second start after the first server died. It is refused while
+        // the runtime from the first one is still around, which is a silent
+        // no-op rather than an error.
+        function restart() { core.start(rpcServerPath) }
+        function status() { return core.status }
     }
 ";
 
@@ -53,6 +58,10 @@ fn a_core_failure_and_a_dead_server_both_reach_qml() {
     let core_box = QObjectBox::new(DeltaChatCore::default());
     let mut engine = QmlEngine::new();
     engine.set_object_property("core".into(), core_box.pinned());
+    engine.set_property(
+        "rpcServerPath".into(),
+        QString::from(env!("CARGO_BIN_EXE_fake-core-server")).into(),
+    );
 
     core_box
         .pinned()
@@ -84,6 +93,16 @@ fn a_core_failure_and_a_dead_server_both_reach_qml() {
         *after_ptr = QString::from_qvariant(value)
             .map(|text| text.to_string())
             .unwrap_or_default();
+        (*engine_ptr).invoke_method("restart".into(), &[]);
+    });
+
+    let mut after_restart = String::new();
+    let restart_ptr: *mut String = std::ptr::addr_of_mut!(after_restart);
+    single_shot(Duration::from_secs(10), move || unsafe {
+        let value = (*engine_ptr).invoke_method("status".into(), &[]);
+        *restart_ptr = QString::from_qvariant(value)
+            .map(|text| text.to_string())
+            .unwrap_or_default();
         (*engine_ptr).quit();
     });
 
@@ -96,5 +115,13 @@ fn a_core_failure_and_a_dead_server_both_reach_qml() {
     assert_eq!(
         after_death, "could not send#stopped",
         "the server died and `status` went on claiming the core was there"
+    );
+    // The runtime outlives the transport unless it is dropped with it, and
+    // `start` returns early while one is present -- so a restart after the
+    // server dies does nothing at all and says nothing about it.
+    assert_eq!(
+        after_restart, "ready",
+        "starting the core again after it died did not take: the runtime \
+         from the dead one is still in place and `start` refuses to run"
     );
 }

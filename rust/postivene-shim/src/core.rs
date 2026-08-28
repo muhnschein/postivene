@@ -268,6 +268,10 @@ impl DeltaChatCore {
             {
                 let mut this_mut = this.borrow_mut();
                 this_mut.rpc = None;
+                // Dropped for the same reason the failed-spawn path drops
+                // it: `start` refuses to run while a runtime is here, so
+                // leaving one behind makes a later restart a silent no-op.
+                this_mut.runtime = None;
                 this_mut.status = QString::from("stopped");
             }
             this.borrow().status_changed();

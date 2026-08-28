@@ -148,9 +148,15 @@ SilicaListView {
             MenuItem {
                 objectName: "deleteItem"
                 text: qsTr("Delete")
-                onClicked: messageRow.remorseAction(qsTr("Deleting"), function() {
-                    root.deleteRequested(model.message_id)
-                })
+                // Taken now rather than read in the callback: anything that
+                // reloads the model destroys this row, Silica runs the
+                // action as it goes, and `model` is gone by then.
+                onClicked: {
+                    var doomed = model.message_id
+                    messageRow.remorseAction(qsTr("Deleting"), function() {
+                        root.deleteRequested(doomed)
+                    })
+                }
             }
         }
         // Sized by its content, not fixed: a device message runs to a

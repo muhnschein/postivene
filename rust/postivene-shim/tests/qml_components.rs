@@ -155,7 +155,11 @@ fn the_reply_bar_wraps_the_jump_button_is_opaque_and_a_notice_is_quiet() {
             call!("alphaOf", QString::from("jumpDisc"), QString::from("color"))
         );
         record!(
-            "jump-icon",
+            "jump-chevron",
+            call!("get", QString::from("jumpChevron"), QString::from("width"))
+        );
+        record!(
+            "jump-no-icon",
             call!("get", QString::from("jumpIcon"), QString::from("source"))
         );
         record!(
@@ -242,15 +246,24 @@ fn assert_outcome(steps: &[(&str, String)]) {
         "ok",
         "the jump button did not load. {context}"
     );
-    assert_eq!(
-        value("jump-opaque"),
-        "1",
-        "the jump button is see-through, so the messages behind it show. {context}"
+    // Half, deliberately: the theme's own highlight brings transparency of
+    // its own, which is what made it unreadable at first. Compared loosely
+    // because a colour's alpha is stored in eight bits.
+    let alpha: f64 = value("jump-opaque").parse().unwrap_or_default();
+    assert!(
+        (alpha - 0.5).abs() < 0.01,
+        "the jump button's transparency is not the one it was given: {alpha}. {context}"
     );
     assert!(
-        value("jump-icon").contains("icon-m-down"),
-        "the jump button carries no chevron: {}. {context}",
-        value("jump-icon")
+        value("jump-chevron").parse::<f64>().unwrap_or_default() > 0.0,
+        "the jump button has no chevron drawn on it: {}. {context}",
+        value("jump-chevron")
+    );
+    // A themed icon here is itself a disc, which read as two circles.
+    assert_eq!(
+        value("jump-no-icon"),
+        "missing:jumpIcon",
+        "the button is back to a themed icon, which brings a second circle. {context}"
     );
     assert_eq!(
         value("badge-hidden"),

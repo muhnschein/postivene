@@ -54,13 +54,24 @@ SilicaListView {
         interval: 0
         // Checked again here: the reader can scroll away between the
         // arrival that started this and the pass it fires on.
-        onTriggered: if (root.stickToBottom) root.positionViewAtEnd()
+        onTriggered: if (root.following) root.positionViewAtEnd()
     }
+
+    // True between the start and end of a drag or flick. Tracked rather
+    // than read off `moving`, which no test can set.
+    property bool held: false
+
+    // Not while the reader has hold of it. Rows are measured as they come
+    // into view, so a drag upwards grows `contentHeight` on its own, and
+    // following that hauls them straight back down again.
+    readonly property bool following: root.stickToBottom && !root.held
+
+    onMovementStarted: root.held = true
 
     // Both of these, because a row arriving and that row being measured are
     // separate steps: the first moves `count`, the second `contentHeight`.
     onMessageCountChanged: {
-        if (root.stickToBottom) {
+        if (root.following) {
             toEnd.restart()
         } else if (root.messageCount > root.lastCount) {
             // Only arrivals count: deleting a message also moves this.
@@ -68,16 +79,22 @@ SilicaListView {
         }
         root.lastCount = root.messageCount
     }
-    onContentHeightChanged: if (root.stickToBottom) toEnd.restart()
+    onContentHeightChanged: if (root.following) toEnd.restart()
     // Where the reader left off, once they stop moving. `atYEnd` is the
     // view's own answer; the arithmetic version has to know about `originY`
     // and gets it wrong.
     onMovementEnded: {
+        root.held = false
         root.stickToBottom = root.atYEnd
         if (root.atYEnd) {
             root.missedCount = 0
         }
     }
+
+    // Arriving at the newest message, by scrolling or by the button, is
+    // what counts as having read what is there.
+    onStickToBottomChanged: if (root.stickToBottom) root.arrivedAtNewest()
+    signal arrivedAtNewest()
 
     header: PageHeader {
         title: root.title

@@ -24,6 +24,8 @@ Page {
         account_id: page.accountId
         chat_id: page.chatId
         utc_offset: page.utcOffset
+        // What the reader can actually see decides what counts as read.
+        reading_history: !listView.stickToBottom
         onError: page.errorMessage = message
         onSent: textField.text = ""
     }
@@ -75,6 +77,8 @@ Page {
         showSender: messages.is_group
         placeholderText: qsTr("No messages yet")
 
+        // Reaching the newest message is what marks what is there read.
+        onArrivedAtNewest: messages.mark_seen_all()
         onReplyRequested: {
             messages.quoted_message_id = messageId
             page.replyBody = body

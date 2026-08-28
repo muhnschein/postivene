@@ -20,14 +20,48 @@ Item {
         objectName: "jumpDisc"
         anchors.fill: parent
         radius: width / 2
-        // Opaque, taking only the hue: the theme's own highlight is part
-        // transparent, and the messages behind showed through it.
-        color: Theme.rgba(Theme.highlightBackgroundColor, 1.0)
+        // The theme's own highlight carries transparency of its own, which
+        // let the messages through; this sets the amount deliberately.
+        color: Theme.rgba(Theme.highlightBackgroundColor, 0.5)
 
-        Image {
-            objectName: "jumpIcon"
+        // Drawn rather than themed: `icon-m-down` is itself a disc with a
+        // chevron on it, which read as two circles stacked.
+        Item {
+            id: chevron
+            objectName: "jumpChevron"
             anchors.centerIn: parent
-            source: "image://theme/icon-m-down"
+            width: parent.width * 0.42
+            height: width * 0.5
+
+            readonly property real thickness: Math.max(2, disc.width * 0.05)
+            readonly property real stroke:
+                Math.sqrt(width * width / 4 + height * height)
+            readonly property real slope:
+                Math.atan2(height, width / 2) * 180 / Math.PI
+
+            Rectangle {
+                x: 0
+                y: 0
+                width: chevron.stroke
+                height: chevron.thickness
+                radius: height / 2
+                color: Theme.primaryColor
+                antialiasing: true
+                transformOrigin: Item.TopLeft
+                rotation: chevron.slope
+            }
+
+            Rectangle {
+                x: chevron.width
+                y: 0
+                width: chevron.stroke
+                height: chevron.thickness
+                radius: height / 2
+                color: Theme.primaryColor
+                antialiasing: true
+                transformOrigin: Item.TopLeft
+                rotation: 180 - chevron.slope
+            }
         }
 
         MouseArea {

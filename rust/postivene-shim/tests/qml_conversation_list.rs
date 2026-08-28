@@ -50,6 +50,7 @@ const PROBE_QML: &str = r"
         }
 
         property string raised: ''
+        property int arrivals: 0
 
         function load(url) {
             loader.setSource(url, { model: rows, title: 'Ada' })
@@ -63,6 +64,7 @@ const PROBE_QML: &str = r"
             view.copyRequested.connect(function(body) { raised = 'copy:' + body })
             view.deleteRequested.connect(function(id) { raised = 'delete:' + id })
             view.resendRequested.connect(function(id) { raised = 'resend:' + id })
+            view.arrivedAtNewest.connect(function() { arrivals += 1 })
             return 'ok'
         }
         function raisedSignal() { return raised }
@@ -97,6 +99,10 @@ const PROBE_QML: &str = r"
         // Scrolling up into the history, the way a reader would: the view's
         // own call, so it re-anchors rather than being shoved by contentY.
         function toTop() { loader.item.positionViewAtBeginning(); return 'ok' }
+        // Silica raises these around a drag. A row is measured as it comes
+        // into view, so scrolling up grows contentHeight by itself.
+        function beginDrag() { loader.item.movementStarted(); return 'ok' }
+        function arrivedCount() { return '' + arrivals }
         function toBottom() { loader.item.positionViewAtEnd(); return 'ok' }
         function jump() { loader.item.jumpToNewest(); return 'ok' }
         // Silica sends this when a drag or flick settles.
@@ -219,12 +225,27 @@ fn a_conversation_opens_at_the_newest_message_and_stays_where_it_is_left() {
 
     single_shot(Duration::from_secs(6), move || unsafe {
         record!("missed", call!("get", QString::from("missedCount")));
+
         call!("jump");
     });
 
     single_shot(Duration::from_secs(7), move || unsafe {
         record!("jumped", call!("ended"));
         record!("missed-cleared", call!("get", QString::from("missedCount")));
+        record!("arrived", call!("arrivedCount"));
+
+        // Following the newest message, as after opening a chat. The
+        // reader takes hold and drags up into the history.
+        call!("beginDrag");
+        record!("held-follows", call!("get", QString::from("following")));
+        call!("toTop");
+        // A row measured mid-drag, or a message arriving: either moves
+        // `contentHeight`, which is what hauled the reader back down.
+        call!("append", 1);
+    });
+
+    single_shot(Duration::from_secs(8), move || unsafe {
+        record!("held-stayed", call!("ended"));
         (*engine_ptr).quit();
     });
 
@@ -235,6 +256,8 @@ fn a_conversation_opens_at_the_newest_message_and_stays_where_it_is_left() {
 
 /// Opening lands on the newest message; an arrival moves the view only
 /// when the reader is already there.
+// One assertion per thing checked, in the order the steps ran.
+#[allow(clippy::too_many_lines)]
 fn assert_outcome(steps: &[(&str, String)]) {
     let value = |label: &str| {
         steps
@@ -314,6 +337,22 @@ fn assert_outcome(steps: &[(&str, String)]) {
         value("missed"),
         "2",
         "messages arriving out of sight were not counted. {context}"
+    );
+    assert_eq!(
+        value("held-follows"),
+        "false",
+        "the view still follows while the reader has hold of it, which hauls \
+         them back down the moment they scroll up. {context}"
+    );
+    assert_eq!(
+        value("held-stayed"),
+        "false",
+        "the reader was dragged back to the newest message mid-drag. {context}"
+    );
+    assert!(
+        value("arrived").parse::<i32>().unwrap_or_default() >= 1,
+        "reaching the newest message was not announced, so nothing marks it \
+         read. {context}"
     );
     assert_eq!(
         value("jumped"),

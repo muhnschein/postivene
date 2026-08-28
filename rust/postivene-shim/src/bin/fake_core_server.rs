@@ -146,9 +146,9 @@ fn message_object(msg: u64) -> Value {
         "fromId": 10,
         "timestamp": timestamp,
         "showPadlock": true,
-        // One seeded message is unread, so a test can watch the read
-        // receipt go out.
-        "state": if msg == 2 { 10 } else { 16 },
+        // One seeded message is unread, and so is anything added while
+        // the test runs: an arrival is the case worth covering.
+        "state": if msg == 2 || msg > 100 { 10 } else { 16 },
         "isInfo": false,
         "viewType": "Text",
         "sender": {"id": 10, "displayName": "Ada Lovelace", "color": "#00875a"},

@@ -22,8 +22,11 @@ What only a phone can answer. `make check` covers everything else.
   actions. Deleting asks first.
 - The message context menu: reply (the quote shows above the field and in
   the sent message), copy, delete, and Send again on a failed message.
-- The jump-to-newest button: opaque enough to read against messages, and
-  its badge when messages arrive out of sight.
+- The jump-to-newest button: one circle, readable at half transparency,
+  and its badge when messages arrive out of sight.
+- Scrolling up into the history on the first try, and messages arriving
+  while up there keeping their unread badge in the chat list until the
+  reader comes back down.
 - The reply bar wrapping a long quote to three lines, and copying a
   message saying so.
 - Group chats: sender names and colours, and the invite flow for one.

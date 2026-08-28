@@ -58,6 +58,11 @@ tempting precisely because adjacent projects contain the code.
   relay. Building server-side push infrastructure is out of scope.
 - **Multi-protocol / bridging.** No Signal, Matrix, XMPP, or other transport
   in the same app. Single-purpose.
+- **Plain-email chats.** A contact added by address alone cannot be
+  encrypted to, so writing to one sends ordinary mail. Postivene starts
+  chats from invites, and offers no route to the address-only kind. The
+  core still marks a chat's encryption, which the chat list shows, because
+  one can arrive from elsewhere.
 - **Borrowing Whisperfish's cryptographic / Signal stack.** Whisperfish is
   valuable as an *architectural* reference (see §5) but solves a different
   protocol problem; its `libsignal-service-rs` / protocol code is not a

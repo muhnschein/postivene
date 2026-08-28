@@ -31,8 +31,17 @@ pub struct ChatMessages {
     pub account_id: qt_property!(u32; WRITE set_account_id NOTIFY chat_changed),
     /// Which chat. Setting it reloads.
     pub chat_id: qt_property!(u32; WRITE set_chat_id NOTIFY chat_changed),
+    /// Seconds east of UTC, from QML: the day separators group by local
+    /// day and the shim has no timezone of its own.
+    pub utc_offset: qt_property!(i32),
     /// Emitted when the chat this model points at changes.
     pub chat_changed: qt_signal!(),
+
+    /// True for a group, mailing list or broadcast: chats where a message
+    /// needs to say who sent it.
+    pub is_group: qt_property!(bool; NOTIFY is_group_changed),
+    /// Emitted once the chat's kind is known.
+    pub is_group_changed: qt_signal!(),
 
     /// The rows, for a `SilicaListView`'s `model`.
     pub rows: qt_property!(RefCell<MessageListModel>; CONST),
@@ -94,29 +103,38 @@ impl ChatMessages {
             return;
         };
 
+        let offset = self.utc_offset;
         let ptr: QPointer<Self> = QPointer::from(&*self);
-        let done = queued_callback(move |result: Result<Vec<MessageListItem>, String>| {
-            let Some(this) = ptr.as_pinned() else { return };
-            match result {
-                Ok(items) => {
-                    this.borrow_mut().rows.borrow_mut().reset_data(items);
-                    this.borrow().rows_changed();
+        let done = queued_callback(
+            move |result: Result<(bool, Vec<MessageListItem>), String>| {
+                let Some(this) = ptr.as_pinned() else { return };
+                match result {
+                    Ok((is_group, items)) => {
+                        {
+                            let mut this_mut = this.borrow_mut();
+                            this_mut.is_group = is_group;
+                            this_mut.rows.borrow_mut().reset_data(items);
+                        }
+                        this.borrow().is_group_changed();
+                        this.borrow().rows_changed();
+                    }
+                    Err(err) => this.borrow().error(err.into()),
                 }
-                Err(err) => this.borrow().error(err.into()),
-            }
-        });
+            },
+        );
 
         runtime.spawn(async move {
             let result = async {
+                let is_group = chat_is_group(&rpc, account_id, chat_id).await;
                 let ids = message_ids(&rpc, account_id, chat_id).await?;
-                let items = fetch_messages(&rpc, account_id, &ids).await?;
+                let items = fetch_messages(&rpc, account_id, &ids, offset).await?;
                 // Opening a chat means the user has seen it; the chat list
                 // refreshes its unread counts on the resulting MsgsNoticed.
                 let _ = rpc
                     .call::<_, ()>("marknoticed_chat", (account_id, chat_id))
                     .await;
                 mark_seen(&rpc, account_id, &items).await;
-                Ok::<_, String>(items)
+                Ok::<_, String>((is_group, items))
             }
             .await;
             done(result);
@@ -161,6 +179,7 @@ impl ChatMessages {
     /// the messages that are not loaded yet.
     fn sync_rows(&mut self) {
         let (account_id, chat_id) = (self.account_id, self.chat_id);
+        let offset = self.utc_offset;
         let Some((rpc, runtime)) = connection() else {
             return;
         };
@@ -219,7 +238,7 @@ impl ChatMessages {
                     .copied()
                     .filter(|id| !known.contains(id))
                     .collect();
-                let fetched = fetch_messages(&rpc, account_id, &missing).await?;
+                let fetched = fetch_messages(&rpc, account_id, &missing, offset).await?;
                 // The chat is open, so what just arrived has been read.
                 mark_seen(&rpc, account_id, &fetched).await;
                 Ok::<_, String>((ids, fetched))
@@ -232,6 +251,7 @@ impl ChatMessages {
     /// Re-read one message and replace its row.
     fn refresh_one(&mut self, message_id: u32) {
         let account_id = self.account_id;
+        let offset = self.utc_offset;
         let Some(index) = self
             .rows
             .borrow()
@@ -256,7 +276,7 @@ impl ChatMessages {
         });
 
         runtime.spawn(async move {
-            let result = fetch_messages(&rpc, account_id, &[message_id]).await;
+            let result = fetch_messages(&rpc, account_id, &[message_id], offset).await;
             done(result);
         });
     }
@@ -264,6 +284,7 @@ impl ChatMessages {
     /// Send a plain-text message.
     pub fn send(&mut self, text: QString) {
         let (account_id, chat_id) = (self.account_id, self.chat_id);
+        let offset = self.utc_offset;
         let Some((rpc, runtime)) = connection() else {
             self.error(QString::from("not started"));
             return;
@@ -312,7 +333,7 @@ impl ChatMessages {
                     ),
                 )
                 .await
-                .map(|(message_id, message)| row_from(message_id, &message))
+                .map(|(message_id, message)| row_from(message_id, &message, offset))
                 .map_err(|err| err.to_string());
             done(result);
         });
@@ -349,6 +370,7 @@ async fn fetch_messages(
     rpc: &RpcClient,
     account_id: u32,
     ids: &[u32],
+    utc_offset: i32,
 ) -> Result<Vec<MessageListItem>, String> {
     if ids.is_empty() {
         return Ok(Vec::new());
@@ -366,7 +388,7 @@ async fn fetch_messages(
             if message.get("kind").and_then(serde_json::Value::as_str) == Some("loadingError") {
                 return None;
             }
-            Some(row_from(*id, message))
+            Some(row_from(*id, message, utc_offset))
         })
         .collect())
 }
@@ -388,21 +410,50 @@ async fn mark_seen(rpc: &RpcClient, account_id: u32, items: &[MessageListItem]) 
         .await;
 }
 
+/// True for a chat where a message has to say who sent it.
+async fn chat_is_group(rpc: &RpcClient, account_id: u32, chat_id: u32) -> bool {
+    let info: serde_json::Value = match rpc.call("get_basic_chat_info", (account_id, chat_id)).await
+    {
+        Ok(info) => info,
+        Err(_) => return false,
+    };
+    !matches!(
+        info.get("chatType").and_then(serde_json::Value::as_str),
+        Some("Single") | None
+    )
+}
+
+/// Read a string field, empty when absent or null.
+fn text_at(message: &serde_json::Value, pointer: &str) -> QString {
+    message
+        .pointer(pointer)
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_default()
+        .into()
+}
+
 /// One row from the core's message object.
-fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
+fn row_from(message_id: u32, message: &serde_json::Value, utc_offset: i32) -> MessageListItem {
+    let timestamp = message
+        .get("timestamp")
+        .and_then(serde_json::Value::as_i64)
+        .unwrap_or(0);
+    let sender_name = match message
+        .get("overrideSenderName")
+        .and_then(serde_json::Value::as_str)
+    {
+        Some(name) if !name.is_empty() => name.into(),
+        _ => text_at(message, "/sender/displayName"),
+    };
     MessageListItem {
         message_id,
-        text: message
-            .get("text")
-            .and_then(serde_json::Value::as_str)
-            .unwrap_or_default()
-            .into(),
+        text: text_at(message, "/text"),
         // Contact id 1 is the well-known DC_CONTACT_ID_SELF.
         is_outgoing: message.get("fromId").and_then(serde_json::Value::as_u64) == Some(1),
-        timestamp: message
-            .get("timestamp")
-            .and_then(serde_json::Value::as_i64)
-            .unwrap_or(0),
+        timestamp,
+        // Floor division: a message before local midnight belongs to the
+        // day before, and `-1 / 86400` is 0.
+        day_number: (timestamp + i64::from(utc_offset)).div_euclid(86_400),
         show_padlock: message
             .get("showPadlock")
             .and_then(serde_json::Value::as_bool)
@@ -412,5 +463,27 @@ fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
             .and_then(serde_json::Value::as_u64)
             .and_then(|value| u32::try_from(value).ok())
             .unwrap_or(0),
+        sender_name,
+        sender_color: text_at(message, "/sender/color"),
+        is_info: message
+            .get("isInfo")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false),
+        quote_text: text_at(message, "/quote/text"),
+        quote_author: text_at(message, "/quote/authorDisplayName"),
+        file_path: text_at(message, "/file"),
+        file_name: text_at(message, "/fileName"),
+        view_type: text_at(message, "/viewType"),
+        image_width: pixels(message, "dimensionsWidth"),
+        image_height: pixels(message, "dimensionsHeight"),
     }
+}
+
+/// A pixel dimension, 0 when the core has none.
+fn pixels(message: &serde_json::Value, field: &str) -> i32 {
+    message
+        .get(field)
+        .and_then(serde_json::Value::as_i64)
+        .and_then(|value| i32::try_from(value).ok())
+        .unwrap_or(0)
 }

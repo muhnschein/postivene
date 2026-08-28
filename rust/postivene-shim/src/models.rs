@@ -31,12 +31,39 @@ pub struct MessageListItem {
     pub is_outgoing: bool,
     /// Unix timestamp, seconds.
     pub timestamp: i64,
+    /// Days since the epoch in the viewer's timezone, for the day
+    /// separators. A section groups by it, so it need not know the
+    /// timezone itself.
+    pub day_number: i64,
     /// `showPadlock` upstream: correctly encrypted and signed. A mail icon
     /// marks the false case.
     pub show_padlock: bool,
     /// `DC_STATE_*`: outgoing 20 pending, 24 failed, 26 delivered, 28 read;
     /// incoming 10 fresh, 13 noticed, 16 seen.
     pub state: u32,
+    /// Who sent it: `overrideSenderName` if set, else the contact's
+    /// display name.
+    pub sender_name: QString,
+    /// The core's per-contact colour, `#rrggbb`.
+    pub sender_color: QString,
+    /// A core-generated notice ("... joined the group"), not a message
+    /// anyone typed.
+    pub is_info: bool,
+    /// The quoted message's text, empty when nothing is quoted.
+    pub quote_text: QString,
+    /// Who wrote the quoted message.
+    pub quote_author: QString,
+    /// Absolute path to the attachment in the core's blob dir.
+    pub file_path: QString,
+    /// The attachment's name as it should be shown.
+    pub file_name: QString,
+    /// `viewType` upstream: Text, Image, Gif, Sticker, Audio, Voice,
+    /// Video, File, Webxdc, Vcard.
+    pub view_type: QString,
+    /// Attachment pixel size, 0 when not an image.
+    pub image_width: i32,
+    /// Attachment pixel size, 0 when not an image.
+    pub image_height: i32,
 }
 
 /// Conversation model bound to a `SilicaListView` from QML.

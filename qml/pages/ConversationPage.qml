@@ -14,11 +14,16 @@ Page {
     property int chatId
     property string chatName
 
+    // Seconds east of UTC: the model groups messages by local day and has
+    // no timezone of its own.
+    property int utcOffset: -(new Date()).getTimezoneOffset() * 60
+
     ChatMessages {
         id: messages
         objectName: "messages"
         account_id: page.accountId
         chat_id: page.chatId
+        utc_offset: page.utcOffset
         onError: page.errorMessage = message
         onSent: textField.text = ""
     }
@@ -55,39 +60,47 @@ Page {
             title: page.chatName
         }
 
+        // The model counts days in the viewer's timezone, so grouping by
+        // that number is enough to break the list into days.
+        section.property: "day_number"
+        section.delegate: Label {
+            objectName: "dayLabel"
+            width: listView.width
+            horizontalAlignment: Text.AlignHCenter
+            font.pixelSize: Theme.fontSizeExtraSmall
+            color: Theme.secondaryColor
+            // Local midnight of that day, back from the day number.
+            text: Qt.formatDate(new Date((parseInt(section, 10) * 86400
+                                          - page.utcOffset) * 1000),
+                                Qt.DefaultLocaleLongDate)
+        }
+
         delegate: ListItem {
             objectName: "messageRow"
-            // Sized by its text, not fixed: a device message runs to a dozen
-            // wrapped lines, and a fixed row height makes them overlap each
-            // other and the header.
-            contentHeight: Math.max(Theme.itemSizeSmall,
-                                    messageLabel.implicitHeight + 2 * Theme.paddingMedium)
+            // Sized by its content, not fixed: a device message runs to a
+            // dozen wrapped lines, and a fixed row height makes them
+            // overlap each other and the header.
+            contentHeight: body.height
 
-            Label {
-                id: messageLabel
-                objectName: "messageLabel"
-                anchors {
-                    left: parent.left
-                    right: parent.right
-                    verticalCenter: parent.verticalCenter
-                    leftMargin: Theme.horizontalPageMargin
-                    rightMargin: Theme.horizontalPageMargin
-                }
-                // A mail icon marks messages that were not encrypted and
-                // signed. Outgoing messages get a DC_STATE_* suffix.
-                text: (model.show_padlock ? "" : "✉ ") + model.text
-                      + (model.is_outgoing ? " " + stateMark(model.state) : "")
-                wrapMode: Text.Wrap
-                horizontalAlignment: model.is_outgoing ? Text.AlignRight : Text.AlignLeft
-                color: model.is_outgoing ? Theme.highlightColor : Theme.primaryColor
-
-                function stateMark(state) {
-                    if (state === 28) return "✓✓"
-                    if (state === 26) return "✓"
-                    if (state === 24) return "✗"
-                    if (state === 20) return "…"
-                    return ""
-                }
+            MessageDelegate {
+                id: body
+                width: parent.width
+                messageText: model.text
+                isOutgoing: model.is_outgoing
+                isInfo: model.is_info
+                showPadlock: model.show_padlock
+                deliveryState: model.state
+                sentAt: model.timestamp
+                senderName: model.sender_name
+                senderColor: model.sender_color
+                showSender: messages.is_group
+                quoteText: model.quote_text
+                quoteAuthor: model.quote_author
+                filePath: model.file_path
+                fileName: model.file_name
+                viewType: model.view_type
+                imageWidth: model.image_width
+                imageHeight: model.image_height
             }
         }
 

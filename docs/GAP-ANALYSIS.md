@@ -22,10 +22,16 @@ management after creation, contact profile pages, and blocking.
 
 ## The conversation view
 
-One `Label` per message (`ConversationPage.qml`). No sender name, so group
-chats are unreadable. No timestamps, though the model carries them. No day
-markers, avatars, bubbles, images, files, voice, quotes, reactions, message
-actions, drafts, unread divider, or paging.
+Messages are bubbles (`components/MessageDelegate.qml`, loaded and measured
+on its own by `tests/qml_conversation.rs`): sender name and colour in
+groups, time and delivery mark, quoted message, image previews, named
+attachments that open in the system's handler, and core notices set apart.
+Day separators come from a section over the local day, which the model
+counts from an offset QML hands it.
+
+What is still missing here: avatars, voice messages and audio playback,
+reactions, message actions (reply, forward, delete, copy), drafts, an
+unread divider, paging for long histories, and sending attachments.
 
 ## The chat list
 

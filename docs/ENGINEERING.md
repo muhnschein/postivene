@@ -67,7 +67,10 @@ network.
    The stubs imitate no layout, so nothing here says a page *looks* right.
    Silica's `EnterKey` attached property cannot be stubbed — QML forbids
    capitalised property names and `qmetaobject` cannot register attached
-   types — so pages using it cannot be loaded.
+   types — so pages using it cannot be loaded. Put what such a page shows
+   in a component that can be, and lay that component out with bindings
+   rather than a `Column`: a positioner sizes itself in a polish pass,
+   which never runs without a window, so its geometry reads as zero.
 5. **Static QML dialect tests** for the Qt 5.6 rules.
 6. **Real-core integration** (`real_server`, `real_core`), gated on
    `DELTACHAT_RPC_SERVER`, offline.

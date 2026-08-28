@@ -73,7 +73,46 @@ fn wrapping_list_rows_size_to_their_text() {
         .find(|line| line.trim_start().starts_with("contentHeight:"))
         .unwrap_or("");
     assert!(
-        height.contains("messageLabel") || text.contains("messageLabel.implicitHeight"),
-        "the message delegate's contentHeight does not follow its label: {height:?}"
+        height.contains("body.height"),
+        "the message row's contentHeight does not follow the delegate it \
+         holds; what the delegate itself measures is in \
+         tests/qml_conversation.rs: {height:?}"
     );
+}
+
+/// Every `model.<role>` the conversation delegate binds has to be a field
+/// the model actually has: a rename on either side is otherwise a blank
+/// message row that nothing catches.
+#[test]
+fn the_conversation_delegate_binds_only_real_message_roles() {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/pages/ConversationPage.qml");
+    let text = fs::read_to_string(&path).expect("read ConversationPage.qml");
+
+    let roles: Vec<String> =
+        <postivene_shim::MessageListItem as qmetaobject::listmodel::SimpleListItem>::names()
+            .iter()
+            .map(std::string::ToString::to_string)
+            .collect();
+
+    let mut bound = Vec::new();
+    for tail in text.split("model.").skip(1) {
+        let role: String = tail
+            .chars()
+            .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+            .collect();
+        if !role.is_empty() {
+            bound.push(role);
+        }
+    }
+    assert!(
+        !bound.is_empty(),
+        "the delegate binds nothing from the model any more"
+    );
+    for role in &bound {
+        assert!(
+            roles.contains(role),
+            "the delegate binds model.{role}, which MessageListItem does not have: {roles:?}"
+        );
+    }
 }

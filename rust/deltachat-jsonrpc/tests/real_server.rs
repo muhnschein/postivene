@@ -290,6 +290,127 @@ async fn offline_round_trip_against_real_core() {
         .await
         .expect("marknoticed_chat");
 
+    // The message object, as the conversation view consumes it. Saved
+    // Messages is the one chat that sends offline, so it is where a real
+    // message can be made to look at.
+    // A second account, marked configured locally so the core will accept
+    // a send. Nothing leaves the machine: Saved Messages has no recipient.
+    let sender_id: u32 = client
+        .call_unit("add_account")
+        .await
+        .expect("add_account for the message probe");
+    for (key, value) in [
+        ("configured_addr", "self@example.invalid"),
+        ("displayname", "Testy"),
+        ("configured", "1"),
+    ] {
+        client
+            .call::<_, ()>("set_config", (sender_id, key, value))
+            .await
+            .expect("set_config");
+    }
+    let saved: u32 = client
+        .call("create_chat_by_contact_id", (sender_id, 1))
+        .await
+        .expect("create_chat_by_contact_id for self");
+    let (first, _): (u32, Value) = client
+        .call(
+            "misc_send_msg",
+            (
+                sender_id,
+                saved,
+                Some("hello there"),
+                Option::<String>::None,
+                Option::<String>::None,
+                Option::<(f64, f64)>::None,
+                Option::<u32>::None,
+            ),
+        )
+        .await
+        .expect("misc_send_msg");
+    let attachment = std::env::temp_dir().join("postivene-real-server-note.txt");
+    std::fs::write(&attachment, b"hi").expect("write attachment");
+    let (second, _): (u32, Value) = client
+        .call(
+            "misc_send_msg",
+            (
+                sender_id,
+                saved,
+                Some("a reply"),
+                Some(attachment.to_string_lossy().into_owned()),
+                Some("note.txt".to_string()),
+                Option::<(f64, f64)>::None,
+                // Quoting the first message.
+                Some(first),
+            ),
+        )
+        .await
+        .expect("misc_send_msg with a quote and a file");
+    let messages: std::collections::HashMap<u32, Value> = client
+        .call("get_messages", (sender_id, vec![first, second]))
+        .await
+        .expect("get_messages");
+    let reply = &messages[&second];
+    // Every field the message rows are built from.
+    assert_eq!(
+        reply.get("viewType").and_then(Value::as_str),
+        Some("File"),
+        "unexpected message shape: {reply:?}"
+    );
+    assert_eq!(
+        reply.get("fileName").and_then(Value::as_str),
+        Some("note.txt"),
+        "unexpected message shape: {reply:?}"
+    );
+    for field in [
+        "file",
+        "isInfo",
+        "timestamp",
+        "state",
+        "showPadlock",
+        "text",
+    ] {
+        assert!(
+            reply.get(field).is_some(),
+            "message lost the {field} field: {reply:?}"
+        );
+    }
+    assert!(
+        reply.pointer("/sender/displayName").is_some() && reply.pointer("/sender/color").is_some(),
+        "message says nothing about its sender: {reply:?}"
+    );
+    assert_eq!(
+        reply.pointer("/quote/text").and_then(Value::as_str),
+        Some("hello there"),
+        "the quoted message did not come back with the quote: {reply:?}"
+    );
+    assert!(
+        reply.pointer("/quote/authorDisplayName").is_some(),
+        "the quote says nothing about its author: {reply:?}"
+    );
+
+    // Chat kind, which decides whether a message names its sender.
+    let group: u32 = client
+        .call("create_group_chat", (sender_id, "Shape Group", false))
+        .await
+        .expect("create_group_chat");
+    let info: Value = client
+        .call("get_basic_chat_info", (sender_id, group))
+        .await
+        .expect("get_basic_chat_info");
+    assert_eq!(
+        info.get("chatType").and_then(Value::as_str),
+        Some("Group"),
+        "unexpected chat info shape: {info:?}"
+    );
+
+    // Read receipts, as ChatMessages sends them when a chat is opened.
+    client
+        .call::<_, ()>("markseen_msgs", (sender_id, vec![first]))
+        .await
+        .expect("markseen_msgs");
+
+    let _ = std::fs::remove_file(&attachment);
     handle.stop();
     client.shutdown().await.expect("shutdown");
     let _ = std::fs::remove_dir_all(&accounts_dir);

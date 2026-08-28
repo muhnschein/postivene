@@ -259,7 +259,9 @@ async fn main() {
                 | "start_io"
                 | "stop_ongoing_process"
                 | "marknoticed_chat"
-                | "markseen_msgs" => ok(&id, &Value::Null),
+                | "markseen_msgs"
+                | "set_chat_visibility"
+                | "set_chat_mute_duration" => ok(&id, &Value::Null),
                 "add_transport_from_qr" => {
                     let qr = positional(1).as_str().unwrap_or_default().to_string();
                     if should_fail(&qr) {
@@ -383,6 +385,17 @@ async fn main() {
                     &id,
                     &json!("https://i.delta.chat/#ABCDEF&a=me%40example.org&n=Me"),
                 ),
+                "delete_chat" => {
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    state.chats.remove(&chat);
+                    state.chat_order.retain(|id| *id != chat);
+                    ok(&id, &Value::Null)
+                }
                 "get_basic_chat_info" => {
                     let chat = positional(1).as_u64().unwrap_or_default();
                     // Chat 2 is the group, so a test has both kinds.

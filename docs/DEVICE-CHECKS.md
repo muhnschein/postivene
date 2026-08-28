@@ -18,6 +18,8 @@ What only a phone can answer. `make check` covers everything else.
   install or a second profile.
 - Reopening a chat lands on the newest message, and a message arriving
   while you are reading history leaves you where you are.
+- Chat list rows: badge, time, avatar, and the context menu's five
+  actions. Deleting asks first.
 - Group chats: sender names and colours, and the invite flow for one.
 - Quoted messages, and attachments other than images.
 - Orientation changes, and the cover.

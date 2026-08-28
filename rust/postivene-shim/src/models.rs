@@ -3,6 +3,9 @@ use qmetaobject::QString;
 
 /// One chat-list row from `get_chatlist_items_by_entries`. Carries only the
 /// fields the UI uses; upstream's has ~20 more.
+// Each flag is a role QML reads by name, so they cannot be folded into
+// one field.
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Default, Clone, PartialEq, qmetaobject::SimpleListItem)]
 pub struct ChatListItem {
     /// The core's chat id.
@@ -11,10 +14,27 @@ pub struct ChatListItem {
     pub name: QString,
     /// Last-message preview (`summaryText2` upstream).
     pub preview: QString,
+    /// Who wrote the last message (`summaryText1`), for a group's preview.
+    pub preview_sender: QString,
     /// Fresh (unseen) message count, for the badge.
     pub unread_count: u32,
+    /// When the last message landed. Unix seconds; the core sends
+    /// milliseconds.
+    pub last_updated: i64,
+    /// `DC_STATE_*` of the last message, for a tick on one we sent.
+    pub summary_state: u32,
     /// `isEncrypted` upstream. Unencrypted chats get a mail icon.
     pub is_encrypted: bool,
+    /// Kept at the top of the list.
+    pub is_pinned: bool,
+    /// No notifications, and the badge is muted with it.
+    pub is_muted: bool,
+    /// A chat from someone not yet accepted.
+    pub is_contact_request: bool,
+    /// The core's per-chat colour, `#rrggbb`, for the avatar.
+    pub color: QString,
+    /// Path to the chat's picture, empty when it has none.
+    pub avatar_path: QString,
 }
 
 /// Chat-list model bound to a `SilicaListView` from QML.

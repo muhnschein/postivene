@@ -404,6 +404,53 @@ async fn offline_round_trip_against_real_core() {
         "unexpected chat info shape: {info:?}"
     );
 
+    // The chat-list row, as the list consumes it. Every field a row shows
+    // has to be there and spelled the way the core spells it.
+    let saved_items: std::collections::HashMap<u32, Value> = client
+        .call("get_chatlist_items_by_entries", (sender_id, vec![saved]))
+        .await
+        .expect("get_chatlist_items_by_entries for the saved chat");
+    let row = &saved_items[&saved];
+    for field in [
+        "freshMessageCounter",
+        "lastUpdated",
+        "summaryText1",
+        "summaryText2",
+        "summaryStatus",
+        "isPinned",
+        "isMuted",
+        "isContactRequest",
+        "color",
+        "avatarPath",
+    ] {
+        assert!(
+            row.get(field).is_some(),
+            "the chat list row lost the {field} field: {row:?}"
+        );
+    }
+
+    // What the row's context menu does. Visibility is one method with the
+    // core's own variant names, and muting takes a tagged duration.
+    for visibility in ["Pinned", "Archived", "Normal"] {
+        client
+            .call::<_, ()>("set_chat_visibility", (sender_id, group, visibility))
+            .await
+            .unwrap_or_else(|err| panic!("set_chat_visibility {visibility}: {err}"));
+    }
+    for kind in ["Forever", "NotMuted"] {
+        client
+            .call::<_, ()>(
+                "set_chat_mute_duration",
+                (sender_id, group, serde_json::json!({"kind": kind})),
+            )
+            .await
+            .unwrap_or_else(|err| panic!("set_chat_mute_duration {kind}: {err}"));
+    }
+    client
+        .call::<_, ()>("delete_chat", (sender_id, group))
+        .await
+        .expect("delete_chat");
+
     // Read receipts, as ChatMessages sends them when a chat is opened.
     client
         .call::<_, ()>("markseen_msgs", (sender_id, vec![first]))

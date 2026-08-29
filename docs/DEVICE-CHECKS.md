@@ -2,6 +2,8 @@
 
 What only a phone can answer. `make check` covers everything else.
 
+Walked in full on a device, 2026-08-29.
+
 ## Confirmed
 
 - Sending: a message lands once, gets its delivery tick.
@@ -10,12 +12,8 @@ What only a phone can answer. `make check` covers everything else.
   image attachment sizing.
 - Read receipts reach the other client.
 - Killing `deltachat-rpc-server` puts the banner on screen, and it stays.
-
-## Pending
-
 - **Onboarding pulley menu** (`CreateProfilePage`): email login and invite
-  link. Only reachable before an account exists, so it needs a fresh
-  install or a second profile.
+  link.
 - Reopening a chat lands on the newest message, and a message arriving
   while you are reading history leaves you where you are.
 - Chat list rows: badge, time, avatar, and the context menu's five
@@ -32,5 +30,14 @@ What only a phone can answer. `make check` covers everything else.
 - Group chats: sender names and colours, and the invite flow for one.
 - Quoted messages, and attachments other than images.
 - Orientation changes, and the cover.
-- Long histories: the list has no paging yet.
-- Everything in `GAP-ANALYSIS.md` under Platform integration.
+
+## Not yet checkable
+
+Nothing above is outstanding. What is left here waits on features that do
+not exist yet rather than on a phone:
+
+- Long histories. The list has no paging (`GAP-ANALYSIS.md`), so there is
+  nothing to walk into.
+- Everything in `GAP-ANALYSIS.md` under Platform integration --
+  notifications, background service, suspend handling. None of it is
+  built, so none of it can be confirmed or denied on a device.

@@ -20,7 +20,8 @@ unfinished.
 - [x] Both ARM binaries pass the integration suite under `qemu-user`. That
       does not prove behaviour against Sailfish's kernel, but static musl
       binaries use a conservative syscall ABI.
-- [ ] Run on real Sailfish hardware or the SDK emulator.
+- [x] Runs on real Sailfish hardware. The emulator is still unused;
+      `docs/DEVICE-CHECKS.md` records what has been seen on a phone.
 
 ## 2. Headless RPC shim
 
@@ -32,7 +33,8 @@ unfinished.
 - [x] The async round trip proven under a real offscreen Qt event loop
       (`tests/smoke.rs`): a `qt_method` spawns work on a background runtime
       and the result returns through `queued_callback` on the Qt thread.
-- [ ] Validated inside a Sailfish harness or emulator.
+- [x] Validated on a device: every behaviour in `docs/DEVICE-CHECKS.md`
+      has now been walked there.
 
 ## 3. Minimal UI
 
@@ -69,8 +71,12 @@ unfinished.
       `configure_progress` signal. `WelcomePage`, `CreateProfilePage` and
       `EmailLoginPage` replace the address-and-password `SetupPage`.
       Both create paths reuse an existing unconfigured account.
-- [ ] Camera QR scanning and `secure_join`. Pasted invite links already
-      work.
+- [x] `secure_join`: a pasted `https://i.delta.chat/...` invite is
+      classified by the core and followed, in both directions
+      (`docs/GAP-ANALYSIS.md`).
+- [ ] Reading an invite off the camera, and showing one's own as a QR
+      image. The link form of every payload already works, so this is
+      polish rather than a missing capability.
 - [ ] Add as second device; restore from backup.
 
 ## 6. Packaging & release
@@ -94,16 +100,28 @@ unfinished.
 - [x] A device RPM exists: `postivene-0.1.0-1.aarch64.rpm`, aarch64 ELF
       linked against the target's Qt 5.6.3, with a bundled server that still
       passes the integration suite under `qemu-aarch64`.
-- [ ] `armv7hl` build.
-- [ ] An unrestricted-network `sfdk`/OBS build exercising real
-      `BuildRequires` resolution.
+- [x] `.github/workflows/rpm.yml` builds that package unattended on a
+      GitHub runner from the same Platform SDK image, in about six
+      minutes. Dispatch it with an arch and an SDK version, or push a
+      `v*` tag. What a container run needs that a chroot run does not is
+      in `docs/SDK-BUILD.md`.
+- [x] Real `BuildRequires` resolution against zypper. A runner reaches
+      the Jolla repositories, so `mb2` installs `rust`, `cargo` and
+      `rust-std-static` into the target itself, and none of the
+      hand-reconstructed rustlib in `docs/SDK-BUILD.md` is needed there.
+- [ ] `armv7hl` build. The workflow takes it as an input; nobody has run
+      it.
+- [ ] An `sfdk` or OBS build specifically. The CI path drives `mb2`
+      directly, which is not the tooling OBS runs.
 - [ ] Chum/OpenRepos submission.
 
 ## Sailfish OS 5.2 readiness
 
-No public 5.2 SDK build target exists yet, so device RPMs are built against
-a 5.0 target. Sailfish keeps binary compatibility across such point
-releases, but that is untested here. Sailfish's Rust is 1.75.0 and its Qt is
+No public 5.2 SDK build target exists yet. CI builds against 4.6.0.13 by
+default and takes `sfos_version` to select another; build against the
+oldest release worth supporting, since a binary from a newer SDK can call
+symbols an older phone does not have. Sailfish keeps binary compatibility
+across point releases, but that is untested here. Sailfish's Rust is 1.75.0 and its Qt is
 5.6.3; `qttypes` requires Qt >= 5.6.
 
 ## Verification
@@ -124,6 +142,8 @@ or network. See `docs/ENGINEERING.md`.
 ## Environment constraint
 
 No Sailfish SDK, emulator or OBS access in the environment this is
-developed in. Anything requiring them is left unchecked above rather than
-assumed. A device has since been available for some of it: what has
-actually been seen on a phone is listed in `docs/DEVICE-CHECKS.md`.
+developed in. CI has an SDK (`.github/workflows/rpm.yml`), which is where
+device packages come from; anything still needing an emulator or OBS is
+left unchecked above rather than assumed. A device has been available, and
+`docs/DEVICE-CHECKS.md` -- what has actually been seen on a phone -- is now
+walked in full.

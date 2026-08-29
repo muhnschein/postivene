@@ -77,12 +77,15 @@ jobs:
           echo "SDK builds as uid=$uid gid=$gid"
           sudo chown -R "$uid:$gid" "$PWD"
 
+      # Mounted under the project's own name and given the spec outright:
+      # mb2 works out which package it is building from the directory it is
+      # in, so a tree mounted at /share had it looking for rpm/share.spec.
       - name: Build the RPM
         run: |
           docker run --rm --privileged \
-            -v "$PWD:/share" -w /share \
+            -v "$PWD:/build/postivene" -w /build/postivene \
             coderus/sailfishos-platform-sdk:$SFOS \
-            /bin/bash -c "mb2 -t $TARGET build"
+            /bin/bash -c "mb2 -t $TARGET -s rpm/postivene.spec build"
 
       # Back to the runner, or the upload cannot read what was built.
       - name: Take the tree back

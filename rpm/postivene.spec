@@ -47,10 +47,10 @@ Requires:   sailfish-version >= 4.5.0
 # the v3 lockfile format because Cargo only learned to read v4 in 1.78.
 # `rust-std-static` is the virtual provide of the native std library; the
 # *cross* std for the target triple comes from
-# rust-std-static-%{rusttarget}, which the SDK target normally already has.
+# rust-std-static-%%{rusttarget}, which the SDK target normally already has.
 # If a build fails with "can't find crate for `std`", install it into the
 # tooling, the way Whisperfish's build docs describe:
-#   sfdk tools exec <tooling> zypper in rust-std-static-%{rusttarget}
+#   sfdk tools exec <tooling> zypper in rust-std-static-%%{rusttarget}
 BuildRequires:  rust >= 1.75
 BuildRequires:  rust-std-static >= 1.75
 BuildRequires:  cargo >= 1.75
@@ -88,7 +88,7 @@ BuildRequires:  pkgconfig(Qt5Quick)
 %endif
 
 # Where cargo leaves the binary. Under sb2, SB2_RUST_TARGET_TRIPLE (see
-# %build) makes it write to target/<triple>/release; a native build -- an
+# %%build) makes it write to target/<triple>/release; a native build -- an
 # OBS worker that is not cross-compiling -- gets plain target/release.
 # Both are checked at install time rather than guessed here.
 %define builddir rust/target/%{rusttarget}/release
@@ -185,14 +185,14 @@ install -Dm 755 "$builddir/postivene" \
 
 # Bundled deltachat-rpc-server: see vendor/deltachat-rpc-server/ and
 # scripts/fetch-rpc-server.sh. Installed under a private libexec dir rather
-# than %{_bindir} so it can't be picked up as a generic system
+# than %%{_bindir} so it can't be picked up as a generic system
 # "deltachat-rpc-server" by anything else that happens to look for one on
 # PATH -- postivene-app defaults to this exact path.
 #
-# %{_target_cpu}, *not* %{_arch}: rpm canonicalises every armv7h* target to
+# %%{_target_cpu}, *not* %%{_arch}: rpm canonicalises every armv7h* target to
 # the arch name "arm" (rpm's installplatform: `armv7h*) CANONARCH=arm`), so
-# %{_arch} would look for vendor/deltachat-rpc-server/arm/ while
-# scripts/fetch-rpc-server.sh writes armv7hl/. %{_target_cpu} keeps the
+# %%{_arch} would look for vendor/deltachat-rpc-server/arm/ while
+# scripts/fetch-rpc-server.sh writes armv7hl/. %%{_target_cpu} keeps the
 # Sailfish arch names (armv7hl, aarch64, x86_64) that the script uses.
 %if 0%{?bundle_rpc_server}
 install -Dm 755 vendor/deltachat-rpc-server/%{_target_cpu}/deltachat-rpc-server \

@@ -66,34 +66,36 @@ jobs:
           echo "Building against $target"
           echo "TARGET=$target" >> "$GITHUB_ENV"
 
-      # mb2 shells out to sudo -- to prepare the spec, and to zypper the
-      # BuildRequires into the target -- and as the image's default user
-      # sudo dies in PAM before it gets anywhere ("cannot retrieve
-      # authentication info"), taking .mb2/spec with it. So the build runs
-      # as root, which needs no sudo password.
-      #
-      # HOME has to come along: sb2 registers its targets under the build
-      # user's ~/.scratchbox2, and root's own HOME would leave sb2 saying
-      # the target does not exist (docs/SDK-BUILD.md hit exactly this).
-      # Both it and the uid are read from the image rather than assumed.
-      - name: Learn how the SDK image runs
+      # Running as root is explicitly wrong -- sdk-manage refuses, saying
+      # it cannot determine the Mer SDK user -- so the build stays as the
+      # image's own mersdk, which is where the tree has to belong too.
+      - name: Hand the checkout to the SDK's build user
         run: |
           img=coderus/sailfishos-platform-sdk:$SFOS
-          echo "--- as the image's default user ---"
-          docker run --rm "$img" sh -c '
-            id; echo "HOME=$HOME"; ls -l "$(command -v sudo)"
-            sudo -n true && echo "sudo: ok" || echo "sudo: refused"'
-          echo "--- as root ---"
-          docker run --rm --user root "$img" sh -c '
-            id; echo "HOME=$HOME"
-            sudo -n true && echo "sudo: ok" || echo "sudo: refused"'
-
           uid=$(docker run --rm "$img" id -u)
           gid=$(docker run --rm "$img" id -g)
-          echo "SDK_HOME=$(docker run --rm "$img" sh -c 'echo $HOME')" >> "$GITHUB_ENV"
-          # Still handed over: mb2 may drop back to this user for parts of
-          # the build, and it could not create .mb2 in a runner-owned tree.
+          echo "SDK builds as uid=$uid gid=$gid"
           sudo chown -R "$uid:$gid" "$PWD"
+
+      # As mersdk `sudo -n true` succeeds, yet the sudo mb2 runs while
+      # initialising the build target snapshot dies in PAM. Whatever the
+      # difference is, mb2's own help is the place it is written down, and
+      # this asks under exactly the flags the build runs with rather than
+      # in a bare container where the answer already came out different.
+      - name: Ask mb2 and sudo what they can do here
+        run: |
+          docker run --rm --privileged \
+            -v "$PWD:/build/postivene" -w /build/postivene \
+            coderus/sailfishos-platform-sdk:$SFOS /bin/bash -c '
+              id
+              echo "--- sudo -n true ---"
+              sudo -n true && echo ok || echo "rc=$?"
+              echo "--- sudo -n -l ---"
+              sudo -n -l 2>&1 | tail -20
+              echo "--- sudo -n sdk-manage ---"
+              sudo -n /usr/bin/sdk-manage --help 2>&1 | head -5
+              echo "--- mb2 --help ---"
+              mb2 --help 2>&1 | head -90' || true
 
       # `-X` (--no-fix-version) is not optional here. Without it mb2 asks
       # `git describe` for a package version, finds no tags in this
@@ -104,12 +106,10 @@ jobs:
       # Deliberately *not* passing that document's `-n` / `--nodeps`:
       # those are its offline workaround. A runner can reach the Jolla
       # repositories, so let mb2 zypper-install rust, cargo and
-      # rust-std-static into the target the way it is meant to, rather
-      # than having them reconstructed by hand.
+      # rust-std-static into the target the way it is meant to.
       - name: Build the RPM
         run: |
-          docker run --rm --privileged --user root \
-            -e HOME="$SDK_HOME" \
+          docker run --rm --privileged \
             -v "$PWD:/build/postivene" -w /build/postivene \
             coderus/sailfishos-platform-sdk:$SFOS \
             mb2 -t "$TARGET" -X build --no-check

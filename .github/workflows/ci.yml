@@ -87,7 +87,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update
-      - run: sudo apt-get install -y qtdeclarative5-dev-tools qml-module-qtgraphicaleffects rpm desktop-file-utils shellcheck
+      - run: sudo apt-get install -y qtdeclarative5-dev-tools qttools5-dev-tools qml-module-qtgraphicaleffects rpm desktop-file-utils shellcheck
       - run: ./ci/qml-lint.sh
       - run: ./ci/packaging-lint.sh
 

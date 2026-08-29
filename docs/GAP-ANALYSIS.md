@@ -119,9 +119,14 @@ form of every invite payload already works, so the camera is polish.
    stays dead is worse than one that was never there, because nobody is
    watching the screen to see the banner.
 2. Camera QR scanning, and showing one's own invite as a QR image.
-3. Translations: `qsTr()` is used throughout with no `.ts` catalogs, and
-   loading one needs a `QTranslator` that qmetaobject 0.2.10 does not
-   bind.
+3. **Loading a translation.** `translations/postivene.ts` now exists and
+   `ci/packaging-lint.sh` fails if it drifts from the `qsTr()` calls, so
+   the catalog is real and reviewable. Nothing loads it yet: that needs a
+   `QTranslator`, which qmetaobject 0.2.10 does not bind, so it means a
+   `cpp!` block and an `unsafe` exception to a workspace lint the tree
+   otherwise holds to -- plus C++ build machinery in a second crate, in a
+   build environment `SDK-BUILD.md` already documents as fragile. Worth
+   deciding deliberately rather than in passing.
 4. Group member management after creation, contact profile pages, and
    blocking a contact outside a request.
 5. Avatars on message bubbles, voice messages, reactions, drafts, an

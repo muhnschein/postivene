@@ -91,7 +91,8 @@ jobs:
       - run: ./ci/qml-lint.sh
       - run: ./ci/packaging-lint.sh
 
-  # Licences matter here: we ship beside a GPL-family binary
+  # Licences matter here: Postivene is GPLv3+ and ships beside an MPL-2.0
+  # core binary, so an incompatible dependency is a distribution problem
   # (docs/LICENSING.md).
   deny:
     runs-on: ubuntu-latest

@@ -130,9 +130,19 @@ of Sailfish OS 5.2 build targets.
 
 ## License
 
-MPL-2.0, matching the upstream Delta Chat core. See [`LICENSE`](LICENSE)
-and [`docs/LICENSING.md`](docs/LICENSING.md) for the reasoning and the
-obligations that come with bundling `deltachat-rpc-server`.
+GPL-3.0-or-later, matching Delta Chat's own Android client. See
+[`LICENSE`](LICENSE) and [`docs/LICENSING.md`](docs/LICENSING.md) for the
+reasoning, the compatibility analysis, and the obligations that come with
+bundling `deltachat-rpc-server` -- which stays under its own MPL-2.0 terms:
+Postivene spawns it as a subprocess and never vendors its source.
+
+    Copyright (C) 2026 Postivene contributors
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version. It is distributed WITHOUT ANY
+    WARRANTY; see the GNU General Public License for details.
 
 ## Non-goals
 

@@ -159,11 +159,17 @@ Key decisions:
 
 ## 8. Licensing
 
-The Delta Chat core is copyleft (GPL-family). Linking against it and
-bundling `deltachat-rpc-server` has license implications for the combined
-work; Postivene should adopt a compatible license and confirm obligations
-before distribution. This should be settled before the first public release,
-not after.
+Settled: Postivene is **GPL-3.0-or-later**, matching Delta Chat's own
+Android client. The Delta Chat core is **MPL-2.0** (not GPL, as an earlier
+draft of this section assumed), and Postivene neither links it nor vendors
+its source -- it spawns `deltachat-rpc-server` and talks JSON-RPC to it, so
+the two are separate works that the RPM merely aggregates. Bundling that
+binary still carries MPL-2.0 §3.2(a)'s source-availability obligation,
+discharged by `vendor/deltachat-rpc-server/SOURCE.md`.
+
+See [`LICENSING.md`](LICENSING.md) for the full analysis, including the Qt
+and Sailfish Silica question and what would have to be re-checked if
+anything is ever linked in-process.
 
 ## 9. Open questions
 

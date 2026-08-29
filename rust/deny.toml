@@ -1,6 +1,6 @@
 # cargo-deny policy. The licence half is the one that matters here:
-# Postivene is MPL-2.0 and ships alongside a GPL-family core binary, so a
-# dependency arriving under an incompatible licence is a distribution
+# Postivene is GPL-3.0-or-later and ships alongside an MPL-2.0 core binary,
+# so a dependency arriving under an incompatible licence is a distribution
 # problem rather than a preference (see docs/LICENSING.md).
 
 [advisories]
@@ -9,14 +9,21 @@ yanked = "deny"
 
 [licenses]
 version = 2
-# Permissive licences plus MPL-2.0 (our own). Anything outside this list
-# needs a deliberate review, which is the point of listing them.
+# Permissive licences, plus the two copyleft ones this tree already lives
+# with: GPL-3.0-or-later is Postivene's own (the workspace crates declare
+# it), and MPL-2.0 is what the Delta Chat core is under. Both directions
+# check out -- permissive and MPL-2.0 code may be conveyed as part of a
+# GPLv3 work; see docs/LICENSING.md. Anything outside this list needs a
+# deliberate review, which is the point of listing them. Note what is
+# deliberately absent: GPL-2.0-only and AGPL-3.0 would each be a real
+# problem, and neither can slip in silently.
 allow = [
     "MIT",
     "Apache-2.0",
     "Apache-2.0 WITH LLVM-exception",
     "BSD-2-Clause",
     "BSD-3-Clause",
+    "GPL-3.0-or-later",
     "ISC",
     "MPL-2.0",
     "Unicode-3.0",

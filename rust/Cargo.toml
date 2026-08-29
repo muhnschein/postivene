@@ -8,7 +8,7 @@ members = [
 
 [workspace.package]
 edition = "2021"
-license = "MPL-2.0"
+license = "GPL-3.0-or-later"
 # Sailfish OS ships Rust 1.75.0 (sailfishos/rust). Declaring it here keeps
 # `cargo update` on a newer host from resolving dependencies that no longer
 # build on the toolchain the device target actually has.

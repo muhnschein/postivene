@@ -36,7 +36,7 @@ permissions:
 jobs:
   rpm:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     env:
       ARCH: ${{ inputs.arch || 'aarch64' }}
       SFOS: ${{ inputs.sfos_version || '4.6.0.13' }}
@@ -66,12 +66,79 @@ jobs:
           echo "Building against $target"
           echo "TARGET=$target" >> "$GITHUB_ENV"
 
+      # Running as root is explicitly wrong -- sdk-manage refuses, saying
+      # it cannot determine the Mer SDK user -- so the build stays as the
+      # image's own mersdk, and the tree has to belong to it.
+      - name: Hand the checkout to the SDK's build user
+        run: |
+          img=coderus/sailfishos-platform-sdk:$SFOS
+          uid=$(docker run --rm "$img" id -u)
+          gid=$(docker run --rm "$img" id -g)
+          home=$(docker run --rm "$img" sh -c 'echo $HOME')
+          echo "SDK builds as uid=$uid gid=$gid, HOME=$home"
+          echo "BUILDDIR=$home/postivene" >> "$GITHUB_ENV"
+          sudo chown -R "$uid:$gid" "$PWD"
+
+      # Mounted inside the SDK user's home, and that placement is the
+      # whole fix. rpm runs under scratchbox2, which redirects absolute
+      # paths it does not recognise into the target rootfs -- so with the
+      # tree at /build/postivene, mb2 wrote .mb2/spec (the file is right
+      # there afterwards, 10 KB of it) and rpm then looked for the same
+      # path inside the target and found nothing:
+      #
+      #   error: Unable to open /build/postivene/.mb2/spec: No such file
+      #
+      # A file that exists and cannot be opened is two different roots.
+      # docs/SDK-BUILD.md bind-mounted under /home/mersdk for this
+      # reason. The directory keeps the project's name either way: mb2
+      # derives the package from it, so rpm/postivene.spec is found.
+      #
+      # `build-init` because mb2's help says a build directory is
+      # initialised before it is built in, and `-X` (--no-fix-version)
+      # because otherwise build-init asks `git describe` for a version,
+      # finds no tags here, and stops before writing the spec at all.
+      # `--no-check` matches that document too; the spec has no %check.
+      #
+      # Deliberately *not* passing its `-n` / `--nodeps`: those are its
+      # offline workaround. A runner reaches the Jolla repositories, so
+      # mb2 can zypper-install rust, cargo and rust-std-static into the
+      # target the way it is meant to.
       - name: Build the RPM
         run: |
           docker run --rm --privileged \
-            -v "$PWD:/share" -w /share \
+            -v "$PWD:$BUILDDIR" -w "$BUILDDIR" \
             coderus/sailfishos-platform-sdk:$SFOS \
-            /bin/bash -c "mb2 -t $TARGET build"
+            /bin/bash -c "set -e
+              mb2 -t '$TARGET' -X build-init
+              mb2 -t '$TARGET' -X build-requires || true
+
+              # Build scripts and proc-macros are compiled for the SDK's
+              # own i686 and linked in sb2's *host* mode, where /usr is
+              # the SDK filesystem rather than the target -- so the i686
+              # rustlib has to exist there too, not only where rust was
+              # installed. docs/SDK-BUILD.md names this exact failure.
+              echo '--- rustlib available ---'
+              ls -d /srv/mer/toolings/*/usr/lib/rustlib/* \
+                    /srv/mer/targets/*/usr/lib/rustlib/* 2>/dev/null || true
+              host=i686-unknown-linux-gnu
+              src=\$(ls -d /srv/mer/toolings/*/usr/lib/rustlib/\$host 2>/dev/null | head -1 || true)
+              [ -n \"\$src\" ] || src=\$(ls -d /srv/mer/targets/*/usr/lib/rustlib/\$host 2>/dev/null | head -1 || true)
+              if [ -n \"\$src\" ] && [ ! -d /usr/lib/rustlib/\$host ]; then
+                sudo mkdir -p /usr/lib/rustlib
+                sudo cp -a \"\$src\" /usr/lib/rustlib/
+                echo \"grafted \$src into /usr/lib/rustlib/\"
+              fi
+
+              mb2 -t '$TARGET' -X build --no-check"
+
+      - name: Show mb2's state
+        if: failure()
+        run: ls -la .mb2 2>/dev/null; tail -60 .mb2/*.log 2>/dev/null || true
+
+      # Back to the runner, or the upload cannot read what was built.
+      - name: Take the tree back
+        if: always()
+        run: sudo chown -R "$(id -u):$(id -g)" "$PWD"
 
       - name: Show what was built
         run: |

@@ -21,6 +21,25 @@ else
     echo "packaging-lint: SKIP rpmspec (install rpm)"
 fi
 
+# rpm expands macros inside comments, and the SDK's rpm still does even
+# where a newer host rpm has stopped. `%build` there expands to the whole
+# build preamble, whose first line is `LANG=C`, which rpm then reads as a
+# tag: "error: line 91: Unknown tag: LANG=C". A host rpmspec parses the
+# same file happily, so only a direct check catches it.
+ran=$((ran + 1))
+bare=$(awk '/^[[:space:]]*#/ {
+        stripped = $0
+        gsub(/%%/, "", stripped)
+        if (stripped ~ /%/) printf "%s:%d: %s\n", FILENAME, FNR, $0
+    }' "$root/rpm/postivene.spec")
+if [ -z "$bare" ]; then
+    echo "packaging-lint: spec comments escape their macros"
+else
+    echo "$bare" >&2
+    echo "packaging-lint: FAIL a spec comment has an unescaped % (write %%)" >&2
+    status=1
+fi
+
 if command -v desktop-file-validate >/dev/null 2>&1; then
     ran=$((ran + 1))
     # Sailfish's own keys are not in the freedesktop spec; each expected

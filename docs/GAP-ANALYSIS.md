@@ -93,8 +93,13 @@ What is left here:
 
 ## Platform integration
 
-No notifications, background service, or suspend handling, so messages
-arrive only while the app is open and awake. The cover is a static label.
+A message landing in a chat the reader is not looking at raises a
+notification (`Nemo.Notifications`), and walking into that chat takes
+it down; a muted chat is never announced. There is still no background
+service or suspend handling, so none of that happens unless the app is
+running -- messages arrive only while it is open and awake, which
+remains the thing that stops this being usable as one's actual client.
+The cover is a static label.
 The app declares a sailjail sandbox (`Internet`, and its own data
 directory) in `postivene.desktop`; `Camera` waits for QR scanning.
 `qsTr()` throughout with no `.ts` catalogs.

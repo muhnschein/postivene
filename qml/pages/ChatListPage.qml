@@ -15,6 +15,26 @@ Page {
         onError: page.errorMessage = message
     }
 
+    // Sits here rather than in the root window because this is where the
+    // chat list already lives: the model decides what counts as an
+    // arrival, and the page knows which chat the reader walked into.
+    Notifier {
+        id: notifier
+        objectName: "notifier"
+    }
+
+    Connections {
+        target: chats
+        onMessage_arrived: notifier.arrived(chat_id, chat_name, preview)
+    }
+
+    // Back on the list means no chat is being read.
+    onStatusChanged: {
+        if (status === PageStatus.Active) {
+            notifier.viewingChatId = 0
+        }
+    }
+
     property string errorMessage: ""
     readonly property string coreStoppedMessage:
         qsTr("Lost the connection to the Delta Chat core. Restart Postivene.")
@@ -125,11 +145,16 @@ Page {
                 }
             }
 
-            onClicked: pageStack.push(Qt.resolvedUrl("ConversationPage.qml"), {
-                accountId: page.accountId,
-                chatId: model.chat_id,
-                chatName: model.name
-            })
+            onClicked: {
+                // Told before the push, so a message arriving during the
+                // transition is not announced into the reader's face.
+                notifier.viewingChatId = model.chat_id
+                pageStack.push(Qt.resolvedUrl("ConversationPage.qml"), {
+                    accountId: page.accountId,
+                    chatId: model.chat_id,
+                    chatName: model.name
+                })
+            }
         }
 
         ViewPlaceholder {

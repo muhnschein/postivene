@@ -38,6 +38,16 @@ pub struct ChatList {
     /// Emitted after any change to `rows`.
     pub rows_changed: qt_signal!(),
 
+    /// A message just arrived in this chat, and the row for it now holds
+    /// the sender and text a notification wants.
+    ///
+    /// Only for `IncomingMsg`, and only once the refetch it triggered has
+    /// landed -- announcing on the event itself would carry a preview from
+    /// before the message. A muted chat is never announced: it still
+    /// counts towards the badge, quietly, which is the whole point of
+    /// muting.
+    pub message_arrived: qt_signal!(chat_id: u32, chat_name: QString, preview: QString),
+
     /// Loading failed. The message is the core's own.
     pub error: qt_signal!(message: QString),
 
@@ -119,13 +129,17 @@ impl ChatList {
             self.refresh(Refresh::All);
             return;
         }
-        let scope = payload
+        let chat_id = payload
             .get("chatId")
             .and_then(serde_json::Value::as_u64)
             .and_then(|id| u32::try_from(id).ok())
-            .filter(|id| *id != 0)
-            .map_or(Refresh::All, Refresh::One);
-        self.refresh(scope);
+            .filter(|id| *id != 0);
+        let scope = chat_id.map_or(Refresh::All, Refresh::One);
+        // Worth telling anyone listening about, but only a genuinely new
+        // message: MsgsChanged and friends fire for messages we sent, for
+        // read receipts, and for a chat being pinned.
+        let announce = if kind == "IncomingMsg" { chat_id } else { None };
+        self.refresh_announcing(scope, announce);
     }
 
     /// Mark everything in a chat read.
@@ -198,6 +212,12 @@ impl ChatList {
     /// a rebuild. [`Refresh::All`] refetches the lot, which is what the
     /// core asks for when it reports a change it cannot attribute.
     fn refresh(&mut self, scope: Refresh) {
+        self.refresh_announcing(scope, None);
+    }
+
+    /// [`Self::refresh`], and afterwards say that a message landed in
+    /// `announce` -- once the row for it holds the new preview.
+    fn refresh_announcing(&mut self, scope: Refresh, announce: Option<u32>) {
         let account_id = self.account_id;
         if account_id == 0 {
             return;
@@ -221,6 +241,18 @@ impl ChatList {
                         reconcile(&mut rows, target);
                     }
                     this.borrow().rows_changed();
+                    if let Some(chat_id) = announce {
+                        let announcement = this
+                            .borrow()
+                            .rows
+                            .borrow()
+                            .iter()
+                            .find(|row| row.chat_id == chat_id && !row.is_muted)
+                            .map(|row| (row.name.clone(), row.preview.clone()));
+                        if let Some((name, preview)) = announcement {
+                            this.borrow().message_arrived(chat_id, name, preview);
+                        }
+                    }
                 }
                 Err(err) => this.borrow().error(err.into()),
             }

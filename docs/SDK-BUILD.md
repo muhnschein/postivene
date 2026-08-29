@@ -231,5 +231,63 @@ Verified on the produced package, not just on the build log:
 - `rpm -qlp` shows every file where `qml_dir()` and the rpc-server lookup
   expect it, and the desktop entry's `Exec=postivene` (no `env` wrapper).
 
-Still unproven: running it on a real device or emulator, `BuildRequires`
-resolution against zypper, and the armv7hl build.
+Still unproven at the time of writing: running it on a real device or
+emulator, `BuildRequires` resolution against zypper, and the armv7hl
+build. The next section settles the second of those.
+
+## Third run: on a GitHub runner, unattended (2026-08-29)
+
+`.github/workflows/rpm.yml` now does all of the above on an
+`ubuntu-latest` runner, from a `docker run` of the same image. Run it
+from the Actions tab (arch and SDK version are inputs) or push a `v*`
+tag. It produced `postivene-0.1.0-1.aarch64.rpm` against the
+**4.6.0.13** SDK in six minutes.
+
+This settles one of the open questions above: **`BuildRequires`
+resolution against zypper works**. A runner reaches the Jolla
+repositories, so `mb2` installs `rust`, `cargo` and `rust-std-static`
+into the target itself and none of the hand-reconstruction in the
+previous section is needed. The `-n` / `--nodeps` of the earlier
+invocations are offline workarounds and are deliberately not passed.
+
+Four things were needed that the chroot runs never met, each of which
+cost an attempt:
+
+- **Mount the tree inside the SDK user's home** (`/home/mersdk/<name>`),
+  not somewhere like `/build` or `/share`. rpm runs under scratchbox2,
+  which redirects absolute paths it does not recognise into the target
+  rootfs. With the tree elsewhere, `mb2` writes `.mb2/spec` and rpm then
+  fails to open *the same path*, because the write landed outside and
+  the read went looking inside the target. A file that exists and cannot
+  be opened is the signature of this. The directory must keep the
+  package's name either way: `mb2` derives the package from it.
+- **`mb2 build-init` before `mb2 build`**, as `mb2 --help` prescribes.
+  `build` queries `.mb2/spec` within a second of starting, long before
+  anything writes one.
+- **`-X`**, for the reason given above -- and note it is needed *by
+  `build-init`*. Without it that step gives up at version-fixing and
+  never writes the spec, so `build` fails identically and the flag looks
+  innocent. Each of these two was tried without the other before the
+  combination was.
+- **The i686 rustlib in the SDK's own `/usr/lib/rustlib`**, which is
+  point 3 of the previous section arriving by a different route: mb2
+  installs rust into the *target*, and build-script links resolve `/usr`
+  to the SDK. The workflow copies it across from the tooling.
+
+Not root. `sdk-manage` refuses outright ("Cannot determine Mer SDK
+user") and the target snapshot never initialises. The container's own
+`mersdk` is the build user, so the checkout is `chown`ed to its uid --
+read from the image, not assumed -- and handed back afterwards so the
+artifact upload can read the result.
+
+One spec bug fell out of this that no host build could have found: rpm
+expands macros inside comments, and a comment here mentioned `%build`,
+which on the SDK's older rpm is a macro for the whole build preamble
+whose first line is `LANG=C`. rpm read it as a tag and rejected the
+spec. Host rpm 4.18 leaves comments alone and had parsed the same file
+through an entire successful x86_64 build. `ci/packaging-lint.sh` now
+checks for a bare `%` in a spec comment directly, since `rpmspec` on the
+host cannot.
+
+Still unproven: running it on a real device or emulator, and the
+armv7hl build.

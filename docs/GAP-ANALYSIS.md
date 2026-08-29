@@ -49,31 +49,22 @@ mutes, archives and deletes.
 
 What is still missing here:
 
-- **A real avatar renders square.** The disc behind it is round and the
-  generated initial sits on it correctly, but an `Image` does not take its
-  parent's corner radius, so a chat with a picture reads as a rectangle
-  among circles. Rounding it wants `OpacityMask` from QtGraphicalEffects,
-  or a shader -- `clip` only cuts to the bounding box.
 - An account switcher (the `account_list` model has no UI), search, a way
   back to archived chats, and contact requests -- they show as ordinary
   chats rather than asking to be accepted.
 
-## Starting a conversation: the pages behind "New chat"
+## Starting a conversation: the pages behind "New chat"  *(done)*
 
-`NewChatPage` and `NewGroupPage` predate the chat list's rebuild and look
-it: contacts are a name and an address on a fixed-height row, with the
-page's actions as buttons stacked in the header.
+`NewChatPage` and `NewGroupPage` carry the chat list's row --
+`components/ContactRow.qml` over the same `components/Avatar.qml` the chat
+list uses, so the two cannot drift -- and their actions sit in a pulley
+menu. Rows have no context menu: picking a contact is the only thing to do
+with one.
 
-What is still missing here:
-
-- Both pages should carry the chat list's row: a round avatar in the
-  contact's own colour, and its spacing.
-- Their actions belong in a pulley menu, as on the chat list. No context
-  menu on the rows -- picking a contact is the only thing to do with one.
-- "New Contact" should open the invite page rather than the
-  address-and-name form. Adding an address alone produces a chat that
-  cannot be encrypted; an invite is how a contact is actually added. The
-  entry keeps the name, since that is what the reader is trying to do.
+"New Contact" opens the invite page, since an address alone produces a
+chat that cannot be encrypted and an invite is how a contact is actually
+added. The address form lives on behind that page: the core can also mail
+someone who does not use Delta Chat at all, and that needs an address.
 
 ## Defects in what exists
 

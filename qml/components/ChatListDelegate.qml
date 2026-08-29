@@ -1,5 +1,4 @@
 import QtQuick 2.0
-import QtGraphicalEffects 1.0
 import Sailfish.Silica 1.0
 
 /*
@@ -60,56 +59,14 @@ Item {
     }
 
     // The chat's picture, or its colour with an initial on it.
-    Rectangle {
+    Avatar {
         id: avatar
         objectName: "avatar"
         x: Theme.horizontalPageMargin
         y: Theme.paddingMedium
-        width: Theme.itemSizeSmall
-        height: width
-        radius: width / 2
-        color: root.chatColor.length > 0 ? root.chatColor : Theme.highlightColor
-
-        Label {
-            anchors.centerIn: parent
-            visible: root.avatarPath.length === 0
-            color: Theme.primaryColor
-            font.pixelSize: Theme.fontSizeLarge
-            textFormat: Text.PlainText
-            text: root.chatName.substring(0, 1).toUpperCase()
-        }
-
-        // Drawn through the mask below, never directly: an Image does not
-        // take its parent's corner radius, and `clip` only cuts to the
-        // bounding box, so a picture would read as a square among circles.
-        Image {
-            id: avatarImage
-            objectName: "avatarImage"
-            anchors.fill: parent
-            visible: false
-            fillMode: Image.PreserveAspectCrop
-            asynchronous: true
-            // Encoded; see MessageDelegate.qml.
-            source: root.avatarPath.length > 0
-                    ? Qt.resolvedUrl("file://" + encodeURI(root.avatarPath))
-                    : ""
-        }
-
-        Rectangle {
-            id: avatarMask
-            objectName: "avatarMask"
-            anchors.fill: parent
-            radius: width / 2
-            visible: false
-        }
-
-        OpacityMask {
-            objectName: "avatarMasked"
-            anchors.fill: parent
-            visible: root.avatarPath.length > 0
-            source: avatarImage
-            maskSource: avatarMask
-        }
+        initial: root.chatName
+        ownColor: root.chatColor
+        picturePath: root.avatarPath
     }
 
     Label {

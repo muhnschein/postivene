@@ -61,6 +61,18 @@ Page {
     }
 
     SilicaFlickable {
+        // Kept reachable rather than deleted: an invite is how a Delta
+        // Chat contact is added, but the core can also mail someone who
+        // does not use Delta Chat at all, and that needs an address.
+        PullDownMenu {
+            MenuItem {
+                objectName: "addByAddressButton"
+                text: qsTr("Add by Address")
+                onClicked: pageStack.push(Qt.resolvedUrl("NewContactPage.qml"),
+                                          { accountId: page.accountId })
+            }
+        }
+
         anchors.fill: parent
         contentHeight: column.height
 

@@ -4,9 +4,14 @@ import "../components"
 import Postivene 1.0
 
 /*
- * Pick someone to talk to. Actions first, then known contacts -- the order
- * the reference client uses, because a new user has no contacts yet and the
- * actions are the way they get one.
+ * Pick someone to talk to: known contacts in the list, and the ways to get
+ * a new one in the pulley menu, as on the chat list.
+ *
+ * "New Contact" opens the invite page rather than an address form. An
+ * address alone produces a chat that cannot be encrypted, and an invite is
+ * how a Delta Chat contact is actually added; the address route lives on
+ * behind the invite page for writing to someone who does not use Delta
+ * Chat at all.
  */
 Page {
     id: page
@@ -50,6 +55,24 @@ Page {
         anchors.fill: parent
         model: contacts.rows
 
+        PullDownMenu {
+            MenuItem {
+                objectName: "newGroupButton"
+                text: qsTr("New Group")
+                onClicked: pageStack.push(Qt.resolvedUrl("NewGroupPage.qml"),
+                                          { accountId: page.accountId })
+            }
+            MenuItem {
+                // An address alone produces a chat that cannot be
+                // encrypted, so adding a contact starts from an invite --
+                // which is how a Delta Chat contact is actually added.
+                objectName: "newContactButton"
+                text: qsTr("New Contact")
+                onClicked: pageStack.push(Qt.resolvedUrl("InvitePage.qml"),
+                                          { accountId: page.accountId })
+            }
+        }
+
         header: Column {
             width: page.width
 
@@ -65,30 +88,6 @@ Page {
                 onTextChanged: searchDebounce.restart()
             }
 
-            Button {
-                objectName: "newGroupButton"
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("New Group")
-                onClicked: pageStack.push(Qt.resolvedUrl("NewGroupPage.qml"),
-                                          { accountId: page.accountId })
-            }
-
-            Button {
-                objectName: "inviteButton"
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("Use an Invite Link")
-                onClicked: pageStack.push(Qt.resolvedUrl("InvitePage.qml"),
-                                          { accountId: page.accountId })
-            }
-
-            Button {
-                objectName: "newContactButton"
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("New Contact")
-                onClicked: pageStack.push(Qt.resolvedUrl("NewContactPage.qml"),
-                                          { accountId: page.accountId })
-            }
-
             Banner {
                 objectName: "errorBanner"
                 width: parent.width
@@ -97,37 +96,21 @@ Page {
             }
         }
 
+        // No context menu: picking a contact is the only thing to do
+        // with one here.
         delegate: ListItem {
             objectName: "contactRow"
-            contentHeight: Theme.itemSizeSmall
+            contentHeight: body.height
 
-            Column {
-                anchors {
-                    left: parent.left
-                    right: parent.right
-                    verticalCenter: parent.verticalCenter
-                    leftMargin: Theme.horizontalPageMargin
-                    rightMargin: Theme.horizontalPageMargin
-                }
-
-                Label {
-                    width: parent.width
-                    textFormat: Text.PlainText
-                    // An address contact cannot be written to encrypted, so
-                    // it carries the same letter mark the chat list uses.
-                    text: model.is_key_contact ? model.display_name
-                                               : "✉ " + model.display_name
-                    truncationMode: TruncationMode.Fade
-                }
-
-                Label {
-                    width: parent.width
-                    textFormat: Text.PlainText
-                    text: model.address
-                    font.pixelSize: Theme.fontSizeExtraSmall
-                    color: Theme.secondaryColor
-                    truncationMode: TruncationMode.Fade
-                }
+            ContactRow {
+                id: body
+                width: parent.width
+                displayName: model.display_name
+                address: model.address
+                ownColor: model.color
+                picturePath: model.avatar_path
+                isKeyContact: model.is_key_contact
+                isVerified: model.is_verified
             }
 
             onClicked: contacts.open_chat_with(model.contact_id)
@@ -136,7 +119,7 @@ Page {
         ViewPlaceholder {
             enabled: contacts.count === 0
             text: qsTr("No contacts yet")
-            hintText: qsTr("Add one by address, or share an invite link")
+            hintText: qsTr("Add one with an invite link")
         }
     }
 }

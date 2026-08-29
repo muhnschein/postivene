@@ -77,19 +77,26 @@ jobs:
           echo "SDK builds as uid=$uid gid=$gid"
           sudo chown -R "$uid:$gid" "$PWD"
 
-      # `build-init` first: mb2 keeps its state in a .mb2 directory that
-      # `build` expects to already hold the spec and the target, and its own
-      # help says to initialise the directory before building. Without it,
-      # build failed reading a .mb2/spec that it then wrote a moment later.
-      - name: Build the RPM
+      # TEMPORARY: read mb2 itself rather than keep guessing at it. The
+      # tool is a script in the image; its source says where .mb2/spec comes
+      # from, which four attempts at the outside have not.
+      - name: Read mb2
+        run: |
+          docker run --rm coderus/sailfishos-platform-sdk:$SFOS /bin/bash -c '
+            for f in $(command -v mb2) /usr/share/mb2/* /usr/lib/mb2/*; do
+              [ -f "$f" ] || continue
+              echo "===== $f ====="
+              cat "$f"
+            done' || true
+
+      - name: Trace build-init
         run: |
           docker run --rm --privileged \
             -v "$PWD:/build/postivene" -w /build/postivene \
             coderus/sailfishos-platform-sdk:$SFOS \
-            /bin/bash -c "set -e
-              mb2 -t $TARGET build-init
-              mb2 -t $TARGET build"
-
+            /bin/bash -c "bash -x \$(command -v mb2) -t $TARGET build-init 2>&1 | tail -200
+              echo '===== tree after ====='
+              ls -la .mb2 || true" || true
 
       # Back to the runner, or the upload cannot read what was built.
       - name: Take the tree back

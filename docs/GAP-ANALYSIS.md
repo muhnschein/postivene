@@ -35,7 +35,7 @@ the reader is at the bottom. When they are not, a button says how many
 have arrived and takes them there. A row's context menu replies (the send
 carries the quote), copies, deletes, and offers a failed message again.
 
-What is still missing here: forwarding, avatars, voice messages and audio
+What is still missing here: avatars on bubbles, voice messages and audio
 playback, reactions, drafts, an unread divider, paging for long histories,
 and sending attachments.
 
@@ -49,31 +49,28 @@ mutes, archives and deletes.
 
 What is still missing here:
 
-- **A real avatar renders square.** The disc behind it is round and the
-  generated initial sits on it correctly, but an `Image` does not take its
-  parent's corner radius, so a chat with a picture reads as a rectangle
-  among circles. Rounding it wants `OpacityMask` from QtGraphicalEffects,
-  or a shader -- `clip` only cuts to the bounding box.
-- An account switcher (the `account_list` model has no UI), search, a way
-  back to archived chats, and contact requests -- they show as ordinary
-  chats rather than asking to be accepted.
+The chat list searches (the core matches, so a search finds chats the
+model has never loaded), reaches the archived list as its own page, and
+offers a contact request the only two answers it has -- accept or block --
+rather than showing it as an ordinary chat. `AccountsPage` puts the
+`account_list` model on screen, and appears in the pulley only where there
+is more than one account to choose between.
 
-## Starting a conversation: the pages behind "New chat"
+What is still missing here: group member management after creation,
+contact profile pages, and blocking a contact outside a request.
 
-`NewChatPage` and `NewGroupPage` predate the chat list's rebuild and look
-it: contacts are a name and an address on a fixed-height row, with the
-page's actions as buttons stacked in the header.
+## Starting a conversation: the pages behind "New chat"  *(done)*
 
-What is still missing here:
+`NewChatPage` and `NewGroupPage` carry the chat list's row --
+`components/ContactRow.qml` over the same `components/Avatar.qml` the chat
+list uses, so the two cannot drift -- and their actions sit in a pulley
+menu. Rows have no context menu: picking a contact is the only thing to do
+with one.
 
-- Both pages should carry the chat list's row: a round avatar in the
-  contact's own colour, and its spacing.
-- Their actions belong in a pulley menu, as on the chat list. No context
-  menu on the rows -- picking a contact is the only thing to do with one.
-- "New Contact" should open the invite page rather than the
-  address-and-name form. Adding an address alone produces a chat that
-  cannot be encrypted; an invite is how a contact is actually added. The
-  entry keeps the name, since that is what the reader is trying to do.
+"New Contact" opens the invite page, since an address alone produces a
+chat that cannot be encrypted and an invite is how a contact is actually
+added. The address form lives on behind that page: the core can also mail
+someone who does not use Delta Chat at all, and that needs an address.
 
 ## Defects in what exists
 
@@ -91,16 +88,19 @@ What is left here:
 - Nothing restarts `deltachat-rpc-server` after it dies; the app says so
   and asks for a restart.
 
-Day separators still count the day with the offset in force now, so a
-message from the other side of a daylight-saving change can sit under the
-wrong date. Doing it properly wants the zone rather than an offset, which
-is not something QML hands down.
-
 ## Platform integration
 
-No notifications, background service, or suspend handling, so messages
-arrive only while the app is open and awake. The cover is a static label.
-No sailjail permissions. `qsTr()` throughout with no `.ts` catalogs.
+A message landing in a chat the reader is not looking at raises a
+notification (`Nemo.Notifications`), and walking into that chat takes
+it down; a muted chat is never announced. There is still no background
+service or suspend handling, so none of that happens unless the app is
+running -- messages arrive only while it is open and awake, which
+remains the thing that stops this being usable as one's actual client.
+The cover shows the unread total across every chat and the core's
+state, with a cover action back to the chat list.
+The app declares a sailjail sandbox (`Internet`, and its own data
+directory) in `postivene.desktop`; `Camera` waits for QR scanning.
+`qsTr()` throughout with no `.ts` catalogs.
 Placeholder icons.
 
 ## Onboarding: remaining paths
@@ -110,12 +110,24 @@ form of every invite payload already works, so the camera is polish.
 
 ## Order of work
 
-1. Platform: notifications, background and suspend, cover actions,
-   sailjail, translations, and camera QR scanning. Messages arrive only
-   while the app is open and awake, which is what stops this being usable
-   as one's actual client.
-2. The pages behind "New chat", brought up to the chat list's own look,
-   and the round avatar everywhere.
-3. Accounts: the switcher, and the rest of the chat list -- search,
-   archived chats, contact requests.
-4. Forwarding, which needs a chat picker the app does not have yet.
+1. **A background service, and suspend handling.** Messages arrive only
+   while the app is open and awake, which is the one thing standing
+   between this and a client someone could actually rely on. Notifications
+   exist now but can only fire while the app is running, so they inherit
+   the same limit. Restarting `deltachat-rpc-server` after it dies belongs
+   with this rather than after it: a supervised service that dies and
+   stays dead is worse than one that was never there, because nobody is
+   watching the screen to see the banner.
+2. Camera QR scanning, and showing one's own invite as a QR image.
+3. **Loading a translation.** `translations/postivene.ts` now exists and
+   `ci/packaging-lint.sh` fails if it drifts from the `qsTr()` calls, so
+   the catalog is real and reviewable. Nothing loads it yet: that needs a
+   `QTranslator`, which qmetaobject 0.2.10 does not bind, so it means a
+   `cpp!` block and an `unsafe` exception to a workspace lint the tree
+   otherwise holds to -- plus C++ build machinery in a second crate, in a
+   build environment `SDK-BUILD.md` already documents as fragile. Worth
+   deciding deliberately rather than in passing.
+4. Group member management after creation, contact profile pages, and
+   blocking a contact outside a request.
+5. Avatars on message bubbles, voice messages, reactions, drafts, an
+   unread divider, paging for long histories, and sending attachments.

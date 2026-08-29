@@ -58,6 +58,27 @@ else
     echo "packaging-lint: SKIP desktop-file-validate (install desktop-file-utils)"
 fi
 
+# The catalog is generated from source, so it is only right if it matches
+# what the source currently says. Checked by regenerating into a temporary
+# file rather than by eye: a qsTr() added without a catalog entry is
+# invisible until someone tries to translate the app.
+if command -v lupdate >/dev/null 2>&1 || command -v lupdate-qt5 >/dev/null 2>&1; then
+    ran=$((ran + 1))
+    # The suffix matters: lupdate picks its format from the extension.
+    fresh=$(mktemp --suffix=.ts)
+    cp "$root/translations/postivene.ts" "$fresh"
+    if "$root/scripts/update-translations.sh" "$fresh" >/dev/null 2>&1 &&
+        diff -q "$root/translations/postivene.ts" "$fresh" >/dev/null; then
+        echo "packaging-lint: translations/postivene.ts is up to date"
+    else
+        echo "packaging-lint: FAIL translations/postivene.ts is stale; run scripts/update-translations.sh" >&2
+        status=1
+    fi
+    rm -f "$fresh"
+else
+    echo "packaging-lint: SKIP lupdate (install qttools5-dev-tools)"
+fi
+
 if command -v shellcheck >/dev/null 2>&1; then
     ran=$((ran + 1))
     if shellcheck "$root"/ci/*.sh "$root"/scripts/*.sh; then

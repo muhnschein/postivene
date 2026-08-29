@@ -14,16 +14,11 @@ Page {
     property int chatId
     property string chatName
 
-    // Seconds east of UTC: the model groups messages by local day and has
-    // no timezone of its own.
-    property int utcOffset: -(new Date()).getTimezoneOffset() * 60
-
     ChatMessages {
         id: messages
         objectName: "messages"
         account_id: page.accountId
         chat_id: page.chatId
-        utc_offset: page.utcOffset
         // What the reader can actually see decides what counts as read.
         reading_history: !page.readerIsLooking
         onError: page.errorMessage = message
@@ -92,7 +87,6 @@ Page {
         // than when the view gets round to showing it.
         messageCount: messages.count
         title: page.chatName
-        utcOffset: page.utcOffset
         showSender: messages.is_group
         placeholderText: qsTr("No messages yet")
 
@@ -109,6 +103,17 @@ Page {
         }
         onDeleteRequested: messages.delete_message(messageId)
         onResendRequested: messages.resend_message(messageId)
+        onForwardRequested: {
+            // The picker reports back rather than acting, so the
+            // message id is captured here where it is still valid.
+            var travelling = messageId
+            var picker = pageStack.push(
+                Qt.resolvedUrl("ChatPickerPage.qml"),
+                { accountId: page.accountId })
+            picker.chatPicked.connect(function(chatId) {
+                messages.forward_to(travelling, chatId)
+            })
+        }
     }
 
     // Only up when the reader has scrolled away from the newest message.

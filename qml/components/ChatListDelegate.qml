@@ -59,36 +59,14 @@ Item {
     }
 
     // The chat's picture, or its colour with an initial on it.
-    Rectangle {
+    Avatar {
         id: avatar
         objectName: "avatar"
         x: Theme.horizontalPageMargin
         y: Theme.paddingMedium
-        width: Theme.itemSizeSmall
-        height: width
-        radius: width / 2
-        color: root.chatColor.length > 0 ? root.chatColor : Theme.highlightColor
-
-        Label {
-            anchors.centerIn: parent
-            visible: root.avatarPath.length === 0
-            color: Theme.primaryColor
-            font.pixelSize: Theme.fontSizeLarge
-            textFormat: Text.PlainText
-            text: root.chatName.substring(0, 1).toUpperCase()
-        }
-
-        Image {
-            objectName: "avatarImage"
-            anchors.fill: parent
-            visible: root.avatarPath.length > 0
-            fillMode: Image.PreserveAspectCrop
-            asynchronous: true
-            // Encoded; see MessageDelegate.qml.
-            source: root.avatarPath.length > 0
-                    ? Qt.resolvedUrl("file://" + encodeURI(root.avatarPath))
-                    : ""
-        }
+        initial: root.chatName
+        ownColor: root.chatColor
+        picturePath: root.avatarPath
     }
 
     Label {

@@ -7,3 +7,16 @@ Name=Postivene
 Name[fi]=Postivene
 Comment=Delta Chat client
 Categories=Network;InstantMessaging;
+
+# Sailjail confines the app to $HOME/.local/share/<Org>/<App> (and the
+# .cache and .config equivalents). Without this section a relaxed default
+# profile applies instead, which is what the app ran under until now.
+#
+# Internet is the only permission it needs: everything else the core does
+# happens inside its own account directory. Camera belongs here too once
+# QR scanning lands, and not before -- a permission the app does not use
+# is a sandbox hole for no benefit.
+[X-Sailjail]
+Permissions=Internet
+OrganizationName=postivene
+ApplicationName=postivene

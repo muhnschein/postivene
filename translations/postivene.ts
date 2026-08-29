@@ -1,0 +1,394 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1">
+<context>
+    <name>AccountsPage</name>
+    <message>
+        <source>Accounts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No accounts</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ChatListPage</name>
+    <message>
+        <source>Lost the connection to the Delta Chat core. Restart Postivene.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Archived</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Chats</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Search chats</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Accounts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Archived chats</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New chat</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mark as read</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Unpin</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pin</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Unmute</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mute</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Accept</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Block</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Archive</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Deleting</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No chats yet</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pull down to start one</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ChatPickerPage</name>
+    <message>
+        <source>Forward to</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Search chats</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No chats to forward to</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ConversationList</name>
+    <message>
+        <source>Reply</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Forward</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Send again</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Deleting</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ConversationPage</name>
+    <message>
+        <source>Lost the connection to the Delta Chat core. Restart Postivene.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No messages yet</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Message</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>CoverPage</name>
+    <message>
+        <source>No new messages</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>CreateProfilePage</name>
+    <message>
+        <source>Please enter a name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>That link is not an invite or login code</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Log in to an email account</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use an invite or login link</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Create New Profile</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Your name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invite or login link</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Check Link</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Your address will be created on %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Agree &amp; Create Profile</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>One moment...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>EmailLoginPage</name>
+    <message>
+        <source>Name, address and password are all needed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Log In</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Your name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Email address</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Password</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>One moment...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>InvitePage</name>
+    <message>
+        <source>Chat</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add by Address</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invite</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Follow an invite</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invite link</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Connect</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Your invite</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>NewChatPage</name>
+    <message>
+        <source>Chat</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New Group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New Contact</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New Chat</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Search contacts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No contacts yet</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add one with an invite link</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>NewContactPage</name>
+    <message>
+        <source>That is not an email address</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New Contact</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Email address</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Name (optional)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Messages to an address the app has no key for are sent as plain email. Scan or paste an invite link to chat encrypted.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Start Chat</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>NewGroupPage</name>
+    <message>
+        <source>Please name the group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Create Group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New Group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Group name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No contacts to add yet</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ReplyBar</name>
+    <message>
+        <source>Replying to %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>WelcomePage</name>
+    <message>
+        <source>Postivene</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Secure decentralized chat</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No phone number, no account with us: your profile lives on a mail server of your choosing.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Create New Profile</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>I Already Have a Profile</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+</TS>

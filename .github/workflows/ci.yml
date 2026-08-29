@@ -31,7 +31,7 @@ jobs:
       - run: sudo apt-get update
       # qml-module-qtquick2 is the QtQuick runtime plugin, which the -dev
       # packages do not pull in.
-      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qtdeclarative5-dev-tools qml-module-qtquick2
+      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qtdeclarative5-dev-tools qml-module-qtquick2 qml-module-qtgraphicaleffects
       - run: rustc --version && cargo --version
       - run: cd rust && cargo fmt --all --check
       - run: cd rust && cargo clippy --workspace --all-targets -- -D warnings
@@ -68,7 +68,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: sudo apt-get update
       # real_core drives the shim through a QML probe.
-      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qml-module-qtquick2
+      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qml-module-qtquick2 qml-module-qtgraphicaleffects
       # Checksum-pinned on the wheel and the extracted binary.
       - run: ./scripts/fetch-rpc-server.sh
       - run: cd rust && cargo test -p deltachat-jsonrpc --test real_server
@@ -87,7 +87,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update
-      - run: sudo apt-get install -y qtdeclarative5-dev-tools rpm desktop-file-utils shellcheck
+      - run: sudo apt-get install -y qtdeclarative5-dev-tools qttools5-dev-tools qml-module-qtgraphicaleffects rpm desktop-file-utils shellcheck
       - run: ./ci/qml-lint.sh
       - run: ./ci/packaging-lint.sh
 

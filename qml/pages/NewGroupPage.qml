@@ -86,6 +86,15 @@ Page {
         anchors.fill: parent
         model: contacts.rows
 
+        PullDownMenu {
+            MenuItem {
+                objectName: "createButton"
+                text: qsTr("Create Group")
+                enabled: !page.creating && nameField.text.length > 0
+                onClicked: page.createGroup()
+            }
+        }
+
         header: Column {
             width: page.width
 
@@ -107,40 +116,43 @@ Page {
                 text: page.errorMessage
                 onDismissed: page.errorMessage = ""
             }
-
-            Button {
-                objectName: "createButton"
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("Create Group")
-                enabled: !page.creating && nameField.text.length > 0
-                onClicked: page.createGroup()
-            }
         }
 
         delegate: ListItem {
             objectName: "memberRow"
-            contentHeight: Theme.itemSizeSmall
+            contentHeight: body.height
             // A group here is encrypted, and the core takes only
             // key-contacts into one -- picking anyone else builds a group
             // they cannot be added to, which fails halfway through.
             enabled: model.is_key_contact
 
+            ContactRow {
+                id: body
+                width: parent.width
+                displayName: model.display_name
+                address: model.address
+                ownColor: model.color
+                picturePath: model.avatar_path
+                isKeyContact: model.is_key_contact
+                isVerified: model.is_verified
+                // Greyed where the core would refuse them, highlighted
+                // where they are already in.
+                opacity: model.is_key_contact ? 1.0 : 0.4
+            }
+
+            // The tick sits on the avatar rather than in the name, so the
+            // row reads the same as every other contact row.
             Label {
+                objectName: "memberMark"
                 anchors {
-                    left: parent.left
                     right: parent.right
-                    verticalCenter: parent.verticalCenter
-                    leftMargin: Theme.horizontalPageMargin
                     rightMargin: Theme.horizontalPageMargin
+                    verticalCenter: body.verticalCenter
                 }
-                textFormat: Text.PlainText
-                text: (page.isMember(model.contact_id) ? "✓ " : "")
-                      + (model.is_key_contact ? "" : "✉ ") + model.display_name
-                color: !model.is_key_contact
-                       ? Theme.secondaryColor
-                       : (page.isMember(model.contact_id) ? Theme.highlightColor
-                                                          : Theme.primaryColor)
-                truncationMode: TruncationMode.Fade
+                visible: page.isMember(model.contact_id)
+                text: "✓"
+                color: Theme.highlightColor
+                font.pixelSize: Theme.fontSizeLarge
             }
 
             onClicked: if (model.is_key_contact) page.toggle(model.contact_id)

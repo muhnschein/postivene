@@ -118,6 +118,10 @@ pub struct ContactItem {
     pub is_verified: bool,
     /// Reachable with encryption. An address contact is not.
     pub is_key_contact: bool,
+    /// The core's per-contact colour, `#rrggbb`, for the avatar.
+    pub color: QString,
+    /// Path to the contact's picture, empty when they have none.
+    pub avatar_path: QString,
 }
 
 /// Contact model, for pickers and the contact list.

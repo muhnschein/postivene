@@ -367,5 +367,19 @@ fn contact_row(contact: &serde_json::Value) -> ContactItem {
             .get("isKeyContact")
             .and_then(serde_json::Value::as_bool)
             .unwrap_or(false),
+        // `color` is pinned by the integration test, which checks it on a
+        // message's sender -- the same shape as a contact. The picture key
+        // is not pinned, so a rename upstream shows up as a contact
+        // falling back to its initial rather than as a failure.
+        color: contact
+            .get("color")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or_default()
+            .into(),
+        avatar_path: contact
+            .get("profileImage")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or_default()
+            .into(),
     }
 }

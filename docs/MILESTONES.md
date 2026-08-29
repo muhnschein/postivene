@@ -14,7 +14,9 @@ unfinished.
 - [x] `get_system_info` and the chat/message/account wire shapes verified
       against the real binary, offline
       (`deltachat-jsonrpc/tests/real_server.rs`).
-- [x] The accounts directory is pinned to `$XDG_DATA_HOME/postivene/accounts`
+- [x] The accounts directory is pinned to
+      `$XDG_DATA_HOME/postivene/postivene/accounts` -- inside the directory
+      sailjail grants the app
       (`POSTIVENE_ACCOUNTS_DIR` overrides). Without it the core stores state
       relative to the launcher's working directory.
 - [x] Both ARM binaries pass the integration suite under `qemu-user`. That

@@ -30,13 +30,50 @@ pub struct ChatList {
     /// Emitted when the account changes.
     pub account_changed: qt_signal!(),
 
+    /// Only show chats matching this. Empty shows everything.
+    ///
+    /// The core does the matching, so a search finds chats this model has
+    /// never loaded rather than filtering the rows already on screen.
+    pub query: qt_property!(QString; WRITE set_query NOTIFY query_changed),
+    /// Emitted when the query changes.
+    pub query_changed: qt_signal!(),
+
+    /// Show the archived chats instead of the ordinary ones.
+    pub archived: qt_property!(bool; WRITE set_archived NOTIFY archived_changed),
+    /// Emitted when the archived flag changes.
+    pub archived_changed: qt_signal!(),
+
+    /// List only chats a message can be forwarded into.
+    ///
+    /// The core leaves out the ones that would fail or make no sense --
+    /// the device chat among them -- so a picker built on this cannot
+    /// offer a destination the forward would then be refused by.
+    pub for_forwarding: qt_property!(bool; WRITE set_for_forwarding NOTIFY for_forwarding_changed),
+    /// Emitted when the forwarding flag changes.
+    pub for_forwarding_changed: qt_signal!(),
+
     /// The rows, for a `SilicaListView`'s `model`.
     pub rows: qt_property!(RefCell<ChatListModel>; CONST),
 
     /// How many rows there are.
     pub count: qt_property!(u32; READ count NOTIFY rows_changed),
+    /// Unread messages across every chat, for the cover.
+    ///
+    /// Muted chats are counted. Muting silences the announcement, not the
+    /// arithmetic -- the badge on a muted chat behaves the same way.
+    pub unread_total: qt_property!(u32; READ unread_total NOTIFY rows_changed),
     /// Emitted after any change to `rows`.
     pub rows_changed: qt_signal!(),
+
+    /// A message just arrived in this chat, and the row for it now holds
+    /// the sender and text a notification wants.
+    ///
+    /// Only for `IncomingMsg`, and only once the refetch it triggered has
+    /// landed -- announcing on the event itself would carry a preview from
+    /// before the message. A muted chat is never announced: it still
+    /// counts towards the badge, quietly, which is the whole point of
+    /// muting.
+    pub message_arrived: qt_signal!(chat_id: u32, chat_name: QString, preview: QString),
 
     /// Loading failed. The message is the core's own.
     pub error: qt_signal!(message: QString),
@@ -56,6 +93,10 @@ pub struct ChatList {
     pub set_muted: qt_method!(fn(&mut self, chat_id: u32, muted: bool)),
     /// Move a chat out of the list.
     pub archive: qt_method!(fn(&mut self, chat_id: u32)),
+    /// Accept a contact request; QML calls this.
+    pub accept_chat: qt_method!(fn(&mut self, chat_id: u32)),
+    /// Block a contact request's sender; QML calls this.
+    pub block_chat: qt_method!(fn(&mut self, chat_id: u32)),
     /// Delete a chat and its messages on this device.
     pub delete_chat: qt_method!(fn(&mut self, chat_id: u32)),
 }
@@ -64,6 +105,14 @@ impl ChatList {
     /// How many rows there are.
     pub fn count(&self) -> u32 {
         u32::try_from(self.rows.borrow().iter().count()).unwrap_or(u32::MAX)
+    }
+
+    /// Unread messages across every chat.
+    pub fn unread_total(&self) -> u32 {
+        self.rows
+            .borrow()
+            .iter()
+            .fold(0u32, |total, row| total.saturating_add(row.unread_count))
     }
 
     /// Set the account and reload if it changed.
@@ -119,13 +168,54 @@ impl ChatList {
             self.refresh(Refresh::All);
             return;
         }
-        let scope = payload
+        let chat_id = payload
             .get("chatId")
             .and_then(serde_json::Value::as_u64)
             .and_then(|id| u32::try_from(id).ok())
-            .filter(|id| *id != 0)
-            .map_or(Refresh::All, Refresh::One);
-        self.refresh(scope);
+            .filter(|id| *id != 0);
+        let scope = chat_id.map_or(Refresh::All, Refresh::One);
+        // Worth telling anyone listening about, but only a genuinely new
+        // message: MsgsChanged and friends fire for messages we sent, for
+        // read receipts, and for a chat being pinned.
+        let announce = if kind == "IncomingMsg" { chat_id } else { None };
+        self.refresh_announcing(scope, announce);
+    }
+
+    /// Set the query and reload if it changed.
+    pub fn set_query(&mut self, query: QString) {
+        if self.query.to_string() != query.to_string() {
+            self.query = query;
+            self.query_changed();
+            self.refresh(Refresh::All);
+        }
+    }
+
+    /// Show the archived chats, or the ordinary ones.
+    pub fn set_archived(&mut self, archived: bool) {
+        if self.archived != archived {
+            self.archived = archived;
+            self.archived_changed();
+            self.refresh(Refresh::All);
+        }
+    }
+
+    /// List only chats a message can be forwarded into.
+    pub fn set_for_forwarding(&mut self, for_forwarding: bool) {
+        if self.for_forwarding != for_forwarding {
+            self.for_forwarding = for_forwarding;
+            self.for_forwarding_changed();
+            self.refresh(Refresh::All);
+        }
+    }
+
+    /// Accept a contact request, so its chat becomes an ordinary one.
+    pub fn accept_chat(&mut self, chat_id: u32) {
+        self.act(chat_id, "accept_chat", serde_json::Value::Null);
+    }
+
+    /// Block the sender of a contact request.
+    pub fn block_chat(&mut self, chat_id: u32) {
+        self.act(chat_id, "block_chat", serde_json::Value::Null);
     }
 
     /// Mark everything in a chat read.
@@ -198,6 +288,12 @@ impl ChatList {
     /// a rebuild. [`Refresh::All`] refetches the lot, which is what the
     /// core asks for when it reports a change it cannot attribute.
     fn refresh(&mut self, scope: Refresh) {
+        self.refresh_announcing(scope, None);
+    }
+
+    /// [`Self::refresh`], and afterwards say that a message landed in
+    /// `announce` -- once the row for it holds the new preview.
+    fn refresh_announcing(&mut self, scope: Refresh, announce: Option<u32>) {
         let account_id = self.account_id;
         if account_id == 0 {
             return;
@@ -205,6 +301,9 @@ impl ChatList {
         let Some((rpc, runtime)) = connection() else {
             return;
         };
+        let query = self.query.to_string();
+        let archived = self.archived;
+        let for_forwarding = self.for_forwarding;
         let cached: Vec<ChatListItem> = self.rows.borrow().iter().cloned().collect();
         // A set, not a list: this is asked once per entry, and a long chat
         // list would otherwise make the scan quadratic.
@@ -221,6 +320,18 @@ impl ChatList {
                         reconcile(&mut rows, target);
                     }
                     this.borrow().rows_changed();
+                    if let Some(chat_id) = announce {
+                        let announcement = this
+                            .borrow()
+                            .rows
+                            .borrow()
+                            .iter()
+                            .find(|row| row.chat_id == chat_id && !row.is_muted)
+                            .map(|row| (row.name.clone(), row.preview.clone()));
+                        if let Some((name, preview)) = announcement {
+                            this.borrow().message_arrived(chat_id, name, preview);
+                        }
+                    }
                 }
                 Err(err) => this.borrow().error(err.into()),
             }
@@ -228,7 +339,8 @@ impl ChatList {
 
         runtime.spawn(async move {
             let result = async {
-                let entries = chat_entries(&rpc, account_id).await?;
+                let entries =
+                    chat_entries(&rpc, account_id, &query, archived, for_forwarding).await?;
                 let wanted: Vec<u32> = entries
                     .iter()
                     .copied()
@@ -326,15 +438,39 @@ fn reconcile(rows: &mut ChatListModel, target: Vec<ChatListItem>) {
 }
 
 /// The account's chat ids, in the order the core wants them shown.
-async fn chat_entries(rpc: &RpcClient, account_id: u32) -> Result<Vec<u32>, String> {
+/// `DC_GCL_ARCHIVED_ONLY`: the archived chats rather than the ordinary
+/// ones. The two lists are disjoint, which is why this is a mode and not a
+/// filter over what is already loaded.
+const ARCHIVED_ONLY: u32 = 0x01;
+
+/// `DC_GCL_FOR_FORWARDING`: only chats a message can be forwarded into.
+const FOR_FORWARDING: u32 = 0x08;
+
+async fn chat_entries(
+    rpc: &RpcClient,
+    account_id: u32,
+    query: &str,
+    archived: bool,
+    for_forwarding: bool,
+) -> Result<Vec<u32>, String> {
+    // The core does the matching. Filtering the loaded rows instead would
+    // only ever find chats that happened to be on screen already.
+    let query = if query.is_empty() {
+        None
+    } else {
+        Some(query.to_string())
+    };
+    let mut flags = 0;
+    if archived {
+        flags |= ARCHIVED_ONLY;
+    }
+    if for_forwarding {
+        flags |= FOR_FORWARDING;
+    }
+    let flags = if flags == 0 { None } else { Some(flags) };
     rpc.call(
         "get_chatlist_entries",
-        (
-            account_id,
-            Option::<u32>::None,
-            Option::<String>::None,
-            Option::<u32>::None,
-        ),
+        (account_id, flags, query, Option::<u32>::None),
     )
     .await
     .map_err(|err| err.to_string())

@@ -66,33 +66,50 @@ jobs:
           echo "Building against $target"
           echo "TARGET=$target" >> "$GITHUB_ENV"
 
-      # The SDK image builds as its own unprivileged user, not root, and the
-      # checkout belongs to the runner -- so mb2 could not even create its
-      # own .mb2 directory in the tree. The uid is asked for rather than
-      # assumed, since it is the image's to choose.
-      - name: Hand the checkout to the SDK's build user
+      # mb2 shells out to sudo -- to prepare the spec, and to zypper the
+      # BuildRequires into the target -- and as the image's default user
+      # sudo dies in PAM before it gets anywhere ("cannot retrieve
+      # authentication info"), taking .mb2/spec with it. So the build runs
+      # as root, which needs no sudo password.
+      #
+      # HOME has to come along: sb2 registers its targets under the build
+      # user's ~/.scratchbox2, and root's own HOME would leave sb2 saying
+      # the target does not exist (docs/SDK-BUILD.md hit exactly this).
+      # Both it and the uid are read from the image rather than assumed.
+      - name: Learn how the SDK image runs
         run: |
-          uid=$(docker run --rm coderus/sailfishos-platform-sdk:$SFOS id -u)
-          gid=$(docker run --rm coderus/sailfishos-platform-sdk:$SFOS id -g)
-          echo "SDK builds as uid=$uid gid=$gid"
+          img=coderus/sailfishos-platform-sdk:$SFOS
+          echo "--- as the image's default user ---"
+          docker run --rm "$img" sh -c '
+            id; echo "HOME=$HOME"; ls -l "$(command -v sudo)"
+            sudo -n true && echo "sudo: ok" || echo "sudo: refused"'
+          echo "--- as root ---"
+          docker run --rm --user root "$img" sh -c '
+            id; echo "HOME=$HOME"
+            sudo -n true && echo "sudo: ok" || echo "sudo: refused"'
+
+          uid=$(docker run --rm "$img" id -u)
+          gid=$(docker run --rm "$img" id -g)
+          echo "SDK_HOME=$(docker run --rm "$img" sh -c 'echo $HOME')" >> "$GITHUB_ENV"
+          # Still handed over: mb2 may drop back to this user for parts of
+          # the build, and it could not create .mb2 in a runner-owned tree.
           sudo chown -R "$uid:$gid" "$PWD"
 
-      # `-X` (--no-fix-version) is the whole reason four earlier attempts
-      # failed. Without it mb2 tries to derive the package version from
-      # `git describe`, finds no tags in this repository, and abandons
-      # spec preparation half-done -- leaving the `.mb2/spec` it reads a
-      # moment later missing. docs/SDK-BUILD.md reaches for the same flag
-      # for the same reason, and `--no-check` alongside it; the spec has
-      # no %check section.
+      # `-X` (--no-fix-version) is not optional here. Without it mb2 asks
+      # `git describe` for a package version, finds no tags in this
+      # repository, and abandons spec preparation part-done.
+      # docs/SDK-BUILD.md reaches for the same flag for the same reason,
+      # and `--no-check` alongside it; the spec has no %check section.
       #
       # Deliberately *not* passing that document's `-n` / `--nodeps`:
       # those are its offline workaround. A runner can reach the Jolla
       # repositories, so let mb2 zypper-install rust, cargo and
       # rust-std-static into the target the way it is meant to, rather
-      # than reconstructing them by hand.
+      # than having them reconstructed by hand.
       - name: Build the RPM
         run: |
-          docker run --rm --privileged \
+          docker run --rm --privileged --user root \
+            -e HOME="$SDK_HOME" \
             -v "$PWD:/build/postivene" -w /build/postivene \
             coderus/sailfishos-platform-sdk:$SFOS \
             mb2 -t "$TARGET" -X build --no-check

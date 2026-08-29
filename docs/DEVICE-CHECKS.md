@@ -31,6 +31,21 @@ Walked in full on a device, 2026-08-29.
 - Quoted messages, and attachments other than images.
 - Orientation changes, and the cover.
 
+## Needs re-checking
+
+Changed since the list above was walked, and only a phone can settle it:
+
+- **A chat's unread badge clears when you open it.** The walk above
+  confirmed the badge *appears*; it did not catch that it never went
+  away. `reading_history` was read once, when the load returned, and the
+  reader is not looking then -- the page is still transitioning in. Now
+  marked when the reader actually starts looking. Check a chat with
+  several unread messages, opened from the list, and the cover's total
+  alongside it.
+- **The accounts directory after sailjail.** Confinement is new, and the
+  directory moved inside the grant to suit it. A profile from an earlier
+  build has to be moved by hand first; see `GAP-ANALYSIS.md`.
+
 ## Not yet checkable
 
 Nothing above is outstanding. What is left here waits on features that do

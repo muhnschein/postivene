@@ -227,9 +227,23 @@ impl DeltaChatCore {
     }
 
     /// Where the core keeps account state: `POSTIVENE_ACCOUNTS_DIR`, else
-    /// the XDG data dir. Without it the core would use `./accounts`,
-    /// relative to whatever directory the app was launched from.
-    fn accounts_dir() -> Result<String, String> {
+    /// inside the directory sailjail grants the app. Without it the core
+    /// would use `./accounts`, relative to whatever directory the app was
+    /// launched from.
+    ///
+    /// The nesting is not a typo. Sailjail grants write access to
+    /// `~/.local/share/<OrganizationName>/<ApplicationName>`, and
+    /// postivene.desktop declares both as `postivene`, so the account
+    /// directory has to sit under *both* to be writable once confined.
+    /// The old `postivene/accounts` was a sibling of that grant, not a
+    /// child, and would have become unwritable the moment the
+    /// `[X-Sailjail]` section took effect.
+    ///
+    /// # Errors
+    ///
+    /// If neither `XDG_DATA_HOME` nor `HOME` is set, so there is nowhere
+    /// to put the directory, or if it cannot be created.
+    pub fn accounts_dir() -> Result<String, String> {
         let dir = if let Ok(dir) = std::env::var("POSTIVENE_ACCOUNTS_DIR") {
             std::path::PathBuf::from(dir)
         } else {
@@ -240,11 +254,36 @@ impl DeltaChatCore {
                         .map(|home| std::path::PathBuf::from(home).join(".local/share"))
                 })
                 .map_err(|_| "neither XDG_DATA_HOME nor HOME is set".to_string())?;
-            base.join("postivene/accounts")
+            let dir = base.join("postivene/postivene/accounts");
+            Self::adopt_legacy_accounts(&base.join("postivene/accounts"), &dir);
+            dir
         };
         std::fs::create_dir_all(&dir)
             .map_err(|err| format!("cannot create accounts dir {}: {err}", dir.display()))?;
         Ok(dir.to_string_lossy().into_owned())
+    }
+
+    /// Move a profile left at the pre-sandbox location, once.
+    ///
+    /// Best effort by necessity: a confined app cannot see the old
+    /// directory at all, since it is outside the grant. This helps the
+    /// run that happens before confinement takes effect, and does nothing
+    /// otherwise -- a profile stranded by an upgrade straight into the
+    /// sandbox has to be moved by hand, or pointed at with
+    /// `POSTIVENE_ACCOUNTS_DIR`. Never overwrites a profile that is
+    /// already in the new place.
+    fn adopt_legacy_accounts(legacy: &std::path::Path, wanted: &std::path::Path) {
+        if wanted.exists() || !legacy.is_dir() {
+            return;
+        }
+        let Some(parent) = wanted.parent() else {
+            return;
+        };
+        if std::fs::create_dir_all(parent).is_ok() {
+            // A failure here leaves the old directory untouched, which is
+            // the right way to fail: the account is still there to move.
+            let _ = std::fs::rename(legacy, wanted);
+        }
     }
 
     /// Forward the core's event stream to `core_event` via queued

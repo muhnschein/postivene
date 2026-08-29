@@ -95,7 +95,9 @@ What is left here:
 
 No notifications, background service, or suspend handling, so messages
 arrive only while the app is open and awake. The cover is a static label.
-No sailjail permissions. `qsTr()` throughout with no `.ts` catalogs.
+The app declares a sailjail sandbox (`Internet`, and its own data
+directory) in `postivene.desktop`; `Camera` waits for QR scanning.
+`qsTr()` throughout with no `.ts` catalogs.
 Placeholder icons.
 
 ## Onboarding: remaining paths

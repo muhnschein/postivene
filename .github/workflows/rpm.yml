@@ -36,7 +36,7 @@ permissions:
 jobs:
   rpm:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     env:
       ARCH: ${{ inputs.arch || 'aarch64' }}
       SFOS: ${{ inputs.sfos_version || '4.6.0.13' }}
@@ -77,26 +77,29 @@ jobs:
           echo "SDK builds as uid=$uid gid=$gid"
           sudo chown -R "$uid:$gid" "$PWD"
 
-      # TEMPORARY: read mb2 itself rather than keep guessing at it. The
-      # tool is a script in the image; its source says where .mb2/spec comes
-      # from, which four attempts at the outside have not.
-      - name: Read mb2
-        run: |
-          docker run --rm coderus/sailfishos-platform-sdk:$SFOS /bin/bash -c '
-            for f in $(command -v mb2) /usr/share/mb2/* /usr/lib/mb2/*; do
-              [ -f "$f" ] || continue
-              echo "===== $f ====="
-              cat "$f"
-            done' || true
-
-      - name: Trace build-init
+      # `-X` (--no-fix-version) is the whole reason four earlier attempts
+      # failed. Without it mb2 tries to derive the package version from
+      # `git describe`, finds no tags in this repository, and abandons
+      # spec preparation half-done -- leaving the `.mb2/spec` it reads a
+      # moment later missing. docs/SDK-BUILD.md reaches for the same flag
+      # for the same reason, and `--no-check` alongside it; the spec has
+      # no %check section.
+      #
+      # Deliberately *not* passing that document's `-n` / `--nodeps`:
+      # those are its offline workaround. A runner can reach the Jolla
+      # repositories, so let mb2 zypper-install rust, cargo and
+      # rust-std-static into the target the way it is meant to, rather
+      # than reconstructing them by hand.
+      - name: Build the RPM
         run: |
           docker run --rm --privileged \
             -v "$PWD:/build/postivene" -w /build/postivene \
             coderus/sailfishos-platform-sdk:$SFOS \
-            /bin/bash -c "bash -x \$(command -v mb2) -t $TARGET build-init 2>&1 | tail -200
-              echo '===== tree after ====='
-              ls -la .mb2 || true" || true
+            mb2 -t "$TARGET" -X build --no-check
+
+      - name: Show mb2's state
+        if: failure()
+        run: ls -la .mb2 2>/dev/null; tail -60 .mb2/*.log 2>/dev/null || true
 
       # Back to the runner, or the upload cannot read what was built.
       - name: Take the tree back

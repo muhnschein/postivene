@@ -25,7 +25,10 @@ on:
         type: string
         default: "4.6.0.13"
   push:
-    tags: ["v*"]
+    # `v*` for a release. `build-*` is a throwaway handle for running this
+    # before it reaches the default branch, since workflow_dispatch only
+    # becomes available once a workflow is on main.
+    tags: ["v*", "build-*"]
 
 permissions:
   contents: read

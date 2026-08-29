@@ -7,11 +7,27 @@ Page {
     id: page
 
     property int accountId
+    /// Shows the archived chats instead of the ordinary ones. The two
+    /// lists are disjoint, so this is a mode rather than a filter.
+    property bool archived: false
+    /// How many configured accounts there are, from the core. Decides
+    /// whether switching is worth offering at all.
+    property int accountCount: 0
+
+    // Not bound straight to the field: a round trip per keystroke asks the
+    // core four times to type "anna", and only the last answer is wanted.
+    // Same interval as the contact search, for the same reason.
+    Timer {
+        id: searchDebounce
+        interval: 250
+        onTriggered: chats.query = searchField.text
+    }
 
     ChatList {
         id: chats
         objectName: "chats"
         account_id: page.accountId
+        archived: page.archived
         onError: page.errorMessage = message
     }
 
@@ -50,6 +66,7 @@ Page {
             }
         }
         // Failures that used to reach no one.
+        onAccounts_refreshed: page.accountCount = configured_count
         onCore_error: page.errorMessage = message
         onIo_started: {
             if (!success) {
@@ -57,6 +74,8 @@ Page {
             }
         }
     }
+
+    Component.onCompleted: core.refresh_accounts()
 
     SilicaListView {
         id: listView
@@ -71,13 +90,46 @@ Page {
         clip: true
         model: chats.rows
 
-        header: PageHeader {
-            title: qsTr("Chats")
+        header: Column {
+            width: page.width
+
+            PageHeader {
+                title: page.archived ? qsTr("Archived") : qsTr("Chats")
+            }
+
+            SearchField {
+                id: searchField
+                objectName: "chatSearchField"
+                width: parent.width
+                placeholderText: qsTr("Search chats")
+                onTextChanged: searchDebounce.restart()
+            }
         }
 
         PullDownMenu {
             MenuItem {
+                objectName: "accountsMenuItem"
+                // Only worth offering where there is a choice to make.
+                visible: !page.archived && page.accountCount > 1
+                text: qsTr("Accounts")
+                onClicked: pageStack.push(Qt.resolvedUrl("AccountsPage.qml"),
+                                          { currentAccountId: page.accountId })
+            }
+            MenuItem {
+                // The archived list is a mode, not a filter, so it is its
+                // own page rather than a toggle on this one -- and it does
+                // not offer a way further in.
+                objectName: "archivedMenuItem"
+                visible: !page.archived
+                text: qsTr("Archived chats")
+                onClicked: pageStack.push(Qt.resolvedUrl("ChatListPage.qml"), {
+                    accountId: page.accountId,
+                    archived: true
+                })
+            }
+            MenuItem {
                 objectName: "newChatMenuItem"
+                visible: !page.archived
                 text: qsTr("New chat")
                 onClicked: pageStack.push(Qt.resolvedUrl("NewChatPage.qml"),
                                           { accountId: page.accountId })
@@ -122,8 +174,24 @@ Page {
                     text: model.is_muted ? qsTr("Unmute") : qsTr("Mute")
                     onClicked: chats.set_muted(model.chat_id, !model.is_muted)
                 }
+                // A request is not an ordinary chat: until it is
+                // accepted the sender cannot be replied to, and the only
+                // useful answers are yes and no.
+                MenuItem {
+                    objectName: "acceptItem"
+                    visible: model.is_contact_request
+                    text: qsTr("Accept")
+                    onClicked: chats.accept_chat(model.chat_id)
+                }
+                MenuItem {
+                    objectName: "blockItem"
+                    visible: model.is_contact_request
+                    text: qsTr("Block")
+                    onClicked: chats.block_chat(model.chat_id)
+                }
                 MenuItem {
                     objectName: "archiveItem"
+                    visible: !model.is_contact_request
                     text: qsTr("Archive")
                     onClicked: chats.archive(model.chat_id)
                 }

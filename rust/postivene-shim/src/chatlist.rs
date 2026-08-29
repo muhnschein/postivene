@@ -30,6 +30,19 @@ pub struct ChatList {
     /// Emitted when the account changes.
     pub account_changed: qt_signal!(),
 
+    /// Only show chats matching this. Empty shows everything.
+    ///
+    /// The core does the matching, so a search finds chats this model has
+    /// never loaded rather than filtering the rows already on screen.
+    pub query: qt_property!(QString; WRITE set_query NOTIFY query_changed),
+    /// Emitted when the query changes.
+    pub query_changed: qt_signal!(),
+
+    /// Show the archived chats instead of the ordinary ones.
+    pub archived: qt_property!(bool; WRITE set_archived NOTIFY archived_changed),
+    /// Emitted when the archived flag changes.
+    pub archived_changed: qt_signal!(),
+
     /// The rows, for a `SilicaListView`'s `model`.
     pub rows: qt_property!(RefCell<ChatListModel>; CONST),
 
@@ -71,6 +84,10 @@ pub struct ChatList {
     pub set_muted: qt_method!(fn(&mut self, chat_id: u32, muted: bool)),
     /// Move a chat out of the list.
     pub archive: qt_method!(fn(&mut self, chat_id: u32)),
+    /// Accept a contact request; QML calls this.
+    pub accept_chat: qt_method!(fn(&mut self, chat_id: u32)),
+    /// Block a contact request's sender; QML calls this.
+    pub block_chat: qt_method!(fn(&mut self, chat_id: u32)),
     /// Delete a chat and its messages on this device.
     pub delete_chat: qt_method!(fn(&mut self, chat_id: u32)),
 }
@@ -153,6 +170,34 @@ impl ChatList {
         // read receipts, and for a chat being pinned.
         let announce = if kind == "IncomingMsg" { chat_id } else { None };
         self.refresh_announcing(scope, announce);
+    }
+
+    /// Set the query and reload if it changed.
+    pub fn set_query(&mut self, query: QString) {
+        if self.query.to_string() != query.to_string() {
+            self.query = query;
+            self.query_changed();
+            self.refresh(Refresh::All);
+        }
+    }
+
+    /// Show the archived chats, or the ordinary ones.
+    pub fn set_archived(&mut self, archived: bool) {
+        if self.archived != archived {
+            self.archived = archived;
+            self.archived_changed();
+            self.refresh(Refresh::All);
+        }
+    }
+
+    /// Accept a contact request, so its chat becomes an ordinary one.
+    pub fn accept_chat(&mut self, chat_id: u32) {
+        self.act(chat_id, "accept_chat", serde_json::Value::Null);
+    }
+
+    /// Block the sender of a contact request.
+    pub fn block_chat(&mut self, chat_id: u32) {
+        self.act(chat_id, "block_chat", serde_json::Value::Null);
     }
 
     /// Mark everything in a chat read.
@@ -238,6 +283,8 @@ impl ChatList {
         let Some((rpc, runtime)) = connection() else {
             return;
         };
+        let query = self.query.to_string();
+        let archived = self.archived;
         let cached: Vec<ChatListItem> = self.rows.borrow().iter().cloned().collect();
         // A set, not a list: this is asked once per entry, and a long chat
         // list would otherwise make the scan quadratic.
@@ -273,7 +320,7 @@ impl ChatList {
 
         runtime.spawn(async move {
             let result = async {
-                let entries = chat_entries(&rpc, account_id).await?;
+                let entries = chat_entries(&rpc, account_id, &query, archived).await?;
                 let wanted: Vec<u32> = entries
                     .iter()
                     .copied()
@@ -371,15 +418,28 @@ fn reconcile(rows: &mut ChatListModel, target: Vec<ChatListItem>) {
 }
 
 /// The account's chat ids, in the order the core wants them shown.
-async fn chat_entries(rpc: &RpcClient, account_id: u32) -> Result<Vec<u32>, String> {
+/// `DC_GCL_ARCHIVED_ONLY`: the archived chats rather than the ordinary
+/// ones. The two lists are disjoint, which is why this is a mode and not a
+/// filter over what is already loaded.
+const ARCHIVED_ONLY: u32 = 0x01;
+
+async fn chat_entries(
+    rpc: &RpcClient,
+    account_id: u32,
+    query: &str,
+    archived: bool,
+) -> Result<Vec<u32>, String> {
+    // The core does the matching. Filtering the loaded rows instead would
+    // only ever find chats that happened to be on screen already.
+    let query = if query.is_empty() {
+        None
+    } else {
+        Some(query.to_string())
+    };
+    let flags = if archived { Some(ARCHIVED_ONLY) } else { None };
     rpc.call(
         "get_chatlist_entries",
-        (
-            account_id,
-            Option::<u32>::None,
-            Option::<String>::None,
-            Option::<u32>::None,
-        ),
+        (account_id, flags, query, Option::<u32>::None),
     )
     .await
     .map_err(|err| err.to_string())

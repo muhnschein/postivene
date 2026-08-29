@@ -49,9 +49,15 @@ mutes, archives and deletes.
 
 What is still missing here:
 
-- An account switcher (the `account_list` model has no UI), search, a way
-  back to archived chats, and contact requests -- they show as ordinary
-  chats rather than asking to be accepted.
+The chat list searches (the core matches, so a search finds chats the
+model has never loaded), reaches the archived list as its own page, and
+offers a contact request the only two answers it has -- accept or block --
+rather than showing it as an ordinary chat. `AccountsPage` puts the
+`account_list` model on screen, and appears in the pulley only where there
+is more than one account to choose between.
+
+What is still missing here: group member management after creation,
+contact profile pages, and blocking a contact outside a request.
 
 ## Starting a conversation: the pages behind "New chat"  *(done)*
 

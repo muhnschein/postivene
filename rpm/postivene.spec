@@ -87,7 +87,12 @@ BuildRequires:  pkgconfig(Qt5Quick)
 %define bundle_rpc_server 1
 %endif
 
+# Where cargo leaves the binary. Under sb2, SB2_RUST_TARGET_TRIPLE (see
+# %build) makes it write to target/<triple>/release; a native build -- an
+# OBS worker that is not cross-compiling -- gets plain target/release.
+# Both are checked at install time rather than guessed here.
 %define builddir rust/target/%{rusttarget}/release
+%define nativedir rust/target/release
 %define appdatadir %{_datadir}/%{name}
 %define appexecdir %{_libexecdir}/%{name}
 
@@ -167,7 +172,9 @@ cargo build \
 %install
 rm -rf %{buildroot}
 
-install -Dm 755 %{builddir}/postivene \
+builddir=%{builddir}
+[ -x "$builddir/postivene" ] || builddir=%{nativedir}
+install -Dm 755 "$builddir/postivene" \
     %{buildroot}%{_bindir}/postivene
 
 # QML UI, installed under our own app-private data dir (not /usr/bin) so
@@ -222,6 +229,9 @@ install -Dm 644 icons/256x256/postivene.png \
 %{_bindir}/postivene
 %{appdatadir}
 %if 0%{?bundle_rpc_server}
+# The directory as well as the file: listing only the file leaves
+# /usr/libexec/postivene behind on uninstall.
+%dir %{appexecdir}
 %{appexecdir}/deltachat-rpc-server
 %endif
 %{_datadir}/applications/%{name}.desktop

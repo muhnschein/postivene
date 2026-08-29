@@ -35,25 +35,27 @@ fn old_style_handlers_receive_snake_case_signal_parameters() {
     let mut engine = QmlEngine::new();
     engine.set_object_property("core".into(), core_box.pinned());
 
-    // The handler only calls back into the core if every injected
-    // parameter name resolves *and* the handler is genuinely connected.
-    // A `function onCore_event(...)` declaration here, or camelCase
-    // parameter names, would leave `status` untouched.
+    // The handler only records anything if every injected parameter name
+    // resolves *and* the handler is genuinely connected. A
+    // `function onAccount_error(...)` declaration here, or camelCase
+    // parameter names, would leave `seen` empty.
     let qml = r#"
         import QtQuick 2.0
         Item {
+            // What the handler was actually passed, so the assertion reads
+            // the parameter rather than some side effect further on.
+            property string seen: ""
             Connections {
                 target: core
                 onAccount_error: {
                     // `message` is the parameter name the shim declares;
                     // camelCase, or a `function onAccount_error(msg)` form,
                     // would leave this handler dead or throw a
-                    // ReferenceError, and `check_health` would never run.
-                    if (message === "not started") {
-                        core.check_health()
-                    }
+                    // ReferenceError.
+                    seen = message
                 }
             }
+            function report() { return seen }
         }
     "#;
     engine.load_data(QByteArray::from(qml));
@@ -62,13 +64,15 @@ fn old_style_handlers_receive_snake_case_signal_parameters() {
     // which is the signal the QML above listens for.
     core_box.pinned().borrow_mut().refresh_accounts();
 
-    // `check_health` without a running core sets exactly this status, so
-    // seeing it proves the QML handler ran with the right arguments.
-    let status = core_box.pinned().borrow().status.to_string();
+    let seen = QString::from_qvariant(engine.invoke_method("report".into(), &[]))
+        .map(|value| value.to_string())
+        .unwrap_or_default();
     assert_eq!(
-        status, "error: not started",
-        "the Connections handler never fired: on Qt 5.6 `Connections` needs \
-         `onCore_event:` (not `function onCore_event()`), with the shim's \
-         snake_case parameter names"
+        seen, "not started",
+        "the handler never fired, or `message` did not resolve: qmetaobject \
+         injects the shim's own parameter names, so a camelCase guess throws \
+         a ReferenceError and leaves this empty. (Whether the handler is \
+         written in the Qt 5.6 form is a separate question, and one host Qt \
+         cannot answer -- tests/qml_syntax.rs scans for that.)"
     );
 }

@@ -43,8 +43,28 @@ const PROBE_QML: &str = r"
             }
         }
         function counts() { return first.count + '/' + second.count }
-        function send(text) { first.send(text) }
         function error() { return lastError }
+
+        // Both loads finished, so what follows is not racing them.
+        property bool loaded: first.count > 0 && second.count > 0
+        property string countsAtLoad: ''
+        property bool haveSent: false
+
+        // Retried rather than fired at a fixed moment: the models load
+        // over a process, and under a loaded `make check` that is not
+        // always done by any particular second. Waiting for the thing
+        // itself is what makes this reliable.
+        Timer {
+            interval: 200; running: true; repeat: true
+            onTriggered: {
+                if (!loaded || haveSent) { return }
+                countsAtLoad = counts()
+                haveSent = true
+                first.send('hello there')
+            }
+        }
+        function countsBeforeSend() { return countsAtLoad }
+        function sentYet() { return haveSent ? 'yes' : 'no' }
     }
 ";
 
@@ -83,28 +103,30 @@ fn each_chat_has_its_own_model_and_loads_in_one_batch() {
         (*engine_ptr).load_data(QByteArray::from(PROBE_QML));
     });
 
-    single_shot(Duration::from_secs(3), move || unsafe {
-        let value = (*engine_ptr).invoke_method("counts".into(), &[]);
-        *counts_ptr = QString::from_qvariant(value)
-            .map(|text| text.to_string())
-            .unwrap_or_default();
-        (*engine_ptr).invoke_method(
-            "send".into(),
-            &[QVariant::from(QString::from("hello there"))],
-        );
-    });
-
     let mut counts_after_send = String::new();
     let sent_ptr: *mut String = std::ptr::addr_of_mut!(counts_after_send);
-    single_shot(Duration::from_secs(6), move || unsafe {
-        let value = (*engine_ptr).invoke_method("counts".into(), &[]);
-        *sent_ptr = QString::from_qvariant(value)
-            .map(|text| text.to_string())
-            .unwrap_or_default();
+    let mut ever_sent = String::new();
+    let ever_ptr: *mut String = std::ptr::addr_of_mut!(ever_sent);
+    single_shot(Duration::from_secs(8), move || unsafe {
+        let read = |name: &str| {
+            QString::from_qvariant((*engine_ptr).invoke_method(name.into(), &[]))
+                .map(|text| text.to_string())
+                .unwrap_or_default()
+        };
+        *counts_ptr = read("countsBeforeSend");
+        *sent_ptr = read("counts");
+        *ever_ptr = read("sentYet");
         (*engine_ptr).quit();
     });
 
     engine.exec();
+
+    // If the send never happened the rest says nothing, and would say it
+    // as a confusing count mismatch rather than as what went wrong.
+    assert_eq!(
+        ever_sent, "yes",
+        "the models never both finished loading, so nothing was sent"
+    );
 
     let calls = common::calls(&journal);
     let names: Vec<&str> = calls.iter().map(|(name, _)| name.as_str()).collect();

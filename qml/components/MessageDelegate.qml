@@ -6,6 +6,11 @@ import Sailfish.Silica 1.0
  * own: ConversationPage cannot, because Silica's EnterKey attached property
  * has no stub.
  *
+ * Every string here comes from whoever sent the message, so each one
+ * that shows it is pinned to PlainText: the default detects markup and
+ * switches to rich text, which would let a message body fetch a remote
+ * image the moment its row is drawn.
+ *
  * Laid out by bindings rather than by a Column: a positioner sizes itself in
  * a polish pass, which never runs headlessly, so a row built from one cannot
  * be measured in a test.
@@ -37,6 +42,11 @@ Item {
     property bool isPicture: viewType === "Image" || viewType === "Gif"
                              || viewType === "Sticker"
     property bool hasFile: filePath.length > 0
+    // Encoded, not concatenated: attachments are named by whoever sent
+    // them, and a "#" or a "%" in the name makes a plain "file://" + path
+    // into a URL that points somewhere else, or nowhere.
+    readonly property url fileUrl: root.hasFile ? Qt.resolvedUrl("file://" + encodeURI(root.filePath))
+                                                : ""
 
     // A bubble is as wide as its content, up to most of the screen. The
     // widths come off unconstrained copies of the text: measuring the real
@@ -70,6 +80,7 @@ Item {
         id: textMetric
         visible: false
         font: messageLabel.font
+        textFormat: Text.PlainText
         text: root.messageText
     }
 
@@ -77,6 +88,7 @@ Item {
         id: attachmentMetric
         visible: false
         font: attachmentLabel.font
+        textFormat: Text.PlainText
         text: attachmentLabel.text
     }
 
@@ -92,6 +104,7 @@ Item {
         wrapMode: Text.Wrap
         font.pixelSize: Theme.fontSizeExtraSmall
         color: Theme.secondaryColor
+        textFormat: Text.PlainText
         text: root.messageText
     }
 
@@ -119,6 +132,7 @@ Item {
             truncationMode: TruncationMode.Fade
             font.pixelSize: Theme.fontSizeExtraSmall
             color: root.senderColor.length > 0 ? root.senderColor : Theme.highlightColor
+            textFormat: Text.PlainText
             text: root.senderName
         }
 
@@ -145,6 +159,7 @@ Item {
                 truncationMode: TruncationMode.Fade
                 font.pixelSize: Theme.fontSizeExtraSmall
                 color: Theme.highlightColor
+                textFormat: Text.PlainText
                 text: root.quoteAuthor
             }
 
@@ -159,6 +174,7 @@ Item {
                 truncationMode: TruncationMode.Elide
                 font.pixelSize: Theme.fontSizeExtraSmall
                 color: Theme.secondaryColor
+                textFormat: Text.PlainText
                 text: root.quoteText
             }
         }
@@ -175,7 +191,7 @@ Item {
                     : 0
             fillMode: Image.PreserveAspectFit
             asynchronous: true
-            source: root.hasFile ? "file://" + root.filePath : ""
+            source: root.fileUrl
         }
 
         // Anything else with a file: name it and let the system open it.
@@ -189,11 +205,12 @@ Item {
             width: root.contentWidth
             truncationMode: TruncationMode.Fade
             color: Theme.highlightColor
+            textFormat: Text.PlainText
             text: "📎 " + (root.fileName.length > 0 ? root.fileName : root.filePath)
 
             MouseArea {
                 anchors.fill: parent
-                onClicked: Qt.openUrlExternally("file://" + root.filePath)
+                onClicked: Qt.openUrlExternally(root.fileUrl)
             }
         }
 
@@ -207,6 +224,7 @@ Item {
             width: root.contentWidth
             wrapMode: Text.Wrap
             color: Theme.primaryColor
+            textFormat: Text.PlainText
             text: root.messageText
         }
 

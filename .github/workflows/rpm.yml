@@ -1,0 +1,88 @@
+# Builds a device RPM inside the Sailfish SDK.
+#
+# Not part of `ci.yml`: it pulls a multi-gigabyte SDK image and cross-compiles
+# the whole workspace, which is minutes of runner time nobody wants on every
+# push. Run it from the Actions tab when a package is wanted, or on a tag.
+#
+# The SDK is what makes the result runnable on a phone: the app links against
+# the target's Qt 5.6 and glibc, and a host-built binary has neither. See
+# docs/SDK-BUILD.md.
+name: rpm
+
+on:
+  workflow_dispatch:
+    inputs:
+      arch:
+        description: Device architecture
+        type: choice
+        options: [aarch64, armv7hl]
+        default: aarch64
+      sfos_version:
+        description: >
+          Sailfish SDK version to build against. Build against the oldest
+          release you want to support: a binary from a newer SDK can call
+          symbols an older phone does not have.
+        type: string
+        default: "4.6.0.13"
+  push:
+    # `v*` for a release. `build-*` is a throwaway handle for running this
+    # before it reaches the default branch, since workflow_dispatch only
+    # becomes available once a workflow is on main.
+    tags: ["v*", "build-*"]
+
+permissions:
+  contents: read
+
+jobs:
+  rpm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ARCH: ${{ inputs.arch || 'aarch64' }}
+      SFOS: ${{ inputs.sfos_version || '4.6.0.13' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Bundled beside the app; checksum-pinned by the script itself.
+      - name: Fetch deltachat-rpc-server
+        run: ./scripts/fetch-rpc-server.sh
+
+      - name: Pull the Sailfish SDK
+        run: docker pull coderus/sailfishos-platform-sdk:$SFOS
+
+      # The image ships one target per architecture, named by the SDK's own
+      # convention. Asked for rather than assumed, so a version whose naming
+      # differs fails here with the list rather than deep inside rpmbuild.
+      - name: Resolve the build target
+        run: |
+          targets=$(docker run --rm coderus/sailfishos-platform-sdk:$SFOS \
+              sb2-config -l 2>/dev/null || true)
+          echo "available targets:"; echo "$targets"
+          target=$(echo "$targets" | grep -- "-$ARCH\$" | tail -1)
+          if [ -z "$target" ]; then
+            echo "::error::no $ARCH target in the $SFOS SDK image; see the list above"
+            exit 1
+          fi
+          echo "Building against $target"
+          echo "TARGET=$target" >> "$GITHUB_ENV"
+
+      - name: Build the RPM
+        run: |
+          docker run --rm --privileged \
+            -v "$PWD:/share" -w /share \
+            coderus/sailfishos-platform-sdk:$SFOS \
+            /bin/bash -c "mb2 -t $TARGET build"
+
+      - name: Show what was built
+        run: |
+          find RPMS -name '*.rpm' -print -exec rpm -qip {} \; 2>/dev/null || \
+            find . -name '*.rpm' -print
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: postivene-${{ env.ARCH }}-sfos${{ env.SFOS }}
+          path: |
+            RPMS/**/*.rpm
+            **/*.rpm
+          if-no-files-found: error
+          retention-days: 30

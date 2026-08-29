@@ -1,7 +1,8 @@
 # postivene -- developer targets.
 #
-# `make check` is what CI runs, minus what needs a network fetch or the
-# Sailfish SDK. Nothing here needs a phone.
+# `make check` is what CI runs, minus what needs the Sailfish SDK or a
+# phone. It is not entirely offline: `msrv` fetches a toolchain the first
+# time it runs, and `deny` wants the advisory database.
 #
 # Qt5 packages (Debian/Ubuntu):
 #   apt install qtbase5-dev qtdeclarative5-dev qtdeclarative5-dev-tools \
@@ -10,7 +11,7 @@
 # The last is the QtQuick runtime plugin, which the -dev packages omit.
 
 .PHONY: check test lint fmt qml-lint packaging-lint lockfile-lint doc-lint \
-        msrv integration fetch-server clean
+        msrv deny integration fetch-server clean
 
 CARGO ?= cargo
 # The shim's tests drive a real Qt event loop, which needs a platform
@@ -18,7 +19,10 @@ CARGO ?= cargo
 export QT_QPA_PLATFORM = offscreen
 
 ## What CI runs, in the same order. Keep in step with ci.yml.
-check: fmt lint test doc-lint msrv qml-lint lockfile-lint packaging-lint
+##
+## `msrv` fetches a toolchain the first time, so this is not quite
+## network-free; `deny` needs the advisory database and is CI's job.
+check: fmt lint test doc-lint msrv qml-lint lockfile-lint packaging-lint deny
 
 ## Unit, integration, and Qt event-loop tests.
 test:
@@ -53,6 +57,12 @@ doc-lint:
 msrv:
 	rustup toolchain install 1.75.0 --profile minimal
 	cd rust && RUSTFLAGS="-D warnings" $(CARGO) +1.75.0 check --workspace --all-targets
+
+## Licences and advisories, as CI's `deny` job runs them. Needs
+## `cargo install cargo-deny`, and the advisory database (network).
+deny:
+	cd rust && $(CARGO) deny check || \
+		echo "deny: SKIP (cargo-deny not installed)"
 
 ## Fetch the pinned upstream deltachat-rpc-server binaries (network).
 fetch-server:

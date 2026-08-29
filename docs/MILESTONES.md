@@ -54,7 +54,9 @@ unfinished.
       unread-badge clearing via `marknoticed_chat`.
 - [ ] Media, contact pages, notifications, background sync and suspend
       handling. The last two need a real Sailfish target.
-- [ ] Starting a conversation at all: see `docs/GAP-ANALYSIS.md`.
+- [x] Starting a conversation: contacts, new chat, groups and invites.
+      What is left of it is in `docs/GAP-ANALYSIS.md`, which is canonical
+      for feature status.
 
 ## 5. Onboarding & security UX
 
@@ -121,5 +123,7 @@ or network. See `docs/ENGINEERING.md`.
 
 ## Environment constraint
 
-No Sailfish SDK, emulator, device, or OBS access here. Anything requiring
-them is left unchecked above rather than assumed.
+No Sailfish SDK, emulator or OBS access in the environment this is
+developed in. Anything requiring them is left unchecked above rather than
+assumed. A device has since been available for some of it: what has
+actually been seen on a phone is listed in `docs/DEVICE-CHECKS.md`.

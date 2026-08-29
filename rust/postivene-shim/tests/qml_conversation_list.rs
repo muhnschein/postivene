@@ -36,6 +36,9 @@ const PROBE_QML: &str = r"
         function append(count) {
             for (var i = 0; i < count; i++) {
                 rows.append({
+                    // 1-based and distinct: with every id 0 an assertion on
+                    // one cannot tell a right answer from a missing role.
+                    message_id: rows.count + 1,
                     text: 'message number ' + rows.count + ', long enough '
                           + 'to take a line of its own in the list',
                     is_outgoing: false, is_info: false, show_padlock: true,
@@ -46,6 +49,26 @@ const PROBE_QML: &str = r"
                     image_width: 0, image_height: 0
                 })
             }
+            // As the page does: the model says what arrived, the view
+            // counts it. Differencing the row count instead would count a
+            // message the reader sent, and miss an arrival that landed in
+            // the same reload as a deletion.
+            if (loader.item) { loader.item.noteArrivals(count) }
+            return '' + rows.count
+        }
+
+        // A row the reader sent. It moves the count without being an
+        // arrival, so nothing tells the view about it.
+        function appendOwn() {
+            rows.append({
+                message_id: rows.count + 1, text: 'mine',
+                is_outgoing: true, is_info: false, show_padlock: true,
+                state: 26, timestamp: 1700000000 + rows.count,
+                day_number: 19675, sender_name: 'Me',
+                sender_color: '#00875a', quote_text: '', quote_author: '',
+                file_path: '', file_name: '', view_type: 'Text',
+                image_width: 0, image_height: 0
+            })
             return '' + rows.count
         }
 
@@ -68,6 +91,34 @@ const PROBE_QML: &str = r"
             return 'ok'
         }
         function raisedSignal() { return raised }
+        // Whether Send again is offered for a row in this delivery state.
+        // Clicking it says nothing about that: findIn reaches an invisible
+        // item just as well, so the gate needs asking about directly --
+        // and the row has to be laid out again first, which is why setting
+        // it up and reading it are separate calls a tick apart.
+        function resetToState(state) {
+            rows.clear()
+            rows.append({
+                message_id: 1, text: 'one', is_outgoing: true,
+                is_info: false, show_padlock: true, state: state,
+                timestamp: 1700000000, day_number: 19675,
+                sender_name: 'Me', sender_color: '#00875a',
+                quote_text: '', quote_author: '', file_path: '',
+                file_name: '', view_type: 'Text',
+                image_width: 0, image_height: 0
+            })
+            return 'ok'
+        }
+        function resendVisible() {
+            var row = findIn(loader.item, 'messageRow')
+            if (!row || !row.menu) { return 'no-menu' }
+            var item = findIn(row.menu, 'resendItem')
+            return item ? '' + item.visible : 'missing'
+        }
+        function clearRaised() { raised = ''; return 'ok' }
+        // Destroys the delegate the menu belongs to, as a reload or a
+        // reorder does.
+        function removeRow(index) { rows.remove(index); return 'ok' }
         function findIn(node, name) {
             if (!node) { return null }
             if (node.objectName === name) { return node }
@@ -122,6 +173,9 @@ fn component_url(name: &str) -> String {
     )
 }
 
+// A script of timed steps, in the order they happen; splitting it would
+// hide that order for no gain.
+#[allow(clippy::too_many_lines)]
 #[test]
 fn a_conversation_opens_at_the_newest_message_and_stays_where_it_is_left() {
     // SAFETY: single-threaded test binary; set before Qt starts.
@@ -212,10 +266,10 @@ fn a_conversation_opens_at_the_newest_message_and_stays_where_it_is_left() {
         record!("reply", call!("raisedSignal"));
         call!("pickMenu", QString::from("copyItem"));
         record!("copy", call!("raisedSignal"));
-        call!("pickMenu", QString::from("deleteItem"));
-        record!("delete", call!("raisedSignal"));
         call!("pickMenu", QString::from("resendItem"));
         record!("resend", call!("raisedSignal"));
+        // Deferred by the stub, as Silica defers it: read on the next step.
+        call!("pickMenu", QString::from("deleteItem"));
 
         // Scrolled away again, so an arrival is counted rather than shown.
         call!("toTop");
@@ -224,7 +278,15 @@ fn a_conversation_opens_at_the_newest_message_and_stays_where_it_is_left() {
     });
 
     single_shot(Duration::from_secs(6), move || unsafe {
+        record!("delete", call!("raisedSignal"));
         record!("missed", call!("get", QString::from("missedCount")));
+
+        // The reader's own message is not one they missed.
+        call!("appendOwn");
+        record!(
+            "missed-after-own",
+            call!("get", QString::from("missedCount"))
+        );
 
         call!("jump");
     });
@@ -246,6 +308,43 @@ fn a_conversation_opens_at_the_newest_message_and_stays_where_it_is_left() {
 
     single_shot(Duration::from_secs(8), move || unsafe {
         record!("held-stayed", call!("ended"));
+
+        // Away from the newest message, then a flick still gliding when
+        // the jump button is tapped. The button is not part of the list,
+        // so nothing else stops that flick.
+        call!("toTop");
+        call!("settle");
+        call!("beginDrag");
+        call!("jump");
+    });
+
+    single_shot(Duration::from_secs(9), move || unsafe {
+        record!("jumped-mid-flick", call!("ended"));
+
+        // Picked, then the row destroyed before the countdown ends -- which
+        // is what a reload or a reorder does to it. Silica runs the action
+        // on the way out, so it must still name the message that was
+        // picked. Cleared first: a stale value would otherwise read as a
+        // fresh one and the assertion would hold either way.
+        call!("clearRaised");
+        call!("pickMenu", QString::from("deleteItem"));
+        call!("removeRow", 0);
+    });
+
+    single_shot(Duration::from_secs(10), move || unsafe {
+        record!("delete-after-removal", call!("raisedSignal"));
+
+        // Last, because it replaces the model's contents.
+        call!("resetToState", 24);
+    });
+
+    single_shot(Duration::from_secs(11), move || unsafe {
+        record!("resend-when-failed", call!("resendVisible"));
+        call!("resetToState", 26);
+    });
+
+    single_shot(Duration::from_secs(12), move || unsafe {
+        record!("resend-when-delivered", call!("resendVisible"));
         (*engine_ptr).quit();
     });
 
@@ -314,7 +413,7 @@ fn assert_outcome(steps: &[(&str, String)]) {
     // The reply carries what the page needs to show what is being answered.
     assert_eq!(
         value("reply"),
-        "reply:0:message number 0, long enough to take a line of its own in the list:Ada",
+        "reply:1:message number 0, long enough to take a line of its own in the list:Ada",
         "Reply did not name the message it is replying to. {context}"
     );
     assert!(
@@ -324,13 +423,36 @@ fn assert_outcome(steps: &[(&str, String)]) {
     );
     assert_eq!(
         value("delete"),
-        "delete:0",
+        "delete:1",
         "Delete did not name its message. {context}"
     );
     assert_eq!(
         value("resend"),
-        "resend:0",
+        "resend:1",
         "Send again did not name its message. {context}"
+    );
+
+    assert_eq!(
+        value("delete-after-removal"),
+        "delete:1",
+        "a delete whose row was destroyed mid-countdown did not name the \
+         message that was picked -- read from the delegate as it went, \
+         `model` resolves to nothing and the deletion is dropped. {context}"
+    );
+
+    // DC_STATE_OUT_FAILED is the only state worth offering it in. Clicking
+    // the item proves it is wired; whether a reader can ever reach it is a
+    // separate question, and was not being asked.
+    assert_eq!(
+        value("resend-when-failed"),
+        "true",
+        "Send again is hidden on a message that failed, which is the one \
+         case it exists for. {context}"
+    );
+    assert_eq!(
+        value("resend-when-delivered"),
+        "false",
+        "Send again is offered on a message that was delivered. {context}"
     );
 
     assert_eq!(
@@ -339,11 +461,29 @@ fn assert_outcome(steps: &[(&str, String)]) {
         "messages arriving out of sight were not counted. {context}"
     );
     assert_eq!(
+        value("missed-after-own"),
+        "2",
+        "a message the reader sent themselves was counted as one they \
+         missed, which is what differencing the row count does. {context}"
+    );
+    assert_eq!(
         value("held-follows"),
         "false",
         "the view still follows while the reader has hold of it, which hauls \
          them back down the moment they scroll up. {context}"
     );
+    // The jump has to move the view even when the reader tapped it during
+    // a flick: it clears the missed badge and tells the page the newest
+    // message has been reached, and doing that without scrolling marks
+    // messages read that are still out of sight.
+    assert_eq!(
+        value("jumped-mid-flick"),
+        "true",
+        "tapping jump-to-newest during a flick left the view up in the \
+         history, having already cleared the badge and reported arrival. \
+         {context}"
+    );
+
     assert_eq!(
         value("held-stayed"),
         "false",

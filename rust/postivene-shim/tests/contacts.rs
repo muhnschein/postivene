@@ -190,7 +190,10 @@ fn assert_routes(calls: &[(String, Value)], listed: &str, report: &str) {
         "the name typed alongside the address was dropped"
     );
 
-    // Group: created encrypted, then both members added.
+    // Group: created encrypted, then both members added. Encrypted because
+    // of which method this is, not because of any argument to it -- the
+    // third one is upstream's deprecated `protect`, which it says to pass
+    // `false` and then reads not at all.
     let group = calls
         .iter()
         .find(|(name, _)| name == "create_group_chat")
@@ -198,8 +201,12 @@ fn assert_routes(calls: &[(String, Value)], listed: &str, report: &str) {
     assert_eq!(group.1.pointer("/1").and_then(Value::as_str), Some("Team"));
     assert_eq!(
         group.1.pointer("/2").and_then(Value::as_bool),
-        Some(true),
-        "the group was created unencrypted"
+        Some(false),
+        "the deprecated `protect` argument is not being passed as upstream asks"
+    );
+    assert!(
+        !names.contains(&"create_group_chat_unencrypted"),
+        "the group was created unencrypted: {names:?}"
     );
     assert_eq!(
         names

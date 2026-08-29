@@ -14,11 +14,18 @@ Page {
     property int accountId
     property string errorMessage: ""
 
+    // Not bound straight to the field: a round trip per keystroke asks the
+    // core four times to type "anna", and only the last answer is wanted.
+    Timer {
+        id: searchDebounce
+        interval: 250
+        onTriggered: contacts.query = searchField.text
+    }
+
     ContactList {
         id: contacts
         objectName: "contacts"
         account_id: page.accountId
-        query: searchField.text
         onError: page.errorMessage = message
         // Every route ends the same way: open the chat that now exists.
         onChat_ready: pageStack.replace(Qt.resolvedUrl("ConversationPage.qml"), {
@@ -55,6 +62,7 @@ Page {
                 objectName: "searchField"
                 width: parent.width
                 placeholderText: qsTr("Search contacts")
+                onTextChanged: searchDebounce.restart()
             }
 
             Button {
@@ -104,6 +112,7 @@ Page {
 
                 Label {
                     width: parent.width
+                    textFormat: Text.PlainText
                     // An address contact cannot be written to encrypted, so
                     // it carries the same letter mark the chat list uses.
                     text: model.is_key_contact ? model.display_name
@@ -113,6 +122,7 @@ Page {
 
                 Label {
                     width: parent.width
+                    textFormat: Text.PlainText
                     text: model.address
                     font.pixelSize: Theme.fontSizeExtraSmall
                     color: Theme.secondaryColor

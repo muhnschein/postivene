@@ -12,6 +12,9 @@ Page {
 
     property int accountId
     property string errorMessage: ""
+    // True from tapping create until the core answers, so a second tap
+    // cannot make a second group.
+    property bool creating: false
     // Contact ids the user has ticked.
     property var members: []
 
@@ -19,12 +22,18 @@ Page {
         id: contacts
         objectName: "contacts"
         account_id: page.accountId
-        onError: page.errorMessage = message
-        onChat_ready: pageStack.replace(Qt.resolvedUrl("ConversationPage.qml"), {
-            accountId: page.accountId,
-            chatId: chat_id,
-            chatName: nameField.text
-        })
+        onError: {
+            page.creating = false
+            page.errorMessage = message
+        }
+        onChat_ready: {
+            page.creating = false
+            pageStack.replace(Qt.resolvedUrl("ConversationPage.qml"), {
+                accountId: page.accountId,
+                chatId: chat_id,
+                chatName: nameField.text
+            })
+        }
     }
 
     function toggle(contactId) {
@@ -58,6 +67,7 @@ Page {
             return
         }
         page.errorMessage = ""
+        page.creating = true
         contacts.create_group(nameField.text, page.members)
     }
 
@@ -102,7 +112,7 @@ Page {
                 objectName: "createButton"
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: qsTr("Create Group")
-                enabled: nameField.text.length > 0
+                enabled: !page.creating && nameField.text.length > 0
                 onClicked: page.createGroup()
             }
         }
@@ -110,6 +120,10 @@ Page {
         delegate: ListItem {
             objectName: "memberRow"
             contentHeight: Theme.itemSizeSmall
+            // A group here is encrypted, and the core takes only
+            // key-contacts into one -- picking anyone else builds a group
+            // they cannot be added to, which fails halfway through.
+            enabled: model.is_key_contact
 
             Label {
                 anchors {
@@ -119,13 +133,17 @@ Page {
                     leftMargin: Theme.horizontalPageMargin
                     rightMargin: Theme.horizontalPageMargin
                 }
-                text: (page.isMember(model.contact_id) ? "✓ " : "") + model.display_name
-                color: page.isMember(model.contact_id) ? Theme.highlightColor
-                                                       : Theme.primaryColor
+                textFormat: Text.PlainText
+                text: (page.isMember(model.contact_id) ? "✓ " : "")
+                      + (model.is_key_contact ? "" : "✉ ") + model.display_name
+                color: !model.is_key_contact
+                       ? Theme.secondaryColor
+                       : (page.isMember(model.contact_id) ? Theme.highlightColor
+                                                          : Theme.primaryColor)
                 truncationMode: TruncationMode.Fade
             }
 
-            onClicked: page.toggle(model.contact_id)
+            onClicked: if (model.is_key_contact) page.toggle(model.contact_id)
         }
 
         ViewPlaceholder {

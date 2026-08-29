@@ -59,7 +59,14 @@ async fn main() {
                 "get_next_event_batch" => {
                     let mut count = batch_counter.lock().await;
                     *count += 1;
-                    if *count <= 2 {
+                    // One answer in the middle the client cannot use. The
+                    // real core would do this by changing an event's shape
+                    // across a version; here an error object does the same
+                    // job. What matters is that it is not the transport
+                    // closing, so the stream has to carry on past it.
+                    if *count == 2 {
+                        err(id, -32000, "no events for you")
+                    } else if *count <= 3 {
                         let n = *count;
                         ok(
                             id,

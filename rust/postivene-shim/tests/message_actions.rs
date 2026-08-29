@@ -42,6 +42,13 @@ const PROBE_QML: &str = r"
             chat.quoted_message_id = 1
             chat.send('answering that')
         }
+        // A reply the core refuses. The quote has to survive it: the reader
+        // picked a message to answer, and a send that never happened is no
+        // reason to drop it.
+        function replyAndFail() {
+            chat.quoted_message_id = 2
+            chat.send('please fail')
+        }
         function stillQuoting() { return '' + chat.quoted_message_id }
         // The reader is up in the history, not looking at the newest. The
         // far end is too, so only catching up can mark this read.
@@ -107,28 +114,33 @@ fn a_reply_carries_its_quote_and_the_rest_name_their_message() {
     single_shot(Duration::from_secs(3), move || unsafe {
         (*steps_ptr).push(("loaded", call!("count")));
         call!("reply");
-        // Read straight away: sending clears it, and a second send must
-        // not quote the same message again.
-        (*steps_ptr).push(("quote-cleared", call!("stillQuoting")));
     });
     single_shot(Duration::from_secs(5), move || unsafe {
+        // Read once the send has been answered, not before: the quote is
+        // cleared when the message is really gone, so that a send which
+        // fails leaves the reader the reply they chose.
+        (*steps_ptr).push(("quote-cleared", call!("stillQuoting")));
         (*steps_ptr).push(("after-reply", call!("count")));
+        call!("replyAndFail");
+    });
+    single_shot(Duration::from_secs(6), move || unsafe {
+        (*steps_ptr).push(("quote-after-failure", call!("stillQuoting")));
         call!("remove");
     });
-    single_shot(Duration::from_secs(7), move || unsafe {
+    single_shot(Duration::from_secs(8), move || unsafe {
         (*steps_ptr).push(("after-delete", call!("count")));
         call!("retry");
         call!("arrive");
     });
 
-    single_shot(Duration::from_secs(9), move || unsafe {
+    single_shot(Duration::from_secs(10), move || unsafe {
         call!("forceReload");
     });
 
-    single_shot(Duration::from_secs(11), move || unsafe {
+    single_shot(Duration::from_secs(12), move || unsafe {
         call!("catchUp");
     });
-    single_shot(Duration::from_secs(13), move || unsafe {
+    single_shot(Duration::from_secs(14), move || unsafe {
         (*steps_ptr).push(("error", call!("error")));
         (*engine_ptr).quit();
     });
@@ -172,6 +184,12 @@ fn assert_outcome(calls: &[(String, Value)], steps: &[(&str, String)]) {
         "the quote outlived the reply that used it. {context}"
     );
     assert_eq!(
+        value("quote-after-failure"),
+        "2",
+        "a send the core refused took the reply's quote with it, so trying \
+         again sends an unquoted message and says nothing about it. {context}"
+    );
+    assert_eq!(
         value("after-reply"),
         "3",
         "the reply is not in the chat. {context}"
@@ -192,7 +210,25 @@ fn assert_outcome(calls: &[(String, Value)], steps: &[(&str, String)]) {
         vec![serde_json::json!([1, [1]])],
         "resending did not name its message. {context}"
     );
-    assert_eq!(value("error"), "", "an action failed. {context}");
+    // A resend leaves the id list alone, so the sync a core event triggers
+    // fetches nothing: without an explicit re-read the row keeps the failed
+    // state it had, mark and "Send again" and all.
+    let refetched_after_resend = calls
+        .iter()
+        .skip_while(|(name, _)| name != "resend_messages")
+        .any(|(name, params)| {
+            name == "get_messages" && params.pointer("/1") == Some(&serde_json::json!([1]))
+        });
+    assert!(
+        refetched_after_resend,
+        "the resent message was never re-read, so its row still shows as \
+         failed and still offers Send again. {context}"
+    );
+    assert!(
+        value("error").contains("could not send"),
+        "the refused send did not reach the page, got {:?}. {context}",
+        value("error")
+    );
 
     // A message arriving while the reader is up in the history is not read
     // yet: marking it so loses its unread badge in the chat list too. The

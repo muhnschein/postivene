@@ -24,9 +24,18 @@ SilicaListView {
     // the view: `count` there only changes when the view has laid out, and
     // an arrival has to be noticed whether or not it is on screen yet.
     property int messageCount: 0
-    // How many have arrived since the reader scrolled away.
+    // How many have arrived since the reader scrolled away. Counted from
+    // what the model says arrived, not by differencing `messageCount`: a
+    // deletion moves that too, and a removal landing with an arrival in one
+    // reload does not move it at all.
     property int missedCount: 0
-    property int lastCount: 0
+
+    /// Messages from other people have just been added.
+    function noteArrivals(count) {
+        if (!root.following) {
+            root.missedCount += count
+        }
+    }
 
     // Raised rather than acted on: the component knows nothing about the
     // core, which is what makes it loadable on its own.
@@ -37,6 +46,13 @@ SilicaListView {
 
     /// Back to the newest message, and following again.
     function jumpToNewest() {
+        // The button sits over the list rather than inside it, so a tap
+        // does not stop an inertial flick the way touching the list would.
+        // Left running, `held` stays true, `following` stays false, and the
+        // scroll below never happens -- while the state this sets has
+        // already told the page the reader is at the newest message.
+        root.cancelFlick()
+        root.held = false
         root.stickToBottom = true
         root.missedCount = 0
         toEnd.restart()
@@ -70,15 +86,7 @@ SilicaListView {
 
     // Both of these, because a row arriving and that row being measured are
     // separate steps: the first moves `count`, the second `contentHeight`.
-    onMessageCountChanged: {
-        if (root.following) {
-            toEnd.restart()
-        } else if (root.messageCount > root.lastCount) {
-            // Only arrivals count: deleting a message also moves this.
-            root.missedCount += root.messageCount - root.lastCount
-        }
-        root.lastCount = root.messageCount
-    }
+    onMessageCountChanged: if (root.following) toEnd.restart()
     onContentHeightChanged: if (root.following) toEnd.restart()
     // Where the reader left off, once they stop moving. `atYEnd` is the
     // view's own answer; the arithmetic version has to know about `originY`
@@ -109,9 +117,12 @@ SilicaListView {
         horizontalAlignment: Text.AlignHCenter
         font.pixelSize: Theme.fontSizeExtraSmall
         color: Theme.secondaryColor
-        // Local midnight of that day, back from the day number.
+        // Midday of that day rather than midnight: the model counted the
+        // day with today's offset, and a day that was an hour off it --
+        // the other side of a daylight-saving change -- would land on the
+        // wrong date if it were read back from the boundary.
         text: Qt.formatDate(new Date((parseInt(section, 10) * 86400
-                                      - root.utcOffset) * 1000),
+                                      - root.utcOffset + 43200) * 1000),
                             Qt.DefaultLocaleLongDate)
     }
 
@@ -122,12 +133,17 @@ SilicaListView {
         menu: ContextMenu {
             MenuItem {
                 objectName: "replyItem"
+                // A core notice is nobody's message to answer.
+                visible: !model.is_info
                 text: qsTr("Reply")
                 onClicked: root.replyRequested(model.message_id, model.text,
                                                model.sender_name)
             }
             MenuItem {
                 objectName: "copyItem"
+                // An image or a voice message with no caption has no text:
+                // copying one emptied the clipboard and said it had worked.
+                visible: model.text.length > 0
                 text: qsTr("Copy")
                 onClicked: root.copyRequested(model.text)
             }
@@ -141,9 +157,15 @@ SilicaListView {
             MenuItem {
                 objectName: "deleteItem"
                 text: qsTr("Delete")
-                onClicked: messageRow.remorseAction(qsTr("Deleting"), function() {
-                    root.deleteRequested(model.message_id)
-                })
+                // Taken now rather than read in the callback: anything that
+                // reloads the model destroys this row, Silica runs the
+                // action as it goes, and `model` is gone by then.
+                onClicked: {
+                    var doomed = model.message_id
+                    messageRow.remorseAction(qsTr("Deleting"), function() {
+                        root.deleteRequested(doomed)
+                    })
+                }
             }
         }
         // Sized by its content, not fixed: a device message runs to a

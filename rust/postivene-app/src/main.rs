@@ -10,15 +10,26 @@ use std::path::PathBuf;
 use postivene_shim::DeltaChatCore;
 use qmetaobject::*;
 
-/// CLI arg, then `POSTIVENE_RPC_SERVER`, then the bundled path, then
-/// `PATH`.
+/// `--rpc-server <path>`, then `POSTIVENE_RPC_SERVER`, then the bundled
+/// path, then `PATH`.
 ///
 /// Checked here rather than set by the desktop entry: Sailfish launches
 /// `silica-qt5` apps through the invoker, which executes the binary itself,
 /// so an `Exec=env FOO=bar app` wrapper is not reliably honoured.
+///
+/// Behind a flag rather than taking `argv[1]`: the invoker passes
+/// arguments of its own, and a bare positional turned any of them into
+/// "the server binary" and then failed to spawn it.
 fn rpc_server_path() -> String {
-    if let Some(arg) = std::env::args().nth(1) {
-        return arg;
+    let mut args = std::env::args().skip(1);
+    while let Some(arg) = args.next() {
+        if arg == "--rpc-server" {
+            if let Some(path) = args.next() {
+                return path;
+            }
+        } else if let Some(path) = arg.strip_prefix("--rpc-server=") {
+            return path.to_string();
+        }
     }
     if let Ok(env) = std::env::var("POSTIVENE_RPC_SERVER") {
         return env;

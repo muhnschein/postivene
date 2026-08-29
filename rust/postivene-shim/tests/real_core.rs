@@ -76,6 +76,10 @@ fn the_real_core_accepts_the_shapes_we_send() {
     };
 
     let temp = std::env::temp_dir().join(format!("postivene-real-core-{}", std::process::id()));
+    // Removed first: the directory is keyed by process id, and a recycled
+    // one otherwise hands the real core an account database from an
+    // earlier run.
+    let _ = std::fs::remove_dir_all(&temp);
     std::fs::create_dir_all(&temp).expect("create temp accounts dir");
 
     // SAFETY: single-threaded test binary; both must be set before Qt starts

@@ -112,6 +112,7 @@ Page {
                 wrapMode: Text.WrapAnywhere
                 font.pixelSize: Theme.fontSizeExtraSmall
                 color: Theme.secondaryColor
+                textFormat: Text.PlainText
                 text: page.myInvite.length > 0 ? page.myInvite
                                                : qsTr("Fetching...")
             }

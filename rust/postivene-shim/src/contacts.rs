@@ -71,6 +71,11 @@ pub struct ContactList {
 
     /// A chat is ready to be shown.
     pub chat_ready: qt_signal!(chat_id: u32),
+
+    /// Counts loads, so a slow answer to an old query cannot land on top of
+    /// a newer one. Typing "anna" starts four of these and they are not
+    /// answered in the order they were asked.
+    generation: u64,
 }
 
 impl ContactList {
@@ -107,10 +112,17 @@ impl ContactList {
             return;
         };
         let query = self.query.to_string();
+        self.generation = self.generation.wrapping_add(1);
+        let generation = self.generation;
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
         let done = queued_callback(move |result: Result<Vec<ContactItem>, String>| {
             let Some(this) = ptr.as_pinned() else { return };
+            // Answered after something newer was asked: these are results
+            // for a query the reader has already typed past.
+            if this.borrow().generation != generation {
+                return;
+            }
             match result {
                 Ok(items) => {
                     this.borrow_mut().rows.borrow_mut().reset_data(items);
@@ -185,7 +197,28 @@ impl ContactList {
             self.error(QString::from("not started"));
             return;
         };
-        let done = self.chat_callback();
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<(u32, Vec<String>), String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            match result {
+                Ok((chat_id, refused)) => {
+                    // Said first, then opened anyway: the group is real,
+                    // and leaving the reader on the picker with an error is
+                    // how one ends up stranded with no way back to it.
+                    if !refused.is_empty() {
+                        this.borrow().error(
+                            format!(
+                                "the group was made, but some people could not be added ({})",
+                                refused.join("; ")
+                            )
+                            .into(),
+                        );
+                    }
+                    this.borrow().chat_ready(chat_id);
+                }
+                Err(err) => this.borrow().error(err.into()),
+            }
+        });
 
         let name = name.to_string();
         let members: Vec<u32> = member_ids
@@ -195,18 +228,30 @@ impl ContactList {
             .collect();
         runtime.spawn(async move {
             let result = async {
-                // `protect` true: an encrypted group of key-contacts, which
-                // is what the reference client's "New Group" makes.
+                // Encrypted, of key-contacts, which is what the reference
+                // client's "New Group" makes. It is the method that decides
+                // that -- `create_group_chat_unencrypted` is the other one.
+                // The third argument is upstream's deprecated `protect`,
+                // which its own docs say to pass `false`; it is bound as
+                // `_protect` there and read by nothing.
                 let chat_id: u32 = rpc
-                    .call("create_group_chat", (account_id, name, true))
+                    .call("create_group_chat", (account_id, name, false))
                     .await
                     .map_err(|err| err.to_string())?;
+                // Every member attempted, and the chat handed back either
+                // way: it exists on the core from the call above, so
+                // failing out of here left a half-built group the reader
+                // was never shown and could not find.
+                let mut refused = Vec::new();
                 for member in members {
-                    rpc.call::<_, ()>("add_contact_to_chat", (account_id, chat_id, member))
+                    if let Err(err) = rpc
+                        .call::<_, ()>("add_contact_to_chat", (account_id, chat_id, member))
                         .await
-                        .map_err(|err| err.to_string())?;
+                    {
+                        refused.push(format!("{member}: {err}"));
+                    }
                 }
-                Ok::<_, String>(chat_id)
+                Ok::<_, String>((chat_id, refused))
             }
             .await;
             done(result);

@@ -56,6 +56,25 @@ const PROBE_QML: &str = r"
             return '' + item[property].a
         }
         function own(property) { return '' + loader.item[property] }
+        // Any themed icon anywhere under the loaded item, by name rather
+        // than by objectName: whoever puts one back will not name it after
+        // the check that is meant to stop them.
+        function themedIcons(node) {
+            if (!node) { return 0 }
+            var found = 0
+            // Coerced, not type-checked: `source` is a url, and what
+            // `typeof` calls that is not worth depending on.
+            if (node.source !== undefined
+                    && ('' + node.source).indexOf('image://theme') === 0) {
+                found += 1
+            }
+            var kids = node.children
+            for (var i = 0; kids && i < kids.length; i++) {
+                found += themedIcons(kids[i])
+            }
+            return found
+        }
+        function themedIconCount() { return '' + themedIcons(loader.item) }
     }
 ";
 
@@ -158,10 +177,7 @@ fn the_reply_bar_wraps_the_jump_button_is_opaque_and_a_notice_is_quiet() {
             "jump-chevron",
             call!("get", QString::from("jumpChevron"), QString::from("width"))
         );
-        record!(
-            "jump-no-icon",
-            call!("get", QString::from("jumpIcon"), QString::from("source"))
-        );
+        record!("jump-themed-icons", call!("themedIconCount"));
         // Item.Left, not Item.TopLeft: about the corner it is the stroke's
         // top edge that follows the line, and the two halves come out
         // crooked.
@@ -214,12 +230,19 @@ fn the_reply_bar_wraps_the_jump_button_is_opaque_and_a_notice_is_quiet() {
             "banner-load",
             call!("load", QString::from(component_url("Banner.qml")))
         );
-        call!("set", QString::from("tone"), QString::from("info"));
         call!(
             "call",
             QString::from("show"),
             QString::from("Copied to clipboard")
         );
+        // Read in the tone it defaults to before it is switched, so the
+        // assertion below compares two colours rather than reading back a
+        // value the test itself wrote.
+        record!(
+            "tone-error-colour",
+            call!("get", QString::from("errorLabel"), QString::from("color"))
+        );
+        call!("set", QString::from("tone"), QString::from("info"));
     });
 
     single_shot(Duration::from_secs(5), move || unsafe {
@@ -228,7 +251,10 @@ fn the_reply_bar_wraps_the_jump_button_is_opaque_and_a_notice_is_quiet() {
             call!("get", QString::from("errorLabel"), QString::from("text"))
         );
         record!("notice-shown", call!("own", QString::from("visible")));
-        record!("notice-tone", call!("own", QString::from("tone")));
+        record!(
+            "tone-info-colour",
+            call!("get", QString::from("errorLabel"), QString::from("color"))
+        );
         (*engine_ptr).quit();
     });
 
@@ -286,10 +312,12 @@ fn assert_outcome(steps: &[(&str, String)]) {
         "the jump button has no chevron drawn on it: {}. {context}",
         value("jump-chevron")
     );
-    // A themed icon here is itself a disc, which read as two circles.
+    // A themed icon here is itself a disc, which read as two circles. Asked
+    // as "is there one", not "is there one called jumpIcon": the old form
+    // held whatever was put back, as long as it was named something else.
     assert_eq!(
-        value("jump-no-icon"),
-        "missing:jumpIcon",
+        value("jump-themed-icons"),
+        "0",
         "the button is back to a themed icon, which brings a second circle. {context}"
     );
     // `Item.Left` is 3; `Item.TopLeft`, which draws it crooked, is 0.
@@ -340,9 +368,14 @@ fn assert_outcome(steps: &[(&str, String)]) {
         "true",
         "a notice with something to say stayed hidden. {context}"
     );
-    assert_eq!(
-        value("notice-tone"),
-        "info",
-        "a confirmation is dressed as a failure. {context}"
+    // Two colours, not the property read back: `tone` exists to change how
+    // the strip looks, and an assertion that it holds the value just
+    // written to it would pass with the colour binding deleted.
+    assert_ne!(
+        value("tone-error-colour"),
+        value("tone-info-colour"),
+        "a confirmation is dressed as a failure: switching tone left the \
+         colour where it was ({}). {context}",
+        value("tone-info-colour")
     );
 }

@@ -39,6 +39,15 @@ pub enum RpcError {
     #[error("deltachat-rpc-server transport closed")]
     TransportClosed,
 
+    /// The server took the request and never answered it.
+    #[error("deltachat-rpc-server did not answer {method} within {seconds}s")]
+    Timeout {
+        /// The method that went unanswered.
+        method: String,
+        /// How long the call waited.
+        seconds: u64,
+    },
+
     /// The caller's params could not be serialized to JSON.
     #[error("failed to serialize params for method {method}: {source}")]
     Encode {

@@ -2,7 +2,10 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 
 /*
- * One chat-list row. Its own component so it can be loaded and measured on
+ * One chat-list row. The name and the preview are whatever the other end
+ * sent, so both are pinned to PlainText -- see MessageDelegate.qml.
+ *
+ * Its own component so it can be loaded and measured on
  * its own, and laid out with bindings rather than a positioner -- see
  * MessageDelegate.qml.
  */
@@ -71,6 +74,7 @@ Item {
             visible: root.avatarPath.length === 0
             color: Theme.primaryColor
             font.pixelSize: Theme.fontSizeLarge
+            textFormat: Text.PlainText
             text: root.chatName.substring(0, 1).toUpperCase()
         }
 
@@ -80,7 +84,10 @@ Item {
             visible: root.avatarPath.length > 0
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
-            source: root.avatarPath.length > 0 ? "file://" + root.avatarPath : ""
+            // Encoded; see MessageDelegate.qml.
+            source: root.avatarPath.length > 0
+                    ? Qt.resolvedUrl("file://" + encodeURI(root.avatarPath))
+                    : ""
         }
     }
 
@@ -101,6 +108,7 @@ Item {
         y: Theme.paddingMedium
         width: timeLabelItem.x - x - Theme.paddingMedium
         truncationMode: TruncationMode.Fade
+        textFormat: Text.PlainText
         // A mail icon marks a chat that cannot be encrypted to; the other
         // two say how the chat is filed.
         text: (root.isEncrypted ? "" : "✉ ") + root.chatName
@@ -116,6 +124,7 @@ Item {
         truncationMode: TruncationMode.Fade
         font.pixelSize: Theme.fontSizeExtraSmall
         color: Theme.secondaryColor
+        textFormat: Text.PlainText
         // Ours carries its delivery mark; someone else's is named when the
         // core names them, which it does where it matters.
         text: (root.summaryIsOurs ? root.stateMark(root.summaryState) + " " : "")

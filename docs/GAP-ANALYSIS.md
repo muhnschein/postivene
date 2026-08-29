@@ -81,7 +81,7 @@ The shared models are gone. `ChatMessages` and `ChatList` are
 QML-instantiable, so a page owns its model; both load in one batch call and
 apply events rather than rebuilding.
 
-Failures reach the user: every page shows them in a shared `ErrorBanner`,
+Failures reach the user: every page shows them in a shared `Banner`,
 the core's own `Error` events arrive as a typed `core_error` signal, and the
 server dying flips `status` to `"stopped"` rather than leaving it claiming
 `"ready"`. Opening a chat calls `markseen_msgs`, so read receipts go out.
@@ -90,6 +90,11 @@ What is left here:
 
 - Nothing restarts `deltachat-rpc-server` after it dies; the app says so
   and asks for a restart.
+
+Day separators still count the day with the offset in force now, so a
+message from the other side of a daylight-saving change can sit under the
+wrong date. Doing it properly wants the zone rather than an offset, which
+is not something QML hands down.
 
 ## Platform integration
 

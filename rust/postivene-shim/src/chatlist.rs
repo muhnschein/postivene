@@ -6,7 +6,7 @@
 //! refetches only the chats whose contents changed.
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use deltachat_jsonrpc::RpcClient;
 use qmetaobject::*;
@@ -77,7 +77,7 @@ impl ChatList {
 
     /// Reload every row.
     pub fn reload(&mut self) {
-        self.refresh(None);
+        self.refresh(Refresh::All);
     }
 
     /// Apply one core event.
@@ -85,30 +85,47 @@ impl ChatList {
         if context_id != self.account_id || self.account_id == 0 {
             return;
         }
+        let kind = kind.to_string();
         if !matches!(
-            kind.to_string().as_str(),
+            kind.as_str(),
             "IncomingMsg"
                 | "MsgsChanged"
                 | "MsgsNoticed"
                 | "MsgDelivered"
+                | "MsgRead"
                 | "MsgFailed"
                 // Pinning, muting, archiving and deleting land here.
                 | "ChatModified"
                 | "ChatDeleted"
                 | "ChatlistChanged"
                 | "ChatlistItemChanged"
+                // The core dropped events it could not queue. Whatever it
+                // was, this model did not see it, so nothing it holds can
+                // be trusted.
+                | "EventChannelOverflow"
         ) {
             return;
         }
         let payload: serde_json::Value =
             serde_json::from_str(&payload_json.to_string()).unwrap_or_default();
-        // chatId 0 means "several chats"; then everything may have changed.
-        let changed = payload
+        // A chat id names the one row that changed. Without one -- absent,
+        // null, or 0 -- the core is saying it could not work out which
+        // rows are affected and every visible one has to be re-read.
+        // Upstream's own words for `ChatlistItemChanged`: "If chat_id is
+        // set to None, then all currently visible chats need to be
+        // rerendered".
+        // An overflow carries no chat id and could have hidden anything.
+        if kind == "EventChannelOverflow" {
+            self.refresh(Refresh::All);
+            return;
+        }
+        let scope = payload
             .get("chatId")
             .and_then(serde_json::Value::as_u64)
             .and_then(|id| u32::try_from(id).ok())
-            .filter(|id| *id != 0);
-        self.refresh(changed);
+            .filter(|id| *id != 0)
+            .map_or(Refresh::All, Refresh::One);
+        self.refresh(scope);
     }
 
     /// Mark everything in a chat read.
@@ -159,7 +176,7 @@ impl ChatList {
         let done = queued_callback(move |result: Result<(), String>| {
             let Some(this) = ptr.as_pinned() else { return };
             match result {
-                Ok(()) => this.borrow_mut().refresh(Some(chat_id)),
+                Ok(()) => this.borrow_mut().refresh(Refresh::One(chat_id)),
                 Err(err) => this.borrow().error(err.into()),
             }
         });
@@ -175,11 +192,12 @@ impl ChatList {
 
     /// Bring the model in line with the core.
     ///
-    /// `changed` names a chat whose contents are known to have changed; its
-    /// row is refetched along with any chat not in the model yet. Everything
-    /// else is reused, so a message arriving in one chat costs one entry
-    /// listing and one item fetch, not a rebuild.
-    fn refresh(&mut self, changed: Option<u32>) {
+    /// [`Refresh::One`] refetches the chat it names along with any chat not
+    /// in the model yet, and reuses every other row -- so a message
+    /// arriving in one chat costs one entry listing and one item fetch, not
+    /// a rebuild. [`Refresh::All`] refetches the lot, which is what the
+    /// core asks for when it reports a change it cannot attribute.
+    fn refresh(&mut self, scope: Refresh) {
         let account_id = self.account_id;
         if account_id == 0 {
             return;
@@ -188,7 +206,9 @@ impl ChatList {
             return;
         };
         let cached: Vec<ChatListItem> = self.rows.borrow().iter().cloned().collect();
-        let known: Vec<u32> = cached.iter().map(|row| row.chat_id).collect();
+        // A set, not a list: this is asked once per entry, and a long chat
+        // list would otherwise make the scan quadratic.
+        let known: HashSet<u32> = cached.iter().map(|row| row.chat_id).collect();
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
         let done = queued_callback(move |result: Result<Vec<ChatListItem>, String>| {
@@ -212,7 +232,10 @@ impl ChatList {
                 let wanted: Vec<u32> = entries
                     .iter()
                     .copied()
-                    .filter(|id| Some(*id) == changed || !known.contains(id))
+                    .filter(|id| match scope {
+                        Refresh::All => true,
+                        Refresh::One(chat) => *id == chat || !known.contains(id),
+                    })
                     .collect();
                 let fresh = if wanted.is_empty() {
                     HashMap::new()
@@ -238,29 +261,67 @@ impl ChatList {
     }
 }
 
+/// How much of the list a refresh has to re-read from the core.
+#[derive(Clone, Copy)]
+enum Refresh {
+    /// Every visible row. What the core means by a change it reports
+    /// without naming a chat, and what `reload` has to do to be worth
+    /// calling at all.
+    All,
+    /// This chat, plus any chat not in the model yet.
+    One(u32),
+}
+
 /// Move, insert and remove rows until the model matches `target`.
 ///
 /// The common case -- one chat moving to the top -- is one remove and one
 /// insert, so every other row keeps its identity and the view keeps its
 /// place.
 fn reconcile(rows: &mut ChatListModel, target: Vec<ChatListItem>) {
+    // The ids as they stand, kept in step with the model rather than read
+    // back out of it each time round: rebuilding this per row, and reaching
+    // into the model with `nth`, is what made a no-op refresh cost a scan
+    // of the whole list for every chat in it.
+    let mut current: Vec<u32> = rows.iter().map(|row| row.chat_id).collect();
+    let keep: HashSet<u32> = target.iter().map(|row| row.chat_id).collect();
+
+    // Gone from the core: dropped first, so what follows only ever moves
+    // rows that are staying.
+    let mut index = 0;
+    while index < current.len() {
+        if keep.contains(&current[index]) {
+            index += 1;
+        } else {
+            rows.remove(index);
+            current.remove(index);
+        }
+    }
+
     for (index, wanted) in target.iter().enumerate() {
-        let current: Vec<u32> = rows.iter().map(|row| row.chat_id).collect();
-        match current.iter().position(|id| *id == wanted.chat_id) {
-            Some(found) if found == index => {
-                if rows.iter().nth(index).is_some_and(|row| row != wanted) {
+        // Everything before `index` is already where the core wants it, so
+        // only the tail is worth looking through.
+        let found = current
+            .iter()
+            .skip(index)
+            .position(|id| *id == wanted.chat_id)
+            .map(|offset| index + offset);
+        match found {
+            Some(at) if at == index => {
+                if rows[index] != *wanted {
                     rows.change_line(index, wanted.clone());
                 }
             }
-            Some(found) => {
-                rows.remove(found);
+            Some(at) => {
+                rows.remove(at);
                 rows.insert(index, wanted.clone());
+                let id = current.remove(at);
+                current.insert(index, id);
             }
-            None => rows.insert(index, wanted.clone()),
+            None => {
+                rows.insert(index, wanted.clone());
+                current.insert(index, wanted.chat_id);
+            }
         }
-    }
-    while rows.iter().count() > target.len() {
-        rows.remove(target.len());
     }
 }
 

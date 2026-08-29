@@ -30,8 +30,11 @@ rust/
 qml/                   Silica UI: postivene.qml (root), cover/, pages/
                        (setup/login, chat list, conversation).
 rpm/                   postivene.spec: Sailfish/OBS RPM packaging.
-postivene.desktop      Launcher entry (Exec sets POSTIVENE_RPC_SERVER to
-                       the bundled binary's installed path).
+postivene.desktop      Launcher entry. Plain `Exec=postivene`: Sailfish
+                       runs silica-qt5 apps through the invoker, which does
+                       not reliably honour an `Exec=env FOO=bar app`
+                       wrapper, so the server path is worked out in
+                       main.rs instead.
 icons/                 Placeholder app icons per hicolor size.
 vendor/                deltachat-rpc-server binaries per target arch
                        (not committed; run scripts/fetch-rpc-server.sh

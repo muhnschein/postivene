@@ -85,6 +85,8 @@ pub struct ChatMessages {
     pub delete_message: qt_method!(fn(&mut self, message_id: u32)),
     /// Try a failed message again.
     pub resend_message: qt_method!(fn(&mut self, message_id: u32)),
+    /// Send a copy of one message into another chat; QML calls this.
+    pub forward_to: qt_method!(fn(&mut self, message_id: u32, chat_id: u32)),
     /// A message of ours reached the core and is in `rows`.
     pub sent: qt_signal!(message_id: u32),
     /// This many messages from other people were just added. Said outright
@@ -418,6 +420,39 @@ impl ChatMessages {
     /// fetches only ids it is missing, and the row keeps the failed state
     /// it had -- mark and "Send again" and all -- until something else
     /// refetches it.
+    /// Send a copy of one message into another chat.
+    ///
+    /// Not routed through the shared `act` helper: that calls
+    /// `method(account_id, [ids])`, and forwarding needs the destination
+    /// too. Nothing is refreshed afterwards either -- the copy lands in
+    /// another chat, which this model is not the one showing.
+    pub fn forward_to(&mut self, message_id: u32, chat_id: u32) {
+        let account_id = self.account_id;
+        if account_id == 0 || message_id == 0 || chat_id == 0 {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            self.error(QString::from("not started"));
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<(), String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            if let Err(err) = result {
+                this.borrow().error(err.into());
+            }
+        });
+
+        runtime.spawn(async move {
+            let result = rpc
+                .call::<_, ()>("forward_messages", (account_id, vec![message_id], chat_id))
+                .await
+                .map_err(|err| err.to_string());
+            done(result);
+        });
+    }
+
     fn act(&mut self, method: &'static str, message_id: u32) {
         let account_id = self.account_id;
         if account_id == 0 || message_id == 0 {

@@ -35,7 +35,7 @@ the reader is at the bottom. When they are not, a button says how many
 have arrived and takes them there. A row's context menu replies (the send
 carries the quote), copies, deletes, and offers a failed message again.
 
-What is still missing here: forwarding, avatars, voice messages and audio
+What is still missing here: avatars on bubbles, voice messages and audio
 playback, reactions, drafts, an unread divider, paging for long histories,
 and sending attachments.
 
@@ -110,12 +110,19 @@ form of every invite payload already works, so the camera is polish.
 
 ## Order of work
 
-1. Platform: notifications, background and suspend, cover actions,
-   sailjail, translations, and camera QR scanning. Messages arrive only
-   while the app is open and awake, which is what stops this being usable
-   as one's actual client.
-2. The pages behind "New chat", brought up to the chat list's own look,
-   and the round avatar everywhere.
-3. Accounts: the switcher, and the rest of the chat list -- search,
-   archived chats, contact requests.
-4. Forwarding, which needs a chat picker the app does not have yet.
+1. **A background service, and suspend handling.** Messages arrive only
+   while the app is open and awake, which is the one thing standing
+   between this and a client someone could actually rely on. Notifications
+   exist now but can only fire while the app is running, so they inherit
+   the same limit. Restarting `deltachat-rpc-server` after it dies belongs
+   with this rather than after it: a supervised service that dies and
+   stays dead is worse than one that was never there, because nobody is
+   watching the screen to see the banner.
+2. Camera QR scanning, and showing one's own invite as a QR image.
+3. Translations: `qsTr()` is used throughout with no `.ts` catalogs, and
+   loading one needs a `QTranslator` that qmetaobject 0.2.10 does not
+   bind.
+4. Group member management after creation, contact profile pages, and
+   blocking a contact outside a request.
+5. Avatars on message bubbles, voice messages, reactions, drafts, an
+   unread divider, paging for long histories, and sending attachments.

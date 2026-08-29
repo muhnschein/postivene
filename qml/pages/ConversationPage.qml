@@ -103,6 +103,17 @@ Page {
         }
         onDeleteRequested: messages.delete_message(messageId)
         onResendRequested: messages.resend_message(messageId)
+        onForwardRequested: {
+            // The picker reports back rather than acting, so the
+            // message id is captured here where it is still valid.
+            var travelling = messageId
+            var picker = pageStack.push(
+                Qt.resolvedUrl("ChatPickerPage.qml"),
+                { accountId: page.accountId })
+            picker.chatPicked.connect(function(chatId) {
+                messages.forward_to(travelling, chatId)
+            })
+        }
     }
 
     // Only up when the reader has scrolled away from the newest message.

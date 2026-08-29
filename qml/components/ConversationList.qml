@@ -42,6 +42,7 @@ SilicaListView {
     signal copyRequested(string body)
     signal deleteRequested(int messageId)
     signal resendRequested(int messageId)
+    signal forwardRequested(int messageId)
 
     /// Back to the newest message, and following again.
     function jumpToNewest() {
@@ -149,6 +150,17 @@ SilicaListView {
                 visible: model.text.length > 0
                 text: qsTr("Copy")
                 onClicked: root.copyRequested(model.text)
+            }
+            MenuItem {
+                objectName: "forwardItem"
+                // A core notice is not the reader's to pass on.
+                visible: !model.is_info
+                text: qsTr("Forward")
+                // Taken now rather than in the callback: picking a chat
+                // takes a page push, and this row may be gone by the time
+                // the answer comes back -- the same reason Delete hoists
+                // its id.
+                onClicked: root.forwardRequested(model.message_id)
             }
             MenuItem {
                 objectName: "resendItem"

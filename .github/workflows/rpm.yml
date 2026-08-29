@@ -66,12 +66,28 @@ jobs:
           echo "Building against $target"
           echo "TARGET=$target" >> "$GITHUB_ENV"
 
+      # The SDK image builds as its own unprivileged user, not root, and the
+      # checkout belongs to the runner -- so mb2 could not even create its
+      # own .mb2 directory in the tree. The uid is asked for rather than
+      # assumed, since it is the image's to choose.
+      - name: Hand the checkout to the SDK's build user
+        run: |
+          uid=$(docker run --rm coderus/sailfishos-platform-sdk:$SFOS id -u)
+          gid=$(docker run --rm coderus/sailfishos-platform-sdk:$SFOS id -g)
+          echo "SDK builds as uid=$uid gid=$gid"
+          sudo chown -R "$uid:$gid" "$PWD"
+
       - name: Build the RPM
         run: |
           docker run --rm --privileged \
             -v "$PWD:/share" -w /share \
             coderus/sailfishos-platform-sdk:$SFOS \
             /bin/bash -c "mb2 -t $TARGET build"
+
+      # Back to the runner, or the upload cannot read what was built.
+      - name: Take the tree back
+        if: always()
+        run: sudo chown -R "$(id -u):$(id -g)" "$PWD"
 
       - name: Show what was built
         run: |

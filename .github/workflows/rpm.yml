@@ -110,6 +110,25 @@ jobs:
             coderus/sailfishos-platform-sdk:$SFOS \
             /bin/bash -c "set -e
               mb2 -t '$TARGET' -X build-init
+              mb2 -t '$TARGET' -X build-requires || true
+
+              # Build scripts and proc-macros are compiled for the SDK's
+              # own i686 and linked in sb2's *host* mode, where /usr is
+              # the SDK filesystem rather than the target -- so the i686
+              # rustlib has to exist there too, not only where rust was
+              # installed. docs/SDK-BUILD.md names this exact failure.
+              echo '--- rustlib available ---'
+              ls -d /srv/mer/toolings/*/usr/lib/rustlib/* \
+                    /srv/mer/targets/*/usr/lib/rustlib/* 2>/dev/null || true
+              host=i686-unknown-linux-gnu
+              src=\$(ls -d /srv/mer/toolings/*/usr/lib/rustlib/\$host 2>/dev/null | head -1 || true)
+              [ -n \"\$src\" ] || src=\$(ls -d /srv/mer/targets/*/usr/lib/rustlib/\$host 2>/dev/null | head -1 || true)
+              if [ -n \"\$src\" ] && [ ! -d /usr/lib/rustlib/\$host ]; then
+                sudo mkdir -p /usr/lib/rustlib
+                sudo cp -a \"\$src\" /usr/lib/rustlib/
+                echo \"grafted \$src into /usr/lib/rustlib/\"
+              fi
+
               mb2 -t '$TARGET' -X build --no-check"
 
       - name: Show mb2's state

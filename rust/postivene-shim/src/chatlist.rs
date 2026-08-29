@@ -35,6 +35,11 @@ pub struct ChatList {
 
     /// How many rows there are.
     pub count: qt_property!(u32; READ count NOTIFY rows_changed),
+    /// Unread messages across every chat, for the cover.
+    ///
+    /// Muted chats are counted. Muting silences the announcement, not the
+    /// arithmetic -- the badge on a muted chat behaves the same way.
+    pub unread_total: qt_property!(u32; READ unread_total NOTIFY rows_changed),
     /// Emitted after any change to `rows`.
     pub rows_changed: qt_signal!(),
 
@@ -74,6 +79,14 @@ impl ChatList {
     /// How many rows there are.
     pub fn count(&self) -> u32 {
         u32::try_from(self.rows.borrow().iter().count()).unwrap_or(u32::MAX)
+    }
+
+    /// Unread messages across every chat.
+    pub fn unread_total(&self) -> u32 {
+        self.rows
+            .borrow()
+            .iter()
+            .fold(0u32, |total, row| total.saturating_add(row.unread_count))
     }
 
     /// Set the account and reload if it changed.

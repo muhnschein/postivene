@@ -14,6 +14,7 @@ QtObject {
     property int fontSizeSmall: 12
     property int fontSizeMedium: 18
     property int fontSizeLarge: 24
+    property int fontSizeHuge: 48
     property color primaryColor: "#ffffff"
     property color secondaryColor: "#a0a0a0"
     property color highlightColor: "#80c0ff"

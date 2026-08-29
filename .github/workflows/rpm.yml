@@ -77,15 +77,33 @@ jobs:
           echo "SDK builds as uid=$uid gid=$gid"
           sudo chown -R "$uid:$gid" "$PWD"
 
-      # Mounted under the project's own name and given the spec outright:
-      # mb2 works out which package it is building from the directory it is
-      # in, so a tree mounted at /share had it looking for rpm/share.spec.
-      - name: Build the RPM
+      # What mb2 in this image actually accepts, and what it leaves behind
+      # when it gives up. Printed rather than guessed at.
+      - name: What mb2 offers
         run: |
           docker run --rm --privileged \
             -v "$PWD:/build/postivene" -w /build/postivene \
             coderus/sailfishos-platform-sdk:$SFOS \
-            /bin/bash -c "mb2 -t $TARGET -s rpm/postivene.spec build"
+            /bin/bash -c "mb2 --help 2>&1 | head -60; echo '--- which ---'; \
+              which mb2 sfdk rpmbuild 2>&1; echo '--- tree ---'; ls -la"
+
+      - name: Build the RPM
+        id: build
+        continue-on-error: true
+        run: |
+          docker run --rm --privileged \
+            -v "$PWD:/build/postivene" -w /build/postivene \
+            coderus/sailfishos-platform-sdk:$SFOS \
+            /bin/bash -c "mb2 -t $TARGET build 2>&1 | tail -40; \
+              echo '--- .mb2 ---'; ls -la .mb2 2>&1; \
+              echo '--- rpms ---'; find . -name '*.rpm' 2>/dev/null"
+
+      - name: Fail if nothing was built
+        run: |
+          test -n "$(find . -name '*.rpm' 2>/dev/null)" || {
+            echo "::error::no RPM produced; see the diagnostics above"
+            exit 1
+          }
 
       # Back to the runner, or the upload cannot read what was built.
       - name: Take the tree back

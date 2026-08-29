@@ -7,10 +7,11 @@ builds**:
 - **Project:** Delta Chat core (chatmail core library)
 - **Source code:** https://github.com/chatmail/core
 - **Version / tag:** `v2.53.0`
-- **License:** MPL-2.0 (same as Postivene; see `docs/LICENSING.md` — this
-  file is installed with the package to satisfy MPL-2.0 §3.2(a)'s
-  requirement that recipients of the Executable Form be told how to obtain
-  the corresponding Source Code Form)
+- **License:** MPL-2.0. Postivene itself is GPL-3.0-or-later; the two sit
+  side by side in the RPM as separate works, and this file is installed
+  with the package to satisfy MPL-2.0 §3.2(a)'s requirement that recipients
+  of the Executable Form be told how to obtain the corresponding Source
+  Code Form. See `docs/LICENSING.md`.
 - **Build:** upstream's own release builds, produced by their
   `.github/workflows/deltachat-rpc-server.yml` nix builds, **statically
   linked against musl libc** ("to avoid problems with glibc version

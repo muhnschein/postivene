@@ -26,11 +26,28 @@
 
 %bcond_with vendor
 
+# Upstream publishes no 32-bit x86 musl build of deltachat-rpc-server, so
+# i486 (SDK emulator) packages cannot bundle one: the app there needs a
+# server supplied via POSTIVENE_RPC_SERVER instead. Every device arch
+# (aarch64, armv7hl) bundles the server as usual.
+%ifarch %ix86
+%define bundle_rpc_server 0
+%else
+%define bundle_rpc_server 1
+%endif
+
 Name:       postivene
 Summary:    Native SailfishOS client for Delta Chat
 Version:    0.1.0
 Release:    1
-License:    MPL-2.0
+# Postivene's own code is GPL-3.0-or-later; the bundled
+# deltachat-rpc-server is upstream's unmodified MPL-2.0 binary, and the tag
+# describes the contents of the binary package (docs/LICENSING.md).
+%if 0%{?bundle_rpc_server}
+License:    GPL-3.0-or-later AND MPL-2.0
+%else
+License:    GPL-3.0-or-later
+%endif
 Group:      Qt/Qt
 URL:        https://github.com/muhnschein/postivene
 Source0:    %{name}-%{version}.tar.gz
@@ -75,16 +92,6 @@ BuildRequires:  pkgconfig(Qt5Quick)
 %endif
 %ifarch x86_64
 %define rusttarget x86_64-unknown-linux-gnu
-%endif
-
-# Upstream publishes no 32-bit x86 musl build of deltachat-rpc-server, so
-# i486 (SDK emulator) packages cannot bundle one: the app there needs a
-# server supplied via POSTIVENE_RPC_SERVER instead. Every device arch
-# (aarch64, armv7hl) bundles the server as usual.
-%ifarch %ix86
-%define bundle_rpc_server 0
-%else
-%define bundle_rpc_server 1
 %endif
 
 # Where cargo leaves the binary. Under sb2, SB2_RUST_TARGET_TRIPLE (see
@@ -199,9 +206,11 @@ install -Dm 755 vendor/deltachat-rpc-server/%{_target_cpu}/deltachat-rpc-server 
     %{buildroot}%{appexecdir}/deltachat-rpc-server
 %endif
 
-# MPL-2.0 obligation for bundling deltachat-rpc-server's Executable Form:
-# recipients must be told how to obtain its Source Code Form. See
-# docs/LICENSING.md and vendor/deltachat-rpc-server/SOURCE.md.
+# LICENSE is Postivene's own GPLv3 text. SOURCE.md discharges MPL-2.0
+# clause 3.2(a) for bundling deltachat-rpc-server's Executable Form:
+# recipients must be told how to obtain its Source Code Form. Both, plus
+# the analysis tying them together, ship with the package. See
+# docs/LICENSING.md.
 install -Dm 644 vendor/deltachat-rpc-server/SOURCE.md \
     %{buildroot}%{appdatadir}/vendor/deltachat-rpc-server/SOURCE.md
 install -Dm 644 LICENSE \

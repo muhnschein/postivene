@@ -68,37 +68,45 @@ jobs:
 
       # Running as root is explicitly wrong -- sdk-manage refuses, saying
       # it cannot determine the Mer SDK user -- so the build stays as the
-      # image's own mersdk, which is where the tree has to belong too.
+      # image's own mersdk, and the tree has to belong to it.
       - name: Hand the checkout to the SDK's build user
         run: |
           img=coderus/sailfishos-platform-sdk:$SFOS
           uid=$(docker run --rm "$img" id -u)
           gid=$(docker run --rm "$img" id -g)
-          echo "SDK builds as uid=$uid gid=$gid"
+          home=$(docker run --rm "$img" sh -c 'echo $HOME')
+          echo "SDK builds as uid=$uid gid=$gid, HOME=$home"
+          echo "BUILDDIR=$home/postivene" >> "$GITHUB_ENV"
           sudo chown -R "$uid:$gid" "$PWD"
 
-      # Two steps, and both flags matter -- each has been tried without
-      # the other, which is why this took so long to see.
+      # Mounted inside the SDK user's home, and that placement is the
+      # whole fix. rpm runs under scratchbox2, which redirects absolute
+      # paths it does not recognise into the target rootfs -- so with the
+      # tree at /build/postivene, mb2 wrote .mb2/spec (the file is right
+      # there afterwards, 10 KB of it) and rpm then looked for the same
+      # path inside the target and found nothing:
       #
-      # `build-init` because mb2's own help says a build directory is
-      # initialised before it is built in: `build` queries .mb2/spec
-      # half a second after it starts, long before anything writes one.
+      #   error: Unable to open /build/postivene/.mb2/spec: No such file
       #
-      # `-X` (--no-fix-version) because otherwise build-init asks
-      # `git describe` for a version, finds no tags in this repository,
-      # and gives up before writing that spec -- so build-init alone
-      # fails exactly the same way. docs/SDK-BUILD.md reaches for the
-      # same flag for the same reason, and for `--no-check` beside it;
-      # the spec has no %check section.
+      # A file that exists and cannot be opened is two different roots.
+      # docs/SDK-BUILD.md bind-mounted under /home/mersdk for this
+      # reason. The directory keeps the project's name either way: mb2
+      # derives the package from it, so rpm/postivene.spec is found.
       #
-      # Deliberately *not* passing that document's `-n` / `--nodeps`:
-      # those are its offline workaround. A runner can reach the Jolla
-      # repositories, so let mb2 zypper-install rust, cargo and
-      # rust-std-static into the target the way it is meant to.
+      # `build-init` because mb2's help says a build directory is
+      # initialised before it is built in, and `-X` (--no-fix-version)
+      # because otherwise build-init asks `git describe` for a version,
+      # finds no tags here, and stops before writing the spec at all.
+      # `--no-check` matches that document too; the spec has no %check.
+      #
+      # Deliberately *not* passing its `-n` / `--nodeps`: those are its
+      # offline workaround. A runner reaches the Jolla repositories, so
+      # mb2 can zypper-install rust, cargo and rust-std-static into the
+      # target the way it is meant to.
       - name: Build the RPM
         run: |
           docker run --rm --privileged \
-            -v "$PWD:/build/postivene" -w /build/postivene \
+            -v "$PWD:$BUILDDIR" -w "$BUILDDIR" \
             coderus/sailfishos-platform-sdk:$SFOS \
             /bin/bash -c "set -e
               mb2 -t '$TARGET' -X build-init

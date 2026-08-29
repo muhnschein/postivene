@@ -97,8 +97,21 @@ pub struct ChatList {
     pub accept_chat: qt_method!(fn(&mut self, chat_id: u32)),
     /// Block a contact request's sender; QML calls this.
     pub block_chat: qt_method!(fn(&mut self, chat_id: u32)),
+    /// Move a chat back into the ordinary list.
+    pub unarchive: qt_method!(fn(&mut self, chat_id: u32)),
     /// Delete a chat and its messages on this device.
     pub delete_chat: qt_method!(fn(&mut self, chat_id: u32)),
+
+    /// Counts refreshes, so a slow answer to an older question cannot land
+    /// on top of a newer one.
+    ///
+    /// Pushing the archived page sets `account_id` and `archived` in
+    /// whatever order QML chooses, and each starts its own fetch -- one
+    /// for the ordinary list, one for the archived. Without this the
+    /// slower answer wins, and the archived page shows ordinary chats
+    /// until it is opened a second time. Typing in the search field starts
+    /// one per keystroke for the same reason.
+    generation: u64,
 }
 
 impl ChatList {
@@ -240,6 +253,11 @@ impl ChatList {
         self.act(chat_id, "set_chat_visibility", json!(["Archived"]));
     }
 
+    /// Move a chat back into the ordinary list.
+    pub fn unarchive(&mut self, chat_id: u32) {
+        self.act(chat_id, "set_chat_visibility", json!(["Normal"]));
+    }
+
     /// Delete a chat and its messages on this device.
     pub fn delete_chat(&mut self, chat_id: u32) {
         self.act(chat_id, "delete_chat", serde_json::Value::Null);
@@ -309,9 +327,17 @@ impl ChatList {
         // list would otherwise make the scan quadratic.
         let known: HashSet<u32> = cached.iter().map(|row| row.chat_id).collect();
 
+        self.generation = self.generation.wrapping_add(1);
+        let generation = self.generation;
+
         let ptr: QPointer<Self> = QPointer::from(&*self);
         let done = queued_callback(move |result: Result<Vec<ChatListItem>, String>| {
             let Some(this) = ptr.as_pinned() else { return };
+            // Answered after something newer was asked: this is the answer
+            // to a question that no longer describes what is on screen.
+            if this.borrow().generation != generation {
+                return;
+            }
             match result {
                 Ok(target) => {
                     {

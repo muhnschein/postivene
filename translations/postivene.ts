@@ -90,6 +90,10 @@
         <source>Pull down to start one</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Unarchive</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>

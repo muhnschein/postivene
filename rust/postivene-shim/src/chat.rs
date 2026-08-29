@@ -7,6 +7,7 @@
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashSet};
 
+use chrono::{DateTime, Local, TimeZone};
 use deltachat_jsonrpc::RpcClient;
 use qmetaobject::*;
 
@@ -31,9 +32,6 @@ pub struct ChatMessages {
     pub account_id: qt_property!(u32; WRITE set_account_id NOTIFY chat_changed),
     /// Which chat. Setting it reloads.
     pub chat_id: qt_property!(u32; WRITE set_chat_id NOTIFY chat_changed),
-    /// Seconds east of UTC, from QML: the day separators group by local
-    /// day and the shim has no timezone of its own.
-    pub utc_offset: qt_property!(i32),
     /// Emitted when the chat this model points at changes.
     pub chat_changed: qt_signal!(),
 
@@ -130,7 +128,6 @@ impl ChatMessages {
             return;
         };
 
-        let offset = self.utc_offset;
         let ptr: QPointer<Self> = QPointer::from(&*self);
         let done = queued_callback(
             move |result: Result<(bool, Vec<MessageListItem>), String>| {
@@ -160,7 +157,7 @@ impl ChatMessages {
             let result = async {
                 let is_group = chat_is_group(&rpc, account_id, chat_id).await;
                 let ids = message_ids(&rpc, account_id, chat_id).await?;
-                let items = fetch_messages(&rpc, account_id, &ids, offset).await?;
+                let items = fetch_messages(&rpc, account_id, &ids).await?;
                 // Marking read is the callback's job, not this one's: what
                 // the reader can see is only knowable once the rows land.
                 Ok::<_, String>((is_group, items))
@@ -213,7 +210,6 @@ impl ChatMessages {
     /// the messages that are not loaded yet.
     fn sync_rows(&mut self) {
         let (account_id, chat_id) = (self.account_id, self.chat_id);
-        let offset = self.utc_offset;
         let Some((rpc, runtime)) = connection() else {
             return;
         };
@@ -302,7 +298,7 @@ impl ChatMessages {
                     .copied()
                     .filter(|id| !known.contains(id))
                     .collect();
-                let fetched = fetch_messages(&rpc, account_id, &missing, offset).await?;
+                let fetched = fetch_messages(&rpc, account_id, &missing).await?;
                 Ok::<_, String>((ids, fetched))
             }
             .await;
@@ -313,7 +309,6 @@ impl ChatMessages {
     /// Re-read one message and replace its row.
     fn refresh_one(&mut self, message_id: u32) {
         let account_id = self.account_id;
-        let offset = self.utc_offset;
         if !self
             .rows
             .borrow()
@@ -350,7 +345,7 @@ impl ChatMessages {
         });
 
         runtime.spawn(async move {
-            let result = fetch_messages(&rpc, account_id, &[message_id], offset).await;
+            let result = fetch_messages(&rpc, account_id, &[message_id]).await;
             done(result);
         });
     }
@@ -454,7 +449,6 @@ impl ChatMessages {
     /// Send a plain-text message.
     pub fn send(&mut self, text: QString) {
         let (account_id, chat_id) = (self.account_id, self.chat_id);
-        let offset = self.utc_offset;
         let quoted = self.quoted_message_id;
         let Some((rpc, runtime)) = connection() else {
             self.error(QString::from("not started"));
@@ -511,7 +505,7 @@ impl ChatMessages {
                     ),
                 )
                 .await
-                .map(|(message_id, message)| row_from(message_id, &message, offset))
+                .map(|(message_id, message)| row_from(message_id, &message))
                 .map_err(|err| err.to_string());
             done(result);
         });
@@ -567,7 +561,6 @@ async fn fetch_messages(
     rpc: &RpcClient,
     account_id: u32,
     ids: &[u32],
-    utc_offset: i32,
 ) -> Result<Vec<MessageListItem>, String> {
     if ids.is_empty() {
         return Ok(Vec::new());
@@ -585,7 +578,7 @@ async fn fetch_messages(
             if message.get("kind").and_then(serde_json::Value::as_str) == Some("loadingError") {
                 return None;
             }
-            Some(row_from(*id, message, utc_offset))
+            Some(row_from(*id, message))
         })
         .collect())
 }
@@ -629,8 +622,31 @@ fn text_at(message: &serde_json::Value, pointer: &str) -> QString {
         .into()
 }
 
+/// Days since the Unix epoch on which this instant fell, in the viewer's
+/// own timezone.
+///
+/// The zone is asked what its offset was *at that instant*, which is the
+/// whole point: applying the offset in force now puts a message from the
+/// other side of a daylight-saving change an hour out, so anything within
+/// an hour of local midnight sits under the wrong heading -- and moves as
+/// the year turns.
+///
+/// Falls back to UTC for a timestamp the zone cannot place, which is a
+/// wrong heading rather than a missing list.
+#[must_use]
+pub fn local_day_number(timestamp: i64) -> i64 {
+    let Some(when) = Local.timestamp_opt(timestamp, 0).single() else {
+        return timestamp.div_euclid(86_400);
+    };
+    // Whole days between two dates, so a zone that is behind UTC does not
+    // borrow a day the way `(timestamp + offset) / 86400` would.
+    when.date_naive()
+        .signed_duration_since(DateTime::UNIX_EPOCH.date_naive())
+        .num_days()
+}
+
 /// One row from the core's message object.
-fn row_from(message_id: u32, message: &serde_json::Value, utc_offset: i32) -> MessageListItem {
+fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
     let timestamp = message
         .get("timestamp")
         .and_then(serde_json::Value::as_i64)
@@ -648,16 +664,7 @@ fn row_from(message_id: u32, message: &serde_json::Value, utc_offset: i32) -> Me
         // Contact id 1 is the well-known DC_CONTACT_ID_SELF.
         is_outgoing: message.get("fromId").and_then(serde_json::Value::as_u64) == Some(1),
         timestamp,
-        // Floor division: a message before local midnight belongs to the
-        // day before, and `-1 / 86400` is 0.
-        //
-        // The offset is the one in force now, which is the wrong one for a
-        // message from the other side of a daylight-saving change -- an
-        // hour out, so anything within an hour of local midnight lands
-        // under the wrong heading, and moves as the year turns. Doing it
-        // properly wants the zone rather than an offset; QML hands down
-        // what it can see. Tracked in docs/GAP-ANALYSIS.md.
-        day_number: (timestamp + i64::from(utc_offset)).div_euclid(86_400),
+        day_number: local_day_number(timestamp),
         show_padlock: message
             .get("showPadlock")
             .and_then(serde_json::Value::as_bool)

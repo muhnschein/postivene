@@ -91,11 +91,6 @@ What is left here:
 - Nothing restarts `deltachat-rpc-server` after it dies; the app says so
   and asks for a restart.
 
-Day separators still count the day with the offset in force now, so a
-message from the other side of a daylight-saving change can sit under the
-wrong date. Doing it properly wants the zone rather than an offset, which
-is not something QML hands down.
-
 ## Platform integration
 
 No notifications, background service, or suspend handling, so messages

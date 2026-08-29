@@ -14,7 +14,6 @@ SilicaListView {
 
     property string title
     // Seconds east of UTC, for turning a day number back into a date.
-    property int utcOffset: 0
     // Groups have to say who is speaking; one-to-one chats do not.
     property bool showSender: false
     property string placeholderText
@@ -117,13 +116,17 @@ SilicaListView {
         horizontalAlignment: Text.AlignHCenter
         font.pixelSize: Theme.fontSizeExtraSmall
         color: Theme.secondaryColor
-        // Midday of that day rather than midnight: the model counted the
-        // day with today's offset, and a day that was an hour off it --
-        // the other side of a daylight-saving change -- would land on the
-        // wrong date if it were read back from the boundary.
-        text: Qt.formatDate(new Date((parseInt(section, 10) * 86400
-                                      - root.utcOffset + 43200) * 1000),
-                            Qt.DefaultLocaleLongDate)
+        // No offset arithmetic: the section is a day number, so read its
+        // calendar date in UTC and rebuild it as a local date with the
+        // same parts. Subtracting an offset here would reintroduce
+        // exactly the daylight-saving error the model now avoids.
+        text: {
+            var utc = new Date(parseInt(section, 10) * 86400000)
+            return Qt.formatDate(new Date(utc.getUTCFullYear(),
+                                          utc.getUTCMonth(),
+                                          utc.getUTCDate(), 12),
+                                 Qt.DefaultLocaleLongDate)
+        }
     }
 
     delegate: ListItem {

@@ -14,16 +14,11 @@ Page {
     property int chatId
     property string chatName
 
-    // Seconds east of UTC: the model groups messages by local day and has
-    // no timezone of its own.
-    property int utcOffset: -(new Date()).getTimezoneOffset() * 60
-
     ChatMessages {
         id: messages
         objectName: "messages"
         account_id: page.accountId
         chat_id: page.chatId
-        utc_offset: page.utcOffset
         // What the reader can actually see decides what counts as read.
         reading_history: !page.readerIsLooking
         onError: page.errorMessage = message
@@ -92,7 +87,6 @@ Page {
         // than when the view gets round to showing it.
         messageCount: messages.count
         title: page.chatName
-        utcOffset: page.utcOffset
         showSender: messages.is_group
         placeholderText: qsTr("No messages yet")
 

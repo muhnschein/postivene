@@ -105,12 +105,19 @@ fn a_picture_avatar_is_drawn_through_a_round_mask() {
             "load",
             call!("load", QString::from(component_url("ChatListDelegate.qml")))
         );
-        record!("name", call!("set", QString::from("chatName"), QString::from("Ada")));
+        record!(
+            "name",
+            call!("set", QString::from("chatName"), QString::from("Ada"))
+        );
 
         // No picture: the initial stands in, and nothing is masked.
         record!("plain-masked", get!("avatarMasked", "visible"));
 
-        call!("set", QString::from("avatarPath"), QString::from("/tmp/ada.png"));
+        call!(
+            "set",
+            QString::from("avatarPath"),
+            QString::from("/tmp/ada.png")
+        );
         record!("picture-masked", get!("avatarMasked", "visible"));
         record!("picture-raw", get!("avatarImage", "visible"));
         record!("mask-radius", get!("avatarMask", "radius"));

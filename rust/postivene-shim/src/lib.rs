@@ -22,7 +22,7 @@ mod core;
 mod models;
 mod runtime;
 
-pub use crate::chat::ChatMessages;
+pub use crate::chat::{local_day_number, ChatMessages};
 pub use crate::chatlist::ChatList;
 pub use crate::contacts::ContactList;
 pub use crate::core::DeltaChatCore;

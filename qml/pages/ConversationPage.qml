@@ -74,6 +74,7 @@ Page {
     }
 
     ConversationList {
+        loaded: messages.loaded
         id: listView
         objectName: "messageList"
         anchors {

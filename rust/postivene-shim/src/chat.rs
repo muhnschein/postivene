@@ -32,6 +32,15 @@ pub struct ChatMessages {
     pub account_id: qt_property!(u32; WRITE set_account_id NOTIFY chat_changed),
     /// Which chat. Setting it reloads.
     pub chat_id: qt_property!(u32; WRITE set_chat_id NOTIFY chat_changed),
+    /// True once a load has finished, however it went.
+    ///
+    /// An empty chat and a chat whose messages have not arrived yet are
+    /// the same thing to `count`, so the placeholder was shown during
+    /// every open -- a flash of "no messages yet" before the history
+    /// appeared. This tells the two apart.
+    pub loaded: qt_property!(bool; NOTIFY loaded_changed),
+    /// Emitted when [`Self::loaded`] changes.
+    pub loaded_changed: qt_signal!(),
     /// Emitted when the chat this model points at changes.
     pub chat_changed: qt_signal!(),
 
@@ -108,6 +117,8 @@ impl ChatMessages {
     pub fn set_account_id(&mut self, account_id: u32) {
         if self.account_id != account_id {
             self.account_id = account_id;
+            self.loaded = false;
+            self.loaded_changed();
             self.chat_changed();
             self.reload();
         }
@@ -117,6 +128,8 @@ impl ChatMessages {
     pub fn set_chat_id(&mut self, chat_id: u32) {
         if self.chat_id != chat_id {
             self.chat_id = chat_id;
+            self.loaded = false;
+            self.loaded_changed();
             self.chat_changed();
             self.reload();
         }
@@ -142,8 +155,10 @@ impl ChatMessages {
                             let mut this_mut = this.borrow_mut();
                             this_mut.is_group = is_group;
                             this_mut.rows.borrow_mut().reset_data(items);
+                            this_mut.loaded = true;
                         }
                         this.borrow().is_group_changed();
+                        this.borrow().loaded_changed();
                         this.borrow().rows_changed();
                         // Asked now, not before the fetch: the reader can
                         // scroll away, or the app go behind, while it runs.
@@ -152,7 +167,14 @@ impl ChatMessages {
                             this.borrow_mut().mark_chat_seen();
                         }
                     }
-                    Err(err) => this.borrow().error(err.into()),
+                    Err(err) => {
+                        // Loaded, in the sense that matters here: the wait
+                        // is over. Leaving it false would hold an empty
+                        // view with no explanation for ever.
+                        this.borrow_mut().loaded = true;
+                        this.borrow().loaded_changed();
+                        this.borrow().error(err.into());
+                    }
                 }
             },
         );

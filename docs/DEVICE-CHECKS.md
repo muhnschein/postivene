@@ -46,6 +46,27 @@ Changed since the list above was walked, and only a phone can settle it:
   directory moved inside the grant to suit it. A profile from an earlier
   build has to be moved by hand first; see `GAP-ANALYSIS.md`.
 
+## Open question: is the sandbox actually on
+
+Not checked yet, and worth knowing. The `[X-Sailjail]` section was added
+in the sailjail commit, and the accounts directory moved inside the grant
+to survive it -- but a device that upgraded straight into it kept working
+*without* the directory being moved by hand. The likely explanation is
+that `adopt_legacy_accounts` ran, which it can only do when the app can
+still read outside its grant. That would mean confinement is not in force.
+
+To settle it:
+
+```sh
+# Did the profile move on its own?
+ls -d ~/.local/share/postivene/accounts \
+      ~/.local/share/postivene/postivene/accounts 2>&1
+```
+
+If the old path is gone and the new one exists, the migration ran -- and
+the question is then why the sandbox did not prevent it. Revisit before
+claiming the app is confined.
+
 ## Not yet checkable
 
 Nothing above is outstanding. What is left here waits on features that do

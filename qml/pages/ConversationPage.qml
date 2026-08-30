@@ -13,6 +13,9 @@ Page {
     property int accountId
     property int chatId
     property string chatName
+    /// A message a search found in this chat, to open at rather than at
+    /// the newest. 0 opens the chat normally.
+    property int findMessageId: 0
 
     ChatMessages {
         id: messages
@@ -45,6 +48,30 @@ Page {
         if (status === PageStatus.Active && messages.chat_id !== page.chatId) {
             messages.chat_id = page.chatId
         }
+    }
+
+    // Where a search result lands. The row cannot be looked up until the
+    // fetch above has finished, so this waits for the model to say so
+    // rather than for the page: the two are no longer the same moment.
+    Connections {
+        target: messages
+        onLoaded_changed: {
+            if (messages.loaded && page.findMessageId !== 0) {
+                listView.foundMessageId = page.findMessageId
+                listView.jumpToRow(messages.row_of(page.findMessageId))
+                // Once is enough; a later reload must not drag the reader
+                // back off whatever they have scrolled to since.
+                page.findMessageId = 0
+                foundFlash.restart()
+            }
+        }
+    }
+
+    // The flash says "this one" and then gets out of the way.
+    Timer {
+        id: foundFlash
+        interval: 2500
+        onTriggered: listView.foundMessageId = 0
     }
 
     // Everything that has to hold for an arriving message to count as seen:

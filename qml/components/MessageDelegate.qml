@@ -22,6 +22,8 @@ Item {
     property bool isOutgoing: false
     property bool isInfo: false
     property bool isForwarded: false
+    /// This is the message a search sent the reader here for.
+    property bool isFound: false
     property bool showPadlock: true
     // DC_STATE_*: 20 pending, 24 failed, 26 delivered, 28 read.
     property int deliveryState: 0
@@ -119,8 +121,13 @@ Item {
         width: root.contentWidth + 2 * Theme.paddingMedium
         height: visible ? footerLabel.y + footerLabel.height + Theme.paddingMedium : 0
         radius: Theme.paddingMedium
-        color: root.isOutgoing ? Theme.rgba(Theme.highlightBackgroundColor, 0.25)
-                               : Theme.rgba(Theme.secondaryColor, 0.12)
+        // A found message is lit rather than outlined: a border would
+        // change the bubble's size, and every row below it would move.
+        color: root.isFound
+               ? Theme.rgba(Theme.highlightColor, 0.35)
+               : root.isOutgoing ? Theme.rgba(Theme.highlightBackgroundColor, 0.25)
+                                 : Theme.rgba(Theme.secondaryColor, 0.12)
+        Behavior on color { ColorAnimation { duration: 400 } }
 
         Label {
             id: senderLabel

@@ -96,6 +96,25 @@ SilicaListView {
     // started then ended, and this handler read `atYEnd` as false and put
     // it straight back. A reader a line short of the bottom has, for every
     // purpose this drives, arrived.
+    /// The message a search sent the reader here for, flashed once so it
+    /// can be picked out of the wall of text around it. 0 for none.
+    property int foundMessageId: 0
+
+    /// Put a row in the middle of the view and stay there.
+    ///
+    /// Opening a chat at its newest message when the reader asked for one
+    /// from last March is the difference between finding something and
+    /// being told roughly where it is. `stickToBottom` goes off first:
+    /// otherwise the next arrival drags the view back to the bottom and
+    /// away from what they came to read.
+    function jumpToRow(index) {
+        if (index < 0) {
+            return
+        }
+        root.stickToBottom = false
+        root.positionViewAtIndex(index, ListView.Center)
+    }
+
     readonly property real bottomSlack: Theme.itemSizeLarge
 
     /// At or near the newest message -- including a chat too short to

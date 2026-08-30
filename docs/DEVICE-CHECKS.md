@@ -46,8 +46,9 @@ Changed since the list above was walked, and only a phone can settle it:
   contacts and messages at once and shows them under counted headings.
   Only a phone has an account with enough in it to say whether the
   grouping reads well, whether the fifty-message cap is the right place
-  to cut, and whether a message result landing at the bottom of its chat
-  rather than on the hit is tolerable.
+  to cut. A message result now opens its chat *at* the matching message,
+  lit for a couple of seconds; check that the jump lands where it should
+  in a long thread and that the highlight is visible without being loud.
 - **The profile picture picker.** The settings page opens Silica's image
   picker, and `Permissions=Pictures` was added to the desktop file for
   it. Under confinement without that permission the picker shows an empty
@@ -61,6 +62,29 @@ Changed since the list above was walked, and only a phone can settle it:
 - - **The accounts directory after sailjail.** Confinement is new, and the
   directory moved inside the grant to suit it. A profile from an earlier
   build has to be moved by hand first; see `GAP-ANALYSIS.md`.
+
+## Open question: what exactly is janky about a context menu
+
+Reported: "context menu transitions are janky near the end of the list".
+Not reproduced and not fixed. Silica's `ListItem` and `ContextMenu` are
+closed source, so the expansion-and-scroll behaviour at the end of a list
+cannot be read, and nothing in this repo's own delegates costs anything
+there that it does not also cost while scrolling.
+
+Two observations would separate the candidates, and both need a phone:
+
+1. Open the menu on the **last row while scrolled to the bottom**, then
+   on the **last visible row while in the middle** of a long list. If only
+   the first stutters, it is the view scrolling into overshoot to make
+   room and springing back -- Silica's own behaviour, and a bottom margin
+   on the list is the lever.
+2. Open the menu on a row whose menu has **few visible items** (an
+   archived chat: Unarchive and Delete) and on one with **many** (an
+   ordinary chat: six). If only the second stutters, the menu's height is
+   settling after the animation has started, and the `visible:` bindings
+   on its items are the lever.
+
+Until one of those comes back, a change here would be a guess.
 
 ## Open question: is the sandbox actually on
 

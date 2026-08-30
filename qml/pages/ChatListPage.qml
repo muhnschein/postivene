@@ -327,7 +327,8 @@ Page {
             pageStack.push(Qt.resolvedUrl("ConversationPage.qml"), {
                 accountId: page.accountId,
                 chatId: chatId,
-                chatName: chatName
+                chatName: chatName,
+                findMessageId: messageId
             })
         }
         // No chat exists yet; the model answers on chat_ready. The name

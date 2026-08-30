@@ -19,8 +19,10 @@ SilicaListView {
     /// The SearchResults object whose rows these are.
     property QtObject search
 
-    /// A chat result, or a message in one, was tapped.
-    signal chatActivated(int chatId, string chatName)
+    /// A chat result, or a message in one, was tapped. `messageId` is 0
+    /// for a chat result and the matching message for a message result:
+    /// the chat should then open at that message, not at the newest.
+    signal chatActivated(int chatId, string chatName, int messageId)
     /// A contact result was tapped. There may be no chat with them yet,
     /// which is why this is not chatActivated -- and why the name comes
     /// with it: the chat that gets made has no title to read yet.
@@ -65,10 +67,10 @@ SilicaListView {
             if (model.kind === "contact") {
                 root.contactActivated(model.contact_id, model.title)
             } else {
-                // A message result opens the chat it is in. The view
-                // lands on the newest message rather than on the hit --
-                // jumping to one is its own piece of work.
-                root.chatActivated(model.chat_id, model.title)
+                // A message result opens the chat it is in, at the
+                // message that matched.
+                root.chatActivated(model.chat_id, model.title,
+                                   model.kind === "message" ? model.message_id : 0)
             }
         }
     }

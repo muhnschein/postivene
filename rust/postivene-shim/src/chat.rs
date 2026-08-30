@@ -91,6 +91,13 @@ pub struct ChatMessages {
     /// Mark every unread message now loaded as read. Called when the
     /// reader reaches the newest message.
     pub mark_seen_all: qt_method!(fn(&mut self)),
+
+    /// Which row a message is in, or -1 when it is not loaded.
+    ///
+    /// A search result names a message, and opening its chat at the newest
+    /// message rather than at the one that matched is the difference
+    /// between finding something and being told where it roughly is.
+    pub row_of: qt_method!(fn(&self, message_id: u32) -> i32),
     /// Delete a message. Not only here: the core also removes it from the
     /// mail server, which for this client is where it lived.
     pub delete_message: qt_method!(fn(&mut self, message_id: u32)),
@@ -374,6 +381,16 @@ impl ChatMessages {
             let result = fetch_messages(&rpc, account_id, &[message_id]).await;
             done(result);
         });
+    }
+
+    /// Which row a message is in, or -1 when it is not loaded.
+    pub fn row_of(&self, message_id: u32) -> i32 {
+        self.rows
+            .borrow()
+            .iter()
+            .position(|row| row.message_id == message_id)
+            .and_then(|index| i32::try_from(index).ok())
+            .unwrap_or(-1)
     }
 
     /// Mark every unread message now loaded as read.

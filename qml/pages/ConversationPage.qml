@@ -18,7 +18,12 @@ Page {
         id: messages
         objectName: "messages"
         account_id: page.accountId
-        chat_id: page.chatId
+        // Deliberately not bound to page.chatId. A binding starts the
+        // fetch the moment the page is created -- while it is still
+        // transitioning in -- and building every row of a long history in
+        // one go on the Qt thread is what makes that transition stutter
+        // and freeze. The chat is handed over once the page has settled;
+        // the handler below does it.
         // What the reader can actually see decides what counts as read.
         reading_history: !page.readerIsLooking
         onError: page.errorMessage = message
@@ -31,6 +36,15 @@ Page {
             listView.jumpToNewest()
         }
         onArrived: listView.noteArrivals(count)
+    }
+
+    // The fetch waits for the page to arrive. Until then the list shows
+    // nothing and says nothing: `loaded` keeps the "no messages yet"
+    // placeholder off the screen while this is pending.
+    onStatusChanged: {
+        if (status === PageStatus.Active && messages.chat_id !== page.chatId) {
+            messages.chat_id = page.chatId
+        }
     }
 
     // Everything that has to hold for an arriving message to count as seen:

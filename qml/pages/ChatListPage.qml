@@ -14,13 +14,23 @@ Page {
     /// whether switching is worth offering at all.
     property int accountCount: 0
 
+    /// What the reader has typed, waiting for the debounce below.
+    ///
+    /// The field lives in the list's header, and `header` is a Component
+    /// property -- so everything declared inside it gets its own scope and
+    /// `searchField` does not resolve from out here. Reading it from the
+    /// timer threw a ReferenceError on every keystroke, which is why the
+    /// search did nothing at all. The field pushes its text out to this
+    /// instead; ids do resolve in that direction.
+    property string pendingQuery: ""
+
     // Not bound straight to the field: a round trip per keystroke asks the
     // core four times to type "anna", and only the last answer is wanted.
     // Same interval as the contact search, for the same reason.
     Timer {
         id: searchDebounce
         interval: 250
-        onTriggered: chats.query = searchField.text
+        onTriggered: chats.query = page.pendingQuery
     }
 
     ChatList {
@@ -102,11 +112,21 @@ Page {
                 objectName: "chatSearchField"
                 width: parent.width
                 placeholderText: qsTr("Search chats")
-                onTextChanged: searchDebounce.restart()
+                onTextChanged: {
+                    page.pendingQuery = text
+                    searchDebounce.restart()
+                }
             }
         }
 
+        // Nothing in here applies to the archived list -- no accounts
+        // switch, no way further in, no new chat -- so the pulley itself
+        // goes rather than opening onto an empty menu.
         PullDownMenu {
+            objectName: "chatListPulley"
+            visible: !page.archived
+            enabled: !page.archived
+
             MenuItem {
                 objectName: "accountsMenuItem"
                 // Only worth offering where there is a choice to make.
@@ -160,17 +180,19 @@ Page {
             menu: ContextMenu {
                 MenuItem {
                     objectName: "markReadItem"
-                    visible: model.unread_count > 0
+                    visible: !page.archived && model.unread_count > 0
                     text: qsTr("Mark as read")
                     onClicked: chats.mark_read(model.chat_id)
                 }
                 MenuItem {
                     objectName: "pinItem"
+                    visible: !page.archived
                     text: model.is_pinned ? qsTr("Unpin") : qsTr("Pin")
                     onClicked: chats.set_pinned(model.chat_id, !model.is_pinned)
                 }
                 MenuItem {
                     objectName: "muteItem"
+                    visible: !page.archived
                     text: model.is_muted ? qsTr("Unmute") : qsTr("Mute")
                     onClicked: chats.set_muted(model.chat_id, !model.is_muted)
                 }
@@ -179,21 +201,29 @@ Page {
                 // useful answers are yes and no.
                 MenuItem {
                     objectName: "acceptItem"
-                    visible: model.is_contact_request
+                    visible: !page.archived && model.is_contact_request
                     text: qsTr("Accept")
                     onClicked: chats.accept_chat(model.chat_id)
                 }
                 MenuItem {
                     objectName: "blockItem"
-                    visible: model.is_contact_request
+                    visible: !page.archived && model.is_contact_request
                     text: qsTr("Block")
                     onClicked: chats.block_chat(model.chat_id)
                 }
                 MenuItem {
                     objectName: "archiveItem"
-                    visible: !model.is_contact_request
+                    visible: !page.archived && !model.is_contact_request
                     text: qsTr("Archive")
                     onClicked: chats.archive(model.chat_id)
+                }
+                // The way back out. Without it an archived chat could only
+                // be recovered by someone sending a message to it.
+                MenuItem {
+                    objectName: "unarchiveItem"
+                    visible: page.archived
+                    text: qsTr("Unarchive")
+                    onClicked: chats.unarchive(model.chat_id)
                 }
                 MenuItem {
                     objectName: "deleteItem"

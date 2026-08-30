@@ -32,6 +32,8 @@ struct State {
     chats: std::collections::BTreeMap<u32, Vec<u32>>,
     /// Chat ids in display order, most recent first.
     chat_order: Vec<u32>,
+    /// The archived list, which is disjoint from `chat_order`.
+    archived_order: Vec<u32>,
     next_message_id: u32,
     /// Contact id -> address. Seeded with two known contacts.
     contacts: std::collections::BTreeMap<u32, String>,
@@ -65,6 +67,12 @@ impl State {
             self.chats.insert(1, vec![1, 2]);
             self.chats.insert(2, vec![10]);
             self.chat_order = vec![1, 2];
+            // Chat 3 is archived, and appears in no ordinary listing.
+            // Without it, a model asking for the archived list and a model
+            // asking for the ordinary one are indistinguishable, and a
+            // test cannot tell which answer it got.
+            self.chats.insert(3, vec![30]);
+            self.archived_order = vec![3];
             self.next_message_id = 100;
             self.contacts.insert(10, "ada@example.org".to_string());
             self.contacts.insert(11, "grace@example.org".to_string());
@@ -436,7 +444,41 @@ async fn main() {
                 "get_chatlist_entries" => {
                     let mut state = state.lock().await;
                     state.seed_chats();
-                    ok(&id, &json!(state.chat_order.clone()))
+                    // DC_GCL_ARCHIVED_ONLY. The two listings are disjoint,
+                    // so this is which list, not a filter on one.
+                    let archived_only = positional(1).as_u64().unwrap_or(0) & 0x01 != 0;
+                    let entries = if archived_only {
+                        state.archived_order.clone()
+                    } else {
+                        state.chat_order.clone()
+                    };
+                    // Lets a test make the *ordinary* listing the slow one,
+                    // so an answer to a question the model has already
+                    // moved on from arrives last. Requests are handled
+                    // concurrently here, as the real core's are, so this
+                    // delays only its own reply.
+                    if !archived_only {
+                        if let Some(delay) = std::env::var("POSTIVENE_FAKE_CHATLIST_DELAY_MS")
+                            .ok()
+                            .and_then(|value| value.parse::<u64>().ok())
+                        {
+                            drop(state);
+                            tokio::time::sleep(std::time::Duration::from_millis(delay)).await;
+                        }
+                    }
+                    // The core matches the query itself; so does this, on
+                    // the same name a chat item reports.
+                    let entries = match positional(2).as_str() {
+                        Some(query) if !query.is_empty() => {
+                            let query = query.to_lowercase();
+                            entries
+                                .into_iter()
+                                .filter(|chat| format!("chat {chat}").contains(&query))
+                                .collect()
+                        }
+                        _ => entries,
+                    };
+                    ok(&id, &json!(entries))
                 }
                 "get_chatlist_items_by_entries" => {
                     let ids: Vec<u64> = positional(1)

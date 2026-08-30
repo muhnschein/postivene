@@ -66,7 +66,9 @@ pub struct ChatMessages {
     /// arriving further down is left unread, badge and all, until they
     /// come back to it. False by default, because that is the state a
     /// chat opens in and the flag is set after the chat id.
-    pub reading_history: qt_property!(bool),
+    pub reading_history: qt_property!(bool; WRITE set_reading_history NOTIFY reading_history_changed),
+    /// Emitted when [`Self::reading_history`] changes.
+    pub reading_history_changed: qt_signal!(),
 
     /// The message the next send replies to, 0 for none. The page sets it
     /// when the reader picks Reply and shows what is being replied to;
@@ -381,6 +383,27 @@ impl ChatMessages {
         runtime.spawn(async move {
             mark_seen(&rpc, account_id, &items).await;
         });
+    }
+
+    /// Someone started, or stopped, looking at what is on screen.
+    ///
+    /// Marking on the way in is not enough. The reader is not looking
+    /// while the page transitions in, and a local fetch routinely
+    /// finishes first -- so the check made when the load returns finds
+    /// `reading_history` still true and skips. Nothing afterwards marks
+    /// anything but *arriving* messages, so the chat stays unread and its
+    /// badge never clears. Marking here catches the moment the page
+    /// settles, and the app coming back to the foreground with a chat
+    /// already open.
+    pub fn set_reading_history(&mut self, reading_history: bool) {
+        if self.reading_history == reading_history {
+            return;
+        }
+        self.reading_history = reading_history;
+        self.reading_history_changed();
+        if !reading_history {
+            self.mark_chat_seen();
+        }
     }
 
     /// The whole chat has been looked at: tell the core so the chat list

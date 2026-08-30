@@ -447,8 +447,22 @@ async fn main() {
                     // DC_GCL_ARCHIVED_ONLY. The two listings are disjoint,
                     // so this is which list, not a filter on one.
                     let archived_only = positional(1).as_u64().unwrap_or(0) & 0x01 != 0;
+                    // Verified against the real core: with ARCHIVED_ONLY
+                    // set it never looks at the query, and a plain query
+                    // searches every chat *including* archived ones. A
+                    // fake that filtered the archived list by the query
+                    // would let a one-call implementation pass here and
+                    // fail on a device.
+                    let query = positional(2).as_str().unwrap_or("").to_string();
+                    let searching = !query.is_empty();
                     let entries = if archived_only {
+                        // The query is deliberately not consulted.
                         state.archived_order.clone()
+                    } else if searching {
+                        // A plain query reaches archived chats too.
+                        let mut all = state.chat_order.clone();
+                        all.extend(state.archived_order.iter().copied());
+                        all
                     } else {
                         state.chat_order.clone()
                     };
@@ -468,15 +482,14 @@ async fn main() {
                     }
                     // The core matches the query itself; so does this, on
                     // the same name a chat item reports.
-                    let entries = match positional(2).as_str() {
-                        Some(query) if !query.is_empty() => {
-                            let query = query.to_lowercase();
-                            entries
-                                .into_iter()
-                                .filter(|chat| format!("chat {chat}").contains(&query))
-                                .collect()
-                        }
-                        _ => entries,
+                    let entries = if searching && !archived_only {
+                        let needle = query.to_lowercase();
+                        entries
+                            .into_iter()
+                            .filter(|chat| format!("chat {chat}").contains(&needle))
+                            .collect()
+                    } else {
+                        entries
                     };
                     ok(&id, &json!(entries))
                 }

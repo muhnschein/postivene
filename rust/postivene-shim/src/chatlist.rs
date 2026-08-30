@@ -481,19 +481,67 @@ async fn chat_entries(
 ) -> Result<Vec<u32>, String> {
     // The core does the matching. Filtering the loaded rows instead would
     // only ever find chats that happened to be on screen already.
+    //
+    // A query of nothing but spaces is rejected by the core outright, so
+    // it is trimmed here and treated as no query at all rather than
+    // swapping the list for an error banner.
+    let query = query.trim();
+    let mut flags = 0;
+    if for_forwarding {
+        flags |= FOR_FORWARDING;
+    }
+
+    if archived && !query.is_empty() {
+        // Two calls, because the core has no single one that means
+        // "archived chats matching this". Verified against the pinned
+        // binary: with ARCHIVED_ONLY set it never looks at the query --
+        // asking for archived chats matching "Beta" returns the archived
+        // "Alpha group" all the same -- while a plain query searches every
+        // chat and *does* include archived ones. So the archived list
+        // intersected with the hits is exactly what this page is asking
+        // for.
+        let archived_only: Vec<u32> = rpc
+            .call(
+                "get_chatlist_entries",
+                (
+                    account_id,
+                    Some(flags | ARCHIVED_ONLY),
+                    Option::<String>::None,
+                    Option::<u32>::None,
+                ),
+            )
+            .await
+            .map_err(|err| err.to_string())?;
+        let matching: Vec<u32> = rpc
+            .call(
+                "get_chatlist_entries",
+                (
+                    account_id,
+                    if flags == 0 { None } else { Some(flags) },
+                    Some(query.to_string()),
+                    Option::<u32>::None,
+                ),
+            )
+            .await
+            .map_err(|err| err.to_string())?;
+        // The archived list's order, kept: it is the one the reader sees
+        // when nothing is typed, and the search should not reshuffle it.
+        let hits: HashSet<u32> = matching.into_iter().collect();
+        return Ok(archived_only
+            .into_iter()
+            .filter(|chat_id| hits.contains(chat_id))
+            .collect());
+    }
+
+    if archived {
+        flags |= ARCHIVED_ONLY;
+    }
+    let flags = if flags == 0 { None } else { Some(flags) };
     let query = if query.is_empty() {
         None
     } else {
         Some(query.to_string())
     };
-    let mut flags = 0;
-    if archived {
-        flags |= ARCHIVED_ONLY;
-    }
-    if for_forwarding {
-        flags |= FOR_FORWARDING;
-    }
-    let flags = if flags == 0 { None } else { Some(flags) };
     rpc.call(
         "get_chatlist_entries",
         (account_id, flags, query, Option::<u32>::None),

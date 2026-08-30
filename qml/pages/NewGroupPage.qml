@@ -81,9 +81,47 @@ Page {
         }
     }
 
+    // Outside the list for the reason ChatListPage documents: a field in
+    // a view's `header` lives inside the flickable and its id does not
+    // resolve from the page. Here that was not merely a dead search --
+    // `nameField.text` is what names the group and what enables the
+    // Create button, so both were reading an undefined name.
+    Column {
+        id: heading
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+        }
+
+        PageHeader {
+            title: qsTr("New Group")
+        }
+
+        TextField {
+            id: nameField
+            objectName: "nameField"
+            width: parent.width
+            label: qsTr("Group name")
+            placeholderText: label
+        }
+
+        Banner {
+            objectName: "errorBanner"
+            width: parent.width
+            text: page.errorMessage
+            onDismissed: page.errorMessage = ""
+        }
+    }
+
     SilicaListView {
         id: listView
-        anchors.fill: parent
+        anchors {
+            top: heading.bottom
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
         model: contacts.rows
 
         PullDownMenu {
@@ -92,29 +130,6 @@ Page {
                 text: qsTr("Create Group")
                 enabled: !page.creating && nameField.text.length > 0
                 onClicked: page.createGroup()
-            }
-        }
-
-        header: Column {
-            width: page.width
-
-            PageHeader {
-                title: qsTr("New Group")
-            }
-
-            TextField {
-                id: nameField
-                objectName: "nameField"
-                width: parent.width
-                label: qsTr("Group name")
-                placeholderText: label
-            }
-
-            Banner {
-                objectName: "errorBanner"
-                width: parent.width
-                text: page.errorMessage
-                onDismissed: page.errorMessage = ""
             }
         }
 

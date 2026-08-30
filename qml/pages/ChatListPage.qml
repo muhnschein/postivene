@@ -14,23 +14,13 @@ Page {
     /// whether switching is worth offering at all.
     property int accountCount: 0
 
-    /// What the reader has typed, waiting for the debounce below.
-    ///
-    /// The field lives in the list's header, and `header` is a Component
-    /// property -- so everything declared inside it gets its own scope and
-    /// `searchField` does not resolve from out here. Reading it from the
-    /// timer threw a ReferenceError on every keystroke, which is why the
-    /// search did nothing at all. The field pushes its text out to this
-    /// instead; ids do resolve in that direction.
-    property string pendingQuery: ""
-
     // Not bound straight to the field: a round trip per keystroke asks the
     // core four times to type "anna", and only the last answer is wanted.
     // Same interval as the contact search, for the same reason.
     Timer {
         id: searchDebounce
         interval: 250
-        onTriggered: chats.query = page.pendingQuery
+        onTriggered: chats.query = searchField.text
     }
 
     ChatList {
@@ -87,10 +77,38 @@ Page {
 
     Component.onCompleted: core.refresh_accounts()
 
+    // Outside the list, not in its `header`. A header item lives inside
+    // the view's flickable, and both plausible explanations for the
+    // reported focus loss run through that: Silica hides the input panel
+    // when a flickable's content moves, and the narrowing list moves it on
+    // every keystroke pause; and a view is a focus scope, which can hand
+    // focus to a delegate as rows come and go. Anchored out here the field
+    // is in neither story, and it no longer scrolls away mid-search.
+    Column {
+        id: heading
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+        }
+
+        PageHeader {
+            title: page.archived ? qsTr("Archived") : qsTr("Chats")
+        }
+
+        SearchField {
+            id: searchField
+            objectName: "chatSearchField"
+            width: parent.width
+            placeholderText: qsTr("Search chats")
+            onTextChanged: searchDebounce.restart()
+        }
+    }
+
     SilicaListView {
         id: listView
         anchors {
-            top: parent.top
+            top: heading.bottom
             left: parent.left
             right: parent.right
             bottom: banner.top
@@ -99,25 +117,6 @@ Page {
         // banner below is translucent.
         clip: true
         model: chats.rows
-
-        header: Column {
-            width: page.width
-
-            PageHeader {
-                title: page.archived ? qsTr("Archived") : qsTr("Chats")
-            }
-
-            SearchField {
-                id: searchField
-                objectName: "chatSearchField"
-                width: parent.width
-                placeholderText: qsTr("Search chats")
-                onTextChanged: {
-                    page.pendingQuery = text
-                    searchDebounce.restart()
-                }
-            }
-        }
 
         // Nothing in here applies to the archived list -- no accounts
         // switch, no way further in, no new chat -- so the pulley itself

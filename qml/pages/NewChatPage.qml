@@ -50,9 +50,46 @@ Page {
         }
     }
 
+    // Outside the list for the reason ChatListPage documents: a field in
+    // a view's `header` lives inside the flickable and its id does not
+    // resolve from the page, so every reference to it below was reading
+    // an undefined name.
+    Column {
+        id: heading
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+        }
+
+        PageHeader {
+            title: qsTr("New Chat")
+        }
+
+        SearchField {
+            id: searchField
+            objectName: "searchField"
+            width: parent.width
+            placeholderText: qsTr("Search contacts")
+            onTextChanged: searchDebounce.restart()
+        }
+
+        Banner {
+            objectName: "errorBanner"
+            width: parent.width
+            text: page.errorMessage
+            onDismissed: page.errorMessage = ""
+        }
+    }
+
     SilicaListView {
         id: listView
-        anchors.fill: parent
+        anchors {
+            top: heading.bottom
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
         model: contacts.rows
 
         PullDownMenu {
@@ -73,28 +110,6 @@ Page {
             }
         }
 
-        header: Column {
-            width: page.width
-
-            PageHeader {
-                title: qsTr("New Chat")
-            }
-
-            SearchField {
-                id: searchField
-                objectName: "searchField"
-                width: parent.width
-                placeholderText: qsTr("Search contacts")
-                onTextChanged: searchDebounce.restart()
-            }
-
-            Banner {
-                objectName: "errorBanner"
-                width: parent.width
-                text: page.errorMessage
-                onDismissed: page.errorMessage = ""
-            }
-        }
 
         // No context menu: picking a contact is the only thing to do
         // with one here.

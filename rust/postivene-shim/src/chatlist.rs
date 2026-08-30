@@ -57,6 +57,16 @@ pub struct ChatList {
 
     /// How many rows there are.
     pub count: qt_property!(u32; READ count NOTIFY rows_changed),
+    // Stored rather than counted out of the model on demand. A section
+    // heading binds to these, so QML reads them from inside the model
+    // reset that sets the rows -- and a reader that borrowed the row list
+    // there would find it already mutably borrowed and take the process
+    // down with it.
+    /// Chats kept at the top, for deciding whether to head the two
+    /// groups at all: one heading over the whole list says nothing.
+    pub pinned_count: qt_property!(u32; NOTIFY rows_changed),
+    /// The rest, for the same decision from the other side.
+    pub unpinned_count: qt_property!(u32; NOTIFY rows_changed),
     /// Unread messages across every chat, for the cover.
     ///
     /// Muted chats are counted. Muting silences the announcement, not the
@@ -340,6 +350,16 @@ impl ChatList {
             }
             match result {
                 Ok(target) => {
+                    {
+                        // Counted before the rows are set, from the list
+                        // about to become them: setting the rows is what
+                        // makes QML read the counts back.
+                        let pinned = target.iter().filter(|row| row.is_pinned).count();
+                        let mut this_mut = this.borrow_mut();
+                        this_mut.pinned_count = u32::try_from(pinned).unwrap_or(u32::MAX);
+                        this_mut.unpinned_count =
+                            u32::try_from(target.len() - pinned).unwrap_or(u32::MAX);
+                    }
                     {
                         let this_ref = this.borrow();
                         let mut rows = this_ref.rows.borrow_mut();

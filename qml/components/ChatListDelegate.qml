@@ -34,18 +34,30 @@ Item {
     height: Math.max(avatar.height, previewLabel.y + previewLabel.height)
             + 2 * Theme.paddingMedium
 
-    /// Time for today, weekday for this week, date for older.
+    /// How long ago, in as few characters as will say it.
+    ///
+    /// "10 min" reads faster than "14:32" when the answer wanted is
+    /// "recently", and it does not need the reader to know what time it
+    /// is now. Past a week the elapsed count stops meaning anything, so
+    /// it goes back to a date.
     function timeLabel(seconds) {
         if (seconds <= 0) {
             return ""
         }
         var when = new Date(seconds * 1000)
-        var now = new Date()
-        if (when.toDateString() === now.toDateString()) {
-            return Qt.formatTime(when, "hh:mm")
+        var elapsed = (new Date()).getTime() - when.getTime()
+        if (elapsed < 60000) {
+            return qsTr("now")
         }
-        if (now.getTime() - when.getTime() < 6 * 86400000) {
-            return Qt.formatDate(when, "ddd")
+        if (elapsed < 3600000) {
+            return qsTr("%1 min").arg(Math.floor(elapsed / 60000))
+        }
+        if (elapsed < 86400000) {
+            return qsTr("%1 h").arg(Math.floor(elapsed / 3600000))
+        }
+        if (elapsed < 7 * 86400000) {
+            var days = Math.floor(elapsed / 86400000)
+            return days === 1 ? qsTr("1 day") : qsTr("%1 days").arg(days)
         }
         return Qt.formatDate(when, Qt.DefaultLocaleShortDate)
     }
@@ -69,14 +81,37 @@ Item {
         picturePath: root.avatarPath
     }
 
-    Label {
-        id: timeLabelItem
-        objectName: "timeLabel"
+    // Muted, when it was, and pinned -- all three on the right, so the
+    // name is a name rather than a name with luggage.
+    Row {
+        id: marks
         x: root.width - width - Theme.horizontalPageMargin
         y: Theme.paddingMedium
-        font.pixelSize: Theme.fontSizeExtraSmall
-        color: Theme.secondaryColor
-        text: root.timeLabel(root.lastUpdated)
+        spacing: Theme.paddingSmall
+
+        Label {
+            objectName: "muteMark"
+            visible: root.isMuted
+            font.pixelSize: Theme.fontSizeExtraSmall
+            color: Theme.secondaryColor
+            text: "🔇"
+        }
+
+        Label {
+            id: timeLabelItem
+            objectName: "timeLabel"
+            font.pixelSize: Theme.fontSizeExtraSmall
+            color: Theme.secondaryColor
+            text: root.timeLabel(root.lastUpdated)
+        }
+
+        Label {
+            objectName: "pinMark"
+            visible: root.isPinned
+            font.pixelSize: Theme.fontSizeExtraSmall
+            color: Theme.secondaryColor
+            text: "📌"
+        }
     }
 
     Label {
@@ -84,13 +119,13 @@ Item {
         objectName: "nameLabel"
         x: avatar.x + avatar.width + Theme.paddingMedium
         y: Theme.paddingMedium
-        width: timeLabelItem.x - x - Theme.paddingMedium
+        width: marks.x - x - Theme.paddingMedium
         truncationMode: TruncationMode.Fade
         textFormat: Text.PlainText
-        // A mail icon marks a chat that cannot be encrypted to; the other
-        // two say how the chat is filed.
+        // A mail icon marks a chat that cannot be encrypted to. Pinned
+        // and muted are shown on the right instead: they are about where
+        // the chat sits and how it behaves, not about what it is called.
         text: (root.isEncrypted ? "" : "✉ ") + root.chatName
-              + (root.isPinned ? " 📌" : "") + (root.isMuted ? " 🔇" : "")
     }
 
     Label {

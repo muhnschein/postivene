@@ -238,6 +238,22 @@ Page {
             clip: true
             model: chats.rows
 
+            // Pinned chats already sort to the top; this says why they
+            // are there. Both headings disappear when one group is
+            // empty: a single heading over the whole list says nothing,
+            // and "Pinned" over a list with nothing pinned is a lie.
+            section {
+                property: "is_pinned"
+                delegate: SectionHeader {
+                    objectName: "chatSection"
+                    readonly property bool worthSaying:
+                        chats.pinned_count > 0 && chats.unpinned_count > 0
+                    visible: worthSaying
+                    height: worthSaying ? implicitHeight : 0
+                    text: section === "true" ? qsTr("Pinned") : qsTr("Other chats")
+                }
+            }
+
             // Nothing in here applies to the archived list -- no profile
             // switch, no way further in, no new chat -- so the pulley itself
             // goes rather than opening onto an empty menu.
@@ -333,9 +349,13 @@ Page {
             }
 
             ViewPlaceholder {
+                objectName: "chatListPlaceholder"
                 enabled: chats.count === 0
-                text: qsTr("No chats yet")
-                hintText: qsTr("Pull down to start one")
+                text: page.archived ? qsTr("No archived chats")
+                                    : qsTr("No chats yet")
+                // Nothing here makes an archived chat: a chat is archived
+                // from the ordinary list, not started in this one.
+                hintText: page.archived ? "" : qsTr("Pull down to start one")
             }
         }
 

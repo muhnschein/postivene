@@ -2,6 +2,29 @@
 <!DOCTYPE TS>
 <TS version="2.1">
 <context>
+    <name>ChatListDelegate</name>
+    <message>
+        <source>now</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 min</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 h</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>1 day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 days</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Restart Postivene.</source>
@@ -89,6 +112,18 @@
     </message>
     <message>
         <source>Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pinned</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Other chats</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No archived chats</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -291,18 +326,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>New Group</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>New Contact</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>New Chat</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Search contacts</source>
         <translation type="unfinished"></translation>
     </message>
@@ -312,6 +335,18 @@
     </message>
     <message>
         <source>Add one with an invite link</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New contact</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New chat</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -326,15 +361,15 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>New Group</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Group name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>No contacts to add yet</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New group</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -361,6 +396,29 @@
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SearchResultRow</name>
+    <message>
+        <source>now</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 min</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 h</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>1 day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 days</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -406,10 +464,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Address</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Saved</source>
         <translation type="unfinished"></translation>
     </message>
@@ -426,7 +480,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Lets the people you write to see when you have read their messages. Turning it off does not stop you seeing theirs.</source>
+        <source>Tells the people you write to when you have read their messages, and asks the same of them. With this off you send none and see none.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

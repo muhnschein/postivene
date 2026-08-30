@@ -26,31 +26,29 @@ Item {
     // wrong again; the labels below say what they do with the overflow.
     clip: true
 
-    /// Time for today, weekday for this week, date for older -- the same
-    /// rule ChatListDelegate uses, so a chat reads the same in both lists.
+    /// How long ago, in as few characters as will say it -- the same
+    /// rule ChatListDelegate uses, so a chat reads the same in both
+    /// lists.
     function timeLabel(seconds) {
         if (seconds <= 0) {
             return ""
         }
         var when = new Date(seconds * 1000)
-        var now = new Date()
-        if (when.toDateString() === now.toDateString()) {
-            return Qt.formatTime(when, "hh:mm")
+        var elapsed = (new Date()).getTime() - when.getTime()
+        if (elapsed < 60000) {
+            return qsTr("now")
         }
-        if (now.getTime() - when.getTime() < 6 * 86400000) {
-            return Qt.formatDate(when, "ddd")
+        if (elapsed < 3600000) {
+            return qsTr("%1 min").arg(Math.floor(elapsed / 60000))
+        }
+        if (elapsed < 86400000) {
+            return qsTr("%1 h").arg(Math.floor(elapsed / 3600000))
+        }
+        if (elapsed < 7 * 86400000) {
+            var days = Math.floor(elapsed / 86400000)
+            return days === 1 ? qsTr("1 day") : qsTr("%1 days").arg(days)
         }
         return Qt.formatDate(when, Qt.DefaultLocaleShortDate)
-    }
-
-    Avatar {
-        id: avatar
-        objectName: "resultAvatar"
-        x: Theme.horizontalPageMargin
-        y: Theme.paddingMedium
-        initial: root.title
-        ownColor: root.ownColor
-        picturePath: root.picturePath
     }
 
     // Positioned off the row, never off the title. ChatListDelegate lays

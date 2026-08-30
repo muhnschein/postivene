@@ -114,12 +114,21 @@ Page {
         page.replyAuthor = ""
     }
 
+    // Outside the list rather than its `header`, so it stays put: a
+    // header scrolls with the content, and in a long conversation the
+    // name of whoever you are talking to disappears off the top.
+    PageHeader {
+        id: conversationHeader
+        objectName: "conversationHeader"
+        title: page.chatName
+    }
+
     ConversationList {
         loaded: messages.loaded
         id: listView
         objectName: "messageList"
         anchors {
-            top: parent.top
+            top: conversationHeader.bottom
             left: parent.left
             right: parent.right
             bottom: banner.top
@@ -128,7 +137,6 @@ Page {
         // The model's own count, which changes when a row arrives rather
         // than when the view gets round to showing it.
         messageCount: messages.count
-        title: page.chatName
         showSender: messages.is_group
         placeholderText: qsTr("No messages yet")
 

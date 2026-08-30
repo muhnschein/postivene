@@ -70,7 +70,7 @@ Page {
         PullDownMenu {
             MenuItem {
                 objectName: "newGroupButton"
-                text: qsTr("New Group")
+                text: qsTr("New group")
                 onClicked: pageStack.push(Qt.resolvedUrl("NewGroupPage.qml"),
                                           { accountId: page.accountId })
             }
@@ -79,7 +79,7 @@ Page {
                 // encrypted, so adding a contact starts from an invite --
                 // which is how a Delta Chat contact is actually added.
                 objectName: "newContactButton"
-                text: qsTr("New Contact")
+                text: qsTr("New contact")
                 onClicked: pageStack.push(Qt.resolvedUrl("InvitePage.qml"),
                                           { accountId: page.accountId })
             }
@@ -94,7 +94,7 @@ Page {
             }
 
             PageHeader {
-                title: qsTr("New Chat")
+                title: qsTr("New chat")
             }
 
             SearchField {

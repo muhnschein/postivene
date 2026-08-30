@@ -180,7 +180,11 @@ Page {
             TextSwitch {
                 objectName: "readReceiptsSwitch"
                 text: qsTr("Send read receipts")
-                description: qsTr("Lets the people you write to see when you have read their messages. Turning it off does not stop you seeing theirs.")
+                // The core's own words for mdns_enabled are "should be
+                // sent and requested", so this is not one-way: with it
+                // off nothing is asked for either, and read marks stop
+                // coming back from the people who would have sent them.
+                description: qsTr("Tells the people you write to when you have read their messages, and asks the same of them. With this off you send none and see none.")
                 // Bound to the profile, not held here: the core is what
                 // decides, and a switch that drifts from it is a lie.
                 checked: profile.read_receipts
@@ -188,13 +192,6 @@ Page {
                 onClicked: profile.set_read_receipts(checked)
             }
 
-            // Not editable: changing the address is setting up another
-            // profile, not renaming this one.
-            DetailItem {
-                objectName: "profileAddress"
-                label: qsTr("Address")
-                value: profile.address
-            }
         }
     }
 

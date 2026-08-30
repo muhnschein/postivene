@@ -12,7 +12,6 @@ import Sailfish.Silica 1.0
 SilicaListView {
     id: root
 
-    property string title
     // Seconds east of UTC, for turning a day number back into a date.
     // Groups have to say who is speaking; one-to-one chats do not.
     property bool showSender: false
@@ -137,9 +136,6 @@ SilicaListView {
     onStickToBottomChanged: if (root.stickToBottom) root.arrivedAtNewest()
     signal arrivedAtNewest()
 
-    header: PageHeader {
-        title: root.title
-    }
 
     // The model counts days in the viewer's timezone, so grouping by that
     // number is enough to break the list into days.

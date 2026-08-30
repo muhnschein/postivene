@@ -117,7 +117,7 @@ Page {
             }
 
             PageHeader {
-                title: qsTr("New Group")
+                title: qsTr("New group")
             }
 
             TextField {

@@ -2,17 +2,6 @@
 <!DOCTYPE TS>
 <TS version="2.1">
 <context>
-    <name>AccountsPage</name>
-    <message>
-        <source>Accounts</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>No accounts</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Restart Postivene.</source>
@@ -28,10 +17,6 @@
     </message>
     <message>
         <source>Search chats</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Accounts</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -92,6 +77,10 @@
     </message>
     <message>
         <source>Unarchive</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Profiles</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -338,6 +327,25 @@
     </message>
     <message>
         <source>No contacts to add yet</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ProfilesPage</name>
+    <message>
+        <source>Profiles</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No profiles</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Delete profile</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Deleting profile</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

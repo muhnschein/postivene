@@ -52,7 +52,7 @@ What is still missing here:
 The chat list searches (the core matches, so a search finds chats the
 model has never loaded), reaches the archived list as its own page, and
 offers a contact request the only two answers it has -- accept or block --
-rather than showing it as an ordinary chat. `AccountsPage` puts the
+rather than showing it as an ordinary chat. `ProfilesPage` puts the
 `account_list` model on screen, and appears in the pulley only where there
 is more than one account to choose between.
 
@@ -132,3 +132,19 @@ form of every invite payload already works, so the camera is polish.
    blocking a contact outside a request.
 5. Avatars on message bubbles, voice messages, reactions, drafts, an
    unread divider, paging for long histories, and sending attachments.
+
+## Vocabulary: profile, not account
+
+The reference clients say "profile", and so does everything a reader
+sees: the page, its title, its rows, the pulley entry that opens it.
+
+The word stops at the qmetaobject bridge. `account_id`, `account_list`,
+`accounts_refreshed` and their neighbours keep the core's own name,
+because that is what the wire says -- the JSON-RPC methods are literally
+`add_account`, `get_all_accounts`, `remove_account`. Renaming our side
+while the protocol says otherwise would buy a nicer identifier and cost a
+translation layer at every call site.
+
+Two visible strings deliberately keep the word: "Log in to an email
+account" and "no account with us" both mean an account somewhere else,
+which is exactly the distinction the rename is drawing.

@@ -252,6 +252,13 @@ async fn main() {
                     let list = state.lock().await.account_list();
                     ok(&id, &list)
                 }
+                "remove_account" => {
+                    let mut state = state.lock().await;
+                    let gone = positional(0).as_u64().unwrap_or(0);
+                    let gone = u32::try_from(gone).unwrap_or(0);
+                    state.accounts.retain(|account| account.id != gone);
+                    ok(&id, &Value::Null)
+                }
                 "add_account" => {
                     let mut state = state.lock().await;
                     let next = u32::try_from(state.accounts.len()).unwrap_or(0) + 1;

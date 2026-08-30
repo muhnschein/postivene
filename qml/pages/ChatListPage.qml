@@ -118,7 +118,7 @@ Page {
         clip: true
         model: chats.rows
 
-        // Nothing in here applies to the archived list -- no accounts
+        // Nothing in here applies to the archived list -- no profile
         // switch, no way further in, no new chat -- so the pulley itself
         // goes rather than opening onto an empty menu.
         PullDownMenu {
@@ -127,11 +127,11 @@ Page {
             enabled: !page.archived
 
             MenuItem {
-                objectName: "accountsMenuItem"
+                objectName: "profilesMenuItem"
                 // Only worth offering where there is a choice to make.
                 visible: !page.archived && page.accountCount > 1
-                text: qsTr("Accounts")
-                onClicked: pageStack.push(Qt.resolvedUrl("AccountsPage.qml"),
+                text: qsTr("Profiles")
+                onClicked: pageStack.push(Qt.resolvedUrl("ProfilesPage.qml"),
                                           { currentAccountId: page.accountId })
             }
             MenuItem {

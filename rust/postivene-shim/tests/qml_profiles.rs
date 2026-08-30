@@ -1,6 +1,6 @@
-//! Switching account must leave exactly one chat list on the page stack.
+//! Switching profile must leave exactly one chat list on the page stack.
 //!
-//! `replace` swaps out only the accounts page, so the chat list for the
+//! `replace` swaps out only the profiles page, so the chat list for the
 //! account just left stays underneath it -- one swipe back into the
 //! account the reader thought they had left. `replaceAbove(null, ...)`
 //! replaces the whole stack, which is what the onboarding pages already do
@@ -83,17 +83,23 @@ const PROBE_QML: &str = r"
     import QtQuick 2.0
     Item {
         Loader { id: loader }
-        // The stack as it really is when the accounts page is open: the
-        // chat list for the current account, then the accounts page.
+        // The stack as it really is when the profiles page is open: the
+        // chat list for the current account, then the profiles page.
         function seed() {
             // Two accounts, so there is one to switch *to*.
             core.add_account()
             core.add_account()
             pageStack.push('qrc:/ChatListPage.qml', {})
-            pageStack.push('qrc:/AccountsPage.qml', {})
+            pageStack.push('qrc:/ProfilesPage.qml', {})
         }
         // add_account only signals; the list is refetched on demand.
         function refresh() { core.refresh_accounts() }
+        // Counted off the page's own list, since the model exposes no
+        // count of its own.
+        function accountsLeft() {
+            var view = findIn(loader.item, 'profileRow')
+            return view ? 'has-rows' : 'no-rows'
+        }
         function load(url, currentAccountId) {
             loader.setSource('', {})
             loader.setSource(url, { currentAccountId: currentAccountId })
@@ -107,14 +113,26 @@ const PROBE_QML: &str = r"
                 var hit = findIn(kids[i], name)
                 if (hit) { return hit }
             }
+            // A row's ContextMenu is held in a property, so it is in
+            // neither list even though it is instantiated.
+            if (node.menu) {
+                var inMenu = findIn(node.menu, name)
+                if (inMenu) { return inMenu }
+            }
             if (node.contentItem && node.contentItem !== node) {
                 return findIn(node.contentItem, name)
             }
             return null
         }
+        function deleteFirstRow() {
+            var item = findIn(loader.item, 'deleteProfileItem')
+            if (!item) { return 'missing:deleteProfileItem' }
+            item.clicked()
+            return 'ok'
+        }
         function tapFirstRow() {
-            var row = findIn(loader.item, 'accountRow')
-            if (!row) { return 'missing:accountRow' }
+            var row = findIn(loader.item, 'profileRow')
+            if (!row) { return 'missing:profileRow' }
             row.clicked()
             return 'ok'
         }
@@ -122,7 +140,8 @@ const PROBE_QML: &str = r"
 ";
 
 #[test]
-fn switching_account_leaves_one_chat_list_on_the_stack() {
+#[allow(clippy::too_many_lines)]
+fn switching_profile_leaves_one_chat_list_on_the_stack() {
     let temp = std::env::temp_dir().join(format!("postivene-qml-accounts-{}", std::process::id()));
     std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
 
@@ -182,7 +201,7 @@ fn switching_account_leaves_one_chat_list_on_the_stack() {
             "load",
             call!(
                 "load",
-                QString::from(common::page_url("AccountsPage.qml")),
+                QString::from(common::page_url("ProfilesPage.qml")),
                 2
             ),
         ));
@@ -195,6 +214,21 @@ fn switching_account_leaves_one_chat_list_on_the_stack() {
 
     single_shot(Duration::from_secs(9), move || unsafe {
         (*steps_ptr).push(("after", (*stack_ptr).pinned().borrow().stack.to_string()));
+        // Reload the profiles page and delete from it. Two profiles
+        // remain, so this is not the last-one case.
+        call!(
+            "load",
+            QString::from(common::page_url("ProfilesPage.qml")),
+            2
+        );
+    });
+
+    single_shot(Duration::from_secs(11), move || unsafe {
+        (*steps_ptr).push(("delete", call!("deleteFirstRow")));
+    });
+
+    single_shot(Duration::from_secs(14), move || unsafe {
+        (*steps_ptr).push(("deleted", call!("accountsLeft")));
         (*engine_ptr).quit();
     });
 
@@ -212,11 +246,11 @@ fn switching_account_leaves_one_chat_list_on_the_stack() {
     assert_eq!(
         value("load"),
         "ok",
-        "the accounts page did not load. {context}"
+        "the profiles page did not load. {context}"
     );
     assert_eq!(
         value("seeded"),
-        "ChatListPage.qml,AccountsPage.qml",
+        "ChatListPage.qml,ProfilesPage.qml",
         "the stack was not seeded as the app really has it. {context}"
     );
     // Also the guard that the list really had rows: with no accounts there
@@ -226,6 +260,12 @@ fn switching_account_leaves_one_chat_list_on_the_stack() {
         "ok",
         "no account row was reachable, so the list was empty and this test \
          proves nothing. {context}"
+    );
+    assert_eq!(
+        value("delete"),
+        "ok",
+        "no delete entry on a profile row, so a profile cannot be removed. \
+         {context}"
     );
     assert_eq!(
         value("after"),

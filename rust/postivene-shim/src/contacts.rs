@@ -49,10 +49,6 @@ pub struct ContactList {
     /// Answers on `chat_ready`.
     pub open_chat_with: qt_method!(fn(&mut self, contact_id: u32)),
 
-    /// Add a contact by address and open the chat with them. `name` may be
-    /// empty. Answers on `chat_ready`.
-    pub start_chat_with_address: qt_method!(fn(&mut self, address: QString, name: QString)),
-
     /// Create a group with the given name and members, and open it.
     /// Answers on `chat_ready`.
     pub create_group: qt_method!(fn(&mut self, name: QString, member_ids: QVariantList)),
@@ -159,33 +155,6 @@ impl ContactList {
                 .call::<_, u32>("create_chat_by_contact_id", (account_id, contact_id))
                 .await
                 .map_err(|err| err.to_string());
-            done(result);
-        });
-    }
-
-    /// Add a contact by address and open the chat with them.
-    pub fn start_chat_with_address(&mut self, address: QString, name: QString) {
-        let account_id = self.account_id;
-        let Some((rpc, runtime)) = connection() else {
-            self.error(QString::from("not started"));
-            return;
-        };
-        let done = self.chat_callback();
-
-        let address = address.to_string();
-        let name = name.to_string();
-        runtime.spawn(async move {
-            let result = async {
-                let name = if name.is_empty() { None } else { Some(name) };
-                let contact_id: u32 = rpc
-                    .call("create_contact", (account_id, address, name))
-                    .await
-                    .map_err(|err| err.to_string())?;
-                rpc.call::<_, u32>("create_chat_by_contact_id", (account_id, contact_id))
-                    .await
-                    .map_err(|err| err.to_string())
-            }
-            .await;
             done(result);
         });
     }

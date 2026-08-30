@@ -9,8 +9,8 @@ answer is in `DEVICE-CHECKS.md`.
 ## Starting a conversation  *(done)*
 
 `ContactList` lists contacts and opens a chat three ways: tapping a known
-contact, adding an address, or creating a group. `NewChatPage`,
-`NewContactPage` and `NewGroupPage` sit behind "New Chat" on the chat list.
+contact or creating a group. `NewChatPage` and `NewGroupPage` sit behind
+"New Chat" on the chat list.
 
 Invites work in both directions: a pasted `https://i.delta.chat/...` link
 is classified by the core and followed with `secure_join`, and the
@@ -69,8 +69,9 @@ with one.
 
 "New Contact" opens the invite page, since an address alone produces a
 chat that cannot be encrypted and an invite is how a contact is actually
-added. The address form lives on behind that page: the core can also mail
-someone who does not use Delta Chat at all, and that needs an address.
+added. The address form is gone entirely: it could only ever produce a
+chat that cannot be encrypted, and this client does not set out to
+support plaintext conversations.
 
 ## Defects in what exists
 

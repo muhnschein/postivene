@@ -37,7 +37,6 @@ struct State {
     next_message_id: u32,
     /// Contact id -> address. Seeded with two known contacts.
     contacts: std::collections::BTreeMap<u32, String>,
-    next_contact_id: u32,
     next_chat_id: u32,
     /// Members added to each created group.
     group_members: std::collections::BTreeMap<u32, Vec<u32>>,
@@ -76,7 +75,6 @@ impl State {
             self.next_message_id = 100;
             self.contacts.insert(10, "ada@example.org".to_string());
             self.contacts.insert(11, "grace@example.org".to_string());
-            self.next_contact_id = 100;
             self.next_chat_id = 500;
         }
     }
@@ -323,23 +321,6 @@ async fn main() {
                         })
                         .collect();
                     ok(&id, &Value::Array(contacts))
-                }
-                "create_contact" => {
-                    let mut state = state.lock().await;
-                    state.seed_chats();
-                    let address = positional(1).as_str().unwrap_or_default().to_string();
-                    // An address already known keeps its id, as upstream does.
-                    let existing = state
-                        .contacts
-                        .iter()
-                        .find(|(_, known)| **known == address)
-                        .map(|(contact, _)| *contact);
-                    let contact = existing.unwrap_or_else(|| {
-                        state.next_contact_id += 1;
-                        state.next_contact_id
-                    });
-                    state.contacts.insert(contact, address);
-                    ok(&id, &json!(contact))
                 }
                 // A join and a one-to-one both end in a fresh chat at the top.
                 "create_chat_by_contact_id" | "secure_join" => {

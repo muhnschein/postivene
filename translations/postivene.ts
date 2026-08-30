@@ -252,10 +252,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Add by Address</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Invite</source>
         <translation type="unfinished"></translation>
     </message>
@@ -319,33 +315,6 @@
     </message>
     <message>
         <source>Add one with an invite link</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>NewContactPage</name>
-    <message>
-        <source>That is not an email address</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>New Contact</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Email address</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Name (optional)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Messages to an address the app has no key for are sent as plain email. Scan or paste an invite link to chat encrypted.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Start Chat</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

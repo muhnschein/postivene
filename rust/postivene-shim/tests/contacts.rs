@@ -43,7 +43,6 @@ const PROBE_QML: &str = r"
                 if (!started && rows.count > 1) {
                     started = true
                     contacts.open_chat_with(rows.itemAt(0).cid)
-                    contacts.start_chat_with_address('new@example.org', 'New Person')
                     contacts.create_group('Team', [rows.itemAt(0).cid, rows.itemAt(1).cid])
                     contacts.join_by_invite('https://i.delta.chat/#ABC&a=them%40example.org')
                     contacts.join_by_invite('just some text')
@@ -77,7 +76,7 @@ const PROBE_QML: &str = r"
 ";
 
 #[test]
-fn a_chat_can_be_started_four_ways() {
+fn a_chat_can_be_started_three_ways() {
     let temp = std::env::temp_dir().join(format!("postivene-contacts-{}", std::process::id()));
     let journal = common::fresh_journal(&temp);
     std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
@@ -145,8 +144,8 @@ fn assert_routes(calls: &[(String, Value)], listed: &str, report: &str) {
     let invite = parts.next().unwrap_or_default();
     assert_eq!(
         opened.split(',').filter(|part| !part.is_empty()).count(),
-        4,
-        "expected a chat from each of the four ways in, got {opened:?}"
+        3,
+        "expected a chat from each of the three ways in, got {opened:?}"
     );
 
     // Following an invite: classified first, then joined. Plain text is
@@ -173,21 +172,6 @@ fn assert_routes(calls: &[(String, Value)], listed: &str, report: &str) {
     assert!(
         names.contains(&"create_chat_by_contact_id"),
         "tapping a contact did not open a chat: {names:?}"
-    );
-
-    // Address typed: a contact first, then the chat.
-    let created = calls
-        .iter()
-        .find(|(name, _)| name == "create_contact")
-        .expect("an address must create a contact");
-    assert_eq!(
-        created.1.pointer("/1").and_then(Value::as_str),
-        Some("new@example.org")
-    );
-    assert_eq!(
-        created.1.pointer("/2").and_then(Value::as_str),
-        Some("New Person"),
-        "the name typed alongside the address was dropped"
     );
 
     // Group: created encrypted, then both members added. Encrypted because

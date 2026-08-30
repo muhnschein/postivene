@@ -285,6 +285,13 @@
     </message>
 </context>
 <context>
+    <name>MessageDelegate</name>
+    <message>
+        <source>Forwarded</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>NewChatPage</name>
     <message>
         <source>Chat</source>

@@ -41,6 +41,9 @@ pub struct ChatListItem {
 pub type ChatListModel = SimpleListModel<ChatListItem>;
 
 /// One message row from `get_message_list_items` plus `get_message`.
+// Each flag is a role QML reads by name, so they cannot be folded into
+// one field.
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Default, Clone, qmetaobject::SimpleListItem)]
 pub struct MessageListItem {
     /// The core's message id.
@@ -69,6 +72,10 @@ pub struct MessageListItem {
     /// A core-generated notice ("... joined the group"), not a message
     /// anyone typed.
     pub is_info: bool,
+    /// `isForwarded` upstream: a copy of a message from somewhere else
+    /// rather than one written here. The core sets it on the sender's own
+    /// copy too, which is why a forward made from this device is marked.
+    pub is_forwarded: bool,
     /// The quoted message's text, empty when nothing is quoted.
     pub quote_text: QString,
     /// Who wrote the quoted message.

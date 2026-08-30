@@ -738,6 +738,14 @@ fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
             .get("isInfo")
             .and_then(serde_json::Value::as_bool)
             .unwrap_or(false),
+        // `unwrap_or(false)` covers the abbreviated object the fake core
+        // returns from misc_send_msg; a message composed here is never a
+        // forward anyway. Real forwards arrive through get_messages,
+        // which returns the full shape.
+        is_forwarded: message
+            .get("isForwarded")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false),
         quote_text: text_at(message, "/quote/text"),
         quote_author: text_at(message, "/quote/authorDisplayName"),
         file_path: text_at(message, "/file"),

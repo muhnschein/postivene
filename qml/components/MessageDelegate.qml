@@ -21,6 +21,7 @@ Item {
     property string messageText: ""
     property bool isOutgoing: false
     property bool isInfo: false
+    property bool isForwarded: false
     property bool showPadlock: true
     // DC_STATE_*: 20 pending, 24 failed, 26 delivered, 28 read.
     property int deliveryState: 0
@@ -136,13 +137,32 @@ Item {
             text: root.senderName
         }
 
+        // Marked the way the reference client marks it, and above the
+        // quote: it describes the whole message, not the quoted part.
+        // Not remote-supplied text, so it needs no PlainText pinning --
+        // but it must not be folded into messageText, which is.
+        Label {
+            id: forwardedLabel
+            objectName: "forwardedLabel"
+            visible: root.isForwarded
+            height: visible ? implicitHeight : 0
+            x: Theme.paddingMedium
+            y: root.below(senderLabel, visible)
+            width: root.contentWidth
+            font.pixelSize: Theme.fontSizeExtraSmall
+            font.italic: true
+            color: Theme.secondaryColor
+            textFormat: Text.PlainText
+            text: qsTr("Forwarded")
+        }
+
         // The quoted message, marked off by a bar down its left.
         Item {
             id: quoteRow
             objectName: "quoteRow"
             visible: root.quoteText.length > 0
             x: Theme.paddingMedium
-            y: root.below(senderLabel, visible)
+            y: root.below(forwardedLabel, visible)
             width: root.contentWidth
             height: visible ? quoteLabel.y + quoteLabel.height : 0
 

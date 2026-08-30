@@ -116,6 +116,15 @@ unfinished.
 - [ ] An `sfdk` or OBS build specifically. The CI path drives `mb2`
       directly, which is not the tooling OBS runs.
 - [ ] Chum/OpenRepos submission.
+- [ ] Harbour is not reachable from this packaging and will not be without
+      a decision first. Jolla's validator takes one executable per package
+      (plus private `.so`s), and the bundled `deltachat-rpc-server` is a
+      second one; three further gaps are independent of it, including a
+      `Requires:` the validator rejects outright and `libQt5Widgets.so.5`,
+      which `qttypes` links unconditionally. `docs/HARBOUR.md` reads the
+      rules off the validator's source, prices the four ways out, and
+      settles the licensing question they raise (no, linking the core in
+      does not mean going back to MPL-2.0).
 
 ## Sailfish OS 5.2 readiness
 

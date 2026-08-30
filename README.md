@@ -45,7 +45,9 @@ scripts/               fetch-rpc-server.sh: pinned, checksum-verified
 docs/                  Scope, architecture notes, licensing analysis.
                        GAP-ANALYSIS.md (what is missing), ONBOARDING.md
                        (how Delta Chat onboards a user), ENGINEERING.md
-                       (standards).
+                       (standards), HARBOUR.md (why the two executables
+                       keep Postivene out of Jolla's store, and what it
+                       would take to ship one).
 ```
 
 ## Building

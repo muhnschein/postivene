@@ -81,6 +81,74 @@ not. Postivene must therefore never grow a code path that copies core source
 *into* this tree expecting to relicense it, and any patch to core itself
 belongs upstream under MPL-2.0.
 
+## If the core is linked in
+
+Shipping through Jolla's Harbour store means shipping a single executable,
+which means putting the core *inside* Postivene's binary instead of beside
+it (see [`HARBOUR.md`](HARBOUR.md)). The licensing question that comes with
+that has a short answer: **no, it would not require going back to MPL-2.0,
+and going back would not help.**
+
+- **MPL-2.0 §3.3 is a combining clause, not a process-boundary clause.**
+  §1.12 defines a "Secondary License" as the GPL v2.0, the LGPL v2.1, the
+  AGPL v3.0, "or any later versions of those licenses" — GPL-3.0-or-later
+  is one. §3.3 then permits Covered Software to be distributed as part of a
+  Larger Work under terms of the distributor's choosing and, where the files
+  are not marked Exhibit B ("Incompatible With Secondary Licenses"), under a
+  Secondary License outright. `chatmail/core` carries the ordinary Exhibit A
+  notice. None of that turns on whether the combination is a subprocess, a
+  shared library, or a static link. Reason 2 of the section above is the one
+  doing the work here, and a link is where it earns its keep.
+- **Relicensing buys nothing.** Under MPL-2.0 Postivene would still have to
+  publish the source of its own files, it would give up the copyleft chosen
+  deliberately above, and — per the direction-of-travel note — it is the
+  one move that cannot be undone later.
+- **The MPL obligations that apply today keep applying.** Core's files stay
+  under MPL-2.0 with their notices intact and their Source Code Form
+  available (§3.1-3.2). `vendor/deltachat-rpc-server/SOURCE.md` discharges
+  that for a bundled binary; for a linked one it is discharged by the pinned
+  dependency and the published `Cargo.lock`. GPLv3 §6 demands the complete
+  corresponding source of the whole binary regardless, which is strictly
+  more.
+
+What a link really changes is **scope**. Two aggregated binaries become one
+combined work, so every component of it has to be conveyable under GPLv3 --
+a question about the core's dependency tree rather than about the core. That
+tree was measured, against the `chatmail/core` v2.53.0 that
+`scripts/fetch-rpc-server.sh` already pins, with `cargo metadata` over a
+build that links `deltachat-jsonrpc` directly (671 packages across all
+platforms; 578 compile for an x86_64 Linux target):
+
+- It is overwhelmingly `MIT`/`Apache-2.0`, and the remainder is permissive.
+  Nothing in it is GPL-incompatible. Exactly four packages fall outside
+  `rust/deny.toml`'s allow-list with no allowed alternative in their
+  expression: `mailparse` and `quoted_printable` (`0BSD`), `webpki-roots`
+  (`CDLA-Permissive-2.0`), and three wasm-only crates under `Unlicense`
+  that no Sailfish target builds. `self_cell`'s
+  `Apache-2.0 OR GPL-2.0-only` resolves to Apache-2.0.
+- Crate metadata says nothing about **vendored C**, and core's default
+  `vendored` feature compiles two C libraries into the binary. Both are
+  fine, and both had to be checked by hand rather than by `cargo deny`:
+  `openssl-src 300.6.1+3.6.3` vendors OpenSSL **3.6.3**, which is
+  Apache-2.0 (the GPL-incompatible OpenSSL/SSLeay licence ended with
+  1.1.1), and `libsqlite3-sys`'s `bundled-sqlcipher` builds SQLCipher,
+  which is BSD-3-Clause.
+- `aws-lc-sys` and `ring` — the usual suspects for an OpenSSL-licence
+  problem inside a GPL work — carry only ISC / Apache-2.0 / BSD / MIT
+  metadata at the versions this resolves to.
+
+So the licensing work, if this is ever done, is small and known: add `0BSD`
+and `CDLA-Permissive-2.0` to `deny.toml`'s allow-list (plus `Unlicense` if
+the scan covers wasm targets); note that `chatmail/core` publishes no crates
+to crates.io, so it enters as a git dependency and `[sources]
+unknown-git = "deny"` needs an `allow-git` entry for it; then keep
+`cargo deny` running over the combined graph, which is precisely the case
+that policy exists for.
+
+Postivene's own licence does not change, and the RPM's `License:` tag stays
+`GPL-3.0-or-later AND MPL-2.0` — the same two licences, now describing one
+file instead of two.
+
 ## Runtime stack: Qt and Sailfish Silica
 
 - **Rust dependencies** are all permissive (MIT / Apache-2.0 / BSD / ISC /

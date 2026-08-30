@@ -169,7 +169,11 @@ discharged by `vendor/deltachat-rpc-server/SOURCE.md`.
 
 See [`LICENSING.md`](LICENSING.md) for the full analysis, including the Qt
 and Sailfish Silica question and what would have to be re-checked if
-anything is ever linked in-process.
+anything is ever linked in-process — which is not hypothetical: Jolla's
+Harbour store takes one executable per package, so shipping there means
+linking the core in. [`HARBOUR.md`](HARBOUR.md) works that through; the
+short of it is that MPL-2.0 §3.3 already permits the combination and
+Postivene stays GPLv3+.
 
 ## 9. Open questions
 

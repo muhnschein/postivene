@@ -60,6 +60,13 @@ const PROBE_QML: &str = r"
             return 'ok'
         }
         function pageProperty(property) { return '' + loader.item[property] }
+        function toggleReceipts() {
+            var sw = findIn(loader.item, 'readReceiptsSwitch')
+            if (!sw) { return 'missing:readReceiptsSwitch' }
+            sw.checked = !sw.checked
+            sw.clicked()
+            return 'ok'
+        }
         /// Leaving the page is what applies what was typed.
         function leave() {
             loader.item.status = PageStatus.Deactivating
@@ -159,23 +166,27 @@ fn the_settings_page_round_trips_the_profile() {
             "typed-status",
             call!(
                 "setText",
-                QString::from("profileStatusField"),
+                QString::from("profileBioField"),
                 QString::from("Counting on it")
             )
         );
-    });
-
-    single_shot(Duration::from_secs(5), move || unsafe {
         record!(
             "edited-after-typing",
             call!("pageProperty", QString::from("edited"))
         );
-        record!("left", call!("leave"));
+    });
+
+    // Nothing is confirmed and nothing is tapped: the pause after typing
+    // is the whole mechanism, so this waits it out rather than saving.
+    single_shot(Duration::from_secs(5), move || unsafe {
+        record!("autosaved", call!("pageProperty", QString::from("edited")));
+        record!("receipts-before", get!("profile", "read_receipts"));
+        record!("toggled", call!("toggleReceipts"));
     });
 
     single_shot(Duration::from_secs(7), move || unsafe {
         record!("saved-name", get!("profile", "display_name"));
-        record!("saved-status", get!("profile", "status"));
+        record!("saved-bio", get!("profile", "status"));
         // Opened again, on a profile that now has a name in it. Filling
         // the fields from the core must not read as the reader typing:
         // leaving the page would then write them straight back, and a
@@ -192,6 +203,7 @@ fn the_settings_page_round_trips_the_profile() {
 
     // A picker hands back a URL; the core wants a path.
     single_shot(Duration::from_secs(10), move || unsafe {
+        record!("receipts-after", get!("profile", "read_receipts"));
         record!("refilled", get!("profileNameField", "text"));
         record!(
             "edited-after-refill",
@@ -238,7 +250,24 @@ fn the_settings_page_round_trips_the_profile() {
         "true",
         "typing did not mark the page edited, so nothing would be saved. {context}"
     );
-    assert_eq!(value("left"), "ok", "the page could not be left. {context}");
+    assert_eq!(
+        value("autosaved"),
+        "false",
+        "typing was never written back on its own, so a settings page with \
+         nothing to confirm loses what was typed. {context}"
+    );
+    assert_eq!(value("toggled"), "ok", "no read-receipt switch. {context}");
+    assert_eq!(
+        value("receipts-before"),
+        "true",
+        "read receipts did not load as on, which is the core's default. \
+         {context}"
+    );
+    assert_eq!(
+        value("receipts-after"),
+        "false",
+        "turning read receipts off did not reach the core. {context}"
+    );
 
     assert_eq!(
         value("saved-name"),
@@ -246,9 +275,9 @@ fn the_settings_page_round_trips_the_profile() {
         "the name did not reach the core. {context}"
     );
     assert_eq!(
-        value("saved-status"),
+        value("saved-bio"),
         "Counting on it",
-        "the signature did not reach the core. {context}"
+        "the bio did not reach the core. {context}"
     );
 
     assert_eq!(

@@ -124,7 +124,7 @@ Item {
         // A found message is lit rather than outlined: a border would
         // change the bubble's size, and every row below it would move.
         color: root.isFound
-               ? Theme.rgba(Theme.highlightColor, 0.35)
+               ? Theme.rgba(Theme.highlightColor, 0.5)
                : root.isOutgoing ? Theme.rgba(Theme.highlightBackgroundColor, 0.25)
                                  : Theme.rgba(Theme.secondaryColor, 0.12)
         Behavior on color { ColorAnimation { duration: 400 } }

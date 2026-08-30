@@ -5,14 +5,16 @@ import "../components"
 import Postivene 1.0
 
 /*
- * The profile as everyone else sees it: the name on every message, the
- * line under it, and the picture.
+ * The profile as everyone else sees it: the picture, the name on every
+ * message, the line under it, and whether the other end is told when
+ * something has been read.
  *
- * All three are core config keys, so this page owns a Profile rather than
- * a model. Edits apply when the page is left as well as from the pulley:
- * a back-swipe is how a Silica page is normally finished with, and
- * dropping what was typed because of it is the kind of loss that is never
- * noticed until it matters.
+ * All of it is core config keys rather than a record of its own, so this
+ * page owns a Profile object over get_config/set_config instead of a
+ * model. Nothing is confirmed: edits apply a moment after typing stops
+ * and again on the way out, and the two switches apply on the tap. A
+ * settings page that needs saving is a settings page that loses what was
+ * typed when someone swipes back.
  */
 Page {
     id: page
@@ -24,9 +26,6 @@ Page {
         objectName: "profile"
         account_id: page.accountId
         onError: page.errorMessage = message
-        // The save from the pulley has nothing else to show for itself;
-        // the one on the way out is never seen, which is fine.
-        onSaved: notice.show(qsTr("Saved"))
         // The fields are only filled from the core, never re-filled from
         // it while someone is typing into them: a save reloads, and that
         // would otherwise reach in and reset the cursor.
@@ -38,7 +37,7 @@ Page {
                 // the page would write the profile back over itself.
                 page.filling = true
                 nameField.text = profile.display_name
-                statusField.text = profile.status
+                bioField.text = profile.status
                 page.filling = false
             }
         }
@@ -50,15 +49,32 @@ Page {
     property bool filling: false
     property string errorMessage: ""
 
+    // A pause, not a keystroke: a round trip per letter would be four
+    // calls to write "Ada".
+    Timer {
+        id: autosave
+        objectName: "autosave"
+        interval: 1200
+        onTriggered: page.applyEdits()
+    }
+
     function applyEdits() {
         if (!profile.loaded || !page.edited) {
             return
         }
         page.edited = false
-        profile.save(nameField.text, statusField.text)
+        profile.save(nameField.text, bioField.text)
     }
 
-    // Applied on the way out as well as from the pulley.
+    function noteEdit() {
+        if (profile.loaded && !page.filling) {
+            page.edited = true
+            autosave.restart()
+        }
+    }
+
+    // Leaving is the other moment worth saving at: a back-swipe within
+    // the pause above would otherwise drop what was typed.
     onStatusChanged: {
         if (status === PageStatus.Deactivating) {
             page.applyEdits()
@@ -80,33 +96,18 @@ Page {
         anchors.fill: parent
         contentHeight: column.height + Theme.paddingLarge
 
-        PullDownMenu {
-            MenuItem {
-                objectName: "changePicture"
-                text: qsTr("Change picture")
-                onClicked: pageStack.push(picker)
-            }
-            MenuItem {
-                objectName: "removePicture"
-                visible: profile.avatar_path.length > 0
-                text: qsTr("Remove picture")
-                onClicked: profile.clear_picture()
-            }
-            MenuItem {
-                objectName: "saveProfile"
-                text: qsTr("Save")
-                onClicked: page.applyEdits()
-            }
-        }
-
         Column {
             id: column
             width: parent.width
+            spacing: Theme.paddingMedium
 
             PageHeader {
                 title: qsTr("Settings")
             }
 
+            // The picture is the control, not a preview of one: tapping
+            // it opens the gallery, and the badge says so without a row
+            // of its own.
             Item {
                 width: parent.width
                 height: bigAvatar.height + 2 * Theme.paddingLarge
@@ -115,12 +116,47 @@ Page {
                     id: bigAvatar
                     objectName: "profileAvatar"
                     anchors.centerIn: parent
-                    width: Theme.itemSizeExtraLarge
+                    width: 2 * Theme.itemSizeExtraLarge
                     initial: nameField.text.length > 0
                              ? nameField.text
                              : profile.address
                     picturePath: profile.avatar_path
                 }
+
+                Rectangle {
+                    id: editBadge
+                    objectName: "editBadge"
+                    anchors {
+                        right: bigAvatar.right
+                        bottom: bigAvatar.bottom
+                    }
+                    width: Theme.itemSizeExtraSmall
+                    height: width
+                    radius: width / 2
+                    color: Theme.highlightBackgroundColor
+
+                    Image {
+                        anchors.centerIn: parent
+                        source: "image://theme/icon-s-edit"
+                    }
+                }
+
+                MouseArea {
+                    objectName: "pictureTap"
+                    anchors.fill: bigAvatar
+                    onClicked: pageStack.push(picker)
+                }
+            }
+
+            // Only offered when there is one to remove, and kept off the
+            // picture itself: a tap that might delete is not a tap you
+            // want under a finger reaching for the gallery.
+            Button {
+                objectName: "removePicture"
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: profile.avatar_path.length > 0
+                text: qsTr("Remove picture")
+                onClicked: profile.clear_picture()
             }
 
             TextField {
@@ -129,24 +165,27 @@ Page {
                 width: parent.width
                 label: qsTr("Name")
                 placeholderText: qsTr("Your name")
-                onTextChanged: {
-                    if (profile.loaded && !page.filling) {
-                        page.edited = true
-                    }
-                }
+                onTextChanged: page.noteEdit()
             }
 
             TextField {
-                id: statusField
-                objectName: "profileStatusField"
+                id: bioField
+                objectName: "profileBioField"
                 width: parent.width
-                label: qsTr("Signature")
-                placeholderText: qsTr("Sent with Postivene")
-                onTextChanged: {
-                    if (profile.loaded && !page.filling) {
-                        page.edited = true
-                    }
-                }
+                label: qsTr("Bio")
+                placeholderText: qsTr("A line about you")
+                onTextChanged: page.noteEdit()
+            }
+
+            TextSwitch {
+                objectName: "readReceiptsSwitch"
+                text: qsTr("Send read receipts")
+                description: qsTr("Lets the people you write to see when you have read their messages. Turning it off does not stop you seeing theirs.")
+                // Bound to the profile, not held here: the core is what
+                // decides, and a switch that drifts from it is a lie.
+                checked: profile.read_receipts
+                enabled: profile.loaded
+                onClicked: profile.set_read_receipts(checked)
             }
 
             // Not editable: changing the address is setting up another
@@ -176,12 +215,19 @@ Page {
         objectName: "notice"
         labelObjectName: "noticeLabel"
         tone: "info"
-        timeout: 4
+        timeout: 2
         anchors {
             left: parent.left
             right: parent.right
             bottom: parent.bottom
         }
         onDismissed: notice.text = ""
+    }
+
+    Connections {
+        target: profile
+        // Quiet confirmation that something reached the core, since
+        // nothing else on this page says so any more.
+        onSaved: notice.show(qsTr("Saved"))
     }
 }

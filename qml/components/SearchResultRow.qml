@@ -22,6 +22,9 @@ Item {
 
     height: Math.max(avatar.height, subtitleLabel.y + subtitleLabel.height)
             + 2 * Theme.paddingMedium
+    // Nothing should reach past the edge even if a width binding is ever
+    // wrong again; the labels below say what they do with the overflow.
+    clip: true
 
     /// Time for today, weekday for this week, date for older -- the same
     /// rule ChatListDelegate uses, so a chat reads the same in both lists.
@@ -50,14 +53,17 @@ Item {
         picturePath: root.picturePath
     }
 
+    // Positioned off the row, never off the title. ChatListDelegate lays
+    // its own time label out this way, and its name label takes its width
+    // from this label's *x*. Anchoring this to the title while the title
+    // subtracted this label's width closed a loop: neither width
+    // resolved, so the title kept its natural one and a long chat name
+    // ran off the right-hand edge.
     Label {
         id: timeLabel
         objectName: "resultTime"
-        anchors {
-            right: parent.right
-            rightMargin: Theme.horizontalPageMargin
-            top: titleLabel.top
-        }
+        x: root.width - width - Theme.horizontalPageMargin
+        y: Theme.paddingMedium
         visible: root.timestamp > 0
         font.pixelSize: Theme.fontSizeExtraSmall
         color: Theme.secondaryColor
@@ -69,8 +75,8 @@ Item {
         objectName: "resultTitle"
         x: avatar.x + avatar.width + Theme.paddingMedium
         y: Theme.paddingMedium
-        width: root.width - x - Theme.horizontalPageMargin
-               - (timeLabel.visible ? timeLabel.width + Theme.paddingMedium : 0)
+        width: (timeLabel.visible ? timeLabel.x : root.width - Theme.horizontalPageMargin)
+               - x - Theme.paddingMedium
         truncationMode: TruncationMode.Fade
         textFormat: Text.PlainText
         text: root.title
@@ -82,6 +88,11 @@ Item {
         x: titleLabel.x
         y: titleLabel.y + titleLabel.height
         width: root.width - x - Theme.horizontalPageMargin
+        // Two lines, then faded. A message that matched a search is
+        // usually a sentence, and one line of it says too little to tell
+        // two hits apart.
+        wrapMode: Text.Wrap
+        maximumLineCount: 2
         truncationMode: TruncationMode.Fade
         textFormat: Text.PlainText
         font.pixelSize: Theme.fontSizeExtraSmall

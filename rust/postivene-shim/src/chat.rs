@@ -148,6 +148,22 @@ impl ChatMessages {
         if account_id == 0 || chat_id == 0 {
             return;
         }
+        // Already loaded, by whoever opened this page: take it and skip
+        // the round trip entirely. This is what lets the transition start
+        // with the rows in place rather than fill in behind it.
+        if let Some((is_group, items)) = crate::prefetch::take(account_id, chat_id) {
+            self.is_group = is_group;
+            self.rows.borrow_mut().reset_data(items);
+            self.loaded = true;
+            self.is_group_changed();
+            self.loaded_changed();
+            self.rows_changed();
+            if !self.reading_history {
+                self.mark_chat_seen();
+            }
+            return;
+        }
+
         let Some((rpc, runtime)) = connection() else {
             return;
         };
@@ -629,7 +645,11 @@ fn removals(rows: &MessageListModel, ids: &[u32]) -> Option<Vec<usize>> {
 }
 
 /// The chat's message ids, oldest first.
-async fn message_ids(rpc: &RpcClient, account_id: u32, chat_id: u32) -> Result<Vec<u32>, String> {
+pub(crate) async fn message_ids(
+    rpc: &RpcClient,
+    account_id: u32,
+    chat_id: u32,
+) -> Result<Vec<u32>, String> {
     let items: Vec<serde_json::Value> = rpc
         .call(
             "get_message_list_items",
@@ -654,7 +674,7 @@ async fn message_ids(rpc: &RpcClient, account_id: u32, chat_id: u32) -> Result<V
 
 /// Fetch several messages in one call. The old code asked for them one at a
 /// time, which cost a round trip per message on every refresh.
-async fn fetch_messages(
+pub(crate) async fn fetch_messages(
     rpc: &RpcClient,
     account_id: u32,
     ids: &[u32],
@@ -698,7 +718,7 @@ async fn mark_seen(rpc: &RpcClient, account_id: u32, items: &[MessageListItem]) 
 }
 
 /// True for a chat where a message has to say who sent it.
-async fn chat_is_group(rpc: &RpcClient, account_id: u32, chat_id: u32) -> bool {
+pub(crate) async fn chat_is_group(rpc: &RpcClient, account_id: u32, chat_id: u32) -> bool {
     let info: serde_json::Value = match rpc.call("get_basic_chat_info", (account_id, chat_id)).await
     {
         Ok(info) => info,

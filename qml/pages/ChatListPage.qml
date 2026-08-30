@@ -33,15 +33,45 @@ Page {
         }
     }
 
-    /// Who the chat being made from a contact result is with, so the
-    /// conversation that opens is not headed by an empty title.
-    property string pendingChatName: ""
-
     /// Results are showing instead of the chat list. Read from the field
     /// rather than from the model, so the swap happens on the keystroke
     /// and not a debounce later.
     readonly property bool searching:
         !page.archived && searchField.text.trim().length > 0
+
+    // Loads a chat before the page that shows it exists, so the
+    // transition starts with the messages already in hand instead of
+    // arriving empty and filling in behind itself.
+    ChatPrefetch {
+        id: prefetch
+        objectName: "prefetch"
+        account_id: page.accountId
+        onReady: page.openLoadedChat(chat_id)
+    }
+
+    /// Where a tap is going, held while the prefetch runs: the answer
+    /// carries only an id, and the name and the found message would
+    /// otherwise be lost between the tap and the push.
+    property string pendingChatName: ""
+    property int pendingMessageId: 0
+
+    function openChat(chatId, chatName, messageId) {
+        page.pendingChatName = chatName
+        page.pendingMessageId = messageId
+        // Told before the push, so a message arriving during the
+        // transition is not announced into the reader's face.
+        notifier.viewingChatId = chatId
+        prefetch.start(chatId)
+    }
+
+    function openLoadedChat(chatId) {
+        pageStack.push(Qt.resolvedUrl("ConversationPage.qml"), {
+            accountId: page.accountId,
+            chatId: chatId,
+            chatName: page.pendingChatName,
+            findMessageId: page.pendingMessageId
+        })
+    }
 
     SearchResults {
         id: searchModel
@@ -49,14 +79,7 @@ Page {
         account_id: page.accountId
         onError: page.errorMessage = message
         // A contact result has no chat until it is tapped.
-        onChat_ready: {
-            notifier.viewingChatId = chat_id
-            pageStack.push(Qt.resolvedUrl("ConversationPage.qml"), {
-                accountId: page.accountId,
-                chatId: chat_id,
-                chatName: page.pendingChatName
-            })
-        }
+        onChat_ready: page.openChat(chat_id, page.pendingChatName, 0)
     }
 
     ChatList {
@@ -116,54 +139,19 @@ Page {
 
     Component.onCompleted: core.refresh_accounts()
 
-    // Outside the list, not in its `header`. A header item lives inside
-    // the view's flickable, and both plausible explanations for the
-    // reported focus loss run through that: Silica hides the input panel
-    // when a flickable's content moves, and the narrowing list moves it on
-    // every keystroke pause; and a view is a focus scope, which can hand
-    // focus to a delegate as rows come and go. Anchored out here the field
-    // is in neither story, and it no longer scrolls away mid-search.
-    Column {
-        id: heading
-        anchors {
-            top: parent.top
-            left: parent.left
-            right: parent.right
-        }
+    // One flickable for the whole page, owning the pulley.
+    //
+    // A PullDownMenu draws at the top of the flickable that owns
+    // it, and the list starts below the search field -- so a pulley
+    // on the list opened below the field, or inside it. It does not
+    // scroll: the field has to stay out of a view whose contents
+    // change on every keystroke, which is what took the keyboard
+    // away mid-search.
+    SilicaFlickable {
+        id: pulleyHost
+        anchors.fill: parent
+        contentHeight: height
 
-        PageHeader {
-            title: page.archived ? qsTr("Archived") : qsTr("Chats")
-        }
-
-        SearchField {
-            id: searchField
-            objectName: "chatSearchField"
-            width: parent.width
-            // The ordinary list searches chats, contacts and messages;
-            // the archived list is a mode over chats alone.
-            placeholderText: page.archived ? qsTr("Search chats") : qsTr("Search")
-            onTextChanged: searchDebounce.restart()
-        }
-    }
-
-    SilicaListView {
-        id: listView
-        objectName: "chatList"
-        visible: !page.searching
-        anchors {
-            top: heading.bottom
-            left: parent.left
-            right: parent.right
-            bottom: banner.top
-        }
-        // Delegates draw outside the list's own box otherwise, and the
-        // banner below is translucent.
-        clip: true
-        model: chats.rows
-
-        // Nothing in here applies to the archived list -- no profile
-        // switch, no way further in, no new chat -- so the pulley itself
-        // goes rather than opening onto an empty menu.
         PullDownMenu {
             objectName: "chatListPulley"
             visible: !page.archived
@@ -205,154 +193,196 @@ Page {
             }
         }
 
-        delegate: ListItem {
-            id: delegateRoot
-            contentHeight: body.height
-
-            ChatListDelegate {
-                id: body
-                width: parent.width
-                chatName: model.name
-                preview: model.preview
-                previewSender: model.preview_sender
-                unreadCount: model.unread_count
-                lastUpdated: model.last_updated
-                isEncrypted: model.is_encrypted
-                isPinned: model.is_pinned
-                isMuted: model.is_muted
-                isContactRequest: model.is_contact_request
-                chatColor: model.color
-                avatarPath: model.avatar_path
-                summaryState: model.summary_state
+        // Outside the list, not in its `header`. A header item lives inside
+        // the view's flickable, and both plausible explanations for the
+        // reported focus loss run through that: Silica hides the input panel
+        // when a flickable's content moves, and the narrowing list moves it on
+        // every keystroke pause; and a view is a focus scope, which can hand
+        // focus to a delegate as rows come and go. Anchored out here the field
+        // is in neither story, and it no longer scrolls away mid-search.
+        Column {
+            id: heading
+            anchors {
+                top: parent.top
+                left: parent.left
+                right: parent.right
             }
 
-            menu: ContextMenu {
-                MenuItem {
-                    objectName: "markReadItem"
-                    visible: !page.archived && model.unread_count > 0
-                    text: qsTr("Mark as read")
-                    onClicked: chats.mark_read(model.chat_id)
+            PageHeader {
+                title: page.archived ? qsTr("Archived") : qsTr("Chats")
+            }
+
+            SearchField {
+                id: searchField
+                objectName: "chatSearchField"
+                width: parent.width
+                // The ordinary list searches chats, contacts and messages;
+                // the archived list is a mode over chats alone.
+                placeholderText: page.archived ? qsTr("Search chats") : qsTr("Search")
+                onTextChanged: searchDebounce.restart()
+            }
+        }
+
+        SilicaListView {
+            id: listView
+            objectName: "chatList"
+            visible: !page.searching
+            anchors {
+                top: heading.bottom
+                left: parent.left
+                right: parent.right
+                bottom: banner.top
+            }
+            // Delegates draw outside the list's own box otherwise, and the
+            // banner below is translucent.
+            clip: true
+            model: chats.rows
+
+            // Nothing in here applies to the archived list -- no profile
+            // switch, no way further in, no new chat -- so the pulley itself
+            // goes rather than opening onto an empty menu.
+
+            delegate: ListItem {
+                id: delegateRoot
+                contentHeight: body.height
+
+                ChatListDelegate {
+                    id: body
+                    width: parent.width
+                    chatName: model.name
+                    preview: model.preview
+                    previewSender: model.preview_sender
+                    unreadCount: model.unread_count
+                    lastUpdated: model.last_updated
+                    isEncrypted: model.is_encrypted
+                    isPinned: model.is_pinned
+                    isMuted: model.is_muted
+                    isContactRequest: model.is_contact_request
+                    chatColor: model.color
+                    avatarPath: model.avatar_path
+                    summaryState: model.summary_state
                 }
-                MenuItem {
-                    objectName: "pinItem"
-                    visible: !page.archived
-                    text: model.is_pinned ? qsTr("Unpin") : qsTr("Pin")
-                    onClicked: chats.set_pinned(model.chat_id, !model.is_pinned)
-                }
-                MenuItem {
-                    objectName: "muteItem"
-                    visible: !page.archived
-                    text: model.is_muted ? qsTr("Unmute") : qsTr("Mute")
-                    onClicked: chats.set_muted(model.chat_id, !model.is_muted)
-                }
-                // A request is not an ordinary chat: until it is
-                // accepted the sender cannot be replied to, and the only
-                // useful answers are yes and no.
-                MenuItem {
-                    objectName: "acceptItem"
-                    visible: !page.archived && model.is_contact_request
-                    text: qsTr("Accept")
-                    onClicked: chats.accept_chat(model.chat_id)
-                }
-                MenuItem {
-                    objectName: "blockItem"
-                    visible: !page.archived && model.is_contact_request
-                    text: qsTr("Block")
-                    onClicked: chats.block_chat(model.chat_id)
-                }
-                MenuItem {
-                    objectName: "archiveItem"
-                    visible: !page.archived && !model.is_contact_request
-                    text: qsTr("Archive")
-                    onClicked: chats.archive(model.chat_id)
-                }
-                // The way back out. Without it an archived chat could only
-                // be recovered by someone sending a message to it.
-                MenuItem {
-                    objectName: "unarchiveItem"
-                    visible: page.archived
-                    text: qsTr("Unarchive")
-                    onClicked: chats.unarchive(model.chat_id)
-                }
-                MenuItem {
-                    objectName: "deleteItem"
-                    text: qsTr("Delete")
-                    // The id is taken now, not read inside the callback: a
-                    // message arriving moves this chat up the list, which
-                    // is a remove and an insert, and the row this menu
-                    // belongs to is destroyed. Silica runs the action on
-                    // that destruction, and `model` no longer resolves.
-                    onClicked: {
-                        var doomed = model.chat_id
-                        delegateRoot.remorseAction(qsTr("Deleting"),
-                                                   function() {
-                                                       chats.delete_chat(doomed)
-                                                   })
+
+                menu: ContextMenu {
+                    MenuItem {
+                        objectName: "markReadItem"
+                        visible: !page.archived && model.unread_count > 0
+                        text: qsTr("Mark as read")
+                        onClicked: chats.mark_read(model.chat_id)
+                    }
+                    MenuItem {
+                        objectName: "pinItem"
+                        visible: !page.archived
+                        text: model.is_pinned ? qsTr("Unpin") : qsTr("Pin")
+                        onClicked: chats.set_pinned(model.chat_id, !model.is_pinned)
+                    }
+                    MenuItem {
+                        objectName: "muteItem"
+                        visible: !page.archived
+                        text: model.is_muted ? qsTr("Unmute") : qsTr("Mute")
+                        onClicked: chats.set_muted(model.chat_id, !model.is_muted)
+                    }
+                    // A request is not an ordinary chat: until it is
+                    // accepted the sender cannot be replied to, and the only
+                    // useful answers are yes and no.
+                    MenuItem {
+                        objectName: "acceptItem"
+                        visible: !page.archived && model.is_contact_request
+                        text: qsTr("Accept")
+                        onClicked: chats.accept_chat(model.chat_id)
+                    }
+                    MenuItem {
+                        objectName: "blockItem"
+                        visible: !page.archived && model.is_contact_request
+                        text: qsTr("Block")
+                        onClicked: chats.block_chat(model.chat_id)
+                    }
+                    MenuItem {
+                        objectName: "archiveItem"
+                        visible: !page.archived && !model.is_contact_request
+                        text: qsTr("Archive")
+                        onClicked: chats.archive(model.chat_id)
+                    }
+                    // The way back out. Without it an archived chat could only
+                    // be recovered by someone sending a message to it.
+                    MenuItem {
+                        objectName: "unarchiveItem"
+                        visible: page.archived
+                        text: qsTr("Unarchive")
+                        onClicked: chats.unarchive(model.chat_id)
+                    }
+                    MenuItem {
+                        objectName: "deleteItem"
+                        text: qsTr("Delete")
+                        // The id is taken now, not read inside the callback: a
+                        // message arriving moves this chat up the list, which
+                        // is a remove and an insert, and the row this menu
+                        // belongs to is destroyed. Silica runs the action on
+                        // that destruction, and `model` no longer resolves.
+                        onClicked: {
+                            var doomed = model.chat_id
+                            delegateRoot.remorseAction(qsTr("Deleting"),
+                                                       function() {
+                                                           chats.delete_chat(doomed)
+                                                       })
+                        }
                     }
                 }
+
+                onClicked: page.openChat(model.chat_id, model.name, 0)
             }
 
-            onClicked: {
-                // Told before the push, so a message arriving during the
-                // transition is not announced into the reader's face.
-                notifier.viewingChatId = model.chat_id
-                pageStack.push(Qt.resolvedUrl("ConversationPage.qml"), {
-                    accountId: page.accountId,
-                    chatId: model.chat_id,
-                    chatName: model.name
-                })
+            ViewPlaceholder {
+                enabled: chats.count === 0
+                text: qsTr("No chats yet")
+                hintText: qsTr("Pull down to start one")
             }
         }
 
-        ViewPlaceholder {
-            enabled: chats.count === 0
-            text: qsTr("No chats yet")
-            hintText: qsTr("Pull down to start one")
+        SearchResultsList {
+            id: resultsView
+            objectName: "searchResults"
+            visible: page.searching
+            search: searchModel
+            anchors {
+                top: heading.bottom
+                left: parent.left
+                right: parent.right
+                bottom: banner.top
+            }
+            onChatActivated: page.openChat(chatId, chatName, messageId)
+            // No chat exists yet; the model answers on chat_ready. The name
+            // is kept here because that answer carries only an id.
+            onContactActivated: {
+                page.pendingChatName = contactName
+                searchModel.open_chat_with(contactId)
+            }
         }
-    }
 
-    SearchResultsList {
-        id: resultsView
-        objectName: "searchResults"
-        visible: page.searching
-        search: searchModel
-        anchors {
-            top: heading.bottom
-            left: parent.left
-            right: parent.right
-            bottom: banner.top
+        // The tap has to show something while the chat loads, or a slow
+        // one reads as a tap that missed.
+        BusyIndicator {
+            objectName: "openingChat"
+            anchors.centerIn: parent
+            running: prefetch.loading
+            size: BusyIndicatorSize.Large
         }
-        onChatActivated: {
-            notifier.viewingChatId = chatId
-            pageStack.push(Qt.resolvedUrl("ConversationPage.qml"), {
-                accountId: page.accountId,
-                chatId: chatId,
-                chatName: chatName,
-                findMessageId: messageId
-            })
-        }
-        // No chat exists yet; the model answers on chat_ready. The name
-        // is kept here because that answer carries only an id.
-        onContactActivated: {
-            page.pendingChatName = contactName
-            searchModel.open_chat_with(contactId)
-        }
-    }
 
-    Banner {
-        id: banner
-        objectName: "errorBanner"
-        anchors {
-            left: parent.left
-            right: parent.right
-            bottom: parent.bottom
+        Banner {
+            id: banner
+            objectName: "errorBanner"
+            anchors {
+                left: parent.left
+                right: parent.right
+                bottom: parent.bottom
+            }
+            // A dead core outranks whatever failed before it, and a page opened
+            // after it died never saw the transition -- so read the status
+            // rather than waiting for it to change.
+            text: core.status === "stopped" ? page.coreStoppedMessage : page.errorMessage
+            // That one does not fix itself, so it stays put.
+            timeout: core.status === "stopped" ? 0 : 8
+            onDismissed: page.errorMessage = ""
         }
-        // A dead core outranks whatever failed before it, and a page opened
-        // after it died never saw the transition -- so read the status
-        // rather than waiting for it to change.
-        text: core.status === "stopped" ? page.coreStoppedMessage : page.errorMessage
-        // That one does not fix itself, so it stays put.
-        timeout: core.status === "stopped" ? 0 : 8
-        onDismissed: page.errorMessage = ""
     }
 }

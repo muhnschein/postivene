@@ -71,9 +71,29 @@ const PROBE_QML: &str = r"
                 if (list && list.foundMessageId !== 0) {
                     everFound = '' + list.foundMessageId
                 }
+                if (anyFound(list)) { everLit = 'yes' }
             }
         }
         function everFoundValue() { return everFound }
+
+        // Whether any row on screen is actually marked. The list holding
+        // an id says nothing about whether the delegate was ever told:
+        // the binding between the two was missing, and a test that only
+        // read the list passed the whole way through that.
+        function anyFound(node) {
+            if (!node) { return false }
+            if (node.isFound === true) { return true }
+            var kids = node.data !== undefined ? node.data : node.children
+            for (var i = 0; kids && i < kids.length; i++) {
+                if (anyFound(kids[i])) { return true }
+            }
+            if (node.contentItem && node.contentItem !== node) {
+                return anyFound(node.contentItem)
+            }
+            return false
+        }
+        property string everLit: 'no'
+        function everLitValue() { return everLit }
 
         /// Which row the model puts a message in, straight from the model.
         function rowOf(messageId) {
@@ -150,9 +170,10 @@ fn a_message_a_search_found_is_where_the_chat_opens() {
         record!("settle", call!("settle"));
     });
 
-    single_shot(Duration::from_secs(4), move || unsafe {
+    single_shot(Duration::from_secs(7), move || unsafe {
         record!("row", call!("rowOf", OLDER_MESSAGE));
         record!("found", call!("everFoundValue"));
+        record!("lit", call!("everLitValue"));
         record!(
             "flash-cleared",
             call!(
@@ -199,6 +220,13 @@ fn a_message_a_search_found_is_where_the_chat_opens() {
         OLDER_MESSAGE.to_string(),
         "the chat did not mark the message the search found, so the reader \
          lands in a wall of text with no idea which row matched. {context}"
+    );
+    // The row itself has to change, not just a number on the list.
+    assert_eq!(
+        value("lit"),
+        "yes",
+        "no message on screen was ever marked, so the reader arrives in a \
+         wall of text with nothing picked out. {context}"
     );
     // And the flash gets out of the way again: a message left lit for the
     // rest of the session reads as a state, not as an answer.

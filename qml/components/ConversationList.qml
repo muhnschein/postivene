@@ -228,6 +228,7 @@ SilicaListView {
             isOutgoing: model.is_outgoing
             isInfo: model.is_info
             isForwarded: model.is_forwarded
+            isFound: root.foundMessageId === model.message_id
             showPadlock: model.show_padlock
             deliveryState: model.state
             sentAt: model.timestamp

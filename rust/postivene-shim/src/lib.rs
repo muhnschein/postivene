@@ -20,6 +20,7 @@ mod chatlist;
 mod contacts;
 mod core;
 mod models;
+mod prefetch;
 mod profile;
 mod runtime;
 mod search;
@@ -28,6 +29,7 @@ pub use crate::chat::{local_day_number, ChatMessages};
 pub use crate::chatlist::ChatList;
 pub use crate::contacts::ContactList;
 pub use crate::core::DeltaChatCore;
+pub use crate::prefetch::ChatPrefetch;
 pub use crate::profile::Profile;
 pub use crate::search::SearchResults;
 
@@ -43,10 +45,11 @@ pub fn register_qml_types() {
     ) else {
         return;
     };
-    let (Ok(contacts), Ok(search), Ok(profile)) = (
+    let (Ok(contacts), Ok(search), Ok(profile), Ok(prefetch)) = (
         std::ffi::CStr::from_bytes_with_nul(b"ContactList\0"),
         std::ffi::CStr::from_bytes_with_nul(b"SearchResults\0"),
         std::ffi::CStr::from_bytes_with_nul(b"Profile\0"),
+        std::ffi::CStr::from_bytes_with_nul(b"ChatPrefetch\0"),
     ) else {
         return;
     };
@@ -55,6 +58,7 @@ pub fn register_qml_types() {
     qmetaobject::qml_register_type::<ContactList>(uri, 1, 0, contacts);
     qmetaobject::qml_register_type::<SearchResults>(uri, 1, 0, search);
     qmetaobject::qml_register_type::<Profile>(uri, 1, 0, profile);
+    qmetaobject::qml_register_type::<ChatPrefetch>(uri, 1, 0, prefetch);
 }
 pub use models::{
     ChatListItem, ChatListModel, ContactItem, ContactListModel, MessageListItem, MessageListModel,

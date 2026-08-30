@@ -36,6 +36,10 @@ pub struct Profile {
     /// setting up a different transport, not renaming this one.
     pub address: qt_property!(QString; NOTIFY loaded_changed),
 
+    /// Whether the other end is told when a message has been read.
+    /// `mdns_enabled` to the core, which defaults it on.
+    pub read_receipts: qt_property!(bool; NOTIFY loaded_changed),
+
     /// True once the profile has been read from the core. Until then the
     /// fields are empty because nothing has been loaded, not because the
     /// profile is blank -- and a save then would wipe it.
@@ -57,14 +61,16 @@ pub struct Profile {
     pub set_picture: qt_method!(fn(&mut self, path: QString)),
     /// Remove the picture.
     pub clear_picture: qt_method!(fn(&mut self)),
+    /// Turn read receipts on or off.
+    pub set_read_receipts: qt_method!(fn(&mut self, enabled: bool)),
 
     /// Counts loads, so a slow answer to an older question cannot land on
     /// top of a newer one -- switching profiles starts one per switch.
     generation: u64,
 }
 
-/// What one load brings back: name, status, picture, address.
-type Fields = (String, String, String, String);
+/// What one load brings back: name, status, picture, address, receipts.
+type Fields = (String, String, String, String, bool);
 
 impl Profile {
     /// Set the account and reload if it changed.
@@ -102,13 +108,14 @@ impl Profile {
                 return;
             }
             match result {
-                Ok((display_name, status, avatar_path, address)) => {
+                Ok((display_name, status, avatar_path, address, read_receipts)) => {
                     {
                         let mut this_mut = this.borrow_mut();
                         this_mut.display_name = display_name.into();
                         this_mut.status = status.into();
                         this_mut.avatar_path = avatar_path.into();
                         this_mut.address = address.into();
+                        this_mut.read_receipts = read_receipts;
                         this_mut.loaded = true;
                     }
                     this.borrow().loaded_changed();
@@ -133,6 +140,9 @@ impl Profile {
                     get("selfstatus").await?,
                     get("selfavatar").await?,
                     get("configured_addr").await?,
+                    // The core stores it as "1"/"0" and defaults it on,
+                    // so an absent value is not "off".
+                    get("mdns_enabled").await? != "0",
                 ))
             }
             .await;
@@ -227,6 +237,30 @@ impl Profile {
                     "set_config",
                     (account_id, "selfavatar", Option::<String>::None),
                 )
+                .await
+                .map_err(|err| err.to_string());
+            done(result);
+        });
+    }
+
+    /// Turn read receipts on or off.
+    pub fn set_read_receipts(&mut self, enabled: bool) {
+        let account_id = self.account_id;
+        // Same guard as `save`: before the load lands, this object's idea
+        // of the setting is the default rather than the account's.
+        if account_id == 0 || !self.loaded {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            self.error(QString::from("not started"));
+            return;
+        };
+        let done = self.stored_callback();
+        let value = if enabled { "1" } else { "0" };
+
+        runtime.spawn(async move {
+            let result = rpc
+                .call::<_, ()>("set_config", (account_id, "mdns_enabled", Some(value)))
                 .await
                 .map_err(|err| err.to_string());
             done(result);

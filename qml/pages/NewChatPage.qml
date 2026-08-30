@@ -54,43 +54,18 @@ Page {
     // a view's `header` lives inside the flickable and its id does not
     // resolve from the page, so every reference to it below was reading
     // an undefined name.
-    Column {
-        id: heading
-        anchors {
-            top: parent.top
-            left: parent.left
-            right: parent.right
-        }
-
-        PageHeader {
-            title: qsTr("New Chat")
-        }
-
-        SearchField {
-            id: searchField
-            objectName: "searchField"
-            width: parent.width
-            placeholderText: qsTr("Search contacts")
-            onTextChanged: searchDebounce.restart()
-        }
-
-        Banner {
-            objectName: "errorBanner"
-            width: parent.width
-            text: page.errorMessage
-            onDismissed: page.errorMessage = ""
-        }
-    }
-
-    SilicaListView {
-        id: listView
-        anchors {
-            top: heading.bottom
-            left: parent.left
-            right: parent.right
-            bottom: parent.bottom
-        }
-        model: contacts.rows
+    // One flickable for the whole page, owning the pulley.
+    //
+    // A PullDownMenu draws at the top of the flickable that owns
+    // it, and the list starts below the search field -- so a pulley
+    // on the list opened below the field, or inside it. It does not
+    // scroll: the field has to stay out of a view whose contents
+    // change on every keystroke, which is what took the keyboard
+    // away mid-search.
+    SilicaFlickable {
+        id: pulleyHost
+        anchors.fill: parent
+        contentHeight: height
 
         PullDownMenu {
             MenuItem {
@@ -110,31 +85,70 @@ Page {
             }
         }
 
-
-        // No context menu: picking a contact is the only thing to do
-        // with one here.
-        delegate: ListItem {
-            objectName: "contactRow"
-            contentHeight: body.height
-
-            ContactRow {
-                id: body
-                width: parent.width
-                displayName: model.display_name
-                address: model.address
-                ownColor: model.color
-                picturePath: model.avatar_path
-                isKeyContact: model.is_key_contact
-                isVerified: model.is_verified
+        Column {
+            id: heading
+            anchors {
+                top: parent.top
+                left: parent.left
+                right: parent.right
             }
 
-            onClicked: contacts.open_chat_with(model.contact_id)
+            PageHeader {
+                title: qsTr("New Chat")
+            }
+
+            SearchField {
+                id: searchField
+                objectName: "searchField"
+                width: parent.width
+                placeholderText: qsTr("Search contacts")
+                onTextChanged: searchDebounce.restart()
+            }
+
+            Banner {
+                objectName: "errorBanner"
+                width: parent.width
+                text: page.errorMessage
+                onDismissed: page.errorMessage = ""
+            }
         }
 
-        ViewPlaceholder {
-            enabled: contacts.count === 0
-            text: qsTr("No contacts yet")
-            hintText: qsTr("Add one with an invite link")
+        SilicaListView {
+            id: listView
+            anchors {
+                top: heading.bottom
+                left: parent.left
+                right: parent.right
+                bottom: parent.bottom
+            }
+            model: contacts.rows
+
+
+            // No context menu: picking a contact is the only thing to do
+            // with one here.
+            delegate: ListItem {
+                objectName: "contactRow"
+                contentHeight: body.height
+
+                ContactRow {
+                    id: body
+                    width: parent.width
+                    displayName: model.display_name
+                    address: model.address
+                    ownColor: model.color
+                    picturePath: model.avatar_path
+                    isKeyContact: model.is_key_contact
+                    isVerified: model.is_verified
+                }
+
+                onClicked: contacts.open_chat_with(model.contact_id)
+            }
+
+            ViewPlaceholder {
+                enabled: contacts.count === 0
+                text: qsTr("No contacts yet")
+                hintText: qsTr("Add one with an invite link")
+            }
         }
     }
 }

@@ -8,6 +8,7 @@ QtObject {
     property int paddingMedium: 8
     property int paddingLarge: 16
     property int horizontalPageMargin: 24
+    property int itemSizeExtraSmall: 40
     property int itemSizeSmall: 60
     property int itemSizeMedium: 90
     property int itemSizeLarge: 120

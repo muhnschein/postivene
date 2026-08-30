@@ -70,7 +70,7 @@ Page {
     // The flash says "this one" and then gets out of the way.
     Timer {
         id: foundFlash
-        interval: 2500
+        interval: 4000
         onTriggered: listView.foundMessageId = 0
     }
 

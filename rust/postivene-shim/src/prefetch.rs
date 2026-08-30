@@ -1,0 +1,148 @@
+//! Loading a conversation before the page that shows it exists.
+//!
+//! Opening a chat used to fetch it while the page was still transitioning
+//! in, which is what made the transition stutter. Deferring the fetch to
+//! the end of the transition stopped the stutter and replaced it with a
+//! wait: the page arrives empty and fills a moment later.
+//!
+//! So the fetch moves earlier instead -- before the push, while the
+//! reader is still looking at the chat list. What it finds is left here
+//! for the model that the page then builds, which takes it without going
+//! near the core, and the page arrives with its rows already in it.
+//!
+//! One chat is kept, the one most recently asked for. It is taken rather
+//! than read, so a second page built from the same account and chat --
+//! reopening it half an hour later, say -- does a normal fetch and cannot
+//! be served something stale.
+
+use std::sync::Mutex;
+
+use qmetaobject::*;
+
+use crate::chat::{chat_is_group, fetch_messages, message_ids};
+use crate::core::connection;
+use crate::models::MessageListItem;
+
+/// What one prefetch found, waiting for the model that asked for it.
+struct Cached {
+    account_id: u32,
+    chat_id: u32,
+    is_group: bool,
+    rows: Vec<MessageListItem>,
+}
+
+static CACHE: Mutex<Option<Cached>> = Mutex::new(None);
+
+/// Hand a finished prefetch over to whichever model asks for it next.
+fn store(account_id: u32, chat_id: u32, is_group: bool, rows: Vec<MessageListItem>) {
+    if let Ok(mut cache) = CACHE.lock() {
+        *cache = Some(Cached {
+            account_id,
+            chat_id,
+            is_group,
+            rows,
+        });
+    }
+}
+
+/// Take the prefetch for this chat, if the one being held is it.
+///
+/// Anything else is left alone: a prefetch for another chat is still
+/// wanted by the page that asked for it.
+pub(crate) fn take(account_id: u32, chat_id: u32) -> Option<(bool, Vec<MessageListItem>)> {
+    let mut cache = CACHE.lock().ok()?;
+    let held = cache.as_ref()?;
+    if held.account_id != account_id || held.chat_id != chat_id {
+        return None;
+    }
+    cache.take().map(|held| (held.is_group, held.rows))
+}
+
+/// Loads a chat so a page can be opened onto it already full.
+///
+/// ```qml
+/// ChatPrefetch {
+///     id: prefetch
+///     account_id: page.accountId
+///     onReady: pageStack.push(Qt.resolvedUrl("ConversationPage.qml"), { ... })
+/// }
+/// ```
+#[derive(QObject, Default)]
+pub struct ChatPrefetch {
+    base: qt_base_class!(trait QObject),
+
+    /// Whose chats these are.
+    pub account_id: qt_property!(u32),
+
+    /// Start loading a chat. Answers on `ready`, whatever happens.
+    pub start: qt_method!(fn(&mut self, chat_id: u32)),
+
+    /// The chat is loaded, or loading it failed and waiting longer would
+    /// not help. Either way the page can be opened now: a page that never
+    /// opens is worse than one that opens empty.
+    pub ready: qt_signal!(chat_id: u32),
+
+    /// True while a prefetch is running, for a busy indicator.
+    pub loading: qt_property!(bool; NOTIFY loading_changed),
+    /// Emitted when `loading` changes.
+    pub loading_changed: qt_signal!(),
+
+    /// Counts prefetches, so a chat tapped while an earlier one is still
+    /// loading does not open onto the earlier one.
+    generation: u64,
+}
+
+impl ChatPrefetch {
+    /// Start loading a chat.
+    pub fn start(&mut self, chat_id: u32) {
+        let account_id = self.account_id;
+        if account_id == 0 || chat_id == 0 {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            // Nothing to wait for; let the page open and say so itself.
+            self.ready(chat_id);
+            return;
+        };
+
+        self.generation = self.generation.wrapping_add(1);
+        let generation = self.generation;
+        if !self.loading {
+            self.loading = true;
+            self.loading_changed();
+        }
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Option<(bool, Vec<MessageListItem>)>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            // A second tap started a newer one: that is the chat the
+            // reader is waiting for, and this answer would open the wrong
+            // page.
+            if this.borrow().generation != generation {
+                return;
+            }
+            if let Some((is_group, rows)) = result {
+                store(this.borrow().account_id, chat_id, is_group, rows);
+            }
+            {
+                let mut this_mut = this.borrow_mut();
+                this_mut.loading = false;
+            }
+            this.borrow().loading_changed();
+            this.borrow().ready(chat_id);
+        });
+
+        runtime.spawn(async move {
+            let loaded = async {
+                let is_group = chat_is_group(&rpc, account_id, chat_id).await;
+                let ids = message_ids(&rpc, account_id, chat_id).await?;
+                let rows = fetch_messages(&rpc, account_id, &ids).await?;
+                Ok::<_, String>((is_group, rows))
+            }
+            .await;
+            // A failure is not reported here: the page's own model will
+            // run the same fetch and has somewhere to show the error.
+            done(loaded.ok());
+        });
+    }
+}

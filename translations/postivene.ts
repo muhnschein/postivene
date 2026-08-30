@@ -390,15 +390,7 @@
 <context>
     <name>SettingsPage</name>
     <message>
-        <source>Change picture</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Remove picture</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Save</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -414,19 +406,27 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Signature</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Sent with Postivene</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Address</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Saved</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Bio</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A line about you</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Send read receipts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lets the people you write to see when you have read their messages. Turning it off does not stop you seeing theirs.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

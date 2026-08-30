@@ -151,6 +151,41 @@ fn delegates_bind_only_roles_their_models_have() {
     }
 }
 
+/// A row's time label must position itself off the row, never off the
+/// label whose width it decides.
+///
+/// `SearchResultRow` had the two referring to each other -- the title's
+/// width subtracted the time label's width, and the time label anchored
+/// to the title's top. On a device that cycle left the title at its
+/// natural width and a long chat name ran off the right-hand edge; the
+/// offscreen engine used by the tests resolves it and shows nothing, so
+/// this is a scan rather than a measurement. `ChatListDelegate` is the
+/// shape that works: its time label is placed off `root.width`, and the
+/// name takes its width from that label's `x`.
+#[test]
+fn a_time_label_does_not_depend_on_the_label_it_sizes() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/components");
+    for (file, time_id, sized_id) in [
+        ("SearchResultRow.qml", "id: timeLabel", "titleLabel"),
+        ("ChatListDelegate.qml", "id: timeLabelItem", "nameLabel"),
+    ] {
+        let text =
+            fs::read_to_string(root.join(file)).unwrap_or_else(|err| panic!("read {file}: {err}"));
+        let block = block_of(&text, time_id);
+        assert!(
+            !block.is_empty(),
+            "{file} has no {time_id} any more; this check is measuring nothing"
+        );
+        assert!(
+            !block.contains(sized_id),
+            "{file}'s time label positions itself off {sized_id}, whose width \
+             is decided by this label -- that is the loop that put a long \
+             title off the side of the screen. Place it off the row instead, \
+             as ChatListDelegate does. Block was:\n{block}"
+        );
+    }
+}
+
 /// The role names a model row exposes to QML.
 fn names_of<T: qmetaobject::listmodel::SimpleListItem>() -> Vec<String> {
     T::names()

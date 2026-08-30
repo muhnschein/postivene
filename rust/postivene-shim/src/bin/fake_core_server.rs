@@ -73,7 +73,14 @@ impl State {
             // asking for the ordinary one are indistinguishable, and a
             // test cannot tell which answer it got.
             self.chats.insert(3, vec![30]);
-            self.archived_order = vec![3];
+            // An empty archive is its own case: the page hides its search
+            // field when there is nothing to search, and with a chat
+            // always present no test could see that.
+            self.archived_order = if std::env::var("POSTIVENE_FAKE_NO_ARCHIVED").is_ok() {
+                Vec::new()
+            } else {
+                vec![3]
+            };
             self.next_message_id = 100;
             self.contacts.insert(10, "ada@example.org".to_string());
             self.contacts.insert(11, "grace@example.org".to_string());

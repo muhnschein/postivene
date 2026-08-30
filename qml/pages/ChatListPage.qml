@@ -159,8 +159,10 @@ Page {
 
             MenuItem {
                 objectName: "profilesMenuItem"
-                // Only worth offering where there is a choice to make.
-                visible: !page.archived && page.accountCount > 1
+                // Not gated on there being more than one: adding a second
+                // is itself a reason to open this, and hiding it until
+                // there are two leaves no way to make one.
+                visible: !page.archived
                 text: qsTr("Profiles")
                 onClicked: pageStack.push(Qt.resolvedUrl("ProfilesPage.qml"),
                                           { currentAccountId: page.accountId })
@@ -218,6 +220,11 @@ Page {
                 width: parent.width
                 // The ordinary list searches chats, contacts and messages;
                 // the archived list is a mode over chats alone.
+                // Nothing to search in an empty archive. It comes back
+                // the moment something has been typed, or there would be
+                // no way to clear the field and get the list back.
+                visible: !page.archived || chats.count > 0
+                         || searchField.text.length > 0
                 placeholderText: page.archived ? qsTr("Search chats") : qsTr("Search")
                 onTextChanged: searchDebounce.restart()
             }

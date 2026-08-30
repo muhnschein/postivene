@@ -1,10 +1,18 @@
-//! A search result stays inside the screen.
+//! A search result stays inside the screen, and has a height at all.
 //!
 //! The title's width is the row minus the time label's; the time label
 //! was anchored back to the title. Neither width resolved, so the title
 //! never learned how wide it was and a long one ran off the right-hand
 //! edge instead of fading out. A binding loop is not a load error and
 //! nothing else here would have caught it.
+//!
+//! Then a later patch deleted the row's `Avatar` and left the three
+//! references to it behind. The row's height and the title's x are both
+//! measured off it, so both bindings threw, the height stayed at its
+//! default 0, and a search showed "Chats (1)" with nothing under it. An
+//! unresolved id is a runtime warning, not a load error, so that was not
+//! a load failure either -- and the checks above all pass on a row of no
+//! height. Hence the geometry at the end.
 
 // Qt harness: see qml_conversation.rs.
 #![allow(
@@ -61,6 +69,14 @@ const PROBE_QML: &str = r"
         function heightOf(name) {
             var item = findIn(loader.item, name)
             return item ? '' + Math.round(item.height) : 'missing:' + name
+        }
+        function xOf(name) {
+            var item = findIn(loader.item, name)
+            return item ? '' + Math.round(item.x) : 'missing:' + name
+        }
+        /// The row itself, which is what a list asks for its row height.
+        function rowHeight() {
+            return '' + Math.round(loader.item.height)
         }
     }
 ";
@@ -159,6 +175,13 @@ fn a_long_result_stays_inside_the_screen() {
             "subtitle-height",
             call!("heightOf", QString::from("resultSubtitle"))
         );
+        record!("row-height", call!("rowHeight"));
+        record!("avatar-x", call!("xOf", QString::from("resultAvatar")));
+        record!(
+            "avatar-width",
+            call!("widthOf", QString::from("resultAvatar"))
+        );
+        record!("title-x", call!("xOf", QString::from("resultTitle")));
         (*engine_ptr).quit();
     });
 
@@ -200,5 +223,42 @@ fn a_long_result_stays_inside_the_screen() {
     assert!(
         number("subtitle-height") > 12,
         "the message text did not wrap to a second line. {context}"
+    );
+
+    // The avatar is not decoration here: the row's height and the title's
+    // x are both measured off it. A patch dropped the element and left
+    // those three references behind, so both bindings threw, the height
+    // stayed at its default 0, and every search result collapsed to
+    // nothing under headings that still counted them -- "Chats (1)" with
+    // no chat under it. Nothing above catches that: a row of no height
+    // still has a title of the right width.
+    // Checked by name first: `number` reads a missing item as i32::MAX,
+    // which would sail through every bound below.
+    for label in ["avatar-x", "avatar-width", "title-x"] {
+        assert!(
+            !value(label).starts_with("missing"),
+            "{label} is not there at all, so the row lost the element it \
+             measures itself against. {context}"
+        );
+    }
+    assert!(
+        number("row-height") > 0,
+        "the row has no height, so a list of these shows its headings and \
+         nothing else. {context}"
+    );
+    assert!(
+        number("avatar-width") > 0,
+        "the row has no avatar; the height and the title's x are measured \
+         off it, and without it neither binding resolves. {context}"
+    );
+    assert!(
+        number("title-x") >= number("avatar-x") + number("avatar-width"),
+        "the title starts on top of the avatar rather than beside it. \
+         {context}"
+    );
+    assert!(
+        number("row-height") > number("avatar-width"),
+        "the row is shorter than the avatar in it, so the avatar is clipped \
+         away. {context}"
     );
 }

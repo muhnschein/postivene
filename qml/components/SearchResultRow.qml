@@ -51,6 +51,20 @@ Item {
         return Qt.formatDate(when, Qt.DefaultLocaleShortDate)
     }
 
+    // The three references to this below -- the row's height, and the
+    // title's x -- are why losing it took the whole row with it: an
+    // unresolved id throws, the height binding never runs, and every row
+    // collapsed to nothing under headings that still counted them.
+    Avatar {
+        id: avatar
+        objectName: "resultAvatar"
+        x: Theme.horizontalPageMargin
+        y: Theme.paddingMedium
+        initial: root.title
+        ownColor: root.ownColor
+        picturePath: root.picturePath
+    }
+
     // Positioned off the row, never off the title. ChatListDelegate lays
     // its own time label out this way, and its name label takes its width
     // from this label's *x*. Anchoring this to the title while the title

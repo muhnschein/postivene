@@ -32,7 +32,12 @@ mod common;
 const PROBE_QML: &str = r"
     import QtQuick 2.0
     Item {
-        Loader { id: loader }
+        // A size, because this test measures. With none the page is zero
+        // wide, every width in it is zero or negative, and a heading that
+        // reaches past the screen cannot be told from one that does not.
+        width: 540
+        height: 960
+        Loader { id: loader; anchors.fill: parent }
         function load(url, accountId, archived) {
             loader.setSource('', {})
             loader.setSource(url, { accountId: accountId, archived: archived })
@@ -144,6 +149,9 @@ fn a_category_is_only_headed_when_there_is_another_one() {
         record!("laid-out", call!("layout", QString::from("chatList")));
         record!("both-kinds-heading", get!("chatSection", "visible"));
         record!("heading-slot", get!("chatSectionSlot", "height"));
+        record!("heading-x", get!("chatSection", "x"));
+        record!("heading-width", get!("chatSection", "width"));
+        record!("slot-width", get!("chatSectionSlot", "width"));
         record!(
             "archived",
             call!(
@@ -197,13 +205,36 @@ fn a_category_is_only_headed_when_there_is_another_one() {
          draws over the chat below it. {context}"
     );
 
+    // And it has to fit in that row. Silica's SectionHeader sits at the
+    // left page margin and is a margin narrower than its parent on each
+    // side, with its text right-aligned against its right edge -- so a
+    // page that assigns it the full parent width keeps the inset x and
+    // pushes the text one whole margin off the screen. That is what a
+    // device screenshot showed: the last two characters of both headings
+    // cut off at the edge.
+    let number = |label: &str| value(label).parse::<f64>().unwrap_or(f64::NAN);
+    assert!(
+        number("slot-width") > 0.0,
+        "the heading's row has no width, so nothing below can be measured. \
+         {context}"
+    );
+    assert!(
+        number("heading-x") >= 0.0 && number("heading-width") > 0.0,
+        "the heading has no sensible geometry at all. {context}"
+    );
+    assert!(
+        number("heading-x") + number("heading-width") <= number("slot-width"),
+        "the heading reaches past the right-hand edge of the row it sits \
+         in, so its right-aligned text is cut off by the screen. Let it \
+         size itself: it already insets itself from both page margins. \
+         {context}"
+    );
+
     assert_eq!(
         value("archived"),
         "ok",
         "the archived list did not load. {context}"
     );
-    // The guard: with something archived the field is shown either way,
-    // and this test would prove nothing.
     // The guard: an empty list has no headings either way, and this test
     // would prove nothing about hiding them.
     assert_ne!(

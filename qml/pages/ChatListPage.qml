@@ -270,7 +270,12 @@ Page {
                     SectionHeader {
                         id: header
                         objectName: "chatSection"
-                        width: parent.width
+                        // No width here. Silica's own is the page width
+                        // less a margin at each side, with the text
+                        // right-aligned in it -- and its x is that left
+                        // margin. Assigning the full parent width kept
+                        // the x and pushed the right edge, and the text
+                        // on it, a whole margin off the screen.
                         // Both headings or neither: one heading over the
                         // whole list says nothing, and "Pinned" over a
                         // list with nothing pinned is a lie.

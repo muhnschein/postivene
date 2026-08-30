@@ -65,6 +65,7 @@ Page {
     SilicaFlickable {
         id: pulleyHost
         anchors.fill: parent
+        contentWidth: width
         contentHeight: height
 
         PullDownMenu {

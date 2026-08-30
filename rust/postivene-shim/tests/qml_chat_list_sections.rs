@@ -1,18 +1,17 @@
-//! What the chat list offers, and what it hides when there is nothing to
-//! offer.
+//! Pinned chats get a heading, and so do the rest -- but only when both
+//! kinds are there.
 //!
-//! Both of these were reported from a device twice. The first time they
-//! were written, a patch script asserted and died before saving, so
-//! neither reached the tree -- and nothing here would have noticed,
-//! because what a page *hides* had no coverage at all.
+//! One heading over the whole list says nothing, and "Pinned" over a list
+//! with nothing pinned is a lie. Hiding the `SectionHeader` in place was
+//! not enough: Silica keeps its own size and its label is a child of it,
+//! so the text stayed drawn over the first row. A plain Item collapses
+//! around it instead, and clips.
 //!
-//! Profiles: it used to appear only once a second profile existed, which
-//! hid the one route to making one.
-//!
-//! The archived search field: an archive with nothing in it has nothing
-//! to search, and a field over an empty list is a control that cannot do
-//! anything. It comes back the moment something is typed, or clearing it
-//! would be impossible.
+//! Two lists, two cases, in one process: the ordinary list holds a pinned
+//! chat and an unpinned one, and the archived list holds a single
+//! unpinned chat. Nothing here sets `POSTIVENE_FAKE_NO_ARCHIVED`, because a
+//! list with no rows in it has no headings either way and would prove
+//! nothing.
 
 // Qt harness: see qml_chat_list.rs.
 #![allow(
@@ -77,8 +76,8 @@ const PROBE_QML: &str = r"
 
 #[test]
 #[allow(clippy::too_many_lines)]
-fn the_list_offers_profiles_and_hides_a_search_with_nothing_to_search() {
-    let temp = std::env::temp_dir().join(format!("postivene-chrome-{}", std::process::id()));
+fn a_category_is_only_headed_when_there_is_another_one() {
+    let temp = std::env::temp_dir().join(format!("postivene-sections-{}", std::process::id()));
     std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
 
     // SAFETY: single-threaded test binary; set before Qt starts and before
@@ -86,9 +85,6 @@ fn the_list_offers_profiles_and_hides_a_search_with_nothing_to_search() {
     unsafe {
         std::env::set_var("QT_QPA_PLATFORM", "offscreen");
         std::env::set_var("POSTIVENE_ACCOUNTS_DIR", temp.join("accounts"));
-        // One profile and an empty archive: the state in which both of
-        // these were wrong on a device.
-        std::env::set_var("POSTIVENE_FAKE_NO_ARCHIVED", "1");
     }
 
     postivene_shim::register_qml_types();
@@ -145,9 +141,9 @@ fn the_list_offers_profiles_and_hides_a_search_with_nothing_to_search() {
     });
 
     single_shot(Duration::from_secs(3), move || unsafe {
-        record!("profiles", get!("profilesMenuItem", "visible"));
         record!("laid-out", call!("layout", QString::from("chatList")));
-        record!("ordinary-search", get!("chatSearchField", "visible"));
+        record!("both-kinds-heading", get!("chatSection", "visible"));
+        record!("heading-slot", get!("chatSectionSlot", "height"));
         record!(
             "archived",
             call!(
@@ -165,16 +161,8 @@ fn the_list_offers_profiles_and_hides_a_search_with_nothing_to_search() {
             "archived-laid-out",
             call!("layout", QString::from("chatList"))
         );
-        record!("archived-search", get!("chatSearchField", "visible"));
-        record!(
-            "typed",
-            call!(
-                "setText",
-                QString::from("chatSearchField"),
-                QString::from("a")
-            )
-        );
-        record!("search-after-typing", get!("chatSearchField", "visible"));
+        record!("one-kind-heading", get!("chatSection", "visible"));
+        record!("one-kind-slot", get!("chatSectionSlot", "height"));
         (*engine_ptr).quit();
     });
 
@@ -194,17 +182,21 @@ fn the_list_offers_profiles_and_hides_a_search_with_nothing_to_search() {
         "ok",
         "the chat list did not load. {context}"
     );
+    // The fake pins chat 1 and leaves chat 2 alone, so this list has both
+    // kinds in it and the headings are worth showing.
     assert_eq!(
-        value("profiles"),
+        value("both-kinds-heading"),
         "true",
-        "the pulley does not offer Profiles with a single profile, so there \
-         is no way to make a second one. {context}"
+        "a list with pinned and unpinned chats shows neither heading, so \
+         nothing says why the pinned ones are at the top. {context}"
     );
-    assert_eq!(
-        value("ordinary-search"),
-        "true",
-        "the ordinary list lost its search field. {context}"
+    assert_ne!(
+        value("heading-slot"),
+        "0",
+        "the heading is shown but the row it sits in has no height, so it \
+         draws over the chat below it. {context}"
     );
+
     assert_eq!(
         value("archived"),
         "ok",
@@ -212,21 +204,24 @@ fn the_list_offers_profiles_and_hides_a_search_with_nothing_to_search() {
     );
     // The guard: with something archived the field is shown either way,
     // and this test would prove nothing.
-    assert_eq!(
+    // The guard: an empty list has no headings either way, and this test
+    // would prove nothing about hiding them.
+    assert_ne!(
         value("archived-count"),
         "0",
-        "the archive is not empty, so nothing here is under test. {context}"
+        "the archived list is empty, so there is no single-kind list to \
+         check. {context}"
     );
     assert_eq!(
-        value("archived-search"),
+        value("one-kind-heading"),
         "false",
-        "an empty archive still shows a search field, which can only ever \
-         return nothing. {context}"
+        "a list with only one kind of chat still labels the category. \
+         {context}"
     );
     assert_eq!(
-        value("search-after-typing"),
-        "true",
-        "the field vanished with text still in it, so there is no way to \
-         clear it and get the list back. {context}"
+        value("one-kind-slot"),
+        "0",
+        "the heading is hidden but still takes up a row, so there is a gap \
+         above the list. {context}"
     );
 }

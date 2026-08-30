@@ -548,6 +548,12 @@ async fn main() {
                                 "summaryText2": format!("last in {chat}"),
                                 "freshMessageCounter": 0,
                                 "isEncrypted": true,
+                                // Chat 1 is pinned, so the ordinary list
+                                // has both kinds in it and a test can see
+                                // the two headings. The archived list
+                                // holds one unpinned chat, which is the
+                                // other case: one kind, no headings.
+                                "isPinned": chat == 1,
                             }),
                         );
                     }

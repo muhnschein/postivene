@@ -150,6 +150,10 @@ Page {
     SilicaFlickable {
         id: pulleyHost
         anchors.fill: parent
+        // Both, and stated rather than relied on: a Flickable's content
+        // is 0 by 0 until told otherwise, and anything anchored to
+        // `parent` in here is anchored to that content.
+        contentWidth: width
         contentHeight: height
 
         PullDownMenu {
@@ -251,13 +255,31 @@ Page {
             // and "Pinned" over a list with nothing pinned is a lie.
             section {
                 property: "is_pinned"
-                delegate: SectionHeader {
-                    objectName: "chatSection"
-                    readonly property bool worthSaying:
-                        chats.pinned_count > 0 && chats.unpinned_count > 0
-                    visible: worthSaying
-                    height: worthSaying ? implicitHeight : 0
-                    text: section === "true" ? qsTr("Pinned") : qsTr("Other chats")
+                // Wrapped rather than hidden in place. Silica's
+                // SectionHeader keeps its own size and its label is a
+                // child of it, so collapsing the header itself left the
+                // text drawn over the first row. This collapses a plain
+                // Item instead, and clips, so there is nothing left to
+                // draw whatever the header does internally.
+                delegate: Item {
+                    objectName: "chatSectionSlot"
+                    width: listView.width
+                    height: header.worthSaying ? header.height : 0
+                    clip: true
+
+                    SectionHeader {
+                        id: header
+                        objectName: "chatSection"
+                        width: parent.width
+                        // Both headings or neither: one heading over the
+                        // whole list says nothing, and "Pinned" over a
+                        // list with nothing pinned is a lie.
+                        readonly property bool worthSaying:
+                            chats.pinned_count > 0 && chats.unpinned_count > 0
+                        visible: worthSaying
+                        text: section === "true" ? qsTr("Pinned")
+                                                 : qsTr("Other chats")
+                    }
                 }
             }
 

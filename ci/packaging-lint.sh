@@ -49,6 +49,22 @@ if command -v desktop-file-validate >/dev/null 2>&1; then
         grep -v 'key "X-Nemo-Application-Type" .* is not known' || true)
     if [ -z "$out" ]; then
         echo "packaging-lint: postivene.desktop valid"
+
+# Every build has to be a distinguishable package.
+#
+# The spec pins Version and Release, and mb2 runs with -X so nothing
+# derives them from git -- so without a stamp in the workflow every build
+# is postivene-0.1.0-1 and `rpm -U` refuses it as already installed. A
+# phone then keeps the build it has while the file claims to be new,
+# which is exactly what happened.
+if grep -q '^Release:' "$root/rpm/postivene.spec" &&
+    ! grep -q 'sed -i "s/\^Release:' "$root/.github/workflows/rpm.yml"; then
+    echo "packaging-lint: FAIL the rpm workflow no longer stamps Release, so" \
+         "every build would be the same NEVRA and refuse to install over" \
+         "the last" >&2
+    exit 1
+fi
+echo "packaging-lint: the rpm workflow stamps a unique Release"
     else
         echo "$out" >&2
         echo "packaging-lint: FAIL postivene.desktop" >&2

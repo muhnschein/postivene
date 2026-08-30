@@ -7,21 +7,10 @@ ApplicationWindow {
     id: appWindow
 
     initialPage: Component { WelcomePage {} }
-    // The cover cannot reach pageStack from its own file; here it can.
-    // Taking the reader to the chat list is the one thing a cover action
-    // can do that tapping the cover does not already do better -- a tap
-    // returns to whatever page was left open, which after a long
-    // conversation is rarely where they want to be.
-    cover: Component {
-        CoverPage {
-            onShowChats: {
-                appWindow.activate()
-                while (pageStack.depth > 1) {
-                    pageStack.pop(undefined, PageStackAction.Immediate)
-                }
-            }
-        }
-    }
+    // Nothing is handled here any more: the cover's action was removed
+    // along with the status label it was drawn on top of, and tapping
+    // the cover already opens the app.
+    cover: Component { CoverPage {} }
 
     Component.onCompleted: {
         core.start(rpcServerPath)

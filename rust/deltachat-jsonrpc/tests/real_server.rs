@@ -542,7 +542,11 @@ async fn offline_round_trip_against_real_core() {
         .call("get_config", (sender_id, "selfstatus"))
         .await
         .expect("get_config selfstatus");
-    assert_eq!(status.as_deref(), Some("probing"), "selfstatus did not stick");
+    assert_eq!(
+        status.as_deref(),
+        Some("probing"),
+        "selfstatus did not stick"
+    );
 
     // `selfavatar` is a *path to an image the core copies into its blob
     // directory*, not a value: an empty string is rejected outright with

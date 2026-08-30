@@ -65,6 +65,7 @@ fn component_url(name: &str) -> String {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn a_message_shows_its_sender_time_quote_and_attachment() {
     // SAFETY: single-threaded test binary; set before Qt starts.
     unsafe {

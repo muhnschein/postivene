@@ -35,7 +35,8 @@ struct StackProbe {
 
     push: qt_method!(fn(&mut self, page: QString, properties: QVariantMap)),
     replace: qt_method!(fn(&mut self, page: QString, properties: QVariantMap)),
-    replaceAbove: qt_method!(fn(&mut self, target: QVariant, page: QString, properties: QVariantMap)),
+    replaceAbove:
+        qt_method!(fn(&mut self, target: QVariant, page: QString, properties: QVariantMap)),
     pop: qt_method!(fn(&mut self)),
 
     pages: Vec<String>,
@@ -179,7 +180,11 @@ fn switching_account_leaves_one_chat_list_on_the_stack() {
         // already open.
         (*steps_ptr).push((
             "load",
-            call!("load", QString::from(common::page_url("AccountsPage.qml")), 2),
+            call!(
+                "load",
+                QString::from(common::page_url("AccountsPage.qml")),
+                2
+            ),
         ));
     });
 
@@ -204,7 +209,11 @@ fn switching_account_leaves_one_chat_list_on_the_stack() {
     };
     let context = format!("steps: {steps:?}");
 
-    assert_eq!(value("load"), "ok", "the accounts page did not load. {context}");
+    assert_eq!(
+        value("load"),
+        "ok",
+        "the accounts page did not load. {context}"
+    );
     assert_eq!(
         value("seeded"),
         "ChatListPage.qml,AccountsPage.qml",

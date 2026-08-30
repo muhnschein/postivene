@@ -64,5 +64,10 @@ Rectangle {
         visible: avatar.picturePath.length > 0
         source: picture
         maskSource: mask
+        // An effect re-runs its shader whenever what it draws is redrawn,
+        // and a list redraws its rows on every frame of a scroll. An
+        // avatar does not change between those frames, so the result is
+        // kept in a texture and reused until the picture does change.
+        cached: true
     }
 }

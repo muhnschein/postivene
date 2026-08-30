@@ -12,11 +12,14 @@ Categories=Network;InstantMessaging;
 # .cache and .config equivalents). Without this section a relaxed default
 # profile applies instead, which is what the app ran under until now.
 #
-# Internet is the only permission it needs: everything else the core does
-# happens inside its own account directory. Camera belongs here too once
-# QR scanning lands, and not before -- a permission the app does not use
-# is a sandbox hole for no benefit.
+# Internet, for the core's own traffic; everything else it does happens
+# inside its own account directory. Pictures, because the settings page
+# picks a profile picture out of the gallery: without it the picker shows
+# an empty folder and the file it hands back cannot be opened.
+#
+# Camera belongs here too once QR scanning lands, and not before -- a
+# permission the app does not use is a sandbox hole for no benefit.
 [X-Sailjail]
-Permissions=Internet
+Permissions=Internet;Pictures
 OrganizationName=postivene
 ApplicationName=postivene

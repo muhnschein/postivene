@@ -24,6 +24,9 @@ Page {
         objectName: "profile"
         account_id: page.accountId
         onError: page.errorMessage = message
+        // The save from the pulley has nothing else to show for itself;
+        // the one on the way out is never seen, which is fine.
+        onSaved: notice.show(qsTr("Saved"))
         // The fields are only filled from the core, never re-filled from
         // it while someone is typing into them: a save reloads, and that
         // would otherwise reach in and reset the cursor.
@@ -79,7 +82,7 @@ Page {
 
         PullDownMenu {
             MenuItem {
-                objectName: "savePicture"
+                objectName: "changePicture"
                 text: qsTr("Change picture")
                 onClicked: pageStack.push(picker)
             }
@@ -161,10 +164,24 @@ Page {
         anchors {
             left: parent.left
             right: parent.right
-            bottom: parent.bottom
+            bottom: notice.top
         }
         text: page.errorMessage
         timeout: 8
         onDismissed: page.errorMessage = ""
+    }
+
+    Banner {
+        id: notice
+        objectName: "notice"
+        labelObjectName: "noticeLabel"
+        tone: "info"
+        timeout: 4
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+        onDismissed: notice.text = ""
     }
 }

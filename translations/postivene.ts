@@ -425,6 +425,10 @@
         <source>Address</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Saved</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>WelcomePage</name>

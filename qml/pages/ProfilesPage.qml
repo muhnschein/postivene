@@ -28,7 +28,14 @@ Page {
         onAccounts_refreshed: {
             if (page.deleting && configured_count === 0) {
                 page.deleting = false
-                pageStack.replaceAbove(null, Qt.resolvedUrl("WelcomePage.qml"))
+                // The empty properties are passed rather than left
+                // out: Silica's own replaceAbove takes them, and the
+                // two-argument form errors out under a stack that
+                // declares all three -- which is what the test harness
+                // does, so the branch was never actually run there.
+                pageStack.replaceAbove(null,
+                                       Qt.resolvedUrl("WelcomePage.qml"),
+                                       {})
             }
         }
         onAccount_error: page.errorMessage = message

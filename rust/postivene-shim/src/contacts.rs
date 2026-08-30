@@ -310,7 +310,7 @@ impl ContactList {
 }
 
 /// One row from the core's contact object.
-fn contact_row(contact: &serde_json::Value) -> ContactItem {
+pub(crate) fn contact_row(contact: &serde_json::Value) -> ContactItem {
     let address = contact
         .get("address")
         .and_then(serde_json::Value::as_str)

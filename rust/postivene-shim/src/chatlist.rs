@@ -551,7 +551,7 @@ async fn chat_entries(
 }
 
 /// Rows for the given chats, in one call.
-async fn chat_items(
+pub(crate) async fn chat_items(
     rpc: &RpcClient,
     account_id: u32,
     ids: &[u32],

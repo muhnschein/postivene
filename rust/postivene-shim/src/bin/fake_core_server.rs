@@ -79,6 +79,15 @@ impl State {
         }
     }
 
+    /// Which chat a message is in. The real core carries this on the
+    /// message object; a search result is unusable without it.
+    fn chat_of(&self, message_id: u32) -> u32 {
+        self.chats
+            .iter()
+            .find(|(_, messages)| messages.contains(&message_id))
+            .map_or(0, |(chat, _)| *chat)
+    }
+
     /// Append a message to a chat and announce it, the way a send or an
     /// incoming message does.
     fn add_message(&mut self, account_id: u32, chat_id: u32) -> u32 {
@@ -501,6 +510,30 @@ async fn main() {
                     }
                     ok(&id, &Value::Object(items))
                 }
+                "search_messages" => {
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    // Three arguments; the third is a chat to search
+                    // within, and null means every chat. Verified against
+                    // the pinned binary: passing two is rejected.
+                    let needle = positional(1).as_str().unwrap_or_default().to_lowercase();
+                    let within = positional(2)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok());
+                    let mut hits: Vec<u32> = Vec::new();
+                    for (chat, messages) in &state.chats {
+                        if within.is_some_and(|wanted| wanted != *chat) {
+                            continue;
+                        }
+                        for msg in messages {
+                            let text = format!("message {msg}");
+                            if !needle.is_empty() && text.contains(&needle) {
+                                hits.push(*msg);
+                            }
+                        }
+                    }
+                    ok(&id, &json!(hits))
+                }
                 "get_message_list_items" => {
                     let mut state = state.lock().await;
                     state.seed_chats();
@@ -525,9 +558,14 @@ async fn main() {
                         .as_array()
                         .map(|array| array.iter().filter_map(Value::as_u64).collect())
                         .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
                     let mut loaded = serde_json::Map::new();
                     for msg in ids {
-                        loaded.insert(msg.to_string(), message_object(msg));
+                        let mut message = message_object(msg);
+                        let chat = u32::try_from(msg).map_or(0, |msg| state.chat_of(msg));
+                        message["chatId"] = json!(chat);
+                        loaded.insert(msg.to_string(), message);
                     }
                     ok(&id, &Value::Object(loaded))
                 }

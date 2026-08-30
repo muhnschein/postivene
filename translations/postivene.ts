@@ -83,6 +83,10 @@
         <source>Profiles</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Search</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -353,6 +357,29 @@
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SearchResultsList</name>
+    <message>
+        <source>Chats (%1)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Contacts (%1)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Messages (%1 of %2)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Messages (%1)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Nothing found</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

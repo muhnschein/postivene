@@ -20,7 +20,43 @@ Page {
     Timer {
         id: searchDebounce
         interval: 250
-        onTriggered: chats.query = searchField.text
+        onTriggered: {
+            // The archived list is a mode over one kind of thing, so it
+            // filters itself. The ordinary list searches everything and
+            // shows the three kinds grouped, the way the reference
+            // clients do.
+            if (page.archived) {
+                chats.query = searchField.text
+            } else {
+                searchModel.query = searchField.text
+            }
+        }
+    }
+
+    /// Who the chat being made from a contact result is with, so the
+    /// conversation that opens is not headed by an empty title.
+    property string pendingChatName: ""
+
+    /// Results are showing instead of the chat list. Read from the field
+    /// rather than from the model, so the swap happens on the keystroke
+    /// and not a debounce later.
+    readonly property bool searching:
+        !page.archived && searchField.text.trim().length > 0
+
+    SearchResults {
+        id: searchModel
+        objectName: "search"
+        account_id: page.accountId
+        onError: page.errorMessage = message
+        // A contact result has no chat until it is tapped.
+        onChat_ready: {
+            notifier.viewingChatId = chat_id
+            pageStack.push(Qt.resolvedUrl("ConversationPage.qml"), {
+                accountId: page.accountId,
+                chatId: chat_id,
+                chatName: page.pendingChatName
+            })
+        }
     }
 
     ChatList {
@@ -100,13 +136,17 @@ Page {
             id: searchField
             objectName: "chatSearchField"
             width: parent.width
-            placeholderText: qsTr("Search chats")
+            // The ordinary list searches chats, contacts and messages;
+            // the archived list is a mode over chats alone.
+            placeholderText: page.archived ? qsTr("Search chats") : qsTr("Search")
             onTextChanged: searchDebounce.restart()
         }
     }
 
     SilicaListView {
         id: listView
+        objectName: "chatList"
+        visible: !page.searching
         anchors {
             top: heading.bottom
             left: parent.left
@@ -258,6 +298,33 @@ Page {
             enabled: chats.count === 0
             text: qsTr("No chats yet")
             hintText: qsTr("Pull down to start one")
+        }
+    }
+
+    SearchResultsList {
+        id: resultsView
+        objectName: "searchResults"
+        visible: page.searching
+        search: searchModel
+        anchors {
+            top: heading.bottom
+            left: parent.left
+            right: parent.right
+            bottom: banner.top
+        }
+        onChatActivated: {
+            notifier.viewingChatId = chatId
+            pageStack.push(Qt.resolvedUrl("ConversationPage.qml"), {
+                accountId: page.accountId,
+                chatId: chatId,
+                chatName: chatName
+            })
+        }
+        // No chat exists yet; the model answers on chat_ready. The name
+        // is kept here because that answer carries only an id.
+        onContactActivated: {
+            page.pendingChatName = contactName
+            searchModel.open_chat_with(contactId)
         }
     }
 

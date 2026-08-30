@@ -111,7 +111,7 @@ fn delegates_bind_only_roles_their_models_have() {
     }
 
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let cases: [(&str, Vec<String>); 4] = [
+    let cases: [(&str, Vec<String>); 5] = [
         (
             "qml/components/ConversationList.qml",
             names_of::<postivene_shim::MessageListItem>(),
@@ -127,6 +127,10 @@ fn delegates_bind_only_roles_their_models_have() {
         (
             "qml/pages/NewGroupPage.qml",
             names_of::<postivene_shim::ContactItem>(),
+        ),
+        (
+            "qml/components/SearchResultsList.qml",
+            names_of::<postivene_shim::SearchItem>(),
         ),
     ];
 

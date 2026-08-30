@@ -21,11 +21,13 @@ mod contacts;
 mod core;
 mod models;
 mod runtime;
+mod search;
 
 pub use crate::chat::{local_day_number, ChatMessages};
 pub use crate::chatlist::ChatList;
 pub use crate::contacts::ContactList;
 pub use crate::core::DeltaChatCore;
+pub use crate::search::SearchResults;
 
 /// Register the shim's QML-instantiable types. The app and the tests share
 /// this so a page cannot work in one and not the other.
@@ -39,13 +41,18 @@ pub fn register_qml_types() {
     ) else {
         return;
     };
-    let Ok(contacts) = std::ffi::CStr::from_bytes_with_nul(b"ContactList\0") else {
+    let (Ok(contacts), Ok(search)) = (
+        std::ffi::CStr::from_bytes_with_nul(b"ContactList\0"),
+        std::ffi::CStr::from_bytes_with_nul(b"SearchResults\0"),
+    ) else {
         return;
     };
     qmetaobject::qml_register_type::<ChatMessages>(uri, 1, 0, messages);
     qmetaobject::qml_register_type::<ChatList>(uri, 1, 0, list);
     qmetaobject::qml_register_type::<ContactList>(uri, 1, 0, contacts);
+    qmetaobject::qml_register_type::<SearchResults>(uri, 1, 0, search);
 }
 pub use models::{
     ChatListItem, ChatListModel, ContactItem, ContactListModel, MessageListItem, MessageListModel,
+    SearchItem, SearchListModel,
 };

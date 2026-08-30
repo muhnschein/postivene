@@ -99,6 +99,9 @@ Page {
         onStatus_changed: {
             if (core.status === "ready") {
                 chats.reload()
+                // A search typed before the core was up found nothing and
+                // had nothing to answer with; this is when it can.
+                searchModel.reload()
             }
         }
         // Failures that used to reach no one.
@@ -173,6 +176,13 @@ Page {
                 text: qsTr("Profiles")
                 onClicked: pageStack.push(Qt.resolvedUrl("ProfilesPage.qml"),
                                           { currentAccountId: page.accountId })
+            }
+            MenuItem {
+                objectName: "settingsMenuItem"
+                visible: !page.archived
+                text: qsTr("Settings")
+                onClicked: pageStack.push(Qt.resolvedUrl("SettingsPage.qml"),
+                                          { accountId: page.accountId })
             }
             MenuItem {
                 // The archived list is a mode, not a filter, so it is its

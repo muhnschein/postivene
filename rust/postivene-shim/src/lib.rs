@@ -20,6 +20,7 @@ mod chatlist;
 mod contacts;
 mod core;
 mod models;
+mod profile;
 mod runtime;
 mod search;
 
@@ -27,6 +28,7 @@ pub use crate::chat::{local_day_number, ChatMessages};
 pub use crate::chatlist::ChatList;
 pub use crate::contacts::ContactList;
 pub use crate::core::DeltaChatCore;
+pub use crate::profile::Profile;
 pub use crate::search::SearchResults;
 
 /// Register the shim's QML-instantiable types. The app and the tests share
@@ -41,9 +43,10 @@ pub fn register_qml_types() {
     ) else {
         return;
     };
-    let (Ok(contacts), Ok(search)) = (
+    let (Ok(contacts), Ok(search), Ok(profile)) = (
         std::ffi::CStr::from_bytes_with_nul(b"ContactList\0"),
         std::ffi::CStr::from_bytes_with_nul(b"SearchResults\0"),
+        std::ffi::CStr::from_bytes_with_nul(b"Profile\0"),
     ) else {
         return;
     };
@@ -51,6 +54,7 @@ pub fn register_qml_types() {
     qmetaobject::qml_register_type::<ChatList>(uri, 1, 0, list);
     qmetaobject::qml_register_type::<ContactList>(uri, 1, 0, contacts);
     qmetaobject::qml_register_type::<SearchResults>(uri, 1, 0, search);
+    qmetaobject::qml_register_type::<Profile>(uri, 1, 0, profile);
 }
 pub use models::{
     ChatListItem, ChatListModel, ContactItem, ContactListModel, MessageListItem, MessageListModel,

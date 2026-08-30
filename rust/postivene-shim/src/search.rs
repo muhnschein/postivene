@@ -157,8 +157,10 @@ impl SearchResults {
             self.clear();
             return;
         }
+        // Silent, not an error: the core comes up after the first page
+        // does, and a banner per keystroke until it does is noise. The
+        // page runs this again when the core reports ready.
         let Some((rpc, runtime)) = connection() else {
-            self.error(QString::from("not started"));
             return;
         };
 

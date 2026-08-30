@@ -11,6 +11,7 @@ QtObject {
     property int itemSizeSmall: 60
     property int itemSizeMedium: 90
     property int itemSizeLarge: 120
+    property int itemSizeExtraLarge: 180
     property int fontSizeExtraSmall: 10
     property int fontSizeSmall: 12
     property int fontSizeMedium: 18

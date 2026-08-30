@@ -40,6 +40,8 @@ struct State {
     next_chat_id: u32,
     /// Members added to each created group.
     group_members: std::collections::BTreeMap<u32, Vec<u32>>,
+    /// Config values per account, so a set can be read back.
+    config: std::collections::BTreeMap<(u32, String), String>,
 }
 
 impl State {
@@ -277,8 +279,42 @@ async fn main() {
                     });
                     ok(&id, &json!(next))
                 }
-                "set_config"
-                | "start_io"
+                "set_config" => {
+                    let account = positional(0)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let key = positional(1).as_str().unwrap_or_default().to_string();
+                    let mut state = state.lock().await;
+                    // Null clears, as the real core does -- and an empty
+                    // string is a value, not a clear. `selfavatar` refuses
+                    // one outright there, which is why the app has to send
+                    // null rather than "".
+                    match positional(2).as_str() {
+                        Some(value) => {
+                            state.config.insert((account, key), value.to_string());
+                        }
+                        None => {
+                            state.config.remove(&(account, key));
+                        }
+                    }
+                    ok(&id, &Value::Null)
+                }
+                "get_config" => {
+                    let account = positional(0)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let key = positional(1).as_str().unwrap_or_default().to_string();
+                    let state = state.lock().await;
+                    let value = state
+                        .config
+                        .get(&(account, key))
+                        .cloned()
+                        .map_or(Value::Null, Value::String);
+                    ok(&id, &value)
+                }
+                "start_io"
                 | "stop_ongoing_process"
                 | "marknoticed_chat"
                 | "markseen_msgs"

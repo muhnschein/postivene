@@ -87,6 +87,10 @@
         <source>Search</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -380,6 +384,45 @@
     </message>
     <message>
         <source>Nothing found</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Change picture</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove picture</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Your name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Signature</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Sent with Postivene</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Address</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

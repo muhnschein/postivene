@@ -642,6 +642,18 @@ async fn main() {
                     loop {
                         let queued: Vec<Value> = state.lock().await.events.drain(..).collect();
                         if !queued.is_empty() {
+                            // Held back after the batch is taken, not
+                            // before the wait: a delay ahead of the loop
+                            // would be spent while the queue was still
+                            // empty and buy nothing. This is what lets a
+                            // test say that a call's own reply is dealt
+                            // with before the event the same call
+                            // produced -- otherwise which of the two wins
+                            // is a race between queued callbacks on the
+                            // Qt thread, and a test that quietly depends
+                            // on one of them passes on one machine and
+                            // fails on another.
+                            tokio::time::sleep(delay("POSTIVENE_FAKE_EVENT_DELAY_MS")).await;
                             break ok(&id, &Value::Array(queued));
                         }
                         tokio::time::sleep(std::time::Duration::from_millis(20)).await;

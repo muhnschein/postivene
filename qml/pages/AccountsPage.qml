@@ -55,10 +55,15 @@ Page {
 
             onClicked: {
                 if (model.account_id !== page.currentAccountId) {
-                    // Replaced rather than pushed: the chat list for the
-                    // old account is not somewhere to go "back" to.
-                    pageStack.replace(Qt.resolvedUrl("ChatListPage.qml"),
-                                      { accountId: model.account_id })
+                    // The whole stack, not just this page. `replace`
+                    // swapped out the accounts page and left the previous
+                    // account's chat list underneath it -- one swipe back
+                    // into the account just left. A null target replaces
+                    // everything, which is what the onboarding pages do
+                    // when they hand over to the chat list.
+                    pageStack.replaceAbove(null,
+                                           Qt.resolvedUrl("ChatListPage.qml"),
+                                           { accountId: model.account_id })
                 } else {
                     pageStack.pop()
                 }

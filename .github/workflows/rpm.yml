@@ -19,11 +19,13 @@ on:
         default: aarch64
       sfos_version:
         description: >
-          Sailfish SDK version to build against. Build against the oldest
-          release you want to support: a binary from a newer SDK can call
-          symbols an older phone does not have.
+          Sailfish SDK version to build against. 5.2 is the Jolla Phone's
+          baseline and the floor this project supports; Harbour also
+          requires a binary to link __libc_start_main@GLIBC_2.34, which
+          only a 5.x SDK's glibc provides. An older SDK builds a package
+          that runs on older phones and that Harbour rejects.
         type: string
-        default: "4.6.0.13"
+        default: "5.2.0.15"
   push:
     # `v*` for a release. `build-*` is a throwaway handle for running this
     # before it reaches the default branch, since workflow_dispatch only
@@ -39,7 +41,7 @@ jobs:
     timeout-minutes: 120
     env:
       ARCH: ${{ inputs.arch || 'aarch64' }}
-      SFOS: ${{ inputs.sfos_version || '4.6.0.13' }}
+      SFOS: ${{ inputs.sfos_version || '5.2.0.15' }}
     steps:
       - uses: actions/checkout@v4
 

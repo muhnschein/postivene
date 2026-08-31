@@ -68,7 +68,8 @@ installed tree; no ELF file outside the two places one may live.
 
 **The binary** (1.6.1, 1.7) — every linked library against the allowed
 list; that it links `__libc_start_main`; and that it **exports `main()` as
-a dynamic symbol**. See below.
+a dynamic symbol**. See below. The source check cannot see the *version* of
+that symbol, which is what the SDK decides; only the built RPM shows it.
 
 **RPM metadata** (1.8) — no `Vendor:`; no `Provides:`, `Obsoletes:`,
 `Conflicts:`, `Recommends:`, `Suggests:`, `Supplements:` or `Enhances:`;
@@ -89,7 +90,9 @@ the tree and asserts the check names it. A gate that only ever prints
 ## What it cannot cover
 
 Anything that needs the built package or a device, which is everything
-below. `rpm.yml`'s validator step covers the first group; the rest is
+below. The `__libc_start_main` *version* above is the sharpest example: it
+depends entirely on which SDK built the binary, so no reading of the
+sources can predict it. `rpm.yml`'s validator step covers the first group; the rest is
 §10's pre-submission sequence.
 
 - The `Requires:` and `Provides:` **rpm generates** from the binary, as
@@ -103,6 +106,24 @@ below. `rpm.yml`'s validator step covers the first group; the rest is
 - Everything in the quality bar QA applies by hand — no placeholder
   content, translated strings, `Theme` values rather than pixel counts,
   recoverable errors, a useful cover.
+
+## The SDK version is a Harbour rule
+
+Harbour requires the binary to link `__libc_start_main@GLIBC_2.34`, and the
+version is the point: 2.34 is where glibc merged libpthread and libdl into
+libc and re-versioned the symbol. A binary built against an older glibc
+references `@GLIBC_2.17` on aarch64 and is rejected outright.
+
+Only a 5.x SDK provides it. The first real validator run, against a package
+built with 4.6.0.13, failed on exactly this while every other finding was
+one of the two known blockers:
+
+    FAIL /usr/bin/harbour-postivene -- Binary does not link to __libc_start_main@GLIBC_2.34.
+
+`rpm.yml` therefore defaults to **5.2.0.15**, the Jolla Phone's baseline.
+That is a deliberate floor, not a compromise: a binary from a newer SDK can
+call symbols an older phone lacks, and this project does not support phones
+older than the current one (`PROJECT.md`).
 
 ## Exporting `main()`
 

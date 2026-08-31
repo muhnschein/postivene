@@ -37,19 +37,23 @@ Item {
     property string quoteAuthor: ""
     property string filePath: ""
     property string fileName: ""
-    // Text, Image, Gif, Sticker, Audio, Voice, Video, File, Webxdc, Vcard.
+    property string fileMime: ""
+    // A real, not an int: QML has no 64-bit integer to hold a file size in.
+    property real fileBytes: 0
+    // Text, Image, Gif, Sticker, Audio, Voice, Video, File, Call, Webxdc,
+    // Vcard. What the attachment is drawn as; AttachmentPreview decides.
     property string viewType: "Text"
     property int imageWidth: 0
     property int imageHeight: 0
+    // A shared contact, parsed by the core.
+    property string vcardName: ""
+    property string vcardAddr: ""
+    property string vcardColor: ""
 
-    property bool isPicture: viewType === "Image" || viewType === "Gif"
-                             || viewType === "Sticker"
     property bool hasFile: filePath.length > 0
-    // Encoded, not concatenated: attachments are named by whoever sent
-    // them, and a "#" or a "%" in the name makes a plain "file://" + path
-    // into a URL that points somewhere else, or nowhere.
-    readonly property url fileUrl: root.hasFile ? Qt.resolvedUrl("file://" + encodeURI(root.filePath))
-                                                : ""
+    // A sticker is a picture with no bubble behind it, which is the whole
+    // of what makes it one.
+    readonly property bool isSticker: root.viewType === "Sticker" && root.hasFile
 
     // A bubble is as wide as its content, up to most of the screen. The
     // widths come off unconstrained copies of the text: measuring the real
@@ -59,7 +63,7 @@ Item {
         root.maxWidth,
         Math.max(textMetric.implicitWidth,
                  attachmentMetric.implicitWidth,
-                 root.isPicture && root.hasFile ? root.maxWidth : 0,
+                 attachment.wantsFullWidth && root.hasFile ? root.maxWidth : 0,
                  Theme.itemSizeSmall))
 
     height: (root.isInfo ? infoLabel.height : bubble.height) + 2 * Theme.paddingSmall
@@ -90,9 +94,12 @@ Item {
     Text {
         id: attachmentMetric
         visible: false
-        font: attachmentLabel.font
+        font.pixelSize: Theme.fontSizeMedium
         textFormat: Text.PlainText
-        text: attachmentLabel.text
+        // Asked of the preview rather than read off its label: what the
+        // fallback row says is the preview's business, and the bubble only
+        // needs to know how wide it comes out.
+        text: attachment.genericText
     }
 
     // A core notice, not something anyone typed: centred and unadorned.
@@ -125,6 +132,9 @@ Item {
         // change the bubble's size, and every row below it would move.
         color: root.isFound
                ? Theme.rgba(Theme.highlightColor, 0.5)
+               // A sticker is meant to sit on the conversation rather than
+               // in a bubble; the rest of the row still lays out the same.
+               : root.isSticker ? "transparent"
                : root.isOutgoing ? Theme.rgba(Theme.highlightBackgroundColor, 0.25)
                                  : Theme.rgba(Theme.secondaryColor, 0.12)
         Behavior on color { ColorAnimation { duration: 400 } }
@@ -206,39 +216,26 @@ Item {
             }
         }
 
-        Image {
-            id: attachmentImage
-            objectName: "attachmentImage"
-            visible: root.isPicture && root.hasFile
+        // Whatever kind of attachment this is, drawn by the one component
+        // that knows the difference. Reports rather than acts, so opening
+        // stays the page's decision.
+        AttachmentPreview {
+            id: attachment
+            objectName: "attachment"
             x: Theme.paddingMedium
-            y: root.below(quoteRow, visible)
-            width: visible ? root.contentWidth : 0
-            height: visible && root.imageWidth > 0
-                    ? width * root.imageHeight / root.imageWidth
-                    : 0
-            fillMode: Image.PreserveAspectFit
-            asynchronous: true
-            source: root.fileUrl
-        }
-
-        // Anything else with a file: name it and let the system open it.
-        Label {
-            id: attachmentLabel
-            objectName: "attachmentLabel"
-            visible: root.hasFile && !root.isPicture
-            height: visible ? implicitHeight : 0
-            x: Theme.paddingMedium
-            y: root.below(attachmentImage, visible)
-            width: root.contentWidth
-            truncationMode: TruncationMode.Fade
-            color: Theme.highlightColor
-            textFormat: Text.PlainText
-            text: "📎 " + (root.fileName.length > 0 ? root.fileName : root.filePath)
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: Qt.openUrlExternally(root.fileUrl)
-            }
+            y: root.below(quoteRow, height > 0)
+            contentWidth: root.contentWidth
+            filePath: root.filePath
+            fileName: root.fileName
+            fileMime: root.fileMime
+            fileBytes: root.fileBytes
+            viewType: root.viewType
+            imageWidth: root.imageWidth
+            imageHeight: root.imageHeight
+            vcardName: root.vcardName
+            vcardAddr: root.vcardAddr
+            vcardColor: root.vcardColor
+            onOpenRequested: Qt.openUrlExternally(attachment.fileUrl)
         }
 
         Label {
@@ -247,7 +244,7 @@ Item {
             visible: root.messageText.length > 0
             height: visible ? implicitHeight : 0
             x: Theme.paddingMedium
-            y: root.below(attachmentLabel, visible)
+            y: root.below(attachment, visible)
             width: root.contentWidth
             wrapMode: Text.Wrap
             color: Theme.primaryColor

@@ -1,14 +1,16 @@
-//! The chat list is where a running app sits, so it is where the core's own
-//! failures have to show up.
+//! What the chat list says while the core is being restarted.
 //!
-//! A core that goes away is the other half of that, and lives in
-//! `qml_core_gone.rs`: it needs a server that keeps dying, which is not an
-//! environment an error banner can be read in.
+//! The banner has to read the core's state rather than wait for it to
+//! change: a page opened while the core is away never saw the transition a
+//! handler would have caught, and would otherwise look like an account with
+//! no history in it.
+//!
+//! The server here dies 300ms after every spawn, so the app spends most of
+//! its time between attempts rather than connected -- the backoff widens
+//! from one second to two to four, which is what makes the window the reads
+//! below land in a wide one rather than a race.
 
-// Qt harness: needs `unsafe` for `env::set_var` before Qt starts
-// (`unused_unsafe` because it is only unsafe from edition 2024 on),
-// `borrow_as_ptr` for the engine pointer, and `single_shot` with
-// whole-second Durations.
+// Qt harness: see qml_chat_list.rs.
 #![allow(
     unsafe_code,
     unused_unsafe,
@@ -29,15 +31,12 @@ const PROBE_QML: &str = r"
     Item {
         Loader { id: loader }
         function load(url, accountId) {
-            // Clear first, so loading the same page again really is a new
+            // Cleared first, so loading the same page again really is a new
             // instance rather than the one already there.
             loader.setSource('', {})
             loader.setSource(url, { accountId: accountId })
             return loader.status === Loader.Ready ? 'ok' : 'load-failed'
         }
-        // Signals are callable, so the page can be driven without waiting
-        // for the core to produce a real failure.
-        function raise(message) { core.core_error(message) }
         function findIn(node, name) {
             if (!node) { return null }
             if (node.objectName === name) { return node }
@@ -57,8 +56,8 @@ const PROBE_QML: &str = r"
 ";
 
 #[test]
-fn the_chat_list_shows_what_the_core_reports() {
-    let temp = std::env::temp_dir().join(format!("postivene-qml-chat-list-{}", std::process::id()));
+fn a_core_being_restarted_says_so_on_every_page_that_opens() {
+    let temp = std::env::temp_dir().join(format!("postivene-qml-core-gone-{}", std::process::id()));
     std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
 
     // SAFETY: single-threaded test binary; set before Qt starts and before
@@ -66,6 +65,10 @@ fn the_chat_list_shows_what_the_core_reports() {
     unsafe {
         std::env::set_var("QT_QPA_PLATFORM", "offscreen");
         std::env::set_var("POSTIVENE_ACCOUNTS_DIR", temp.join("accounts"));
+        // Every server, including each replacement. By the third failure the
+        // app waits four seconds before trying again, and the reads below
+        // fall inside that.
+        std::env::set_var("POSTIVENE_FAKE_EXIT_AFTER_MS", "300");
     }
 
     postivene_shim::register_qml_types();
@@ -99,6 +102,15 @@ fn the_chat_list_shows_what_the_core_reports() {
         }};
     }
 
+    macro_rules! probe {
+        ($label:expr, $name:expr, $property:expr) => {
+            (*steps_ptr).push((
+                $label,
+                call!("get", QString::from($name), QString::from($property)),
+            ))
+        };
+    }
+
     single_shot(Duration::from_secs(1), move || unsafe {
         (*steps_ptr).push((
             "load",
@@ -110,26 +122,22 @@ fn the_chat_list_shows_what_the_core_reports() {
         ));
     });
 
-    single_shot(Duration::from_secs(2), move || unsafe {
-        call!("raise", QString::from("disk full"));
-    });
-
-    single_shot(Duration::from_secs(3), move || unsafe {
+    single_shot(Duration::from_secs(5), move || unsafe {
+        probe!("away-shown", "errorLabel", "text");
+        probe!("away-timeout", "errorBanner", "timeout");
+        // A page opened while the core is away never saw it go.
         (*steps_ptr).push((
-            "error-shown",
-            call!("get", QString::from("errorLabel"), QString::from("text")),
-        ));
-        (*steps_ptr).push((
-            "error-timeout",
+            "reopen",
             call!(
-                "get",
-                QString::from("errorBanner"),
-                QString::from("timeout")
+                "load",
+                QString::from(common::page_url("ChatListPage.qml")),
+                1
             ),
         ));
     });
 
-    single_shot(Duration::from_secs(5), move || unsafe {
+    single_shot(Duration::from_secs(6), move || unsafe {
+        probe!("reopened-shown", "errorLabel", "text");
         (*engine_ptr).quit();
     });
 
@@ -138,7 +146,9 @@ fn the_chat_list_shows_what_the_core_reports() {
     assert_outcome(&steps);
 }
 
-/// The failure is on the page, and it is one the reader can wait out.
+/// What the run has to show for itself, out of the test body: what a Qt
+/// harness can do in one function is bounded, and the assertions are the
+/// part worth reading.
 fn assert_outcome(steps: &[(&str, String)]) {
     let value = |label: &str| {
         steps
@@ -150,14 +160,29 @@ fn assert_outcome(steps: &[(&str, String)]) {
     let context = format!("steps: {steps:?}");
 
     assert_eq!(value("load"), "ok", "the page did not load. {context}");
-    assert_eq!(
-        value("error-shown"),
-        "disk full",
-        "a core error reached no one. {context}"
+    assert!(
+        value("away-shown").contains("Reconnecting"),
+        "the core went away and the page said nothing about it. {context}"
+    );
+    assert!(
+        !value("away-shown").contains("Restart"),
+        "the page tells the reader to restart the app while it is already \
+         starting the core again. {context}"
     );
     assert_eq!(
-        value("error-timeout"),
-        "8",
-        "an error the user can dismiss should clear itself. {context}"
+        value("away-timeout"),
+        "0",
+        "a message about a core that is not there must not time out from \
+         under the reader. {context}"
+    );
+    assert_eq!(
+        value("reopen"),
+        "ok",
+        "the page did not load a second time. {context}"
+    );
+    assert!(
+        value("reopened-shown").contains("Reconnecting"),
+        "a page opened while the core was away says nothing about it, so an \
+         account with history looks like an empty one. {context}"
     );
 }

@@ -105,6 +105,25 @@ through the real validator.
 - That the app works under Sailjail. Running it from a terminal or the
   IDE bypasses the sandbox entirely, so a missing permission does not
   surface until QA installs it. Force it: `sailjail /usr/bin/harbour-postivene`.
+  Note what the sandbox is *for*: it confines user data, not the read-only
+  system tree. A confined app still reads `/etc`, `/usr` and `/lib` -- it
+  has to, for certificates, fonts and `/etc/hosts` -- so being able to
+  attach `/etc/passwd` is expected and says nothing about whether
+  confinement is on. What confinement covers is `$HOME`: the test that
+  actually shows it working is failing to read *another app's* directory
+  under `~/.local/share/`.
+  Silica's pickers run inside the app's own process, so a file the grant
+  does not cover is one the picker can offer and the app cannot open --
+  which is why the attach button needs `UserDirs` and the profile picture
+  needed `Pictures` *and* `MediaIndexing`.
+- Whether the `Sailfish.Pickers`, `QtMultimedia` and `Nemo.Thumbnailer`
+  types the conversation uses exist and behave on the target release.
+  Harbour's own `allowed_qmlimports.conf` permits all three, which settles
+  whether they may be used and says nothing about whether they work. The
+  pickers are one page each so that a missing type costs one button
+  (`qml/pages/Attach*Page.qml`); the media types are stubbed for tests in
+  `tests/silica-stubs`, which proves what this app asks of them and
+  nothing about what they answer.
 - Everything in the quality bar QA applies by hand — no placeholder
   content, translated strings, `Theme` values rather than pixel counts,
   recoverable errors, a useful cover.
@@ -239,12 +258,22 @@ removed from the store even after approval. Not an option.
 3. Install on a real device and launch it as
    `sailjail /usr/bin/harbour-postivene`.
 4. Exercise every permission-dependent path under the sandbox: the
-   profile picture picker needs both `Pictures` and `MediaIndexing`.
+   profile picture picker needs both `Pictures` and `MediaIndexing`, the
+   attach button's four pickers need `UserDirs` for anything outside
+   `~/Pictures`, and playing a voice message needs `Audio`. Send one of
+   each kind -- photo, video, sound, document -- and open what arrives at
+   the other end.
 5. Delete the cache directory while the app runs; confirm nothing breaks.
-6. Confirm **Version** was bumped, not just Release. Harbour refuses an
+6. Kill `deltachat-rpc-server` from a terminal while the app is open. The
+   banner should say it is reconnecting and then clear itself, and messages
+   should keep arriving afterwards -- the app starts a replacement and
+   resumes IO on it (`PROJECT.md`). Nothing else in this list exercises
+   that, and it is the failure a phone produces on its own by reclaiming
+   memory.
+7. Confirm **Version** was bumped, not just Release. Harbour refuses an
    update that does not sort higher than the one in the Store, and a
    Release-only bump is the most common avoidable resubmission.
-7. Set "From OS version" to 4.5.0 on the submission form. The spec cannot
+8. Set "From OS version" to 4.5.0 on the submission form. The spec cannot
    say so — `sailfish-version` is not an allowed dependency, and a
    versioned one would be rejected twice over — but the `[X-Sailjail]`
    section needs it.

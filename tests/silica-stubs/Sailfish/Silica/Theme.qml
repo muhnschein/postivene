@@ -22,6 +22,7 @@ QtObject {
     property color secondaryColor: "#a0a0a0"
     property color highlightColor: "#80c0ff"
     property color highlightBackgroundColor: "#2060a0"
+    property color highlightDimmerColor: "#404040"
     property color errorColor: "#ff4040"
 
     function rgba(color, opacity) {

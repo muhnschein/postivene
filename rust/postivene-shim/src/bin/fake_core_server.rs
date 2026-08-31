@@ -625,6 +625,11 @@ async fn main() {
                         .and_then(|value| u32::try_from(value).ok())
                         .unwrap_or_default();
                     let text = positional(2).as_str().unwrap_or_default().to_string();
+                    // The core takes one file and decides the message's
+                    // view type from it. Echoed back so the row the sender
+                    // sees carries the attachment, as the real one does.
+                    let file = positional(3);
+                    let file_name = positional(4);
                     if should_fail(&text) {
                         // The real core reports a failed send as an Error
                         // event, not only as a failed call.
@@ -640,12 +645,27 @@ async fn main() {
                         // real core can produce, and the one that duplicated a
                         // sent row.
                         tokio::time::sleep(delay("POSTIVENE_FAKE_SEND_DELAY_MS")).await;
+                        // The real core reads the file; this reads the
+                        // extension, which is enough to tell an image row
+                        // from a paperclip one.
+                        let extension = file.as_str().and_then(|path| {
+                            std::path::Path::new(path)
+                                .extension()
+                                .map(|ext| ext.to_string_lossy().to_ascii_lowercase())
+                        });
+                        let view_type = match extension.as_deref() {
+                            _ if file.is_null() => "Text",
+                            Some("png" | "jpg" | "jpeg") => "Image",
+                            _ => "File",
+                        };
                         ok(
                             &id,
                             &json!([
                                 msg,
                                 {"text": text, "fromId": 1, "timestamp": 0,
-                                 "showPadlock": true, "state": 20}
+                                 "showPadlock": true, "state": 20,
+                                 "file": file, "fileName": file_name,
+                                 "viewType": view_type}
                             ]),
                         )
                     }

@@ -220,11 +220,23 @@ fn list_pages_clip_and_leave_room_for_what_sits_below_them() {
             list_block.contains("bottom: banner.top"),
             "{page}'s list runs under the banner instead of stopping at it"
         );
-        // The stopped state is a state: a page opened after the core died
-        // never saw the transition that a handler would have caught.
+        // Losing the core is a state, not an event: a page opened after it
+        // went away never saw the transition that a handler would have
+        // caught, so the banner has to read the status rather than wait for
+        // it to change. Both halves, because a page that only knows
+        // "stopped" says "restart Postivene" through a reconnection that is
+        // already under way.
+        for state in ["reconnecting", "stopped"] {
+            assert!(
+                text.contains(&format!("core.status === \"{state}\"")),
+                "{page} does not read the core's {state} state, so it waits \
+                 for a transition it may never see"
+            );
+        }
         assert!(
-            text.contains("core.status === \"stopped\" ? page.coreStoppedMessage"),
-            "{page} waits for the core to stop rather than reading that it has"
+            text.contains("page.coreStatusMessage.length > 0"),
+            "{page}'s banner does not prefer the core's own state over the \
+             last error, so a dead core hides behind whatever failed first"
         );
     }
 }
@@ -521,7 +533,7 @@ fn qualified_uses(code: &str) -> Vec<(usize, String)> {
 #[test]
 fn qml_reads_no_name_that_is_not_there() {
     // What QML puts in scope without the file saying so.
-    const IN_SCOPE: [&str; 12] = [
+    const IN_SCOPE: [&str; 13] = [
         // Grouped properties, and properties of the element being
         // configured read without qualifying them.
         "anchors",
@@ -529,6 +541,8 @@ fn qml_reads_no_name_that_is_not_there() {
         "icon",
         "text",
         "parent",
+        // On Image, AnimatedImage and Nemo's Thumbnail: how big to decode.
+        "sourceSize",
         // A delegate's scope.
         "model",
         "modelData",

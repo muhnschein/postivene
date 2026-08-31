@@ -16,6 +16,81 @@ use std::time::Duration;
 use deltachat_jsonrpc::{spawn_event_loop, RpcClient};
 use serde_json::Value;
 
+/// A 1x1 PNG, written out so the core reads real pixels rather than
+/// guessing from a name: header, an IHDR saying 1x1 truecolour, one
+/// compressed scanline, IEND.
+const ONE_PIXEL_PNG: &[u8] = &[
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+    0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
+    0xde, 0x00, 0x00, 0x00, 0x0c, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0xf8, 0xcf, 0xc0, 0x00,
+    0x00, 0x03, 0x01, 0x01, 0x00, 0xc9, 0xfe, 0x92, 0xef, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e,
+    0x44, 0xae, 0x42, 0x60, 0x82,
+];
+
+/// A 1x1 GIF. The core classifies it as an animation and reports no
+/// dimensions for it, which is the case the conversation has to survive.
+const ONE_PIXEL_GIF: &[u8] = &[
+    0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00, 0x80, 0x00, 0x00, 0xff, 0xff, 0xff,
+    0x00, 0x00, 0x00, 0x21, 0xf9, 0x04, 0x01, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x00, 0x00, 0x00, 0x01,
+    0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44, 0x01, 0x00, 0x3b,
+];
+
+/// One second of silence as a WAV: PCM, mono, 8 kHz, 8-bit, so the header
+/// alone states the length. Built rather than checked in so the size the
+/// assertions use is arithmetic rather than a magic number.
+fn one_second_wav() -> Vec<u8> {
+    let (rate, bits, channels) = (8000_u32, 8_u16, 1_u16);
+    // One byte per sample at 8-bit mono, so a second is `rate` bytes.
+    let bytes = rate;
+    let samples = vec![0x80_u8; bytes as usize];
+    let mut wav = Vec::with_capacity(44 + samples.len());
+    wav.extend_from_slice(b"RIFF");
+    wav.extend_from_slice(&(36 + bytes).to_le_bytes());
+    wav.extend_from_slice(b"WAVEfmt ");
+    wav.extend_from_slice(&16_u32.to_le_bytes());
+    wav.extend_from_slice(&1_u16.to_le_bytes()); // PCM
+    wav.extend_from_slice(&channels.to_le_bytes());
+    wav.extend_from_slice(&rate.to_le_bytes());
+    wav.extend_from_slice(&rate.to_le_bytes()); // bytes per second
+    wav.extend_from_slice(&1_u16.to_le_bytes()); // block align
+    wav.extend_from_slice(&bits.to_le_bytes());
+    wav.extend_from_slice(b"data");
+    wav.extend_from_slice(&bytes.to_le_bytes());
+    wav.extend_from_slice(&samples);
+    wav
+}
+
+/// Send one file to `chat` and hand back the message the core stored, which
+/// is the shape every row is built from.
+async fn send_file(
+    client: &RpcClient,
+    account_id: u32,
+    chat_id: u32,
+    path: &std::path::Path,
+    name: &str,
+) -> Value {
+    let (message_id, _): (u32, Value) = client
+        .call(
+            "misc_send_msg",
+            (
+                account_id,
+                chat_id,
+                Option::<String>::None,
+                Some(path.to_string_lossy().into_owned()),
+                Some(name.to_string()),
+                Option::<(f64, f64)>::None,
+                Option::<u32>::None,
+            ),
+        )
+        .await
+        .unwrap_or_else(|err| panic!("misc_send_msg for {name}: {err}"));
+    let messages: std::collections::HashMap<u32, Value> = client
+        .call("get_messages", (account_id, vec![message_id]))
+        .await
+        .unwrap_or_else(|err| panic!("get_messages for {name}: {err}"));
+    messages[&message_id].clone()
+}
+
 /// Resolve the gate's value, treating a relative path as relative to the
 /// repository root rather than to the process's working directory.
 ///
@@ -388,6 +463,132 @@ async fn offline_round_trip_against_real_core() {
         reply.pointer("/quote/authorDisplayName").is_some(),
         "the quote says nothing about its author: {reply:?}"
     );
+
+    // The core decides the view type from the file, and the conversation
+    // renders a picture inline on the strength of that: nothing in the app
+    // classifies an attachment, and nothing should start.
+    let picture = std::env::temp_dir().join("postivene-real-server-dot.png");
+    // The smallest valid PNG: an 1x1 image, so the core has real pixels to
+    // read rather than a name to guess from.
+    std::fs::write(&picture, ONE_PIXEL_PNG).expect("write picture");
+    let (third, _): (u32, Value) = client
+        .call(
+            "misc_send_msg",
+            (
+                sender_id,
+                saved,
+                Option::<String>::None,
+                Some(picture.to_string_lossy().into_owned()),
+                Some("dot.png".to_string()),
+                Option::<(f64, f64)>::None,
+                Option::<u32>::None,
+            ),
+        )
+        .await
+        .expect("misc_send_msg with a picture");
+    let messages: std::collections::HashMap<u32, Value> = client
+        .call("get_messages", (sender_id, vec![third]))
+        .await
+        .expect("get_messages");
+    let sent_picture = &messages[&third];
+    assert_eq!(
+        sent_picture.get("viewType").and_then(Value::as_str),
+        Some("Image"),
+        "the core did not classify a PNG as an image, so the conversation \
+         would show it as a paperclip: {sent_picture:?}"
+    );
+    for field in ["dimensionsWidth", "dimensionsHeight"] {
+        assert_eq!(
+            sent_picture.get(field).and_then(Value::as_i64),
+            Some(1),
+            "the core reported no {field}, which is what the delegate sizes \
+             the picture from: {sent_picture:?}"
+        );
+    }
+
+    // What the core does NOT fill in, which is as much of the contract as
+    // what it does: a GIF gets no dimensions and a sound file gets no
+    // duration, so the conversation must not size or label anything from
+    // them without checking. This is the whole reason AttachmentPreview
+    // falls back to the loaded item's own proportions and lets the audio
+    // player report its own length.
+    let animation = std::env::temp_dir().join("postivene-real-server-dot.gif");
+    std::fs::write(&animation, ONE_PIXEL_GIF).expect("write gif");
+    let sent_gif = send_file(&client, sender_id, saved, &animation, "dot.gif").await;
+    assert_eq!(
+        sent_gif.get("viewType").and_then(Value::as_str),
+        Some("Gif"),
+        "the core did not classify a GIF as an animation: {sent_gif:?}"
+    );
+    for field in ["dimensionsWidth", "dimensionsHeight"] {
+        assert_eq!(
+            sent_gif.get(field).and_then(Value::as_i64),
+            Some(0),
+            "the core now reports {field} for a GIF. That is an improvement, \
+             but AttachmentPreview's fallback was written because it did \
+             not: check the fallback still has a case, then relax this: \
+             {sent_gif:?}"
+        );
+    }
+
+    let tone = std::env::temp_dir().join("postivene-real-server-tone.wav");
+    std::fs::write(&tone, one_second_wav()).expect("write wav");
+    let sent_tone = send_file(&client, sender_id, saved, &tone, "tone.wav").await;
+    assert_eq!(
+        sent_tone.get("viewType").and_then(Value::as_str),
+        Some("Audio"),
+        "the core did not classify a WAV as audio: {sent_tone:?}"
+    );
+    assert_eq!(
+        sent_tone.get("fileMime").and_then(Value::as_str),
+        Some("audio/wav"),
+        "the core reported no MIME type, which the video thumbnailer needs \
+         and the file row names itself by: {sent_tone:?}"
+    );
+    assert_eq!(
+        sent_tone.get("fileBytes").and_then(Value::as_u64),
+        Some(8044),
+        "the core reported the wrong size for a file it just copied: {sent_tone:?}"
+    );
+    assert_eq!(
+        sent_tone.get("duration").and_then(Value::as_i64),
+        Some(0),
+        "the core now reports a duration for a file it did not before. It \
+         carries whatever the sender put in the message rather than probing, \
+         which is why nothing renders this field: {sent_tone:?}"
+    );
+
+    // A shared contact. The core parses the card and hands back the pieces
+    // a contact row is built from, so nothing here reads vCard syntax.
+    let ada: u32 = client
+        .call(
+            "create_contact",
+            (sender_id, "ada@example.org", "Ada Lovelace"),
+        )
+        .await
+        .expect("create_contact");
+    let card: String = client
+        .call("make_vcard", (sender_id, vec![ada]))
+        .await
+        .expect("make_vcard");
+    let card_path = std::env::temp_dir().join("postivene-real-server-ada.vcf");
+    std::fs::write(&card_path, &card).expect("write vcard");
+    let sent_card = send_file(&client, sender_id, saved, &card_path, "ada.vcf").await;
+    assert_eq!(
+        sent_card.get("viewType").and_then(Value::as_str),
+        Some("Vcard"),
+        "the core did not classify a .vcf as a contact: {sent_card:?}"
+    );
+    for field in ["displayName", "addr", "color"] {
+        assert!(
+            sent_card
+                .pointer(&format!("/vcardContact/{field}"))
+                .and_then(Value::as_str)
+                .is_some_and(|value| !value.is_empty()),
+            "the parsed contact has no {field}, which the contact row is \
+             built from: {sent_card:?}"
+        );
+    }
 
     // Chat kind, which decides whether a message names its sender.
     let group: u32 = client

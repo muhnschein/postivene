@@ -80,6 +80,11 @@ pub struct DeltaChatCore {
 
     /// Create a new unconfigured account.
     pub add_account: qt_method!(fn(&mut self)),
+    /// Delete a profile and everything in it, on this device.
+    ///
+    /// `remove_account` is the core's name for it -- verified against the
+    /// pinned binary, which has no `delete_account`. There is no undo.
+    pub remove_account: qt_method!(fn(&mut self, account_id: u32)),
 
     /// Legacy path: `set_config` + `configure`. Prefer
     /// `create_profile_with_email` (`docs/ONBOARDING.md`).
@@ -415,6 +420,35 @@ impl DeltaChatCore {
         runtime.spawn(async move {
             let result = rpc
                 .call_unit::<u32>("add_account")
+                .await
+                .map_err(|err| err.to_string());
+            done(result);
+        });
+    }
+
+    /// Delete a profile and everything in it.
+    ///
+    /// Refreshes afterwards rather than trusting the caller to: the list
+    /// this leaves behind is what decides whether the app still has a
+    /// profile to show, and `accounts_refreshed` is how that is learnt.
+    pub fn remove_account(&mut self, account_id: u32) {
+        let Some((rpc, runtime)) = self.connection() else {
+            self.account_error(QString::from("not started"));
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<(), String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            match result {
+                Ok(()) => this.borrow_mut().refresh_accounts(),
+                Err(err) => this.borrow().account_error(err.into()),
+            }
+        });
+
+        runtime.spawn(async move {
+            let result = rpc
+                .call::<_, ()>("remove_account", (account_id,))
                 .await
                 .map_err(|err| err.to_string());
             done(result);

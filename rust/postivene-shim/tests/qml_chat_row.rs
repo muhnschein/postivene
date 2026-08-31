@@ -153,6 +153,8 @@ fn a_chat_row_shows_its_unread_count_time_and_marks() {
     single_shot(Duration::from_secs(4), move || unsafe {
         record!("badge-capped", get!("unreadLabel", "text"));
         record!("marked-name", get!("nameLabel", "text"));
+        record!("pinned-mark", get!("pinMark", "visible"));
+        record!("muted-mark", get!("muteMark", "visible"));
         record!("ours", get!("previewLabel", "text"));
 
         // Older than a week: a date, not a weekday that would read as one
@@ -188,9 +190,13 @@ fn assert_outcome(steps: &[(&str, String)]) {
         "false",
         "a chat with nothing unread wore a badge. {context}"
     );
-    assert!(
-        value("today").len() == 5 && value("today").contains(':'),
-        "a message from today is not shown as a time. {context}"
+    // Relative, not a clock time: the question a chat list answers is
+    // "how recently", and "now" answers it without the reader having to
+    // know what time it is.
+    assert_eq!(
+        value("today"),
+        "now",
+        "a message from moments ago is not shown as such. {context}"
     );
     assert_eq!(
         value("preview"),
@@ -208,16 +214,10 @@ fn assert_outcome(steps: &[(&str, String)]) {
         "unread messages went unbadged. {context}"
     );
     assert_eq!(value("badge-text"), "3", "the badge miscounts. {context}");
-    assert!(
-        !value("this-week").contains(':'),
-        "a message from this week is shown as a time, which reads as today. {context}"
-    );
-    // A weekday abbreviation; a date would be longer and ambiguous about
-    // which week it is in.
-    assert!(
-        value("this-week").len() <= 4 && !value("this-week").is_empty(),
-        "a message from this week is not shown as a weekday: {}. {context}",
-        value("this-week")
+    assert_eq!(
+        value("this-week"),
+        "3 days",
+        "a message from earlier this week is not counted in days. {context}"
     );
     assert!(
         value("older").len() > 4 && !value("older").contains(':'),
@@ -229,12 +229,23 @@ fn assert_outcome(steps: &[(&str, String)]) {
         "99+",
         "a large unread count is not capped. {context}"
     );
-    assert!(
-        value("marked-name").contains("✉")
-            && value("marked-name").contains("📌")
-            && value("marked-name").contains("🔇"),
-        "an unencrypted, pinned, muted chat says none of it: {}. {context}",
-        value("marked-name")
+    // The name is a name. Pinned and muted say where the chat sits and
+    // how it behaves, so they live on the right with the time; only the
+    // mail icon, which is about the chat itself, stays on the name.
+    assert_eq!(
+        value("marked-name"),
+        "✉ Ada Lovelace",
+        "the name carries marks that belong on the right. {context}"
+    );
+    assert_eq!(
+        value("pinned-mark"),
+        "true",
+        "a pinned chat does not show it. {context}"
+    );
+    assert_eq!(
+        value("muted-mark"),
+        "true",
+        "a muted chat does not show it. {context}"
     );
     assert_eq!(
         value("ours"),

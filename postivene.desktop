@@ -12,11 +12,20 @@ Categories=Network;InstantMessaging;
 # .cache and .config equivalents). Without this section a relaxed default
 # profile applies instead, which is what the app ran under until now.
 #
-# Internet is the only permission it needs: everything else the core does
-# happens inside its own account directory. Camera belongs here too once
-# QR scanning lands, and not before -- a permission the app does not use
-# is a sandbox hole for no benefit.
+# Internet, for the core's own traffic; everything else it does happens
+# inside its own account directory.
+#
+# Pictures and MediaIndexing are both needed by the settings page's
+# profile picture, and neither is sufficient alone: Pictures whitelists
+# ~/Pictures and the Android storage equivalents, while MediaIndexing
+# grants `dbus-user.talk org.freedesktop.Tracker3.Miner.Files` -- the
+# index the gallery picker actually lists from. With only Pictures the
+# picker can read the files and cannot find them, which is why it came up
+# empty on a device.
+#
+# Camera belongs here too once QR scanning lands, and not before -- a
+# permission the app does not use is a sandbox hole for no benefit.
 [X-Sailjail]
-Permissions=Internet
+Permissions=Internet;Pictures;MediaIndexing
 OrganizationName=postivene
 ApplicationName=postivene

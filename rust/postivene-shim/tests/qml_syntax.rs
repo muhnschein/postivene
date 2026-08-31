@@ -111,7 +111,7 @@ fn delegates_bind_only_roles_their_models_have() {
     }
 
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let cases: [(&str, Vec<String>); 4] = [
+    let cases: [(&str, Vec<String>); 5] = [
         (
             "qml/components/ConversationList.qml",
             names_of::<postivene_shim::MessageListItem>(),
@@ -127,6 +127,10 @@ fn delegates_bind_only_roles_their_models_have() {
         (
             "qml/pages/NewGroupPage.qml",
             names_of::<postivene_shim::ContactItem>(),
+        ),
+        (
+            "qml/components/SearchResultsList.qml",
+            names_of::<postivene_shim::SearchItem>(),
         ),
     ];
 
@@ -144,6 +148,41 @@ fn delegates_bind_only_roles_their_models_have() {
                 "{file} binds model.{role}, which its model does not have: {roles:?}"
             );
         }
+    }
+}
+
+/// A row's time label must position itself off the row, never off the
+/// label whose width it decides.
+///
+/// `SearchResultRow` had the two referring to each other -- the title's
+/// width subtracted the time label's width, and the time label anchored
+/// to the title's top. On a device that cycle left the title at its
+/// natural width and a long chat name ran off the right-hand edge; the
+/// offscreen engine used by the tests resolves it and shows nothing, so
+/// this is a scan rather than a measurement. `ChatListDelegate` is the
+/// shape that works: its time label is placed off `root.width`, and the
+/// name takes its width from that label's `x`.
+#[test]
+fn a_time_label_does_not_depend_on_the_label_it_sizes() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/components");
+    for (file, time_id, sized_id) in [
+        ("SearchResultRow.qml", "id: timeLabel", "titleLabel"),
+        ("ChatListDelegate.qml", "id: timeLabelItem", "nameLabel"),
+    ] {
+        let text =
+            fs::read_to_string(root.join(file)).unwrap_or_else(|err| panic!("read {file}: {err}"));
+        let block = block_of(&text, time_id);
+        assert!(
+            !block.is_empty(),
+            "{file} has no {time_id} any more; this check is measuring nothing"
+        );
+        assert!(
+            !block.contains(sized_id),
+            "{file}'s time label positions itself off {sized_id}, whose width \
+             is decided by this label -- that is the loop that put a long \
+             title off the side of the screen. Place it off the row instead, \
+             as ChatListDelegate does. Block was:\n{block}"
+        );
     }
 }
 
@@ -304,6 +343,232 @@ fn text_from_the_other_end_is_pinned_to_plain() {
         offenders.is_empty(),
         "these show text the other end chose without saying it is plain, so \
          Qt decides for itself whether it is markup:\n  {}",
+        offenders.join("\n  ")
+    );
+}
+
+/// The file with every comment and string body blanked out, newlines kept.
+///
+/// A scan that does not do this reads prose and translated text as code:
+/// a URL in a string ends a line comment, and from there every quote
+/// pairs up with the wrong one and whole blocks of real code disappear.
+fn code_only(text: &str) -> String {
+    let chars: Vec<char> = text.chars().collect();
+    let blank = |c: char| if c == '\n' { '\n' } else { ' ' };
+    let mut out = String::with_capacity(text.len());
+    let mut i = 0;
+    while i < chars.len() {
+        let here = chars[i];
+        let next = chars.get(i + 1).copied();
+        if here == '/' && next == Some('/') {
+            while i < chars.len() && chars[i] != '\n' {
+                out.push(' ');
+                i += 1;
+            }
+        } else if here == '/' && next == Some('*') {
+            while i < chars.len() {
+                if chars[i] == '*' && chars.get(i + 1) == Some(&'/') {
+                    out.push_str("  ");
+                    i += 2;
+                    break;
+                }
+                out.push(blank(chars[i]));
+                i += 1;
+            }
+        } else if here == '"' || here == '\'' {
+            out.push(' ');
+            i += 1;
+            while i < chars.len() && chars[i] != here {
+                if chars[i] == '\\' {
+                    out.push(' ');
+                    i += 1;
+                }
+                if i < chars.len() {
+                    out.push(blank(chars[i]));
+                    i += 1;
+                }
+            }
+            if i < chars.len() {
+                out.push(' ');
+                i += 1;
+            }
+        } else {
+            out.push(here);
+            i += 1;
+        }
+    }
+    out
+}
+
+/// Identifiers and single punctuation marks, in order.
+fn tokens(code: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut word = String::new();
+    for c in code.chars() {
+        if c.is_alphanumeric() || c == '_' || c == '$' {
+            word.push(c);
+            continue;
+        }
+        if !word.is_empty() {
+            out.push(std::mem::take(&mut word));
+        }
+        if !c.is_whitespace() {
+            out.push(c.to_string());
+        }
+    }
+    if !word.is_empty() {
+        out.push(word);
+    }
+    out
+}
+
+/// Every name the file itself introduces: ids, properties and their
+/// types, functions and their parameters, signal parameters, `var`s.
+///
+/// Deliberately greedy -- a type name landing in here alongside the
+/// property it types costs nothing. Over-collecting only makes the check
+/// weaker, while missing a declaration would make it wrong.
+fn declared_names(code: &str) -> std::collections::HashSet<String> {
+    fn is_name(token: &str) -> bool {
+        token
+            .chars()
+            .next()
+            .is_some_and(|c| c.is_alphabetic() || c == '_')
+    }
+
+    let tokens = tokens(code);
+    let mut names = std::collections::HashSet::new();
+    let mut i = 0;
+    while i < tokens.len() {
+        // Everything after the keyword, up to the token that ends the
+        // declaration.
+        let (skip, stop): (usize, &[&str]) = match tokens[i].as_str() {
+            "id" if tokens.get(i + 1).map(String::as_str) == Some(":") => (2, &[]),
+            "property" => (1, &[":", "{", "}"]),
+            "function" | "signal" => (1, &[")", "{"]),
+            "var" => (1, &["="]),
+            _ => {
+                i += 1;
+                continue;
+            }
+        };
+        let mut j = i + skip;
+        // A bare `id:` or `var` names exactly one thing.
+        let single = stop.is_empty() || tokens[i] == "var";
+        while j < tokens.len() && !stop.contains(&tokens[j].as_str()) {
+            if is_name(&tokens[j]) {
+                names.insert(tokens[j].clone());
+                if single {
+                    break;
+                }
+            }
+            j += 1;
+        }
+        i = j.max(i + 1);
+    }
+    names
+}
+
+/// Every `foo.` in the code, with the line it is on: a name being read
+/// for something on it.
+fn qualified_uses(code: &str) -> Vec<(usize, String)> {
+    let chars: Vec<char> = code.chars().collect();
+    let is_word = |c: char| c.is_alphanumeric() || c == '_' || c == '$';
+    let mut out = Vec::new();
+    for (at, c) in chars.iter().enumerate() {
+        if *c != '.' {
+            continue;
+        }
+        let mut end = at;
+        while end > 0 && chars[end - 1].is_whitespace() {
+            end -= 1;
+        }
+        let mut start = end;
+        while start > 0 && is_word(chars[start - 1]) {
+            start -= 1;
+        }
+        if start == end {
+            continue;
+        }
+        // `a.b.c` reads `b` off `a`; only the head of the chain is a name
+        // that has to exist on its own.
+        if start > 0 && (chars[start - 1] == '.' || is_word(chars[start - 1])) {
+            continue;
+        }
+        let name: String = chars[start..end].iter().collect();
+        // Types, attached properties and enums are capitalised; numbers
+        // are not names at all.
+        if !name.starts_with(|c: char| c.is_lowercase() && c.is_alphabetic()) {
+            continue;
+        }
+        let line = chars[..start].iter().filter(|c| **c == '\n').count() + 1;
+        out.push((line, name));
+    }
+    out
+}
+
+/// A name read as `<name>.something` has to be one the file introduces or
+/// one QML puts in scope.
+///
+/// An id that is not there any more is not a load error. The binding that
+/// reads it throws at runtime, that one binding never runs, and whatever
+/// it fed keeps its default -- everything else on the page carries on. A
+/// patch deleted `SearchResultRow`'s `Avatar` and left the three
+/// references to it behind; the row's height is measured off it, so every
+/// search result collapsed to nothing and a search showed "Chats (1)"
+/// with no chat under it. The file still parsed, the page still loaded,
+/// and nothing in the suite could see it.
+#[test]
+fn qml_reads_no_name_that_is_not_there() {
+    // What QML puts in scope without the file saying so.
+    const IN_SCOPE: [&str; 12] = [
+        // Grouped properties, and properties of the element being
+        // configured read without qualifying them.
+        "anchors",
+        "font",
+        "icon",
+        "text",
+        "parent",
+        // A delegate's scope.
+        "model",
+        "modelData",
+        "section",
+        "index",
+        // Set from Rust in main.rs, and Silica's own.
+        "core",
+        "pageStack",
+        // ContentPickerPage hands its answer to the handler under this
+        // name; see SettingsPage.
+        "selectedContentProperties",
+    ];
+
+    let files = qml_files();
+    assert!(!files.is_empty(), "found no .qml files to check");
+
+    let mut offenders = Vec::new();
+    for file in &files {
+        let code = code_only(&fs::read_to_string(file).expect("read qml"));
+        let declared = declared_names(&code);
+        let mut seen = Vec::new();
+        for (line, name) in qualified_uses(&code) {
+            if declared.contains(&name) || IN_SCOPE.contains(&name.as_str()) {
+                continue;
+            }
+            if seen.contains(&name) {
+                continue;
+            }
+            seen.push(name.clone());
+            offenders.push(format!("{}:{line}: {name}.…", file.display()));
+        }
+    }
+
+    assert!(
+        offenders.is_empty(),
+        "these read something off a name the file never declares. If it was \
+         an id, the element is gone and the references were left behind: the \
+         binding throws at load and silently keeps its default, which is how \
+         a row ends up with no height. If it is something QML puts in scope, \
+         add it to IN_SCOPE with a note saying where it comes from.\n  {}",
         offenders.join("\n  ")
     );
 }

@@ -65,6 +65,7 @@ fn component_url(name: &str) -> String {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn a_message_shows_its_sender_time_quote_and_attachment() {
     // SAFETY: single-threaded test binary; set before Qt starts.
     unsafe {
@@ -179,12 +180,30 @@ fn a_message_shows_its_sender_time_quote_and_attachment() {
     single_shot(Duration::from_secs(6), move || unsafe {
         record!("info-shown", get!("infoLabel", "visible"));
         record!("info-has-no-bubble", get!("bubble", "visible"));
+        // Back to an ordinary message, and mark it forwarded. Its own
+        // tick: `set` persists, and the info flag hides the whole bubble.
+        set!("isInfo", false);
+        set!("isForwarded", true);
+    });
+
+    single_shot(Duration::from_secs(7), move || unsafe {
+        record!("forwarded-shown", get!("forwardedLabel", "visible"));
+        record!("forwarded-text", get!("forwardedLabel", "text"));
+        // It has to sit above the quote, not overlap it.
+        record!("forwarded-y", get!("forwardedLabel", "y"));
+        record!("quote-y", get!("quoteRow", "y"));
+        set!("isForwarded", false);
+    });
+
+    single_shot(Duration::from_secs(8), move || unsafe {
+        record!("plain-not-forwarded", get!("forwardedLabel", "visible"));
         (*engine_ptr).quit();
     });
 
     engine.exec();
 
     assert_outcome(&steps);
+    assert_forwarded(&steps);
 }
 
 /// Everything the conversation view has to get right about one message.
@@ -281,5 +300,39 @@ fn assert_outcome(steps: &[(&str, String)]) {
         value("info-has-no-bubble"),
         "false",
         "a core notice kept its bubble. {context}"
+    );
+}
+
+/// A forwarded message says so in the sender's own client too.
+fn assert_forwarded(steps: &[(&str, String)]) {
+    let value = |label: &str| {
+        steps
+            .iter()
+            .find(|(name, _)| *name == label)
+            .map(|(_, value)| value.clone())
+            .unwrap_or_default()
+    };
+    let context = format!("steps: {steps:?}");
+
+    assert_eq!(
+        value("forwarded-shown"),
+        "true",
+        "a forwarded message is not marked, so it reads as one written here. {context}"
+    );
+    assert_eq!(
+        value("forwarded-text"),
+        "Forwarded",
+        "the forwarded marker does not say what it means. {context}"
+    );
+    assert_eq!(
+        value("plain-not-forwarded"),
+        "false",
+        "an ordinary message claims to be forwarded, so the mark means nothing. {context}"
+    );
+    let forwarded_y: f64 = value("forwarded-y").parse().unwrap_or(-1.0);
+    let quote_y: f64 = value("quote-y").parse().unwrap_or(-1.0);
+    assert!(
+        forwarded_y >= 0.0 && quote_y > forwarded_y,
+        "the marker does not sit above the quote (marker {forwarded_y}, quote {quote_y}). {context}"
     );
 }

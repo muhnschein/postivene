@@ -69,6 +69,25 @@ jobs:
       # Running as root is explicitly wrong -- sdk-manage refuses, saying
       # it cannot determine the Mer SDK user -- so the build stays as the
       # image's own mersdk, and the tree has to belong to it.
+      # Every build used to produce postivene-0.1.0-1.aarch64.rpm, because
+      # the spec pins both fields and mb2 runs with -X so nothing derives
+      # them from git. Same name, same NEVRA, every time -- so `rpm -U`
+      # and `pkcon install-local` saw a package that was already installed
+      # and did nothing at all. A phone kept whatever build it had while
+      # the file said it was new.
+      #
+      # The run number is monotonic, so each build is an upgrade of the
+      # last; the short SHA says which commit it came from. The spec keeps
+      # Release: 1 in the tree, which is what a tagged release should be.
+      - name: Stamp the build so each one is its own package
+        run: |
+          short=$(git rev-parse --short HEAD)
+          release="1.${GITHUB_RUN_NUMBER}.g${short}"
+          sed -i "s/^Release:.*/Release:    ${release}/" rpm/postivene.spec
+          grep '^Version:\|^Release:' rpm/postivene.spec
+          echo "SHORT_SHA=$short" >> "$GITHUB_ENV"
+          echo "RPM_RELEASE=$release" >> "$GITHUB_ENV"
+
       - name: Hand the checkout to the SDK's build user
         run: |
           img=coderus/sailfishos-platform-sdk:$SFOS
@@ -147,7 +166,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: postivene-${{ env.ARCH }}-sfos${{ env.SFOS }}
+          name: postivene-${{ env.ARCH }}-sfos${{ env.SFOS }}-${{ env.SHORT_SHA }}
           path: |
             RPMS/**/*.rpm
             **/*.rpm

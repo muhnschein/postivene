@@ -32,6 +32,15 @@ pub struct ChatMessages {
     pub account_id: qt_property!(u32; WRITE set_account_id NOTIFY chat_changed),
     /// Which chat. Setting it reloads.
     pub chat_id: qt_property!(u32; WRITE set_chat_id NOTIFY chat_changed),
+    /// True once a load has finished, however it went.
+    ///
+    /// An empty chat and a chat whose messages have not arrived yet are
+    /// the same thing to `count`, so the placeholder was shown during
+    /// every open -- a flash of "no messages yet" before the history
+    /// appeared. This tells the two apart.
+    pub loaded: qt_property!(bool; NOTIFY loaded_changed),
+    /// Emitted when [`Self::loaded`] changes.
+    pub loaded_changed: qt_signal!(),
     /// Emitted when the chat this model points at changes.
     pub chat_changed: qt_signal!(),
 
@@ -82,6 +91,13 @@ pub struct ChatMessages {
     /// Mark every unread message now loaded as read. Called when the
     /// reader reaches the newest message.
     pub mark_seen_all: qt_method!(fn(&mut self)),
+
+    /// Which row a message is in, or -1 when it is not loaded.
+    ///
+    /// A search result names a message, and opening its chat at the newest
+    /// message rather than at the one that matched is the difference
+    /// between finding something and being told where it roughly is.
+    pub row_of: qt_method!(fn(&self, message_id: u32) -> i32),
     /// Delete a message. Not only here: the core also removes it from the
     /// mail server, which for this client is where it lived.
     pub delete_message: qt_method!(fn(&mut self, message_id: u32)),
@@ -108,6 +124,8 @@ impl ChatMessages {
     pub fn set_account_id(&mut self, account_id: u32) {
         if self.account_id != account_id {
             self.account_id = account_id;
+            self.loaded = false;
+            self.loaded_changed();
             self.chat_changed();
             self.reload();
         }
@@ -117,6 +135,8 @@ impl ChatMessages {
     pub fn set_chat_id(&mut self, chat_id: u32) {
         if self.chat_id != chat_id {
             self.chat_id = chat_id;
+            self.loaded = false;
+            self.loaded_changed();
             self.chat_changed();
             self.reload();
         }
@@ -128,6 +148,22 @@ impl ChatMessages {
         if account_id == 0 || chat_id == 0 {
             return;
         }
+        // Already loaded, by whoever opened this page: take it and skip
+        // the round trip entirely. This is what lets the transition start
+        // with the rows in place rather than fill in behind it.
+        if let Some((is_group, items)) = crate::prefetch::take(account_id, chat_id) {
+            self.is_group = is_group;
+            self.rows.borrow_mut().reset_data(items);
+            self.loaded = true;
+            self.is_group_changed();
+            self.loaded_changed();
+            self.rows_changed();
+            if !self.reading_history {
+                self.mark_chat_seen();
+            }
+            return;
+        }
+
         let Some((rpc, runtime)) = connection() else {
             return;
         };
@@ -142,8 +178,10 @@ impl ChatMessages {
                             let mut this_mut = this.borrow_mut();
                             this_mut.is_group = is_group;
                             this_mut.rows.borrow_mut().reset_data(items);
+                            this_mut.loaded = true;
                         }
                         this.borrow().is_group_changed();
+                        this.borrow().loaded_changed();
                         this.borrow().rows_changed();
                         // Asked now, not before the fetch: the reader can
                         // scroll away, or the app go behind, while it runs.
@@ -152,7 +190,14 @@ impl ChatMessages {
                             this.borrow_mut().mark_chat_seen();
                         }
                     }
-                    Err(err) => this.borrow().error(err.into()),
+                    Err(err) => {
+                        // Loaded, in the sense that matters here: the wait
+                        // is over. Leaving it false would hold an empty
+                        // view with no explanation for ever.
+                        this.borrow_mut().loaded = true;
+                        this.borrow().loaded_changed();
+                        this.borrow().error(err.into());
+                    }
                 }
             },
         );
@@ -352,6 +397,16 @@ impl ChatMessages {
             let result = fetch_messages(&rpc, account_id, &[message_id]).await;
             done(result);
         });
+    }
+
+    /// Which row a message is in, or -1 when it is not loaded.
+    pub fn row_of(&self, message_id: u32) -> i32 {
+        self.rows
+            .borrow()
+            .iter()
+            .position(|row| row.message_id == message_id)
+            .and_then(|index| i32::try_from(index).ok())
+            .unwrap_or(-1)
     }
 
     /// Mark every unread message now loaded as read.
@@ -590,7 +645,11 @@ fn removals(rows: &MessageListModel, ids: &[u32]) -> Option<Vec<usize>> {
 }
 
 /// The chat's message ids, oldest first.
-async fn message_ids(rpc: &RpcClient, account_id: u32, chat_id: u32) -> Result<Vec<u32>, String> {
+pub(crate) async fn message_ids(
+    rpc: &RpcClient,
+    account_id: u32,
+    chat_id: u32,
+) -> Result<Vec<u32>, String> {
     let items: Vec<serde_json::Value> = rpc
         .call(
             "get_message_list_items",
@@ -615,7 +674,7 @@ async fn message_ids(rpc: &RpcClient, account_id: u32, chat_id: u32) -> Result<V
 
 /// Fetch several messages in one call. The old code asked for them one at a
 /// time, which cost a round trip per message on every refresh.
-async fn fetch_messages(
+pub(crate) async fn fetch_messages(
     rpc: &RpcClient,
     account_id: u32,
     ids: &[u32],
@@ -659,7 +718,7 @@ async fn mark_seen(rpc: &RpcClient, account_id: u32, items: &[MessageListItem]) 
 }
 
 /// True for a chat where a message has to say who sent it.
-async fn chat_is_group(rpc: &RpcClient, account_id: u32, chat_id: u32) -> bool {
+pub(crate) async fn chat_is_group(rpc: &RpcClient, account_id: u32, chat_id: u32) -> bool {
     let info: serde_json::Value = match rpc.call("get_basic_chat_info", (account_id, chat_id)).await
     {
         Ok(info) => info,
@@ -736,6 +795,14 @@ fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
         sender_color: text_at(message, "/sender/color"),
         is_info: message
             .get("isInfo")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false),
+        // `unwrap_or(false)` covers the abbreviated object the fake core
+        // returns from misc_send_msg; a message composed here is never a
+        // forward anyway. Real forwards arrive through get_messages,
+        // which returns the full shape.
+        is_forwarded: message
+            .get("isForwarded")
             .and_then(serde_json::Value::as_bool)
             .unwrap_or(false),
         quote_text: text_at(message, "/quote/text"),

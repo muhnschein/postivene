@@ -1,4 +1,9 @@
-//! Typing in the chat list's search field has to reach the model.
+//! Typing in the chat list's search field has to reach a model.
+//!
+//! On the ordinary list that model is the grouped search, which looks at
+//! chats, contacts and messages; the chat list underneath is left as it
+//! is, so clearing the field costs nothing. The archived list is a mode
+//! over one kind of thing and filters itself.
 //!
 //! The field lives in the list's `header`, which is a Component property,
 //! so everything inside it gets its own scope. A page-level timer reading
@@ -143,10 +148,14 @@ fn typing_in_the_search_field_reaches_the_model() {
     single_shot(Duration::from_secs(5), move || unsafe {
         (*steps_ptr).push((
             "query",
-            call!("get", QString::from("chats"), QString::from("query")),
+            call!("get", QString::from("search"), QString::from("query")),
         ));
         (*steps_ptr).push((
             "after",
+            call!("get", QString::from("search"), QString::from("count")),
+        ));
+        (*steps_ptr).push((
+            "list-untouched",
             call!("get", QString::from("chats"), QString::from("count")),
         ));
         (*steps_ptr).push((
@@ -212,7 +221,13 @@ fn assert_outcome(steps: &[(&str, String)]) {
     assert_eq!(
         value("after"),
         "1",
-        "the query reached the model but the list was not narrowed by it. {context}"
+        "the query reached the model but nothing was found for it. {context}"
+    );
+    assert_eq!(
+        value("list-untouched"),
+        "2",
+        "searching refetched the chat list underneath, which is a round trip \
+         per keystroke for a list nobody is looking at. {context}"
     );
 
     assert_eq!(

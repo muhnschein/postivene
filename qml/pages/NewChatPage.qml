@@ -50,15 +50,28 @@ Page {
         }
     }
 
-    SilicaListView {
-        id: listView
+    // Outside the list for the reason ChatListPage documents: a field in
+    // a view's `header` lives inside the flickable and its id does not
+    // resolve from the page, so every reference to it below was reading
+    // an undefined name.
+    // One flickable for the whole page, owning the pulley.
+    //
+    // A PullDownMenu draws at the top of the flickable that owns
+    // it, and the list starts below the search field -- so a pulley
+    // on the list opened below the field, or inside it. It does not
+    // scroll: the field has to stay out of a view whose contents
+    // change on every keystroke, which is what took the keyboard
+    // away mid-search.
+    SilicaFlickable {
+        id: pulleyHost
         anchors.fill: parent
-        model: contacts.rows
+        contentWidth: width
+        contentHeight: height
 
         PullDownMenu {
             MenuItem {
                 objectName: "newGroupButton"
-                text: qsTr("New Group")
+                text: qsTr("New group")
                 onClicked: pageStack.push(Qt.resolvedUrl("NewGroupPage.qml"),
                                           { accountId: page.accountId })
             }
@@ -67,17 +80,22 @@ Page {
                 // encrypted, so adding a contact starts from an invite --
                 // which is how a Delta Chat contact is actually added.
                 objectName: "newContactButton"
-                text: qsTr("New Contact")
+                text: qsTr("New contact")
                 onClicked: pageStack.push(Qt.resolvedUrl("InvitePage.qml"),
                                           { accountId: page.accountId })
             }
         }
 
-        header: Column {
-            width: page.width
+        Column {
+            id: heading
+            anchors {
+                top: parent.top
+                left: parent.left
+                right: parent.right
+            }
 
             PageHeader {
-                title: qsTr("New Chat")
+                title: qsTr("New chat")
             }
 
             SearchField {
@@ -96,30 +114,42 @@ Page {
             }
         }
 
-        // No context menu: picking a contact is the only thing to do
-        // with one here.
-        delegate: ListItem {
-            objectName: "contactRow"
-            contentHeight: body.height
+        SilicaListView {
+            id: listView
+            anchors {
+                top: heading.bottom
+                left: parent.left
+                right: parent.right
+                bottom: parent.bottom
+            }
+            model: contacts.rows
 
-            ContactRow {
-                id: body
-                width: parent.width
-                displayName: model.display_name
-                address: model.address
-                ownColor: model.color
-                picturePath: model.avatar_path
-                isKeyContact: model.is_key_contact
-                isVerified: model.is_verified
+
+            // No context menu: picking a contact is the only thing to do
+            // with one here.
+            delegate: ListItem {
+                objectName: "contactRow"
+                contentHeight: body.height
+
+                ContactRow {
+                    id: body
+                    width: parent.width
+                    displayName: model.display_name
+                    address: model.address
+                    ownColor: model.color
+                    picturePath: model.avatar_path
+                    isKeyContact: model.is_key_contact
+                    isVerified: model.is_verified
+                }
+
+                onClicked: contacts.open_chat_with(model.contact_id)
             }
 
-            onClicked: contacts.open_chat_with(model.contact_id)
-        }
-
-        ViewPlaceholder {
-            enabled: contacts.count === 0
-            text: qsTr("No contacts yet")
-            hintText: qsTr("Add one with an invite link")
+            ViewPlaceholder {
+                enabled: contacts.count === 0
+                text: qsTr("No contacts yet")
+                hintText: qsTr("Add one with an invite link")
+            }
         }
     }
 }

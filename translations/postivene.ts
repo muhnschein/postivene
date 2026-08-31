@@ -2,13 +2,25 @@
 <!DOCTYPE TS>
 <TS version="2.1">
 <context>
-    <name>AccountsPage</name>
+    <name>ChatListDelegate</name>
     <message>
-        <source>Accounts</source>
+        <source>now</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>No accounts</source>
+        <source>%1 min</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 h</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>1 day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 days</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -28,10 +40,6 @@
     </message>
     <message>
         <source>Search chats</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Accounts</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -92,6 +100,30 @@
     </message>
     <message>
         <source>Unarchive</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Profiles</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pinned</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Other chats</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No archived chats</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -252,10 +284,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Add by Address</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Invite</source>
         <translation type="unfinished"></translation>
     </message>
@@ -285,21 +313,16 @@
     </message>
 </context>
 <context>
+    <name>MessageDelegate</name>
+    <message>
+        <source>Forwarded</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>NewChatPage</name>
     <message>
         <source>Chat</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>New Group</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>New Contact</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>New Chat</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -314,31 +337,16 @@
         <source>Add one with an invite link</source>
         <translation type="unfinished"></translation>
     </message>
-</context>
-<context>
-    <name>NewContactPage</name>
     <message>
-        <source>That is not an email address</source>
+        <source>New group</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>New Contact</source>
+        <source>New contact</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Email address</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Name (optional)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Messages to an address the app has no key for are sent as plain email. Scan or paste an invite link to chat encrypted.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Start Chat</source>
+        <source>New chat</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -353,10 +361,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>New Group</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Group name</source>
         <translation type="unfinished"></translation>
     </message>
@@ -364,11 +368,119 @@
         <source>No contacts to add yet</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>New group</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ProfilesPage</name>
+    <message>
+        <source>Profiles</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No profiles</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Delete profile</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Deleting profile</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SearchResultRow</name>
+    <message>
+        <source>now</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 min</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 h</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>1 day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 days</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SearchResultsList</name>
+    <message>
+        <source>Chats (%1)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Contacts (%1)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Messages (%1 of %2)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Messages (%1)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Nothing found</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Remove picture</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Your name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Saved</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Bio</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A line about you</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Send read receipts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Tells the people you write to when you have read their messages, and asks the same of them. With this off you send none and see none.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

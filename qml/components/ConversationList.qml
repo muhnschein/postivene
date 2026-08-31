@@ -12,7 +12,6 @@ import Sailfish.Silica 1.0
 SilicaListView {
     id: root
 
-    property string title
     // Seconds east of UTC, for turning a day number back into a date.
     // Groups have to say who is speaking; one-to-one chats do not.
     property bool showSender: false
@@ -88,13 +87,46 @@ SilicaListView {
     // separate steps: the first moves `count`, the second `contentHeight`.
     onMessageCountChanged: if (root.following) toEnd.restart()
     onContentHeightChanged: if (root.following) toEnd.restart()
-    // Where the reader left off, once they stop moving. `atYEnd` is the
-    // view's own answer; the arithmetic version has to know about `originY`
-    // and gets it wrong.
+    // How close to the end still counts as being at it. Exactly `atYEnd`
+    // is the wrong test: rows are measured as they scroll into view, so
+    // `contentHeight` is still growing at the moment a scroll stops, and
+    // the comparison lands just short. That is why the button could not
+    // be dismissed -- `jumpToNewest` set `stickToBottom`, the scroll it
+    // started then ended, and this handler read `atYEnd` as false and put
+    // it straight back. A reader a line short of the bottom has, for every
+    // purpose this drives, arrived.
+    /// The message a search sent the reader here for, flashed once so it
+    /// can be picked out of the wall of text around it. 0 for none.
+    property int foundMessageId: 0
+
+    /// Put a row in the middle of the view and stay there.
+    ///
+    /// Opening a chat at its newest message when the reader asked for one
+    /// from last March is the difference between finding something and
+    /// being told roughly where it is. `stickToBottom` goes off first:
+    /// otherwise the next arrival drags the view back to the bottom and
+    /// away from what they came to read.
+    function jumpToRow(index) {
+        if (index < 0) {
+            return
+        }
+        root.stickToBottom = false
+        root.positionViewAtIndex(index, ListView.Center)
+    }
+
+    readonly property real bottomSlack: Theme.itemSizeLarge
+
+    /// At or near the newest message -- including a chat too short to
+    /// scroll at all, where there is no "end" to reach.
+    readonly property bool nearBottom:
+        root.contentHeight <= root.height
+        || root.contentY + root.height >= root.contentHeight + root.originY - root.bottomSlack
+
+    // Where the reader left off, once they stop moving.
     onMovementEnded: {
         root.held = false
-        root.stickToBottom = root.atYEnd
-        if (root.atYEnd) {
+        root.stickToBottom = root.nearBottom
+        if (root.nearBottom) {
             root.missedCount = 0
         }
     }
@@ -104,9 +136,6 @@ SilicaListView {
     onStickToBottomChanged: if (root.stickToBottom) root.arrivedAtNewest()
     signal arrivedAtNewest()
 
-    header: PageHeader {
-        title: root.title
-    }
 
     // The model counts days in the viewer's timezone, so grouping by that
     // number is enough to break the list into days.
@@ -194,6 +223,8 @@ SilicaListView {
             messageText: model.text
             isOutgoing: model.is_outgoing
             isInfo: model.is_info
+            isForwarded: model.is_forwarded
+            isFound: root.foundMessageId === model.message_id
             showPadlock: model.show_padlock
             deliveryState: model.state
             sentAt: model.timestamp
@@ -210,8 +241,15 @@ SilicaListView {
         }
     }
 
+    /// Whether the chat's messages have actually been fetched yet.
+    ///
+    /// Not the same as having none. Without it, every open flashed "no
+    /// messages yet" while the history was still on its way.
+    property bool loaded: true
+
     ViewPlaceholder {
-        enabled: root.count === 0
+        objectName: "emptyPlaceholder"
+        enabled: root.loaded && root.count === 0
         text: root.placeholderText
     }
 }

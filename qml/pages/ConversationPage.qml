@@ -13,12 +13,20 @@ Page {
     property int accountId
     property int chatId
     property string chatName
+    /// A message a search found in this chat, to open at rather than at
+    /// the newest. 0 opens the chat normally.
+    property int findMessageId: 0
 
     ChatMessages {
         id: messages
         objectName: "messages"
         account_id: page.accountId
-        chat_id: page.chatId
+        // Deliberately not bound to page.chatId. A binding starts the
+        // fetch the moment the page is created -- while it is still
+        // transitioning in -- and building every row of a long history in
+        // one go on the Qt thread is what makes that transition stutter
+        // and freeze. The chat is handed over once the page has settled;
+        // the handler below does it.
         // What the reader can actually see decides what counts as read.
         reading_history: !page.readerIsLooking
         onError: page.errorMessage = message
@@ -31,6 +39,39 @@ Page {
             listView.jumpToNewest()
         }
         onArrived: listView.noteArrivals(count)
+    }
+
+    // The fetch waits for the page to arrive. Until then the list shows
+    // nothing and says nothing: `loaded` keeps the "no messages yet"
+    // placeholder off the screen while this is pending.
+    onStatusChanged: {
+        if (status === PageStatus.Active && messages.chat_id !== page.chatId) {
+            messages.chat_id = page.chatId
+        }
+    }
+
+    // Where a search result lands. The row cannot be looked up until the
+    // fetch above has finished, so this waits for the model to say so
+    // rather than for the page: the two are no longer the same moment.
+    Connections {
+        target: messages
+        onLoaded_changed: {
+            if (messages.loaded && page.findMessageId !== 0) {
+                listView.foundMessageId = page.findMessageId
+                listView.jumpToRow(messages.row_of(page.findMessageId))
+                // Once is enough; a later reload must not drag the reader
+                // back off whatever they have scrolled to since.
+                page.findMessageId = 0
+                foundFlash.restart()
+            }
+        }
+    }
+
+    // The flash says "this one" and then gets out of the way.
+    Timer {
+        id: foundFlash
+        interval: 4000
+        onTriggered: listView.foundMessageId = 0
     }
 
     // Everything that has to hold for an arriving message to count as seen:
@@ -73,11 +114,21 @@ Page {
         page.replyAuthor = ""
     }
 
+    // Outside the list rather than its `header`, so it stays put: a
+    // header scrolls with the content, and in a long conversation the
+    // name of whoever you are talking to disappears off the top.
+    PageHeader {
+        id: conversationHeader
+        objectName: "conversationHeader"
+        title: page.chatName
+    }
+
     ConversationList {
+        loaded: messages.loaded
         id: listView
         objectName: "messageList"
         anchors {
-            top: parent.top
+            top: conversationHeader.bottom
             left: parent.left
             right: parent.right
             bottom: banner.top
@@ -86,7 +137,6 @@ Page {
         // The model's own count, which changes when a row arrives rather
         // than when the view gets round to showing it.
         messageCount: messages.count
-        title: page.chatName
         showSender: messages.is_group
         placeholderText: qsTr("No messages yet")
 

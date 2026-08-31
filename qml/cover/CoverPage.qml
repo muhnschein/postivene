@@ -4,7 +4,13 @@ import Postivene 1.0
 
 /*
  * What the cover has to say while the app is minimised: how much is
- * waiting, and from whom.
+ * waiting.
+ *
+ * The core's status and a shortcut into the chat list both used to sit
+ * along the bottom, drawn over each other -- a CoverAction and a Label
+ * claim the same strip. Both are gone rather than one moved: the status
+ * is the app's business and not the reader's, and a cover that opens the
+ * app is what tapping the cover already does.
  *
  * It keeps its own ChatList rather than reaching into the one the chat
  * list page owns, because a cover outlives any page -- the app can be
@@ -16,17 +22,6 @@ CoverBackground {
     id: cover
 
     property int accountId: 0
-
-    /// Asked for by the cover action. Handled where pageStack is in
-    /// scope, which is the root window rather than here.
-    signal showChats()
-
-    CoverActionList {
-        CoverAction {
-            iconSource: "image://theme/icon-cover-message"
-            onTriggered: cover.showChats()
-        }
-    }
 
     ChatList {
         id: chats
@@ -76,19 +71,4 @@ CoverBackground {
         text: qsTr("No new messages")
     }
 
-    Label {
-        objectName: "coverStatus"
-        anchors {
-            horizontalCenter: parent.horizontalCenter
-            bottom: parent.bottom
-            bottomMargin: Theme.paddingLarge
-        }
-        width: parent.width - 2 * Theme.paddingMedium
-        horizontalAlignment: Text.AlignHCenter
-        // Whatever the core says, and it is the core saying it.
-        text: core.status
-        font.pixelSize: Theme.fontSizeExtraSmall
-        color: Theme.secondaryColor
-        truncationMode: TruncationMode.Fade
-    }
 }

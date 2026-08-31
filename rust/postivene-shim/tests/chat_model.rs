@@ -80,6 +80,17 @@ fn each_chat_has_its_own_model_and_loads_in_one_batch() {
         std::env::set_var("QT_QPA_PLATFORM", "offscreen");
         std::env::set_var("POSTIVENE_FAKE_JOURNAL", &journal);
         std::env::set_var("POSTIVENE_ACCOUNTS_DIR", temp.join("accounts"));
+        // This test is about the ordering where a send's own reply is
+        // dealt with before the event the same send produced: the row is
+        // already in the model by the time the event arrives, so the
+        // refresh it triggers has nothing left to fetch. Which of the two
+        // wins is otherwise a race between queued callbacks on the Qt
+        // thread, and it went the other way on a loaded CI runner --
+        // where the model correctly fetched a message it did not have
+        // yet, and the assertions below, which only describe this
+        // ordering, failed. The other ordering has tests of its own:
+        // chat_send_race.rs and chat_sync_race.rs.
+        std::env::set_var("POSTIVENE_FAKE_EVENT_DELAY_MS", "1500");
     }
 
     postivene_shim::register_qml_types();

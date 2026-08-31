@@ -41,6 +41,9 @@ pub struct ChatListItem {
 pub type ChatListModel = SimpleListModel<ChatListItem>;
 
 /// One message row from `get_message_list_items` plus `get_message`.
+// Each flag is a role QML reads by name, so they cannot be folded into
+// one field.
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Default, Clone, qmetaobject::SimpleListItem)]
 pub struct MessageListItem {
     /// The core's message id.
@@ -69,6 +72,10 @@ pub struct MessageListItem {
     /// A core-generated notice ("... joined the group"), not a message
     /// anyone typed.
     pub is_info: bool,
+    /// `isForwarded` upstream: a copy of a message from somewhere else
+    /// rather than one written here. The core sets it on the sender's own
+    /// copy too, which is why a forward made from this device is marked.
+    pub is_forwarded: bool,
     /// The quoted message's text, empty when nothing is quoted.
     pub quote_text: QString,
     /// Who wrote the quoted message.
@@ -126,3 +133,34 @@ pub struct ContactItem {
 
 /// Contact model, for pickers and the contact list.
 pub type ContactListModel = SimpleListModel<ContactItem>;
+
+/// One row of a search, whatever kind of thing it found.
+///
+/// The three kinds live in one model so a single list can show them under
+/// counted headings the way the reference clients do -- QML's `section`
+/// groups a flat model, and there is no way to give one view three.
+#[derive(Default, Clone, qmetaobject::SimpleListItem)]
+pub struct SearchItem {
+    /// `chat`, `contact` or `message`. QML sections on this, and the
+    /// delegate picks what to draw from it.
+    pub kind: QString,
+    /// The chat to open. A message row carries the chat it is in.
+    pub chat_id: u32,
+    /// Contact rows only; the chat with them may not exist yet.
+    pub contact_id: u32,
+    /// Message rows only, so a hit can be pointed at later.
+    pub message_id: u32,
+    /// Chat name, contact name, or the name of the chat a message is in.
+    pub title: QString,
+    /// The last message, the contact's address, or the matching text.
+    pub subtitle: QString,
+    /// Unix seconds. 0 where the row has no time worth showing.
+    pub timestamp: i64,
+    /// The core's colour for the chat or contact, `#rrggbb`.
+    pub color: QString,
+    /// Picture for the chat or contact, empty when there is none.
+    pub avatar_path: QString,
+}
+
+/// Search model, for the grouped results list.
+pub type SearchListModel = SimpleListModel<SearchItem>;

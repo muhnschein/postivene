@@ -9,8 +9,8 @@ answer is in `DEVICE-CHECKS.md`.
 ## Starting a conversation  *(done)*
 
 `ContactList` lists contacts and opens a chat three ways: tapping a known
-contact, adding an address, or creating a group. `NewChatPage`,
-`NewContactPage` and `NewGroupPage` sit behind "New Chat" on the chat list.
+contact or creating a group. `NewChatPage` and `NewGroupPage` sit behind
+"New Chat" on the chat list.
 
 Invites work in both directions: a pasted `https://i.delta.chat/...` link
 is classified by the core and followed with `secure_join`, and the
@@ -52,7 +52,7 @@ What is still missing here:
 The chat list searches (the core matches, so a search finds chats the
 model has never loaded), reaches the archived list as its own page, and
 offers a contact request the only two answers it has -- accept or block --
-rather than showing it as an ordinary chat. `AccountsPage` puts the
+rather than showing it as an ordinary chat. `ProfilesPage` puts the
 `account_list` model on screen, and appears in the pulley only where there
 is more than one account to choose between.
 
@@ -69,8 +69,9 @@ with one.
 
 "New Contact" opens the invite page, since an address alone produces a
 chat that cannot be encrypted and an invite is how a contact is actually
-added. The address form lives on behind that page: the core can also mail
-someone who does not use Delta Chat at all, and that needs an address.
+added. The address form is gone entirely: it could only ever produce a
+chat that cannot be encrypted, and this client does not set out to
+support plaintext conversations.
 
 ## Defects in what exists
 
@@ -131,3 +132,19 @@ form of every invite payload already works, so the camera is polish.
    blocking a contact outside a request.
 5. Avatars on message bubbles, voice messages, reactions, drafts, an
    unread divider, paging for long histories, and sending attachments.
+
+## Vocabulary: profile, not account
+
+The reference clients say "profile", and so does everything a reader
+sees: the page, its title, its rows, the pulley entry that opens it.
+
+The word stops at the qmetaobject bridge. `account_id`, `account_list`,
+`accounts_refreshed` and their neighbours keep the core's own name,
+because that is what the wire says -- the JSON-RPC methods are literally
+`add_account`, `get_all_accounts`, `remove_account`. Renaming our side
+while the protocol says otherwise would buy a nicer identifier and cost a
+translation layer at every call site.
+
+Two visible strings deliberately keep the word: "Log in to an email
+account" and "no account with us" both mean an account somewhere else,
+which is exactly the distinction the rename is drawing.

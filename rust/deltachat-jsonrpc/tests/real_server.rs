@@ -469,6 +469,129 @@ async fn offline_round_trip_against_real_core() {
         .await
         .expect("markseen_msgs");
 
+    // What the next round of UI work depends on, pinned here because a
+    // wrong method name or config key fails only on a device -- the fake
+    // core answers to whatever it is asked.
+
+    // Forwarding. `isForwarded` is what marks a forwarded copy for the
+    // sender as well as the recipient, and it is false on the original:
+    // an assertion on the copy alone would pass against a field that was
+    // simply always true.
+    let (original, _): (u32, Value) = client
+        .call(
+            "misc_send_msg",
+            (
+                sender_id,
+                saved,
+                Some("to forward"),
+                Option::<String>::None,
+                Option::<String>::None,
+                Option::<(f64, f64)>::None,
+                Option::<u32>::None,
+            ),
+        )
+        .await
+        .expect("misc_send_msg for the forwarding probe");
+    client
+        .call::<_, ()>("forward_messages", (sender_id, vec![original], saved))
+        .await
+        .expect("forward_messages");
+    let listed: Vec<Value> = client
+        .call("get_message_list_items", (sender_id, saved, false, false))
+        .await
+        .expect("get_message_list_items after forwarding");
+    let ids: Vec<u32> = listed
+        .iter()
+        .filter_map(|item| item.get("msg_id").and_then(Value::as_u64))
+        .filter_map(|id| u32::try_from(id).ok())
+        .collect();
+    let after: std::collections::HashMap<u32, Value> = client
+        .call("get_messages", (sender_id, ids))
+        .await
+        .expect("get_messages after forwarding");
+    let forwarded_flags: Vec<bool> = after
+        .values()
+        .filter_map(|message| message.get("isForwarded").and_then(Value::as_bool))
+        .collect();
+    assert!(
+        forwarded_flags.iter().any(|flag| *flag),
+        "no message reports isForwarded after forward_messages: {after:?}"
+    );
+    assert!(
+        forwarded_flags.iter().any(|flag| !*flag),
+        "every message reports isForwarded, so the field marks nothing: {after:?}"
+    );
+
+    // Searching. Three arguments, the last being an optional chat to
+    // search within -- passing two is rejected outright.
+    let _: Vec<u32> = client
+        .call(
+            "search_messages",
+            (sender_id, "forward", Option::<u32>::None),
+        )
+        .await
+        .expect("search_messages takes (account, query, chat_id option)");
+
+    // The profile fields a settings page edits. `displayname` is already
+    // pinned above; these are the two it does not cover.
+    client
+        .call::<_, ()>("set_config", (sender_id, "selfstatus", "probing"))
+        .await
+        .expect("set_config selfstatus");
+    let status: Option<String> = client
+        .call("get_config", (sender_id, "selfstatus"))
+        .await
+        .expect("get_config selfstatus");
+    assert_eq!(
+        status.as_deref(),
+        Some("probing"),
+        "selfstatus did not stick"
+    );
+
+    // `selfavatar` is a *path to an image the core copies into its blob
+    // directory*, not a value: an empty string is rejected outright with
+    // "Copying new blobfile failed". A settings page has to hand it a
+    // real file, and clear it with null rather than "".
+    let avatar = std::env::temp_dir().join("postivene-real-server-avatar.png");
+    // The smallest valid PNG; the core rejects what it cannot decode.
+    std::fs::write(
+        &avatar,
+        [
+            137u8, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1,
+            8, 6, 0, 0, 0, 31, 21, 196, 137, 0, 0, 0, 11, 73, 68, 65, 84, 120, 156, 99, 96, 0, 2,
+            0, 0, 5, 0, 1, 122, 94, 171, 63, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130,
+        ],
+    )
+    .expect("write probe avatar");
+    client
+        .call::<_, ()>(
+            "set_config",
+            (
+                sender_id,
+                "selfavatar",
+                Some(avatar.to_string_lossy().into_owned()),
+            ),
+        )
+        .await
+        .expect("set_config selfavatar with a real image path");
+    let stored: Option<String> = client
+        .call("get_config", (sender_id, "selfavatar"))
+        .await
+        .expect("get_config selfavatar");
+    assert!(
+        stored.as_deref().is_some_and(|path| !path.is_empty()),
+        "selfavatar read back empty after being set to an image: {stored:?}"
+    );
+    // Null clears it. This is the shape a "remove picture" action needs.
+    client
+        .call::<_, ()>(
+            "set_config",
+            (sender_id, "selfavatar", Option::<String>::None),
+        )
+        .await
+        .expect("set_config selfavatar null clears it");
+    let _ = std::fs::remove_file(&avatar);
+
     let _ = std::fs::remove_file(&attachment);
     handle.stop();
     client.shutdown().await.expect("shutdown");

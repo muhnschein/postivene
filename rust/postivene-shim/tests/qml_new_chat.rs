@@ -1,6 +1,6 @@
 //! The pages that start a conversation, driven headlessly.
 //!
-//! Loads the real `NewChatPage` and `NewContactPage` against the stub Silica
+//! Loads the real `NewChatPage` against the stub Silica
 //! module and the recording double, and asserts what a tap produces on the
 //! wire and where it navigates.
 
@@ -175,27 +175,6 @@ fn the_new_chat_pages_create_chats_and_open_them() {
         (*steps_ptr).push(("tap-contact", call!("click", QString::from("contactRow"))));
     });
 
-    single_shot(Duration::from_secs(5), move || unsafe {
-        call!(
-            "load",
-            QString::from(common::page_url("NewContactPage.qml")),
-            1
-        );
-    });
-
-    single_shot(Duration::from_secs(6), move || unsafe {
-        (*steps_ptr).push(("contact-page", call!("status")));
-        (*steps_ptr).push((
-            "address",
-            call!(
-                "setText",
-                QString::from("addressField"),
-                QString::from("new@example.org")
-            ),
-        ));
-        (*steps_ptr).push(("add", call!("click", QString::from("addButton"))));
-    });
-
     single_shot(Duration::from_secs(8), move || unsafe {
         call!("load", QString::from(common::page_url("InvitePage.qml")), 1);
     });
@@ -255,8 +234,9 @@ fn assert_outcome(steps: &[(&str, String)], navigation: &str, chat_id: u32, jour
     // Both routes end in a conversation, with a chat the core made.
     assert_eq!(
         navigation.matches("replace:ConversationPage.qml").count(),
-        3,
-        "each of contact, address and invite should open a chat. {context}"
+        2,
+        "each of tapping a contact and following an invite should open a \
+         chat. {context}"
     );
     assert!(
         chat_id > 0,
@@ -269,10 +249,6 @@ fn assert_outcome(steps: &[(&str, String)], navigation: &str, chat_id: u32, jour
         "the page never asked for contacts: {calls:?}"
     );
     assert!(
-        calls.iter().any(|name| name == "create_contact"),
-        "the address was not turned into a contact: {calls:?}"
-    );
-    assert!(
         calls.iter().any(|name| name == "secure_join"),
         "the pasted invite was never followed: {calls:?}"
     );
@@ -281,7 +257,7 @@ fn assert_outcome(steps: &[(&str, String)], navigation: &str, chat_id: u32, jour
             .iter()
             .filter(|name| *name == "create_chat_by_contact_id")
             .count(),
-        2,
-        "each route should have created exactly one chat: {calls:?}"
+        1,
+        "tapping a contact should have created exactly one chat: {calls:?}"
     );
 }

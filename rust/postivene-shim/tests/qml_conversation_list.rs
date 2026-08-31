@@ -116,6 +116,7 @@ const PROBE_QML: &str = r"
             return item ? '' + item.visible : 'missing'
         }
         function clearRaised() { raised = ''; return 'ok' }
+        function emptyModel() { rows.clear(); return '' + rows.count }
         // Destroys the delegate the menu belongs to, as a reload or a
         // reorder does.
         function removeRow(index) { rows.remove(index); return 'ok' }
@@ -160,6 +161,23 @@ const PROBE_QML: &str = r"
         function settle() { loader.item.movementEnded(); return 'ok' }
         // The view's own answer to 'is the end on screen'.
         function ended() { return '' + loader.item.atYEnd }
+        // Stop a little short of the end, the way a real scroll does while
+        // rows are still being measured.
+        function stopJustShort(gap) {
+            var view = loader.item
+            view.positionViewAtEnd()
+            view.contentY = view.contentY - gap
+            return '' + view.atYEnd
+        }
+        function near() { return '' + loader.item.nearBottom }
+        // The placeholder's own enabled state, read off the item rather
+        // than recomputed -- a probe that repeated the binding would pass
+        // whatever the component did.
+        function setLoaded(value) { loader.item.loaded = value; return 'ok' }
+        function placeholderOn() {
+            var item = findIn(loader.item, 'emptyPlaceholder')
+            return item ? '' + item.enabled : 'missing:emptyPlaceholder'
+        }
     }
 ";
 
@@ -345,16 +363,52 @@ fn a_conversation_opens_at_the_newest_message_and_stays_where_it_is_left() {
 
     single_shot(Duration::from_secs(12), move || unsafe {
         record!("resend-when-delivered", call!("resendVisible"));
+        // Refill: resetToState left a handful of rows, and a list too
+        // short to scroll is near the bottom by definition -- there would
+        // be nothing to scroll away from.
+        call!("append", 40);
+        call!("beginDrag");
+        call!("toTop");
+        call!("settle");
+    });
+
+    single_shot(Duration::from_secs(13), move || unsafe {
+        record!("away", call!("get", QString::from("stickToBottom")));
+        call!("beginDrag");
+        record!("short-atyend", call!("stopJustShort", 12.0));
+        record!("short-near", call!("near"));
+        call!("settle");
+    });
+
+    single_shot(Duration::from_secs(14), move || unsafe {
+        record!("short-sticks", call!("get", QString::from("stickToBottom")));
+        // Empty the list and put it back to not-yet-loaded, which is what
+        // opening a chat looks like before its messages arrive.
+        call!("emptyModel");
+        call!("setLoaded", false);
+    });
+
+    single_shot(Duration::from_secs(15), move || unsafe {
+        record!("placeholder-while-loading", call!("placeholderOn"));
+        call!("setLoaded", true);
+    });
+
+    single_shot(Duration::from_secs(16), move || unsafe {
+        record!("placeholder-when-empty", call!("placeholderOn"));
         (*engine_ptr).quit();
     });
 
     engine.exec();
 
     assert_outcome(&steps);
+    assert_near_bottom(&steps);
 }
 
 /// Opening lands on the newest message; an arrival moves the view only
 /// when the reader is already there.
+///
+/// And stopping a line short of the newest message counts as arriving:
+/// the jump-to-newest button could not otherwise be dismissed.
 // One assertion per thing checked, in the order the steps ran.
 #[allow(clippy::too_many_lines)]
 fn assert_outcome(steps: &[(&str, String)]) {
@@ -503,5 +557,56 @@ fn assert_outcome(steps: &[(&str, String)]) {
         value("missed-cleared"),
         "0",
         "the count of missed messages survived jumping to them. {context}"
+    );
+}
+
+/// A reader who stops just short of the end has arrived, so the
+/// jump-to-newest button goes away.
+fn assert_near_bottom(steps: &[(&str, String)]) {
+    let value = |label: &str| {
+        steps
+            .iter()
+            .find(|(name, _)| *name == label)
+            .map(|(_, value)| value.clone())
+            .unwrap_or_default()
+    };
+    let context = format!("steps: {steps:?}");
+
+    assert_eq!(
+        value("away"),
+        "false",
+        "scrolling up did not clear stickToBottom, so nothing below is under \
+         test. {context}"
+    );
+    // The arrangement: genuinely short of the end by the view's own
+    // reckoning. Without this the case being tested is not the one that
+    // was reported.
+    assert_eq!(
+        value("short-atyend"),
+        "false",
+        "stopping short still counted as atYEnd, so this no longer \
+         reproduces the button that would not go away. {context}"
+    );
+    assert_eq!(
+        value("short-near"),
+        "true",
+        "a reader a few pixels from the end is not counted as near it. {context}"
+    );
+    assert_eq!(
+        value("placeholder-while-loading"),
+        "false",
+        "\"no messages yet\" is shown while the chat is still loading, which \
+         is the flash of an empty chat seen when opening a busy one. {context}"
+    );
+    assert_eq!(
+        value("placeholder-when-empty"),
+        "true",
+        "a chat that really is empty says nothing at all. {context}"
+    );
+    assert_eq!(
+        value("short-sticks"),
+        "true",
+        "settling just short of the newest message left the jump button up, \
+         with no way to dismiss it. {context}"
     );
 }

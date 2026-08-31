@@ -37,10 +37,11 @@ struct State {
     next_message_id: u32,
     /// Contact id -> address. Seeded with two known contacts.
     contacts: std::collections::BTreeMap<u32, String>,
-    next_contact_id: u32,
     next_chat_id: u32,
     /// Members added to each created group.
     group_members: std::collections::BTreeMap<u32, Vec<u32>>,
+    /// Config values per account, so a set can be read back.
+    config: std::collections::BTreeMap<(u32, String), String>,
 }
 
 impl State {
@@ -72,13 +73,28 @@ impl State {
             // asking for the ordinary one are indistinguishable, and a
             // test cannot tell which answer it got.
             self.chats.insert(3, vec![30]);
-            self.archived_order = vec![3];
+            // An empty archive is its own case: the page hides its search
+            // field when there is nothing to search, and with a chat
+            // always present no test could see that.
+            self.archived_order = if std::env::var("POSTIVENE_FAKE_NO_ARCHIVED").is_ok() {
+                Vec::new()
+            } else {
+                vec![3]
+            };
             self.next_message_id = 100;
             self.contacts.insert(10, "ada@example.org".to_string());
             self.contacts.insert(11, "grace@example.org".to_string());
-            self.next_contact_id = 100;
             self.next_chat_id = 500;
         }
+    }
+
+    /// Which chat a message is in. The real core carries this on the
+    /// message object; a search result is unusable without it.
+    fn chat_of(&self, message_id: u32) -> u32 {
+        self.chats
+            .iter()
+            .find(|(_, messages)| messages.contains(&message_id))
+            .map_or(0, |(chat, _)| *chat)
     }
 
     /// Append a message to a chat and announce it, the way a send or an
@@ -254,6 +270,13 @@ async fn main() {
                     let list = state.lock().await.account_list();
                     ok(&id, &list)
                 }
+                "remove_account" => {
+                    let mut state = state.lock().await;
+                    let gone = positional(0).as_u64().unwrap_or(0);
+                    let gone = u32::try_from(gone).unwrap_or(0);
+                    state.accounts.retain(|account| account.id != gone);
+                    ok(&id, &Value::Null)
+                }
                 "add_account" => {
                     let mut state = state.lock().await;
                     let next = u32::try_from(state.accounts.len()).unwrap_or(0) + 1;
@@ -263,8 +286,42 @@ async fn main() {
                     });
                     ok(&id, &json!(next))
                 }
-                "set_config"
-                | "start_io"
+                "set_config" => {
+                    let account = positional(0)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let key = positional(1).as_str().unwrap_or_default().to_string();
+                    let mut state = state.lock().await;
+                    // Null clears, as the real core does -- and an empty
+                    // string is a value, not a clear. `selfavatar` refuses
+                    // one outright there, which is why the app has to send
+                    // null rather than "".
+                    match positional(2).as_str() {
+                        Some(value) => {
+                            state.config.insert((account, key), value.to_string());
+                        }
+                        None => {
+                            state.config.remove(&(account, key));
+                        }
+                    }
+                    ok(&id, &Value::Null)
+                }
+                "get_config" => {
+                    let account = positional(0)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let key = positional(1).as_str().unwrap_or_default().to_string();
+                    let state = state.lock().await;
+                    let value = state
+                        .config
+                        .get(&(account, key))
+                        .cloned()
+                        .map_or(Value::Null, Value::String);
+                    ok(&id, &value)
+                }
+                "start_io"
                 | "stop_ongoing_process"
                 | "marknoticed_chat"
                 | "markseen_msgs"
@@ -323,23 +380,6 @@ async fn main() {
                         })
                         .collect();
                     ok(&id, &Value::Array(contacts))
-                }
-                "create_contact" => {
-                    let mut state = state.lock().await;
-                    state.seed_chats();
-                    let address = positional(1).as_str().unwrap_or_default().to_string();
-                    // An address already known keeps its id, as upstream does.
-                    let existing = state
-                        .contacts
-                        .iter()
-                        .find(|(_, known)| **known == address)
-                        .map(|(contact, _)| *contact);
-                    let contact = existing.unwrap_or_else(|| {
-                        state.next_contact_id += 1;
-                        state.next_contact_id
-                    });
-                    state.contacts.insert(contact, address);
-                    ok(&id, &json!(contact))
                 }
                 // A join and a one-to-one both end in a fresh chat at the top.
                 "create_chat_by_contact_id" | "secure_join" => {
@@ -447,8 +487,22 @@ async fn main() {
                     // DC_GCL_ARCHIVED_ONLY. The two listings are disjoint,
                     // so this is which list, not a filter on one.
                     let archived_only = positional(1).as_u64().unwrap_or(0) & 0x01 != 0;
+                    // Verified against the real core: with ARCHIVED_ONLY
+                    // set it never looks at the query, and a plain query
+                    // searches every chat *including* archived ones. A
+                    // fake that filtered the archived list by the query
+                    // would let a one-call implementation pass here and
+                    // fail on a device.
+                    let query = positional(2).as_str().unwrap_or("").to_string();
+                    let searching = !query.is_empty();
                     let entries = if archived_only {
+                        // The query is deliberately not consulted.
                         state.archived_order.clone()
+                    } else if searching {
+                        // A plain query reaches archived chats too.
+                        let mut all = state.chat_order.clone();
+                        all.extend(state.archived_order.iter().copied());
+                        all
                     } else {
                         state.chat_order.clone()
                     };
@@ -468,15 +522,14 @@ async fn main() {
                     }
                     // The core matches the query itself; so does this, on
                     // the same name a chat item reports.
-                    let entries = match positional(2).as_str() {
-                        Some(query) if !query.is_empty() => {
-                            let query = query.to_lowercase();
-                            entries
-                                .into_iter()
-                                .filter(|chat| format!("chat {chat}").contains(&query))
-                                .collect()
-                        }
-                        _ => entries,
+                    let entries = if searching && !archived_only {
+                        let needle = query.to_lowercase();
+                        entries
+                            .into_iter()
+                            .filter(|chat| format!("chat {chat}").contains(&needle))
+                            .collect()
+                    } else {
+                        entries
                     };
                     ok(&id, &json!(entries))
                 }
@@ -495,10 +548,40 @@ async fn main() {
                                 "summaryText2": format!("last in {chat}"),
                                 "freshMessageCounter": 0,
                                 "isEncrypted": true,
+                                // Chat 1 is pinned, so the ordinary list
+                                // has both kinds in it and a test can see
+                                // the two headings. The archived list
+                                // holds one unpinned chat, which is the
+                                // other case: one kind, no headings.
+                                "isPinned": chat == 1,
                             }),
                         );
                     }
                     ok(&id, &Value::Object(items))
+                }
+                "search_messages" => {
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    // Three arguments; the third is a chat to search
+                    // within, and null means every chat. Verified against
+                    // the pinned binary: passing two is rejected.
+                    let needle = positional(1).as_str().unwrap_or_default().to_lowercase();
+                    let within = positional(2)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok());
+                    let mut hits: Vec<u32> = Vec::new();
+                    for (chat, messages) in &state.chats {
+                        if within.is_some_and(|wanted| wanted != *chat) {
+                            continue;
+                        }
+                        for msg in messages {
+                            let text = format!("message {msg}");
+                            if !needle.is_empty() && text.contains(&needle) {
+                                hits.push(*msg);
+                            }
+                        }
+                    }
+                    ok(&id, &json!(hits))
                 }
                 "get_message_list_items" => {
                     let mut state = state.lock().await;
@@ -524,9 +607,14 @@ async fn main() {
                         .as_array()
                         .map(|array| array.iter().filter_map(Value::as_u64).collect())
                         .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
                     let mut loaded = serde_json::Map::new();
                     for msg in ids {
-                        loaded.insert(msg.to_string(), message_object(msg));
+                        let mut message = message_object(msg);
+                        let chat = u32::try_from(msg).map_or(0, |msg| state.chat_of(msg));
+                        message["chatId"] = json!(chat);
+                        loaded.insert(msg.to_string(), message);
                     }
                     ok(&id, &Value::Object(loaded))
                 }
@@ -567,6 +655,18 @@ async fn main() {
                     loop {
                         let queued: Vec<Value> = state.lock().await.events.drain(..).collect();
                         if !queued.is_empty() {
+                            // Held back after the batch is taken, not
+                            // before the wait: a delay ahead of the loop
+                            // would be spent while the queue was still
+                            // empty and buy nothing. This is what lets a
+                            // test say that a call's own reply is dealt
+                            // with before the event the same call
+                            // produced -- otherwise which of the two wins
+                            // is a race between queued callbacks on the
+                            // Qt thread, and a test that quietly depends
+                            // on one of them passes on one machine and
+                            // fails on another.
+                            tokio::time::sleep(delay("POSTIVENE_FAKE_EVENT_DELAY_MS")).await;
                             break ok(&id, &Value::Array(queued));
                         }
                         tokio::time::sleep(std::time::Duration::from_millis(20)).await;

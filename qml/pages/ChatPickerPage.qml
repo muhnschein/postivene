@@ -42,32 +42,41 @@ Page {
         onCore_event: chats.handle_event(context_id, kind, payload_json)
     }
 
+    // Outside the list for the reason ChatListPage documents: a field in
+    // a view's `header` lives inside the flickable, and its id does not
+    // resolve from the page -- so the debounce below was reading an
+    // undefined name and this search did nothing at all.
+    Column {
+        id: heading
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+        }
+
+        PageHeader {
+            title: qsTr("Forward to")
+        }
+
+        SearchField {
+            id: searchField
+            objectName: "pickerSearchField"
+            width: parent.width
+            placeholderText: qsTr("Search chats")
+            onTextChanged: searchDebounce.restart()
+        }
+    }
+
     SilicaListView {
         id: listView
         anchors {
-            top: parent.top
+            top: heading.bottom
             left: parent.left
             right: parent.right
             bottom: banner.top
         }
         clip: true
         model: chats.rows
-
-        header: Column {
-            width: page.width
-
-            PageHeader {
-                title: qsTr("Forward to")
-            }
-
-            SearchField {
-                id: searchField
-                objectName: "pickerSearchField"
-                width: parent.width
-                placeholderText: qsTr("Search chats")
-                onTextChanged: searchDebounce.restart()
-            }
-        }
 
         // No context menu: choosing is the only thing to do with a row.
         delegate: ListItem {

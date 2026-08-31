@@ -56,6 +56,16 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   via queued signals.
 - **Background reception** relies on IMAP IDLE plus a Sailfish background
   process. It is the hardest platform problem and the largest open risk.
+- **A chat loads a page at a time.** The ids are cheap and the messages are
+  not: `get_message_list_items` returns a number per message for the whole
+  chat, while `get_messages` builds every field of every row. So the model
+  holds every id and fetches a window of messages at the end of that list,
+  which is why paging needs no cursor and no server-side paging call. The
+  window is anchored on the *oldest loaded id*, not on a count: one message
+  arriving shifts every count-based slice by one, which drops the oldest
+  loaded row off the front and reads as a deletion. Rows inserted above the
+  ones on screen also carry the view with them -- Qt does not put it back,
+  so `ConversationList` does, by index rather than by pixels.
 - **One send at a time.** The compose state clears when the core answers,
   not when the button is tapped, so a send that fails leaves the reader
   holding what they chose. `ChatMessages.sending` closes the window that
@@ -105,7 +115,8 @@ On top of that: the chat list (unread badges, timestamps, avatars,
 encryption/pin/mute marks, context menu, search across chats/contacts/
 messages, archive, contact requests, multiple profiles), the conversation
 view (bubbles, quotes, delivery marks, day separators, reply/copy/delete/
-resend, and every kind of attachment the core classifies: photos and
+resend, a page of history at a time, and every kind of attachment the core
+classifies: photos and
 stickers inline, GIFs animated over a still poster, a video's poster frame
 from the platform thumbnailer, voice and audio played where they sit, a
 shared contact as a card, everything else named and sized), onboarding
@@ -166,8 +177,8 @@ In order of what matters:
    deciding deliberately rather than in passing.
 5. **Group member management, contact profile pages, blocking** outside a
    request; add-as-second-device and restore-from-backup.
-6. **Message polish**: avatars on bubbles, reactions, drafts, an unread
-   divider, and paging for long histories -- a chat is still fetched whole.
+6. **Message polish**: avatars on bubbles, reactions, drafts, and an unread
+   divider.
 7. **Recording a voice message, and the camera.** Sending every kind of
    attachment works; making one does not. QML has no audio recorder on
    Qt 5.6 -- `harbour-whisperfish` wrote its own against gstreamer -- so a

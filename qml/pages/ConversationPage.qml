@@ -52,20 +52,30 @@ Page {
     }
 
     // Where a search result lands. The row cannot be looked up until the
-    // fetch above has finished, so this waits for the model to say so
-    // rather than for the page: the two are no longer the same moment.
+    // fetch has finished, so this waits for the model to say so rather
+    // than for the page: the two are not the same moment. And a chat opens
+    // on its newest page, so the message a search found may not be loaded
+    // at all -- `reveal` steps back until it is and then says where it
+    // went, which is why this is two handlers rather than one lookup.
     Connections {
         target: messages
         onLoaded_changed: {
             if (messages.loaded && page.findMessageId !== 0) {
-                listView.foundMessageId = page.findMessageId
-                listView.jumpToRow(messages.row_of(page.findMessageId))
-                // Once is enough; a later reload must not drag the reader
-                // back off whatever they have scrolled to since.
-                page.findMessageId = 0
-                foundFlash.restart()
+                messages.reveal(page.findMessageId)
             }
         }
+        onRevealed: {
+            if (row >= 0) {
+                listView.foundMessageId = message_id
+                listView.jumpToRow(row)
+                foundFlash.restart()
+            }
+            // Once is enough, found or not: a later reload must not drag
+            // the reader back off whatever they have scrolled to since.
+            page.findMessageId = 0
+        }
+        // Rows have gone in above the ones on screen; put the view back.
+        onOlder_loaded: listView.olderLoaded(count)
     }
 
     // The flash says "this one" and then gets out of the way.
@@ -180,6 +190,9 @@ Page {
         // The model's own count, which changes when a row arrives rather
         // than when the view gets round to showing it.
         messageCount: messages.count
+        hasOlder: messages.has_older
+        loadingOlder: messages.loading_older
+        onOlderRequested: messages.load_older()
         showSender: messages.is_group
         placeholderText: qsTr("No messages yet")
 

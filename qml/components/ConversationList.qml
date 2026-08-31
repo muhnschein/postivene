@@ -18,6 +18,79 @@ SilicaListView {
     property string placeholderText
 
     property bool stickToBottom: true
+
+    /// True when the chat has messages older than the ones in the model.
+    property bool hasOlder: false
+    /// True while a step back through the history is in flight.
+    property bool loadingOlder: false
+    /// The reader has reached the top and there is more above them.
+    ///
+    /// Raised rather than acted on, like every other request here: the
+    /// component knows nothing about the core.
+    signal olderRequested()
+
+    /// Which row was at the top when the last step back was asked for, so
+    /// the rows that arrive above it can be put above it rather than in
+    /// front of the reader.
+    property int anchorIndex: 0
+
+    // How near the top starts the next step back. A page further on is
+    // more useful than a page the reader has to wait at the edge for.
+    readonly property real topSlack: Theme.itemSizeLarge
+
+    function askForOlder() {
+        // Not while following the newest message. Two reasons, and the
+        // second is the one that bites: a chat opens with its view at the
+        // bottom but its content still being measured, so contentY sits at
+        // 0 for a pass and this would fetch the page above on every open;
+        // and following means an insert above grows contentHeight, which
+        // sends the view back to the end and undoes the anchoring below.
+        // Asking for history is what someone who has stopped following
+        // does.
+        if (!root.hasOlder || root.loadingOlder || root.following) {
+            return
+        }
+        // indexAt takes content coordinates, and lands on nothing between
+        // rows or over a day separator. Row 0 is the honest fallback: this
+        // only runs near the top.
+        var index = root.indexAt(root.width / 2, root.contentY + 1)
+        root.anchorIndex = index < 0 ? 0 : index
+        root.olderRequested()
+    }
+
+    /// `count` older rows have gone in above the others.
+    ///
+    /// Rows inserted above what is on screen push it down by their height,
+    /// and their height is not known until they are laid out -- so the view
+    /// is put back by index rather than by pixels. Without this, a step
+    /// back through the history throws the reader further back than they
+    /// asked to go.
+    function olderLoaded(count) {
+        if (count > 0) {
+            root.positionViewAtIndex(root.anchorIndex + count, ListView.Beginning)
+        }
+    }
+
+    onContentYChanged: {
+        if (root.contentY - root.originY < root.topSlack) {
+            root.askForOlder()
+        }
+    }
+
+    // Above the oldest row, so it scrolls away with the history rather
+    // than sitting over it. Zero-high when there is nothing more to fetch,
+    // which is also what keeps it from moving the view when it goes.
+    header: Item {
+        width: root.width
+        height: root.hasOlder ? Theme.itemSizeSmall : 0
+
+        BusyIndicator {
+            objectName: "olderBusy"
+            anchors.centerIn: parent
+            size: BusyIndicatorSize.Small
+            running: root.loadingOlder
+        }
+    }
     // How many rows the model holds. Bound by the page rather than read off
     // the view: `count` there only changes when the view has laid out, and
     // an arrival has to be noticed whether or not it is on screen yet.

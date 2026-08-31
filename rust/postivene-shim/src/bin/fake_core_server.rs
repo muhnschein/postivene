@@ -65,7 +65,17 @@ impl State {
     /// model load them and then take in one more.
     fn seed_chats(&mut self) {
         if self.chats.is_empty() {
-            self.chats.insert(1, vec![1, 2]);
+            // A chat long enough to page through, when a test asks for
+            // one. Ids count up from 1, so the newest is the highest and
+            // the seeded quote and picture keep the ids they always had.
+            let long = std::env::var("POSTIVENE_FAKE_LONG_CHAT")
+                .ok()
+                .and_then(|count| count.parse::<u32>().ok())
+                .filter(|count| *count > 2);
+            self.chats.insert(
+                1,
+                long.map_or_else(|| vec![1, 2], |count| (1..=count).collect()),
+            );
             self.chats.insert(2, vec![10]);
             self.chat_order = vec![1, 2];
             // Chat 3 is archived, and appears in no ordinary listing.
@@ -81,7 +91,9 @@ impl State {
             } else {
                 vec![3]
             };
-            self.next_message_id = 100;
+            // Above whatever the seeded chat used, so a message added
+            // while a test runs cannot collide with one already in it.
+            self.next_message_id = long.unwrap_or(0).max(100);
             self.contacts.insert(10, "ada@example.org".to_string());
             self.contacts.insert(11, "grace@example.org".to_string());
             self.next_chat_id = 500;

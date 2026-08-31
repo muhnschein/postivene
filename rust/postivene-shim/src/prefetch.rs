@@ -19,7 +19,7 @@ use std::sync::Mutex;
 
 use qmetaobject::*;
 
-use crate::chat::{chat_is_group, fetch_messages, message_ids};
+use crate::chat::{chat_is_group, fetch_messages, message_ids, newest_page};
 use crate::core::connection;
 use crate::models::MessageListItem;
 
@@ -28,18 +28,22 @@ struct Cached {
     account_id: u32,
     chat_id: u32,
     is_group: bool,
+    /// Every id in the chat, which is what the model's window is a slice
+    /// of. Cheap to carry and pointless to fetch twice.
+    ids: Vec<u32>,
     rows: Vec<MessageListItem>,
 }
 
 static CACHE: Mutex<Option<Cached>> = Mutex::new(None);
 
 /// Hand a finished prefetch over to whichever model asks for it next.
-fn store(account_id: u32, chat_id: u32, is_group: bool, rows: Vec<MessageListItem>) {
+fn store(account_id: u32, chat_id: u32, is_group: bool, ids: Vec<u32>, rows: Vec<MessageListItem>) {
     if let Ok(mut cache) = CACHE.lock() {
         *cache = Some(Cached {
             account_id,
             chat_id,
             is_group,
+            ids,
             rows,
         });
     }
@@ -49,13 +53,18 @@ fn store(account_id: u32, chat_id: u32, is_group: bool, rows: Vec<MessageListIte
 ///
 /// Anything else is left alone: a prefetch for another chat is still
 /// wanted by the page that asked for it.
-pub(crate) fn take(account_id: u32, chat_id: u32) -> Option<(bool, Vec<MessageListItem>)> {
+pub(crate) fn take(
+    account_id: u32,
+    chat_id: u32,
+) -> Option<(bool, Vec<u32>, Vec<MessageListItem>)> {
     let mut cache = CACHE.lock().ok()?;
     let held = cache.as_ref()?;
     if held.account_id != account_id || held.chat_id != chat_id {
         return None;
     }
-    cache.take().map(|held| (held.is_group, held.rows))
+    cache
+        .take()
+        .map(|held| (held.is_group, held.ids, held.rows))
 }
 
 /// Loads a chat so a page can be opened onto it already full.
@@ -113,31 +122,36 @@ impl ChatPrefetch {
         }
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
-        let done = queued_callback(move |result: Option<(bool, Vec<MessageListItem>)>| {
-            let Some(this) = ptr.as_pinned() else { return };
-            // A second tap started a newer one: that is the chat the
-            // reader is waiting for, and this answer would open the wrong
-            // page.
-            if this.borrow().generation != generation {
-                return;
-            }
-            if let Some((is_group, rows)) = result {
-                store(this.borrow().account_id, chat_id, is_group, rows);
-            }
-            {
-                let mut this_mut = this.borrow_mut();
-                this_mut.loading = false;
-            }
-            this.borrow().loading_changed();
-            this.borrow().ready(chat_id);
-        });
+        let done = queued_callback(
+            move |result: Option<(bool, Vec<u32>, Vec<MessageListItem>)>| {
+                let Some(this) = ptr.as_pinned() else { return };
+                // A second tap started a newer one: that is the chat the
+                // reader is waiting for, and this answer would open the wrong
+                // page.
+                if this.borrow().generation != generation {
+                    return;
+                }
+                if let Some((is_group, ids, rows)) = result {
+                    store(this.borrow().account_id, chat_id, is_group, ids, rows);
+                }
+                {
+                    let mut this_mut = this.borrow_mut();
+                    this_mut.loading = false;
+                }
+                this.borrow().loading_changed();
+                this.borrow().ready(chat_id);
+            },
+        );
 
         runtime.spawn(async move {
             let loaded = async {
                 let is_group = chat_is_group(&rpc, account_id, chat_id).await;
                 let ids = message_ids(&rpc, account_id, chat_id).await?;
-                let rows = fetch_messages(&rpc, account_id, &ids).await?;
-                Ok::<_, String>((is_group, rows))
+                // The same window the model would have fetched for itself:
+                // a prefetch that loaded the whole chat would put the cost
+                // paging removes back, one step earlier.
+                let rows = fetch_messages(&rpc, account_id, newest_page(&ids)).await?;
+                Ok::<_, String>((is_group, ids, rows))
             }
             .await;
             // A failure is not reported here: the page's own model will

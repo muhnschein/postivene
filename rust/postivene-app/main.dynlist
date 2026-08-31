@@ -1,0 +1,6 @@
+# mapplauncherd's silica-qt5 booster dlopen()s the application binary and
+# calls main() through the dynamic symbol table, so main() has to be in it.
+# Harbour rejects a Silica app whose binary does not export main().
+{
+    main;
+};

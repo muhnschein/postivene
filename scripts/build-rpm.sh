@@ -9,7 +9,7 @@
 #     scripts/build-rpm.sh aarch64 5.0.0.62
 #     scripts/build-rpm.sh armv7hl
 #
-# Requirements (none of which can be substituted -- see docs/MILESTONES.md):
+# Requirements (none of which can be substituted -- see docs/BUILDING.md):
 #   * Sailfish SDK with the *Docker* build engine. The VirtualBox build
 #     engine cannot compile Rust.
 #   * An installed build target for the arch. `sfdk tools list -a` lists

@@ -83,16 +83,32 @@ attachments, reply/copy/delete/resend), onboarding rebuilt on the core's
 current transport API, `secure_join` invites in both directions, encryption
 indicators, foreground notifications, and the cover.
 
-Packaging is real: `mb2` builds produce `postivene-0.1.0-1.aarch64.rpm`, and
-`.github/workflows/rpm.yml` builds it unattended on a GitHub runner in about
-six minutes.
+Packaging is real: `mb2` builds produce `harbour-postivene-0.1.0-1.aarch64.rpm`,
+and `.github/workflows/rpm.yml` builds it unattended on a GitHub runner in
+about six minutes.
 
 ## What is missing
 
 In order of what matters:
 
-1. **Harbour-readiness.** Ensure the app complies with Jolla's Harbour
-   requirements and stays that way.
+1. **Harbour-readiness.** Every rule a source tree can answer is now a
+   mandatory CI gate (`ci/harbour-check.sh`, `HARBOUR.md`), and the real
+   validator runs against each built RPM. Two blockers remain, neither
+   fixable here:
+   - The binary links `libQt5Widgets.so.5`, which Harbour does not allow.
+     `qmetaobject-rs` builds its QML engine on `QApplication` rather than
+     `QGuiApplication` and `qttypes` links Widgets unconditionally; both
+     are still that way upstream, so it takes a patch to each crate. This
+     one constrains every Sailfish app built on qmetaobject.
+   - The bundled `deltachat-rpc-server` is a second ELF executable, which
+     Harbour permits nowhere. The clean fix is upstream's `libdeltachat.so`,
+     whose `dc_jsonrpc_*` API carries the same protocol, but it has no ARM
+     prebuilt and cannot use the static-musl build that makes the current
+     binary portable.
+
+   Also unproven: a run under `sailjail` on a device, exercising every
+   permission-dependent path. Store assets and a privacy policy are not
+   started.
 2. **A background service, and suspend handling.** Messages arrive only
    while the app is open and awake, which is the one thing standing between
    this and a client someone could rely on. Notifications inherit the same

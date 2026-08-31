@@ -12,7 +12,7 @@ postivene-shim = { path = "../postivene-shim" }
 qmetaobject = "0.2"
 
 [[bin]]
-name = "postivene"
+name = "harbour-postivene"
 path = "src/main.rs"
 
 [lints]

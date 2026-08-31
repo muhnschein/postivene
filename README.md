@@ -39,6 +39,8 @@ See the non-goals in [`docs/PROJECT.md`](docs/PROJECT.md) for more information.
 current implementation status, and what is missing
 - [`docs/BUILDING.md`](docs/BUILDING.md) — engineering standards, testing, and
 how a device RPM is built
+- [`docs/HARBOUR.md`](docs/HARBOUR.md) — Jolla's store rules, how CI gates
+them, and the two that still block submission
 
 ## Building
 

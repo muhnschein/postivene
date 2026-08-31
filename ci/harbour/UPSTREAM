@@ -1,0 +1,10 @@
+The .conf files in this directory are copied verbatim from
+
+    https://github.com/sailfishos/sdk-harbour-rpmvalidator.git
+
+at commit 55f177e826508737315f0c4da6098c563d6d1b27 (2026-07-08), by scripts/update-harbour-rules.sh.
+
+They carry that project's licence, GPL-2.0-or-later, which Postivene's own
+GPL-3.0-or-later terms accept. rpmvalidation.sh itself is not vendored:
+ci/harbour-check.sh reimplements the checks that a source tree can answer,
+and .github/workflows/rpm.yml runs the real script against a built RPM.

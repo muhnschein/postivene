@@ -1,9 +1,9 @@
 # Sailfish/OBS packaging for Postivene.
 #
 # Modeled on real-world prior art for Rust+Qt5/QML Sailfish apps -- notably
-# Whisperfish's rpm/harbour-whisperfish.spec (see docs/SCOPE.md's §4
-# reference to Whisperfish as an architectural/build-tooling template) --
-# but simplified: Postivene has no C/C++ vendored dependencies of its own
+# Whisperfish's rpm/harbour-whisperfish.spec, which docs/PROJECT.md names as
+# the architectural and build-tooling template -- but simplified: Postivene
+# has no C/C++ vendored dependencies of its own
 # (no sqlcipher, no protobuf, etc.), just the Rust workspace under rust/,
 # the qml/ tree, and a *separately obtained* deltachat-rpc-server binary
 # (scripts/fetch-rpc-server.sh, see vendor/deltachat-rpc-server/).
@@ -17,12 +17,14 @@
 #                                  the two extra sources with
 #                                  scripts/vendor-crates.sh.
 #
-# NOT YET DONE, tracked in docs/MILESTONES.md:
+# Harbour's listing rules apply here: the package name, the install paths
+# and every Requires are constrained by them, and ci/harbour-check.sh
+# fails a build that breaks one. docs/HARBOUR.md is the map, including the
+# two rules this package still breaks.
+#
+# NOT YET DONE, tracked in docs/PROJECT.md:
 #   - an actual `sfdk build` / OBS build of this spec (no Sailfish SDK has
 #     been available in any environment this repo was developed in)
-#   - Harbour-store compliance (sailjail permissions, aarch64/armv7hl
-#     signing, etc.) if that channel is ever pursued instead of/alongside
-#     Chum or OpenRepos
 
 %bcond_with vendor
 
@@ -36,13 +38,16 @@
 %define bundle_rpc_server 1
 %endif
 
-Name:       postivene
+# Harbour requires the `harbour-` prefix and lowercase throughout; the
+# name users see is the .desktop file's Name= and the Store's Title field,
+# not this.
+Name:       harbour-postivene
 Summary:    Native SailfishOS client for Delta Chat
 Version:    0.1.0
 Release:    1
 # Postivene's own code is GPL-3.0-or-later; the bundled
 # deltachat-rpc-server is upstream's unmodified MPL-2.0 binary, and the tag
-# describes the contents of the binary package (docs/LICENSING.md).
+# describes the contents of the binary package.
 %if 0%{?bundle_rpc_server}
 License:    GPL-3.0-or-later AND MPL-2.0
 %else
@@ -56,9 +61,23 @@ Source1:    vendor.tar.xz
 Source2:    vendor.toml
 %endif
 
-Requires:   sailfishsilica-qt5 >= 0.10.9
-Requires:   libsailfishapp-launcher
-Requires:   sailfish-version >= 4.5.0
+# Unversioned, and only what Harbour's allowed_requires.conf lists: the
+# validator hands each whitespace-separated token to its allow-list, so a
+# versioned dependency arrives as three of them and the operator and the
+# version are both rejected. Harbour derives its own compatibility range
+# from these, so the OS floor this app needs -- 4.5.0, for the
+# `[X-Sailjail]` section to be honoured -- goes in the submission form's
+# "From OS version" field instead.
+#
+# No libsailfishapp-launcher: that package provides `sailfish-qml`, which
+# only a QML-only app is launched through, and requiring it without using
+# it is an error of its own.
+Requires:   sailfishsilica-qt5
+
+# Harbour allows no Provides: at all, and rpm generates one from any shared
+# library it finds in the package. Neither of the app's private directories
+# holds one today; this keeps intake clean if one is ever added there.
+%define __provides_exclude_from ^(%{_datadir}/%{name}|%{_libexecdir}/%{name})/.*$
 
 # Sailfish ships Rust 1.75.0 (sailfishos/rust); rust/Cargo.lock is kept in
 # the v3 lockfile format because Cargo only learned to read v4 in 1.78.
@@ -108,7 +127,7 @@ Postivene is a Silica/QML SailfishOS client for Delta Chat. It contributes
 only the UI, Sailfish platform integration, and packaging; all
 IMAP/SMTP/MIME/encryption logic is delegated to a bundled
 deltachat-rpc-server binary, spoken to over JSON-RPC on stdio. See
-docs/SCOPE.md in the source tree for the full project scope and, just as
+docs/PROJECT.md in the source tree for the full project scope and, just as
 importantly, its non-goals.
 
 %prep
@@ -127,7 +146,7 @@ cargo --version
 
 # Cross-compiling Rust under Sailfish's scratchbox2 (sb2) requires the
 # Docker build engine (the VirtualBox build engine does not support it);
-# see docs/SCOPE.md §7. Under sb2 the accelerated rustc would otherwise
+# see docs/BUILDING.md. Under sb2 the accelerated rustc would otherwise
 # emit host (x86) code, so tell it the real target explicitly -- same
 # mechanism Whisperfish's spec uses (see the xulrunner-qt5.spec comment it
 # cites). Unverified against a real SDK build so far; expect to iterate
@@ -145,7 +164,7 @@ export QT_LIBRARY_PATH=%{_libdir}
 # Under scratchbox2, parallel cargo deadlocks (observed reproducibly at the
 # default -j4: cargo futex-waits forever on an unreaped child while
 # compiling qmetaobject's C++ glue). sb2 rust builds are effectively
-# single-threaded anyway (docs/SCOPE.md §7), so force -j1 there; outside
+# single-threaded anyway (docs/BUILDING.md), so force -j1 there; outside
 # sb2 (e.g. a native OBS worker) let cargo pick its own parallelism.
 # SBOX_SESSION_DIR is set by sb2 itself inside build sessions.
 # Build scripts and proc-macros are compiled for the tooling's own
@@ -180,9 +199,9 @@ cargo build \
 rm -rf %{buildroot}
 
 builddir=%{builddir}
-[ -x "$builddir/postivene" ] || builddir=%{nativedir}
-install -Dm 755 "$builddir/postivene" \
-    %{buildroot}%{_bindir}/postivene
+[ -x "$builddir/%{name}" ] || builddir=%{nativedir}
+install -Dm 755 "$builddir/%{name}" \
+    %{buildroot}%{_bindir}/%{name}
 
 # QML UI, installed under our own app-private data dir (not /usr/bin) so
 # postivene-app's qml_dir() lookup (POSTIVENE_QML_DIR env var, then this
@@ -208,38 +227,35 @@ install -Dm 755 vendor/deltachat-rpc-server/%{_target_cpu}/deltachat-rpc-server 
 
 # LICENSE is Postivene's own GPLv3 text. SOURCE.md discharges MPL-2.0
 # clause 3.2(a) for bundling deltachat-rpc-server's Executable Form:
-# recipients must be told how to obtain its Source Code Form. Both, plus
-# the analysis tying them together, ship with the package. See
-# docs/LICENSING.md.
+# recipients must be told how to obtain its Source Code Form, and it names
+# the upstream repository, the exact tag, and the sha256 of every binary.
 install -Dm 644 vendor/deltachat-rpc-server/SOURCE.md \
     %{buildroot}%{appdatadir}/vendor/deltachat-rpc-server/SOURCE.md
 install -Dm 644 LICENSE \
     %{buildroot}%{appdatadir}/LICENSE
-install -Dm 644 docs/LICENSING.md \
-    %{buildroot}%{appdatadir}/docs/LICENSING.md
 
 desktop-file-install \
     --dir %{buildroot}%{_datadir}/applications \
-    postivene.desktop
+    %{name}.desktop
 
-install -Dm 644 icons/86x86/postivene.png \
-    %{buildroot}%{_datadir}/icons/hicolor/86x86/apps/postivene.png
-install -Dm 644 icons/108x108/postivene.png \
-    %{buildroot}%{_datadir}/icons/hicolor/108x108/apps/postivene.png
-install -Dm 644 icons/128x128/postivene.png \
-    %{buildroot}%{_datadir}/icons/hicolor/128x128/apps/postivene.png
-install -Dm 644 icons/172x172/postivene.png \
-    %{buildroot}%{_datadir}/icons/hicolor/172x172/apps/postivene.png
-install -Dm 644 icons/256x256/postivene.png \
-    %{buildroot}%{_datadir}/icons/hicolor/256x256/apps/postivene.png
+install -Dm 644 icons/86x86/%{name}.png \
+    %{buildroot}%{_datadir}/icons/hicolor/86x86/apps/%{name}.png
+install -Dm 644 icons/108x108/%{name}.png \
+    %{buildroot}%{_datadir}/icons/hicolor/108x108/apps/%{name}.png
+install -Dm 644 icons/128x128/%{name}.png \
+    %{buildroot}%{_datadir}/icons/hicolor/128x128/apps/%{name}.png
+install -Dm 644 icons/172x172/%{name}.png \
+    %{buildroot}%{_datadir}/icons/hicolor/172x172/apps/%{name}.png
+install -Dm 644 icons/256x256/%{name}.png \
+    %{buildroot}%{_datadir}/icons/hicolor/256x256/apps/%{name}.png
 
 %files
 %defattr(-,root,root,-)
-%{_bindir}/postivene
+%{_bindir}/%{name}
 %{appdatadir}
 %if 0%{?bundle_rpc_server}
 # The directory as well as the file: listing only the file leaves
-# /usr/libexec/postivene behind on uninstall.
+# /usr/libexec/%%{name} behind on uninstall.
 %dir %{appexecdir}
 %{appexecdir}/deltachat-rpc-server
 %endif

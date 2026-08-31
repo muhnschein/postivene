@@ -127,7 +127,7 @@ Environment requirements, each of which cost an attempt:
 
 ## Spec constraints
 
-Landmines encoded in `rpm/postivene.spec`, each found the hard way:
+Landmines encoded in `rpm/harbour-postivene.spec`, each found the hard way:
 
 - **`-j1` for cargo under sb2.** At `-j4` cargo reproducibly futex-waits
   forever on an unreaped child while qmetaobject's C++ glue compiles. The
@@ -146,9 +146,12 @@ Landmines encoded in `rpm/postivene.spec`, each found the hard way:
   cannot exec the target `qmake` under sb2. `QT_LIBRARY_PATH` uses
   `%{_libdir}` — Qt is in `/usr/lib64` on aarch64, not `/usr/lib`.
 - **`%{_target_cpu}`, not `%{_arch}`**, for the bundled server path.
-- **`Exec=postivene`** in the desktop file: the invoker does not honour an
-  `Exec=env FOO=bar` wrapper, so the bundled server path is a fallback
-  inside the binary.
+- **`Exec=harbour-postivene`** in the desktop file: the invoker does not
+  honour an `Exec=env FOO=bar` wrapper, so the bundled server path is a
+  fallback inside the binary.
+- **Harbour constrains the name, the paths and every `Requires:`.**
+  `ci/harbour-check.sh` fails a build that breaks one; `HARBOUR.md` is
+  the map, including the two rules this package still breaks.
 - **No bare `%` in a spec comment.** rpm expands macros inside comments, and
   on the SDK's older rpm a comment mentioning `%build` expands to a preamble
   starting `LANG=C`, which rpm reads as a tag. Host rpm 4.18 leaves comments
@@ -187,12 +190,15 @@ fails on the tooling's i686 linker, which is fine — the rlibs under
 
 ## What the builds have proven
 
-Verified on the produced package, not just the build log: `/usr/bin/postivene`
+Verified on the produced package, not just the build log: the app binary
 is an aarch64 pie executable linked against the target's Qt 5.6.3 with a
 highest requirement of `GLIBC_2.29`; the bundled server survives rpm's strip
 pass and still answers `--version` → `2.53.0` and passes the full
 `real_server` suite under `qemu-aarch64`; and `rpm -qlp` shows every file
-where `qml_dir()` and the rpc-server lookup expect it.
+where `qml_dir()` and the rpc-server lookup expect it. Those builds predate
+the Harbour rename and produced `postivene`, not `harbour-postivene`;
+nothing else about them changed. They also linked `libQt5Widgets.so.5`,
+which `HARBOUR.md` explains is a blocker.
 
 Not proven: Silica's real rendering, notifications, background sync and suspend
 stay out of reach of `make check` entirely — see `PROJECT.md`.

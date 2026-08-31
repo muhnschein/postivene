@@ -1,7 +1,7 @@
 # `deltachat-rpc-server` provenance
 
 The `deltachat-rpc-server` binaries bundled by Postivene's RPM (installed
-to `/usr/libexec/postivene/deltachat-rpc-server`) are **unmodified upstream
+to `/usr/libexec/harbour-postivene/deltachat-rpc-server`) are **unmodified upstream
 builds**:
 
 - **Project:** Delta Chat core (chatmail core library)
@@ -34,7 +34,7 @@ vendor/deltachat-rpc-server/
 ```
 
 Directory names follow Sailfish's `%{_arch}` values, which is what
-`rpm/postivene.spec` keys its `%install` step on. Binaries are not
+`rpm/harbour-postivene.spec` keys its `%install` step on. Binaries are not
 committed to git (see `.gitignore`); run the fetch script to populate.
 
 ## Verified so far / still open

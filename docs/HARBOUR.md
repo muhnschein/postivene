@@ -105,6 +105,10 @@ through the real validator.
 - That the app works under Sailjail. Running it from a terminal or the
   IDE bypasses the sandbox entirely, so a missing permission does not
   surface until QA installs it. Force it: `sailjail /usr/bin/harbour-postivene`.
+  Silica's pickers run inside the app's own process, so a file the grant
+  does not cover is one the picker can offer and the app cannot open --
+  which is why the attach button needs `UserDirs` and the profile picture
+  needed `Pictures` *and* `MediaIndexing`.
 - Everything in the quality bar QA applies by hand — no placeholder
   content, translated strings, `Theme` values rather than pixel counts,
   recoverable errors, a useful cover.
@@ -239,12 +243,21 @@ removed from the store even after approval. Not an option.
 3. Install on a real device and launch it as
    `sailjail /usr/bin/harbour-postivene`.
 4. Exercise every permission-dependent path under the sandbox: the
-   profile picture picker needs both `Pictures` and `MediaIndexing`.
+   profile picture picker needs both `Pictures` and `MediaIndexing`, and
+   the attach button's two pickers need `UserDirs` for anything outside
+   `~/Pictures`. Send one of each -- a photo from the gallery, a document
+   from `~/Documents` -- and open what arrives at the other end.
 5. Delete the cache directory while the app runs; confirm nothing breaks.
-6. Confirm **Version** was bumped, not just Release. Harbour refuses an
+6. Kill `deltachat-rpc-server` from a terminal while the app is open. The
+   banner should say it is reconnecting and then clear itself, and messages
+   should keep arriving afterwards -- the app starts a replacement and
+   resumes IO on it (`PROJECT.md`). Nothing else in this list exercises
+   that, and it is the failure a phone produces on its own by reclaiming
+   memory.
+7. Confirm **Version** was bumped, not just Release. Harbour refuses an
    update that does not sort higher than the one in the Store, and a
    Release-only bump is the most common avoidable resubmission.
-7. Set "From OS version" to 4.5.0 on the submission form. The spec cannot
+8. Set "From OS version" to 4.5.0 on the submission form. The spec cannot
    say so — `sailfish-version` is not an allowed dependency, and a
    versioned one would be rejected twice over — but the `[X-Sailjail]`
    section needs it.

@@ -1,5 +1,7 @@
 use std::cell::RefCell;
+use std::collections::BTreeSet;
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use deltachat_jsonrpc::{spawn_event_loop, CoreEvent, RpcClient};
 use qmetaobject::*;
@@ -33,6 +35,32 @@ fn set_connection(value: Option<(Arc<RpcClient>, CoreRuntime)>) {
 /// Default chatmail server, as the `dcaccount:` payload
 /// `add_transport_from_qr` takes. See `docs/ONBOARDING.md`.
 pub const DEFAULT_PROVIDER_QR: &str = "dcaccount:nine.testrun.org";
+
+/// How long to wait before the first restart, and the ceiling the wait
+/// doubles towards. The first is short because the overwhelmingly likely
+/// cause is the phone reclaiming memory, and respawning then works
+/// immediately; the ceiling is what keeps a server that cannot start from
+/// spinning.
+const RESTART_DELAY_MIN: Duration = Duration::from_secs(1);
+const RESTART_DELAY_MAX: Duration = Duration::from_secs(30);
+
+/// A server that stayed up this long counts as having worked. The next
+/// failure then starts backing off from the minimum again instead of from
+/// wherever the last crash loop left the delay.
+const HEALTHY_UPTIME: Duration = Duration::from_secs(60);
+
+/// How many restarts without a healthy run in between before giving up and
+/// saying so. With the backoff above that is a little over three minutes of
+/// trying -- long enough to outlast anything transient, short enough that a
+/// binary which will never start does not keep the phone awake.
+const RESTART_LIMIT: u32 = 12;
+
+/// How long to wait before restart number `attempt`.
+fn restart_delay(attempt: u32) -> Duration {
+    RESTART_DELAY_MIN
+        .saturating_mul(1_u32.checked_shl(attempt).unwrap_or(u32::MAX))
+        .min(RESTART_DELAY_MAX)
+}
 
 /// The one `QObject` owning the connection to a spawned
 /// `deltachat-rpc-server`.
@@ -156,6 +184,23 @@ pub struct DeltaChatCore {
 
     rpc: Option<Arc<RpcClient>>,
     runtime: Option<CoreRuntime>,
+
+    /// The server binary `start` was given, kept so a restart need not be
+    /// told again.
+    rpc_server_path: String,
+    /// Accounts whose IO was resumed, replayed after a restart. A fresh
+    /// server has the account files but no IO running, so without this the
+    /// app comes back able to read history and unable to receive.
+    io_accounts: BTreeSet<u32>,
+    /// Restarts since the last healthy run; drives the backoff and the
+    /// give-up limit.
+    restart_attempt: u32,
+    /// When the current server was spawned, for [`HEALTHY_UPTIME`].
+    server_started_at: Option<Instant>,
+    /// True once a spawn has succeeded. Until then a failure is the app
+    /// failing to start, which is reported and left alone; after it, a
+    /// failure is something to retry.
+    supervising: bool,
 }
 
 impl DeltaChatCore {
@@ -176,45 +221,79 @@ impl DeltaChatCore {
             }
         };
 
+        let path = rpc_server_path.to_string();
+        self.rpc_server_path.clone_from(&path);
+        self.runtime = Some(runtime.clone());
+        self.restart_attempt = 0;
+        self.supervising = false;
+
         self.status = QString::from("starting");
         self.status_changed();
 
-        let path = rpc_server_path.to_string();
-        let rt_for_spawn = runtime.clone();
-        self.runtime = Some(runtime);
+        Self::spawn_server(QPointer::from(&*self), path, runtime);
+    }
 
-        let ptr: QPointer<Self> = QPointer::from(&*self);
+    /// Spawn the server and wire the result up. Shared by `start` and every
+    /// restart.
+    ///
+    /// An associated function taking what it needs, rather than a method:
+    /// the object must not be borrowed while any of this runs. `start` is
+    /// called from QML, which holds a mutable borrow for the duration, and
+    /// `status_changed` is handled in QML by code that calls straight back
+    /// in here. So every mutation below is scoped to a callback, and every
+    /// signal is emitted with no borrow held.
+    fn spawn_server(ptr: QPointer<Self>, path: String, runtime: CoreRuntime) {
+        let started_ptr = ptr.clone();
+        let retry_path = path.clone();
         let started = queued_callback(move |result: Result<Arc<RpcClient>, String>| {
-            let Some(this) = ptr.as_pinned() else { return };
+            let Some(this) = started_ptr.as_pinned() else {
+                return;
+            };
             match result {
                 Ok(rpc) => {
-                    {
+                    let (runtime, accounts) = {
                         let mut this_mut = this.borrow_mut();
                         this_mut.rpc = Some(rpc.clone());
                         this_mut.status = QString::from("ready");
-                        set_connection(this_mut.runtime.clone().map(|rt| (rpc, rt)));
+                        this_mut.server_started_at = Some(Instant::now());
+                        this_mut.supervising = true;
+                        set_connection(this_mut.runtime.clone().map(|rt| (rpc.clone(), rt)));
+                        (this_mut.runtime.clone(), this_mut.io_accounts.clone())
+                    };
+                    // Draining first: IO resumed before anything is reading
+                    // the stream would deliver its events to nobody.
+                    if let Some(runtime) = runtime {
+                        Self::forward_events(started_ptr.clone(), rpc, runtime, retry_path.clone());
                     }
+                    for account_id in accounts {
+                        Self::resume_io(started_ptr.clone(), account_id);
+                    }
+                    // Last, because a handler may call back in here.
                     this.borrow().status_changed();
-                    Self::forward_events(
-                        ptr.clone(),
-                        this.borrow().rpc.clone(),
-                        this.borrow().runtime.clone(),
-                    );
                 }
                 Err(err) => {
-                    // Drop the runtime so a later `start()` is not blocked
-                    // by the already-started guard.
-                    let mut this_mut = this.borrow_mut();
-                    this_mut.runtime = None;
-                    set_connection(None);
-                    this_mut.status = format!("error: {err}").into();
-                    drop(this_mut);
+                    // Only a server that worked once is worth retrying; a
+                    // first spawn that fails is reported and left alone,
+                    // which is what the first screen reads.
+                    if this.borrow().supervising {
+                        Self::schedule_restart(started_ptr.clone(), retry_path.clone(), Some(err));
+                        return;
+                    }
+                    // Never started: this is the app failing to start.
+                    {
+                        // Dropped so a later `start()` is not blocked by the
+                        // already-started guard.
+                        let mut this_mut = this.borrow_mut();
+                        this_mut.runtime = None;
+                        set_connection(None);
+                        this_mut.status = format!("error: {err}").into();
+                    }
                     this.borrow().status_changed();
                 }
             }
         });
 
-        rt_for_spawn.spawn(async move {
+        runtime.spawn(async move {
             let result = async {
                 let accounts_dir = Self::accounts_dir()?;
                 RpcClient::spawn_with_env(
@@ -228,6 +307,90 @@ impl DeltaChatCore {
             }
             .await;
             started(result);
+        });
+    }
+
+    /// The server is gone: put the app into `reconnecting` and spawn
+    /// another one after a backoff, or give up and say `stopped`.
+    ///
+    /// `failure` is the spawn error when a restart attempt is what failed,
+    /// and `None` when a running server exited.
+    fn schedule_restart(ptr: QPointer<Self>, path: String, failure: Option<String>) {
+        let Some(this) = ptr.as_pinned() else { return };
+        set_connection(None);
+
+        let next = {
+            let mut this_mut = this.borrow_mut();
+            this_mut.rpc = None;
+            // Nothing to restart: either `start` was never called, or a
+            // previous round already gave up and dropped the runtime.
+            let Some(runtime) = this_mut.runtime.clone() else {
+                return;
+            };
+            // A server that stayed up long enough to be useful resets the
+            // backoff, so an app running for a week does not treat its
+            // second ever restart as if it were in a crash loop.
+            if this_mut
+                .server_started_at
+                .is_some_and(|at| at.elapsed() >= HEALTHY_UPTIME)
+            {
+                this_mut.restart_attempt = 0;
+            }
+            this_mut.server_started_at = None;
+
+            if this_mut.restart_attempt >= RESTART_LIMIT {
+                // Same reason as the failed first spawn: leaving the runtime
+                // in place would make a later `start()` a silent no-op.
+                this_mut.runtime = None;
+                // "stopped" and not an `error:` status: this is the state
+                // the pages have a message for, and the reason -- when
+                // there is one -- goes out on `core_error` instead, which
+                // is where a detail the reader cannot act on belongs.
+                this_mut.status = QString::from("stopped");
+                None
+            } else {
+                let delay = restart_delay(this_mut.restart_attempt);
+                this_mut.restart_attempt += 1;
+                this_mut.status = QString::from("reconnecting");
+                Some((delay, runtime))
+            }
+        };
+        this.borrow().status_changed();
+
+        let Some((delay, runtime)) = next else {
+            if let Some(err) = failure {
+                this.borrow()
+                    .core_error(format!("could not restart the core: {err}").into());
+            }
+            return;
+        };
+        let spawn_runtime = runtime.clone();
+        let retry = queued_callback(move |()| {
+            Self::spawn_server(ptr.clone(), path.clone(), spawn_runtime.clone());
+        });
+        runtime.spawn(async move {
+            tokio::time::sleep(delay).await;
+            retry(());
+        });
+    }
+
+    /// Resume IO for one account after a restart, without touching the
+    /// `io_started` signal: nothing asked for this, and a page that reacted
+    /// to it would be reacting to a reconnection it never requested.
+    fn resume_io(ptr: QPointer<Self>, account_id: u32) {
+        let Some(this) = ptr.as_pinned() else { return };
+        let Some((rpc, runtime)) = this.borrow().connection() else {
+            return;
+        };
+        let failed = queued_callback(move |err: String| {
+            if let Some(this) = ptr.as_pinned() {
+                this.borrow().core_error(err.into());
+            }
+        });
+        runtime.spawn(async move {
+            if let Err(err) = rpc.call::<_, ()>("start_io", (account_id,)).await {
+                failed(err.to_string());
+            }
         });
     }
 
@@ -299,30 +462,17 @@ impl DeltaChatCore {
     /// context.
     fn forward_events(
         ptr: QPointer<Self>,
-        rpc: Option<Arc<RpcClient>>,
-        runtime: Option<CoreRuntime>,
+        rpc: Arc<RpcClient>,
+        runtime: CoreRuntime,
+        path: String,
     ) {
-        let (Some(rpc), Some(runtime)) = (rpc, runtime) else {
-            return;
-        };
-        // The stream ends when the server dies. Nothing restarts it yet,
-        // but `status` has to stop claiming the core is there.
+        // The stream ends when the server dies -- killed for memory,
+        // crashed, whatever. That is the one failure the app cannot see
+        // for itself: every model goes quiet and the UI still looks fine.
+        // So it is also where the next server gets started.
         let stopped_ptr = ptr.clone();
         let stopped = queued_callback(move |()| {
-            let Some(this) = stopped_ptr.as_pinned() else {
-                return;
-            };
-            set_connection(None);
-            {
-                let mut this_mut = this.borrow_mut();
-                this_mut.rpc = None;
-                // Dropped for the same reason the failed-spawn path drops
-                // it: `start` refuses to run while a runtime is here, so
-                // leaving one behind makes a later restart a silent no-op.
-                this_mut.runtime = None;
-                this_mut.status = QString::from("stopped");
-            }
-            this.borrow().status_changed();
+            Self::schedule_restart(stopped_ptr.clone(), path.clone(), None);
         });
         let emit = queued_callback(move |event: CoreEvent| {
             if let Some(this) = ptr.as_pinned() {
@@ -567,6 +717,10 @@ impl DeltaChatCore {
 
     /// Resume IO for an already-configured account.
     pub fn start_account_io(&mut self, account_id: u32) {
+        // Remembered before the call, not after it succeeds: a restart has
+        // to resume whatever the app asked for, and an attempt that failed
+        // against a dying server is exactly what the next one should redo.
+        self.io_accounts.insert(account_id);
         let Some((rpc, runtime)) = self.connection() else {
             self.io_started(account_id, false, QString::from("not started"));
             return;
@@ -834,5 +988,32 @@ impl DeltaChatCore {
                 .map_err(|err| err.to_string());
             done((account_id, result));
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{restart_delay, RESTART_DELAY_MAX, RESTART_DELAY_MIN, RESTART_LIMIT};
+
+    #[test]
+    fn the_backoff_doubles_and_then_stops_doubling() {
+        assert_eq!(restart_delay(0), RESTART_DELAY_MIN);
+        assert_eq!(restart_delay(1), RESTART_DELAY_MIN * 2);
+        assert_eq!(restart_delay(2), RESTART_DELAY_MIN * 4);
+        assert_eq!(restart_delay(5), RESTART_DELAY_MAX);
+        // Every later attempt waits the ceiling, and the shift that would
+        // overflow a u32 does not panic.
+        assert_eq!(restart_delay(RESTART_LIMIT), RESTART_DELAY_MAX);
+        assert_eq!(restart_delay(u32::MAX), RESTART_DELAY_MAX);
+    }
+
+    #[test]
+    fn giving_up_takes_longer_than_anything_transient() {
+        let total: std::time::Duration = (0..RESTART_LIMIT).map(restart_delay).sum();
+        assert!(
+            total >= std::time::Duration::from_secs(180),
+            "the app gives up after {total:?}, which is not long enough to \
+             outlast a phone that is briefly out of memory"
+        );
     }
 }

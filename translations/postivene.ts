@@ -2,6 +2,14 @@
 <!DOCTYPE TS>
 <TS version="2.1">
 <context>
+    <name>AttachmentBar</name>
+    <message>
+        <source>Sending %1</source>
+        <extracomment>Shown above the message field once a file has been picked. %1 is the file name.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ChatListDelegate</name>
     <message>
         <source>now</source>
@@ -126,6 +134,10 @@
         <source>No archived chats</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -185,6 +197,15 @@
     </message>
     <message>
         <source>Message</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Caption</source>
+        <extracomment>Message field placeholder. Also the prompt for the caption on a message that is carrying a file.</extracomment>
         <translation type="unfinished"></translation>
     </message>
 </context>

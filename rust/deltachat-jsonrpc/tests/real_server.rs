@@ -16,6 +16,17 @@ use std::time::Duration;
 use deltachat_jsonrpc::{spawn_event_loop, RpcClient};
 use serde_json::Value;
 
+/// A 1x1 PNG, written out so the core reads real pixels rather than
+/// guessing from a name: header, an IHDR saying 1x1 truecolour, one
+/// compressed scanline, IEND.
+const ONE_PIXEL_PNG: &[u8] = &[
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+    0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
+    0xde, 0x00, 0x00, 0x00, 0x0c, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0xf8, 0xcf, 0xc0, 0x00,
+    0x00, 0x03, 0x01, 0x01, 0x00, 0xc9, 0xfe, 0x92, 0xef, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e,
+    0x44, 0xae, 0x42, 0x60, 0x82,
+];
+
 /// Resolve the gate's value, treating a relative path as relative to the
 /// repository root rather than to the process's working directory.
 ///
@@ -388,6 +399,48 @@ async fn offline_round_trip_against_real_core() {
         reply.pointer("/quote/authorDisplayName").is_some(),
         "the quote says nothing about its author: {reply:?}"
     );
+
+    // The core decides the view type from the file, and the conversation
+    // renders a picture inline on the strength of that: nothing in the app
+    // classifies an attachment, and nothing should start.
+    let picture = std::env::temp_dir().join("postivene-real-server-dot.png");
+    // The smallest valid PNG: an 1x1 image, so the core has real pixels to
+    // read rather than a name to guess from.
+    std::fs::write(&picture, ONE_PIXEL_PNG).expect("write picture");
+    let (third, _): (u32, Value) = client
+        .call(
+            "misc_send_msg",
+            (
+                sender_id,
+                saved,
+                Option::<String>::None,
+                Some(picture.to_string_lossy().into_owned()),
+                Some("dot.png".to_string()),
+                Option::<(f64, f64)>::None,
+                Option::<u32>::None,
+            ),
+        )
+        .await
+        .expect("misc_send_msg with a picture");
+    let messages: std::collections::HashMap<u32, Value> = client
+        .call("get_messages", (sender_id, vec![third]))
+        .await
+        .expect("get_messages");
+    let sent_picture = &messages[&third];
+    assert_eq!(
+        sent_picture.get("viewType").and_then(Value::as_str),
+        Some("Image"),
+        "the core did not classify a PNG as an image, so the conversation \
+         would show it as a paperclip: {sent_picture:?}"
+    );
+    for field in ["dimensionsWidth", "dimensionsHeight"] {
+        assert_eq!(
+            sent_picture.get(field).and_then(Value::as_i64),
+            Some(1),
+            "the core reported no {field}, which is what the delegate sizes \
+             the picture from: {sent_picture:?}"
+        );
+    }
 
     // Chat kind, which decides whether a message names its sender.
     let group: u32 = client

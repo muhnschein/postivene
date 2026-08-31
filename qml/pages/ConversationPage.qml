@@ -36,6 +36,7 @@ Page {
             textField.text = ""
             page.replyBody = ""
             page.replyAuthor = ""
+            page.attachmentPath = ""
             listView.jumpToNewest()
         }
         onArrived: listView.noteArrivals(count)
@@ -86,8 +87,15 @@ Page {
         && listView.following
 
     property string errorMessage: ""
-    readonly property string coreStoppedMessage:
-        qsTr("Lost the connection to the Delta Chat core. Restart Postivene.")
+    // Three states, not two: the core going away is now something the app
+    // does something about, and a banner that says "restart Postivene"
+    // while Postivene is already fixing it is worse than none.
+    readonly property string coreStatusMessage:
+        core.status === "reconnecting"
+        ? qsTr("Lost the connection to the Delta Chat core. Reconnecting...")
+        : core.status === "stopped"
+          ? qsTr("Lost the connection to the Delta Chat core. Restart Postivene.")
+          : ""
 
     // Qt 5.6 handler syntax; see WelcomePage.qml.
     Connections {
@@ -112,6 +120,41 @@ Page {
         messages.quoted_message_id = 0
         page.replyBody = ""
         page.replyAuthor = ""
+    }
+
+    // The file the next send will carry, empty for none. One per message,
+    // which is the core's own shape -- see ChatMessages.send_file.
+    property string attachmentPath: ""
+    readonly property string attachmentName: page.displayName(page.attachmentPath)
+
+    // Decoded for the same reason the shim decodes the path it sends: a
+    // picker that hands back a URL escapes the spaces, and the bar should
+    // name the file the way the reader does. An escape that does not decode
+    // is a name with a literal '%' in it.
+    function displayName(path) {
+        var name = path.substring(path.lastIndexOf('/') + 1)
+        try {
+            return decodeURIComponent(name)
+        } catch (error) {
+            return name
+        }
+    }
+
+    // Both pickers report back here rather than sending, so a picked file
+    // can still be cancelled, and so a caption can be typed after choosing.
+    function attach(path) {
+        if (path && path.length > 0) {
+            page.attachmentPath = path
+        }
+    }
+
+    // Pushed by URL and connected to, the way forwarding pushes
+    // ChatPickerPage: the picker pages are the only files that name a
+    // `Sailfish.Pickers` type, so a type that is not there costs one
+    // button rather than the whole conversation.
+    function pickWith(pageName) {
+        var picker = pageStack.push(Qt.resolvedUrl(pageName))
+        picker.picked.connect(page.attach)
     }
 
     // Outside the list rather than its `header`, so it stays put: a
@@ -190,12 +233,14 @@ Page {
             right: parent.right
             bottom: notice.top
         }
-        // A dead core outranks whatever failed before it, and a page opened
-        // after it died never saw the transition -- so read the status
-        // rather than waiting for it to change.
-        text: core.status === "stopped" ? page.coreStoppedMessage : page.errorMessage
-        // That one does not fix itself, so it stays put.
-        timeout: core.status === "stopped" ? 0 : 8
+        // The core's own state outranks whatever failed before it, and a
+        // page opened after it went away never saw the transition -- so
+        // read the status rather than waiting for it to change.
+        text: page.coreStatusMessage.length > 0
+              ? page.coreStatusMessage : page.errorMessage
+        // Neither clears itself: reconnecting ends when the status says so,
+        // and stopped does not end at all.
+        timeout: page.coreStatusMessage.length > 0 ? 0 : 8
         onDismissed: page.errorMessage = ""
     }
 
@@ -206,11 +251,27 @@ Page {
         anchors {
             left: parent.left
             right: parent.right
-            bottom: inputRow.top
+            bottom: attachmentBar.top
         }
         author: page.replyAuthor
         body: page.replyBody
         onCancelled: page.cancelReply()
+    }
+
+    // Directly above the field, below the reply bar: reading downwards,
+    // the two bars are the message about to be sent, in the order its
+    // parts appear in it.
+    AttachmentBar {
+        id: attachmentBar
+        objectName: "attachmentBar"
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: inputRow.top
+        }
+        filePath: page.attachmentPath
+        fileName: page.attachmentName
+        onCancelled: page.attachmentPath = ""
     }
 
     // Says what just happened where the page has no state for it, such as
@@ -244,26 +305,43 @@ Page {
         TextField {
             id: textField
             objectName: "messageField"
-            width: parent.width - sendButton.width
-            placeholderText: qsTr("Message")
+            width: parent.width - attachButton.width - sendButton.width
+            //: Message field placeholder. Also the prompt for the caption
+            //: on a message that is carrying a file.
+            placeholderText: page.attachmentPath.length > 0
+                             ? qsTr("Caption") : qsTr("Message")
             EnterKey.iconSource: "image://theme/icon-m-enter-accept"
             EnterKey.onClicked: page.sendCurrentText()
+        }
+
+        AttachButton {
+            id: attachButton
+            objectName: "attachButton"
+            onPhotoRequested: page.pickWith("AttachPhotoPage.qml")
+            onFileRequested: page.pickWith("AttachFilePage.qml")
         }
 
         IconButton {
             id: sendButton
             objectName: "sendButton"
             icon.source: "image://theme/icon-m-send"
+            // A file on its own is a message; an empty field with nothing
+            // attached is not.
+            enabled: textField.text.length > 0
+                     || page.attachmentPath.length > 0
             onClicked: page.sendCurrentText()
         }
     }
 
     function sendCurrentText() {
-        if (textField.text.length > 0) {
+        // The bars are cleared from `onSent`, with the model's own copy:
+        // clearing them here would drop the reply and the file the reader
+        // chose on a send that never happened.
+        if (page.attachmentPath.length > 0) {
             page.errorMessage = ""
-            // The bar is cleared from `onSent`, with the model's own copy:
-            // clearing it here would drop the reply the reader chose on a
-            // send that never happened.
+            messages.send_file(textField.text, page.attachmentPath)
+        } else if (textField.text.length > 0) {
+            page.errorMessage = ""
             messages.send(textField.text)
         }
     }

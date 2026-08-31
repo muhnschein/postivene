@@ -88,6 +88,14 @@ pub struct ChatMessages {
 
     /// Send a plain-text message to this chat.
     pub send: qt_method!(fn(&mut self, text: QString)),
+    /// Send a message with a file attached; `text` may be empty.
+    ///
+    /// One file per message, which is the core's own shape: `misc_send_msg`
+    /// takes a single `file`, and a message carries a single `viewType`.
+    /// The core decides that type from the file itself, copies the file
+    /// into its blob directory, and sends -- so the picked file is free to
+    /// go away afterwards.
+    pub send_file: qt_method!(fn(&mut self, text: QString, file_path: QString)),
     /// Mark every unread message now loaded as read. Called when the
     /// reader reaches the newest message.
     pub mark_seen_all: qt_method!(fn(&mut self)),
@@ -561,6 +569,23 @@ impl ChatMessages {
 
     /// Send a plain-text message.
     pub fn send(&mut self, text: QString) {
+        self.send_message(text.to_string(), None);
+    }
+
+    /// Send a message with a file attached.
+    pub fn send_file(&mut self, text: QString, file_path: QString) {
+        let path = local_path(&file_path.to_string());
+        if path.is_empty() {
+            self.error(QString::from("no file to send"));
+            return;
+        }
+        let name = file_name_of(&path);
+        self.send_message(text.to_string(), Some((path, name)));
+    }
+
+    /// The one send. `file` is the path the core should attach and the name
+    /// the recipient should see.
+    fn send_message(&mut self, text: String, file: Option<(String, String)>) {
         let (account_id, chat_id) = (self.account_id, self.chat_id);
         let quoted = self.quoted_message_id;
         let Some((rpc, runtime)) = connection() else {
@@ -600,19 +625,23 @@ impl ChatMessages {
             }
         });
 
-        let text = text.to_string();
+        let (path, name) = file.unzip();
         runtime.spawn(async move {
             // misc_send_msg params: account, chat, text, file, filename,
-            // location, quoted_message_id.
+            // location, quoted_message_id. Pinned against the real core by
+            // deltachat-jsonrpc/tests/real_server.rs, which sends one of
+            // each.
             let result = rpc
                 .call::<_, (u32, serde_json::Value)>(
                     "misc_send_msg",
                     (
                         account_id,
                         chat_id,
-                        Some(text),
-                        Option::<String>::None,
-                        Option::<String>::None,
+                        // A caption-only send is a text message; an empty
+                        // string here would be a message whose body is "".
+                        (!text.is_empty()).then_some(text),
+                        path,
+                        name,
                         Option::<(f64, f64)>::None,
                         (quoted != 0).then_some(quoted),
                     ),
@@ -822,4 +851,91 @@ fn pixels(message: &serde_json::Value, field: &str) -> i32 {
         .and_then(serde_json::Value::as_i64)
         .and_then(|value| i32::try_from(value).ok())
         .unwrap_or(0)
+}
+
+/// The local path a picker handed back.
+///
+/// Silica's pickers report `filePath`, which is already a plain path, but
+/// `selectedContent` and anything that has been through a `url` property
+/// arrive as `file://` URLs with the awkward characters percent-encoded.
+/// Both reach `send_file`, and the core takes a path.
+fn local_path(raw: &str) -> String {
+    let path = raw.strip_prefix("file://").unwrap_or(raw);
+    if !path.contains('%') {
+        return path.to_string();
+    }
+    let mut out = Vec::with_capacity(path.len());
+    let bytes = path.as_bytes();
+    let mut index = 0;
+    while index < bytes.len() {
+        // Anything that is not a complete, valid escape is a literal '%':
+        // a file really can be called "100%.png".
+        // Both digits checked here rather than left to `from_str_radix`,
+        // which accepts a leading sign: without this, "%+A" would decode.
+        let decoded = (bytes[index] == b'%' && index + 2 < bytes.len())
+            .then(|| &bytes[index + 1..index + 3])
+            .filter(|hex| hex.iter().all(u8::is_ascii_hexdigit))
+            .and_then(|hex| std::str::from_utf8(hex).ok())
+            .and_then(|hex| u8::from_str_radix(hex, 16).ok());
+        if let Some(byte) = decoded {
+            out.push(byte);
+            index += 3;
+        } else {
+            out.push(bytes[index]);
+            index += 1;
+        }
+    }
+    // A percent-escape that does not spell UTF-8 is not a path we can use;
+    // the undecoded string at least names something.
+    String::from_utf8(out).unwrap_or_else(|_| path.to_string())
+}
+
+/// What the recipient should see this file called.
+///
+/// The core would derive its own name from the path, and for a gallery
+/// picture that path is often the camera's serial-number filename. This is
+/// the same thing, but ours to change.
+fn file_name_of(path: &str) -> String {
+    std::path::Path::new(path)
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{file_name_of, local_path};
+
+    #[test]
+    fn a_picked_path_survives_whichever_way_it_arrives() {
+        assert_eq!(local_path("/home/user/a.png"), "/home/user/a.png");
+        assert_eq!(local_path("file:///home/user/a.png"), "/home/user/a.png");
+        assert_eq!(
+            local_path("file:///home/user/holiday%20photo.png"),
+            "/home/user/holiday photo.png"
+        );
+        // Multi-byte characters are percent-encoded per byte.
+        assert_eq!(
+            local_path("file:///home/user/caf%C3%A9.png"),
+            "/home/user/café.png"
+        );
+    }
+
+    #[test]
+    fn a_literal_percent_is_not_an_escape() {
+        assert_eq!(local_path("/home/user/100%.png"), "/home/user/100%.png");
+        assert_eq!(local_path("/home/user/%zz.png"), "/home/user/%zz.png");
+        // Truncated at the end, so there is nothing to decode.
+        assert_eq!(local_path("/home/user/x%2"), "/home/user/x%2");
+        // `from_str_radix` would take the sign and decode this to 0x0a.
+        assert_eq!(local_path("/home/user/%+a.png"), "/home/user/%+a.png");
+    }
+
+    #[test]
+    fn the_name_is_the_last_component() {
+        assert_eq!(file_name_of("/home/user/a.png"), "a.png");
+        assert_eq!(file_name_of("a.png"), "a.png");
+        assert_eq!(file_name_of("/home/user/"), "user");
+        assert_eq!(file_name_of(""), "");
+    }
 }

@@ -23,9 +23,18 @@ Categories=Network;InstantMessaging;
 # picker can read the files and cannot find them, which is why it came up
 # empty on a device.
 #
+# UserDirs is what the attach button needs: Silica's pickers run inside
+# this process, so a file the sandbox does not grant is one the app cannot
+# read however it was chosen. It covers the XDG user directories --
+# Documents, Downloads, Music, Videos -- in one permission rather than
+# four, which is also what harbour-whisperfish declares for its own
+# attachment picker. Pictures is kept beside it because it is not certain
+# from the outside that UserDirs subsumes it, and this is the grant the
+# profile picture was found to need on a real device.
+#
 # Camera belongs here too once QR scanning lands, and not before -- a
 # permission the app does not use is a sandbox hole for no benefit.
 [X-Sailjail]
-Permissions=Internet;Pictures;MediaIndexing
+Permissions=Internet;Pictures;MediaIndexing;UserDirs
 OrganizationName=postivene
 ApplicationName=postivene

@@ -111,8 +111,15 @@ Page {
     }
 
     property string errorMessage: ""
-    readonly property string coreStoppedMessage:
-        qsTr("Lost the connection to the Delta Chat core. Restart Postivene.")
+    // Three states, not two: the core going away is now something the app
+    // does something about, and a banner that says "restart Postivene"
+    // while Postivene is already fixing it is worse than none.
+    readonly property string coreStatusMessage:
+        core.status === "reconnecting"
+        ? qsTr("Lost the connection to the Delta Chat core. Reconnecting...")
+        : core.status === "stopped"
+          ? qsTr("Lost the connection to the Delta Chat core. Restart Postivene.")
+          : ""
 
     Connections {
         target: core
@@ -430,12 +437,14 @@ Page {
                 right: parent.right
                 bottom: parent.bottom
             }
-            // A dead core outranks whatever failed before it, and a page opened
-            // after it died never saw the transition -- so read the status
-            // rather than waiting for it to change.
-            text: core.status === "stopped" ? page.coreStoppedMessage : page.errorMessage
-            // That one does not fix itself, so it stays put.
-            timeout: core.status === "stopped" ? 0 : 8
+            // The core's own state outranks whatever failed before it, and a
+            // page opened after it went away never saw the transition -- so
+            // read the status rather than waiting for it to change.
+            text: page.coreStatusMessage.length > 0
+                  ? page.coreStatusMessage : page.errorMessage
+            // Neither clears itself: reconnecting ends when the status says so,
+            // and stopped does not end at all.
+            timeout: page.coreStatusMessage.length > 0 ? 0 : 8
             onDismissed: page.errorMessage = ""
         }
     }

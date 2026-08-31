@@ -1,0 +1,267 @@
+//! The attach flow on the page itself: what a picker hands back becomes a
+//! bar above the field, a send that carries the file, and a bar that clears
+//! itself afterwards.
+//!
+//! The page is loaded from a copy of the QML tree with `EnterKey` taken
+//! out; see `common::qml_tree_without_enter_key` for why the shipped file
+//! cannot be loaded headlessly as it stands. The pickers themselves are not
+//! driven -- they are `pageStack.push`ed, and there is no page stack here --
+//! but `attach()` is the function their handlers call, so everything after
+//! the choosing is covered.
+
+// Qt harness: see qml_conversation_open.rs.
+#![allow(
+    unsafe_code,
+    unused_unsafe,
+    clippy::borrow_as_ptr,
+    clippy::disallowed_methods,
+    clippy::expect_used
+)]
+
+use std::time::Duration;
+
+use postivene_shim::DeltaChatCore;
+use qmetaobject::*;
+use serde_json::Value;
+
+mod common;
+
+const PROBE_QML: &str = r"
+    import QtQuick 2.0
+    import Sailfish.Silica 1.0
+    Item {
+        Loader { id: loader }
+        // Created the way pageStack.push does, still on its way in: the
+        // page hands the chat to its model on the transition to Active, not
+        // from a binding, so a page born Active never fetches anything.
+        function load(url, accountId, chatId) {
+            loader.setSource('', {})
+            loader.setSource(url, {
+                accountId: accountId,
+                chatId: chatId,
+                status: PageStatus.Activating
+            })
+            return loader.status === Loader.Ready ? 'ok' : 'load-failed'
+        }
+        function settle() { loader.item.status = PageStatus.Active; return 'ok' }
+        function findIn(node, name) {
+            if (!node) { return null }
+            if (node.objectName === name) { return node }
+            var kids = node.data !== undefined ? node.data : node.children
+            for (var i = 0; kids && i < kids.length; i++) {
+                var hit = findIn(kids[i], name)
+                if (hit) { return hit }
+            }
+            if (node.contentItem && node.contentItem !== node) {
+                return findIn(node.contentItem, name)
+            }
+            return null
+        }
+        function get(name, property) {
+            var item = findIn(loader.item, name)
+            if (!item) { return 'missing:' + name }
+            return '' + item[property]
+        }
+        // What the pickers' handlers call once something has been chosen.
+        function attach(path) { loader.item.attach(path); return 'ok' }
+        function send() { loader.item.sendCurrentText(); return 'ok' }
+        function pending() { return '' + loader.item.attachmentPath }
+        // The tray is closed until the plus is tapped, and the choices in
+        // it must reach the page rather than stopping at the component.
+        function toggleTray() {
+            var button = findIn(loader.item, 'attachButton')
+            if (!button) { return 'missing:attachButton' }
+            button.open = !button.open
+            return '' + button.open
+        }
+    }
+";
+
+#[test]
+fn a_picked_file_shows_above_the_field_and_leaves_with_the_message() {
+    let temp = std::env::temp_dir().join(format!("postivene-qml-send-file-{}", std::process::id()));
+    let journal = common::fresh_journal(&temp);
+    std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
+    let tree = common::qml_tree_without_enter_key();
+
+    // SAFETY: single-threaded test binary; set before Qt starts.
+    unsafe {
+        std::env::set_var("QT_QPA_PLATFORM", "offscreen");
+        std::env::set_var("POSTIVENE_FAKE_JOURNAL", &journal);
+        std::env::set_var("POSTIVENE_ACCOUNTS_DIR", temp.join("accounts"));
+    }
+
+    postivene_shim::register_qml_types();
+
+    let core_box = QObjectBox::new(DeltaChatCore::default());
+    let mut engine = QmlEngine::new();
+    engine.add_import_path(QString::from(
+        common::stubs_dir().to_string_lossy().into_owned(),
+    ));
+    engine.set_object_property("core".into(), core_box.pinned());
+    engine.load_data(QByteArray::from(PROBE_QML));
+
+    core_box
+        .pinned()
+        .borrow_mut()
+        .start(QString::from(env!("CARGO_BIN_EXE_fake-core-server")));
+
+    let engine_ptr = std::ptr::addr_of_mut!(engine);
+    let mut steps: Vec<(&str, String)> = Vec::new();
+    let steps_ptr: *mut Vec<(&str, String)> = std::ptr::addr_of_mut!(steps);
+
+    macro_rules! call {
+        ($name:expr $(, $arg:expr)*) => {{
+            let result = (*engine_ptr).invoke_method(
+                $name.into(),
+                &[$(QVariant::from($arg)),*],
+            );
+            QString::from_qvariant(result)
+                .map(|value| value.to_string())
+                .unwrap_or_default()
+        }};
+    }
+
+    /// Record one item's property under `label`.
+    macro_rules! probe {
+        ($label:expr, $name:expr, $property:expr) => {
+            (*steps_ptr).push((
+                $label,
+                call!("get", QString::from($name), QString::from($property)),
+            ))
+        };
+    }
+
+    single_shot(Duration::from_secs(1), move || unsafe {
+        (*steps_ptr).push((
+            "load",
+            call!(
+                "load",
+                QString::from(common::page_url_in(&tree, "ConversationPage.qml")),
+                1,
+                1
+            ),
+        ));
+        probe!("bar-before", "attachmentBar", "visible");
+        probe!("send-enabled-before", "sendButton", "enabled");
+        probe!("tray-closed", "attachTray", "visible");
+        (*steps_ptr).push(("tray-open", call!("toggleTray")));
+        (*steps_ptr).push(("settle", call!("settle")));
+    });
+
+    single_shot(Duration::from_secs(3), move || unsafe {
+        (*steps_ptr).push((
+            "attach",
+            call!(
+                "attach",
+                QString::from("/tmp/postivene-fake/holiday photo.png")
+            ),
+        ));
+    });
+
+    single_shot(Duration::from_secs(4), move || unsafe {
+        probe!("bar-after", "attachmentBar", "visible");
+        probe!("bar-text", "pendingAttachmentLabel", "text");
+        // A file with no caption is still a message.
+        probe!("send-enabled-after", "sendButton", "enabled");
+        probe!("placeholder", "messageField", "placeholderText");
+        (*steps_ptr).push(("send", call!("send")));
+    });
+
+    single_shot(Duration::from_secs(6), move || unsafe {
+        (*steps_ptr).push(("pending-after-send", call!("pending")));
+        (*engine_ptr).quit();
+    });
+
+    engine.exec();
+
+    assert_outcome(&steps, &journal);
+}
+
+/// Everything the run has to show for itself, out of the test body: what a
+/// Qt harness can do in one function is bounded, and the assertions are the
+/// part worth reading.
+fn assert_outcome(steps: &[(&str, String)], journal: &std::path::Path) {
+    let value = |label: &str| {
+        steps
+            .iter()
+            .find(|(name, _)| *name == label)
+            .map(|(_, value)| value.clone())
+            .unwrap_or_default()
+    };
+    let context = format!("steps: {steps:?}");
+
+    assert_eq!(value("load"), "ok", "the page did not load. {context}");
+    assert_eq!(
+        value("bar-before"),
+        "false",
+        "the attachment bar is showing before anything has been picked. {context}"
+    );
+    assert_eq!(
+        value("send-enabled-before"),
+        "false",
+        "an empty field with nothing attached still offers to send. {context}"
+    );
+    assert_eq!(
+        value("tray-closed"),
+        "false",
+        "the attach tray is open before the plus was tapped, over the conversation. {context}"
+    );
+    assert_eq!(
+        value("tray-open"),
+        "true",
+        "the plus does not open the tray. {context}"
+    );
+
+    assert_eq!(
+        value("bar-after"),
+        "true",
+        "a picked file left no sign of itself above the field. {context}"
+    );
+    assert!(
+        value("bar-text").contains("holiday photo.png"),
+        "the bar does not name the picked file. {context}"
+    );
+    assert!(
+        !value("bar-text").contains('/'),
+        "the bar shows the whole path rather than the file's name. {context}"
+    );
+    assert_eq!(
+        value("send-enabled-after"),
+        "true",
+        "a file with no caption cannot be sent. {context}"
+    );
+    assert_eq!(
+        value("placeholder"),
+        "Caption",
+        "the field still asks for a message when it is asking for a caption. {context}"
+    );
+
+    let sends: Vec<Value> = common::calls(journal)
+        .into_iter()
+        .filter(|(method, _)| method == "misc_send_msg")
+        .map(|(_, params)| params)
+        .collect();
+    assert_eq!(
+        sends.first(),
+        Some(&serde_json::json!([
+            1,
+            1,
+            null,
+            "/tmp/postivene-fake/holiday photo.png",
+            "holiday photo.png",
+            null,
+            null
+        ])),
+        "the page's send did not carry the picked file. {context}. Sends: {sends:?}"
+    );
+
+    // Cleared by `onSent`, with the model's own answer -- not optimistically
+    // on the way out, which would drop the file on a send that failed.
+    assert_eq!(
+        value("pending-after-send"),
+        "",
+        "the file stayed armed after it was sent, and the next message would \
+         have carried it too. {context}"
+    );
+}

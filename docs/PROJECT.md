@@ -56,6 +56,12 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   via queued signals.
 - **Background reception** relies on IMAP IDLE plus a Sailfish background
   process. It is the hardest platform problem and the largest open risk.
+- **The server is supervised.** Its event stream ending is the app's only
+  notice that the core has gone -- a phone reclaiming memory kills it and
+  says nothing -- so that is where the next one is started, with a backoff
+  that resets after a healthy run, and IO resumed for whatever accounts were
+  running. Twelve failures without a healthy run in between is a core that
+  will not start, which the app says rather than retrying forever.
 
 ## Platform baseline
 
@@ -81,9 +87,10 @@ On top of that: the chat list (unread badges, timestamps, avatars,
 encryption/pin/mute marks, context menu, search across chats/contacts/
 messages, archive, contact requests, multiple profiles), the conversation
 view (bubbles, quotes, delivery marks, day separators, image previews,
-attachments, reply/copy/delete/resend), onboarding rebuilt on the core's
-current transport API, `secure_join` invites in both directions, encryption
-indicators, foreground notifications, and the cover.
+sending and receiving attachments, reply/copy/delete/resend), onboarding
+rebuilt on the core's current transport API, `secure_join` invites in both
+directions, encryption indicators, foreground notifications, and the
+cover.
 
 Packaging is real: `mb2` builds produce `harbour-postivene-0.1.0-1.aarch64.rpm`,
 and `.github/workflows/rpm.yml` builds it unattended on a GitHub runner in
@@ -115,12 +122,19 @@ In order of what matters:
    permission-dependent path. Store assets and a privacy policy are not
    started.
 2. **A background service, and suspend handling.** Messages arrive only
-   while the app is open and awake, which is the one thing standing between
-   this and a client someone could rely on. Notifications inherit the same
-   limit. Restarting `deltachat-rpc-server` after it dies belongs here
-   rather than after: a supervised service that dies and stays dead is worse
-   than one that was never there, because nobody is watching the screen to
-   see the banner.
+   while the app is running, which is the one thing standing between this
+   and a client someone could rely on. Notifications inherit the same limit.
+   Minimised to the cover is covered -- nothing tears the event loop down,
+   and `Notifier` is built around the app being behind something else --
+   but closed or rebooted is not, and cannot be for a Harbour package:
+   a systemd user unit and a D-Bus activation file both live outside the
+   four paths Harbour allows. `harbour-whisperfish` ships its own service
+   under `%if %{without harbour}` for exactly this reason. So this is the
+   same conversation with Jolla as the bundled server, not a thing to
+   engineer around.
+
+   Restarting `deltachat-rpc-server` after it dies is done: see the
+   architecture note above.
 3. **Camera QR scanning**, and showing one's own invite as a QR image. The
    link form of every payload already works, so this is polish.
 4. **Loading a translation.** The catalog is real and `ci/packaging-lint.sh`
@@ -132,8 +146,8 @@ In order of what matters:
 5. **Group member management, contact profile pages, blocking** outside a
    request; add-as-second-device and restore-from-backup.
 6. **Message polish**: avatars on bubbles, voice messages and audio,
-   reactions, drafts, an unread divider, paging for long histories, and
-   sending attachments.
+   reactions, drafts, an unread divider, and paging for long histories --
+   a chat is still fetched whole.
 
 Also open: no `sfdk` or OBS build specifically, since CI drives `mb2` 
 directly; icons are placeholders.

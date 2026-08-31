@@ -120,7 +120,7 @@ line each with a reason. Nothing belongs there that can be fixed: every
 entry is a submission blocker.
 
 A waiver that stops matching anything fails the check, so the file cannot
-outlive what it excuses. There are two entries; both are below.
+outlive what it excuses. Its entries cover the two blockers below.
 
 ## The open blockers
 

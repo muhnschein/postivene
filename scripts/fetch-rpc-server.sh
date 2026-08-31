@@ -20,7 +20,7 @@
 # (fetch the new wheels, run `sha256sum`, update below), then update
 # vendor/deltachat-rpc-server/SOURCE.md to match -- the MPL-2.0
 # source-availability notice must always describe the binaries actually
-# bundled (see docs/LICENSING.md).
+# bundled (see vendor/deltachat-rpc-server/SOURCE.md).
 
 set -eu
 

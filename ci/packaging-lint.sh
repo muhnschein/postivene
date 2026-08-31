@@ -1,7 +1,7 @@
 #!/bin/sh
 # Static checks on what decides whether the RPM installs and the launcher
 # works. Resolving BuildRequires or running mb2 needs the SDK
-# (docs/SDK-BUILD.md); this checks what is checkable anywhere.
+# (docs/BUILDING.md); this checks what is checkable anywhere.
 set -eu
 
 root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)

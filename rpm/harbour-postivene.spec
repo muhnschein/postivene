@@ -1,9 +1,9 @@
 # Sailfish/OBS packaging for Postivene.
 #
 # Modeled on real-world prior art for Rust+Qt5/QML Sailfish apps -- notably
-# Whisperfish's rpm/harbour-whisperfish.spec (see docs/SCOPE.md's §4
-# reference to Whisperfish as an architectural/build-tooling template) --
-# but simplified: Postivene has no C/C++ vendored dependencies of its own
+# Whisperfish's rpm/harbour-whisperfish.spec, which docs/PROJECT.md names as
+# the architectural and build-tooling template -- but simplified: Postivene
+# has no C/C++ vendored dependencies of its own
 # (no sqlcipher, no protobuf, etc.), just the Rust workspace under rust/,
 # the qml/ tree, and a *separately obtained* deltachat-rpc-server binary
 # (scripts/fetch-rpc-server.sh, see vendor/deltachat-rpc-server/).
@@ -20,9 +20,9 @@
 # Harbour's listing rules apply here: the package name, the install paths
 # and every Requires are constrained by them, and ci/harbour-check.sh
 # fails a build that breaks one. docs/HARBOUR.md is the map, including the
-# one rule this package still breaks.
+# two rules this package still breaks.
 #
-# NOT YET DONE, tracked in docs/MILESTONES.md:
+# NOT YET DONE, tracked in docs/PROJECT.md:
 #   - an actual `sfdk build` / OBS build of this spec (no Sailfish SDK has
 #     been available in any environment this repo was developed in)
 
@@ -47,7 +47,7 @@ Version:    0.1.0
 Release:    1
 # Postivene's own code is GPL-3.0-or-later; the bundled
 # deltachat-rpc-server is upstream's unmodified MPL-2.0 binary, and the tag
-# describes the contents of the binary package (docs/LICENSING.md).
+# describes the contents of the binary package.
 %if 0%{?bundle_rpc_server}
 License:    GPL-3.0-or-later AND MPL-2.0
 %else
@@ -127,7 +127,7 @@ Postivene is a Silica/QML SailfishOS client for Delta Chat. It contributes
 only the UI, Sailfish platform integration, and packaging; all
 IMAP/SMTP/MIME/encryption logic is delegated to a bundled
 deltachat-rpc-server binary, spoken to over JSON-RPC on stdio. See
-docs/SCOPE.md in the source tree for the full project scope and, just as
+docs/PROJECT.md in the source tree for the full project scope and, just as
 importantly, its non-goals.
 
 %prep
@@ -146,7 +146,7 @@ cargo --version
 
 # Cross-compiling Rust under Sailfish's scratchbox2 (sb2) requires the
 # Docker build engine (the VirtualBox build engine does not support it);
-# see docs/SCOPE.md §7. Under sb2 the accelerated rustc would otherwise
+# see docs/BUILDING.md. Under sb2 the accelerated rustc would otherwise
 # emit host (x86) code, so tell it the real target explicitly -- same
 # mechanism Whisperfish's spec uses (see the xulrunner-qt5.spec comment it
 # cites). Unverified against a real SDK build so far; expect to iterate
@@ -164,7 +164,7 @@ export QT_LIBRARY_PATH=%{_libdir}
 # Under scratchbox2, parallel cargo deadlocks (observed reproducibly at the
 # default -j4: cargo futex-waits forever on an unreaped child while
 # compiling qmetaobject's C++ glue). sb2 rust builds are effectively
-# single-threaded anyway (docs/SCOPE.md §7), so force -j1 there; outside
+# single-threaded anyway (docs/BUILDING.md), so force -j1 there; outside
 # sb2 (e.g. a native OBS worker) let cargo pick its own parallelism.
 # SBOX_SESSION_DIR is set by sb2 itself inside build sessions.
 # Build scripts and proc-macros are compiled for the tooling's own
@@ -227,15 +227,12 @@ install -Dm 755 vendor/deltachat-rpc-server/%{_target_cpu}/deltachat-rpc-server 
 
 # LICENSE is Postivene's own GPLv3 text. SOURCE.md discharges MPL-2.0
 # clause 3.2(a) for bundling deltachat-rpc-server's Executable Form:
-# recipients must be told how to obtain its Source Code Form. Both, plus
-# the analysis tying them together, ship with the package. See
-# docs/LICENSING.md.
+# recipients must be told how to obtain its Source Code Form, and it names
+# the upstream repository, the exact tag, and the sha256 of every binary.
 install -Dm 644 vendor/deltachat-rpc-server/SOURCE.md \
     %{buildroot}%{appdatadir}/vendor/deltachat-rpc-server/SOURCE.md
 install -Dm 644 LICENSE \
     %{buildroot}%{appdatadir}/LICENSE
-install -Dm 644 docs/LICENSING.md \
-    %{buildroot}%{appdatadir}/docs/LICENSING.md
 
 desktop-file-install \
     --dir %{buildroot}%{_datadir}/applications \

@@ -69,22 +69,26 @@ jobs:
       # Running as root is explicitly wrong -- sdk-manage refuses, saying
       # it cannot determine the Mer SDK user -- so the build stays as the
       # image's own mersdk, and the tree has to belong to it.
-      # Every build used to produce postivene-0.1.0-1.aarch64.rpm, because
-      # the spec pins both fields and mb2 runs with -X so nothing derives
+      # Every build used to produce harbour-postivene-0.1.0-1.aarch64.rpm,
+      # because the spec pins both fields and mb2 runs with -X so nothing derives
       # them from git. Same name, same NEVRA, every time -- so `rpm -U`
       # and `pkcon install-local` saw a package that was already installed
       # and did nothing at all. A phone kept whatever build it had while
       # the file said it was new.
       #
       # The run number is monotonic, so each build is an upgrade of the
-      # last; the short SHA says which commit it came from. The spec keeps
-      # Release: 1 in the tree, which is what a tagged release should be.
+      # last. The spec keeps Release: 1 in the tree, which is what a tagged
+      # release should be.
+      #
+      # Digits and periods only: Harbour rejects any other character in
+      # Release, so the short SHA that used to be appended here would have
+      # failed intake. It identifies the artifact below instead.
       - name: Stamp the build so each one is its own package
         run: |
           short=$(git rev-parse --short HEAD)
-          release="1.${GITHUB_RUN_NUMBER}.g${short}"
-          sed -i "s/^Release:.*/Release:    ${release}/" rpm/postivene.spec
-          grep '^Version:\|^Release:' rpm/postivene.spec
+          release="1.${GITHUB_RUN_NUMBER}"
+          sed -i "s/^Release:.*/Release:    ${release}/" rpm/harbour-postivene.spec
+          grep '^Version:\|^Release:' rpm/harbour-postivene.spec
           echo "SHORT_SHA=$short" >> "$GITHUB_ENV"
           echo "RPM_RELEASE=$release" >> "$GITHUB_ENV"
 
@@ -95,22 +99,22 @@ jobs:
           gid=$(docker run --rm "$img" id -g)
           home=$(docker run --rm "$img" sh -c 'echo $HOME')
           echo "SDK builds as uid=$uid gid=$gid, HOME=$home"
-          echo "BUILDDIR=$home/postivene" >> "$GITHUB_ENV"
+          echo "BUILDDIR=$home/harbour-postivene" >> "$GITHUB_ENV"
           sudo chown -R "$uid:$gid" "$PWD"
 
       # Mounted inside the SDK user's home, and that placement is the
       # whole fix. rpm runs under scratchbox2, which redirects absolute
       # paths it does not recognise into the target rootfs -- so with the
-      # tree at /build/postivene, mb2 wrote .mb2/spec (the file is right
+      # tree at /build/harbour-postivene, mb2 wrote .mb2/spec (it is right
       # there afterwards, 10 KB of it) and rpm then looked for the same
       # path inside the target and found nothing:
       #
-      #   error: Unable to open /build/postivene/.mb2/spec: No such file
+      #   error: Unable to open /build/harbour-postivene/.mb2/spec: No such file
       #
       # A file that exists and cannot be opened is two different roots.
       # docs/SDK-BUILD.md bind-mounted under /home/mersdk for this
       # reason. The directory keeps the project's name either way: mb2
-      # derives the package from it, so rpm/postivene.spec is found.
+      # derives the package from it, so rpm/harbour-postivene.spec is found.
       #
       # `build-init` because mb2's help says a build directory is
       # initialised before it is built in, and `-X` (--no-fix-version)
@@ -164,9 +168,48 @@ jobs:
           find RPMS -name '*.rpm' -print -exec rpm -qip {} \; 2>/dev/null || \
             find . -name '*.rpm' -print
 
+      # The authority. ci/harbour-check.sh answers the same questions from
+      # the sources on every pull request, but only this sees the built
+      # package -- the generated Requires and Provides, the stripped
+      # binary's symbols, the real file modes. A failure here is a
+      # guaranteed Harbour rejection.
+      #
+      # Upstream's own script, fetched rather than vendored: ci/harbour/
+      # carries the rules it reads, and this is the code that reads them.
+      # `|| true` on the run, because it exits non-zero for warnings too;
+      # the FAIL marker is what decides.
+      - name: Validate the RPM against Harbour's rules
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y binutils rpm cpio file
+          git clone --depth 1 \
+            https://github.com/sailfishos/sdk-harbour-rpmvalidator.git /tmp/validator
+          # The vendored rules are what ci/harbour-check.sh gates on, so
+          # the two must be judging the same Harbour.
+          for conf in ci/harbour/*.conf; do
+            [ "$(basename "$conf")" = waivers.conf ] && continue
+            if ! diff -q "$conf" "/tmp/validator/$(basename "$conf")"; then
+              echo "::warning::ci/harbour/$(basename "$conf") is behind upstream;" \
+                   "run scripts/update-harbour-rules.sh"
+            fi
+          done
+          rpm=$(find . -name 'harbour-postivene-*.rpm' ! -name '*debug*' \
+                       ! -name '*.src.rpm' | head -1)
+          [ -n "$rpm" ] || { echo "::error::no RPM to validate"; exit 1; }
+          echo "Validating $rpm"
+          BATCHERBATCHERBATCHER=1 /tmp/validator/rpmvalidation.sh \
+              -g /tmp/validator "$rpm" | tee /tmp/validation.log || true
+          if grep -q '^!END!FAIL!' /tmp/validation.log; then
+            echo "::error::sfdk check -s harbour would reject this package"
+            grep '^ERROR' /tmp/validation.log || true
+            exit 1
+          fi
+          grep '^WARNING' /tmp/validation.log || true
+          echo "Harbour validation passed"
+
       - uses: actions/upload-artifact@v4
         with:
-          name: postivene-${{ env.ARCH }}-sfos${{ env.SFOS }}-${{ env.SHORT_SHA }}
+          name: harbour-postivene-${{ env.ARCH }}-sfos${{ env.SFOS }}-${{ env.SHORT_SHA }}
           path: |
             RPMS/**/*.rpm
             **/*.rpm

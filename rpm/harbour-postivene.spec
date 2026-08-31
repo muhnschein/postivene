@@ -17,12 +17,14 @@
 #                                  the two extra sources with
 #                                  scripts/vendor-crates.sh.
 #
+# Harbour's listing rules apply here: the package name, the install paths
+# and every Requires are constrained by them, and ci/harbour-check.sh
+# fails a build that breaks one. docs/HARBOUR.md is the map, including the
+# one rule this package still breaks.
+#
 # NOT YET DONE, tracked in docs/MILESTONES.md:
 #   - an actual `sfdk build` / OBS build of this spec (no Sailfish SDK has
 #     been available in any environment this repo was developed in)
-#   - Harbour-store compliance (sailjail permissions, aarch64/armv7hl
-#     signing, etc.) if that channel is ever pursued instead of/alongside
-#     Chum or OpenRepos
 
 %bcond_with vendor
 
@@ -36,7 +38,10 @@
 %define bundle_rpc_server 1
 %endif
 
-Name:       postivene
+# Harbour requires the `harbour-` prefix and lowercase throughout; the
+# name users see is the .desktop file's Name= and the Store's Title field,
+# not this.
+Name:       harbour-postivene
 Summary:    Native SailfishOS client for Delta Chat
 Version:    0.1.0
 Release:    1
@@ -56,9 +61,23 @@ Source1:    vendor.tar.xz
 Source2:    vendor.toml
 %endif
 
-Requires:   sailfishsilica-qt5 >= 0.10.9
-Requires:   libsailfishapp-launcher
-Requires:   sailfish-version >= 4.5.0
+# Unversioned, and only what Harbour's allowed_requires.conf lists: the
+# validator hands each whitespace-separated token to its allow-list, so a
+# versioned dependency arrives as three of them and the operator and the
+# version are both rejected. Harbour derives its own compatibility range
+# from these, so the OS floor this app needs -- 4.5.0, for the
+# `[X-Sailjail]` section to be honoured -- goes in the submission form's
+# "From OS version" field instead.
+#
+# No libsailfishapp-launcher: that package provides `sailfish-qml`, which
+# only a QML-only app is launched through, and requiring it without using
+# it is an error of its own.
+Requires:   sailfishsilica-qt5
+
+# Harbour allows no Provides: at all, and rpm generates one from any shared
+# library it finds in the package. Neither of the app's private directories
+# holds one today; this keeps intake clean if one is ever added there.
+%define __provides_exclude_from ^(%{_datadir}/%{name}|%{_libexecdir}/%{name})/.*$
 
 # Sailfish ships Rust 1.75.0 (sailfishos/rust); rust/Cargo.lock is kept in
 # the v3 lockfile format because Cargo only learned to read v4 in 1.78.
@@ -180,9 +199,9 @@ cargo build \
 rm -rf %{buildroot}
 
 builddir=%{builddir}
-[ -x "$builddir/postivene" ] || builddir=%{nativedir}
-install -Dm 755 "$builddir/postivene" \
-    %{buildroot}%{_bindir}/postivene
+[ -x "$builddir/%{name}" ] || builddir=%{nativedir}
+install -Dm 755 "$builddir/%{name}" \
+    %{buildroot}%{_bindir}/%{name}
 
 # QML UI, installed under our own app-private data dir (not /usr/bin) so
 # postivene-app's qml_dir() lookup (POSTIVENE_QML_DIR env var, then this
@@ -220,26 +239,26 @@ install -Dm 644 docs/LICENSING.md \
 
 desktop-file-install \
     --dir %{buildroot}%{_datadir}/applications \
-    postivene.desktop
+    %{name}.desktop
 
-install -Dm 644 icons/86x86/postivene.png \
-    %{buildroot}%{_datadir}/icons/hicolor/86x86/apps/postivene.png
-install -Dm 644 icons/108x108/postivene.png \
-    %{buildroot}%{_datadir}/icons/hicolor/108x108/apps/postivene.png
-install -Dm 644 icons/128x128/postivene.png \
-    %{buildroot}%{_datadir}/icons/hicolor/128x128/apps/postivene.png
-install -Dm 644 icons/172x172/postivene.png \
-    %{buildroot}%{_datadir}/icons/hicolor/172x172/apps/postivene.png
-install -Dm 644 icons/256x256/postivene.png \
-    %{buildroot}%{_datadir}/icons/hicolor/256x256/apps/postivene.png
+install -Dm 644 icons/86x86/%{name}.png \
+    %{buildroot}%{_datadir}/icons/hicolor/86x86/apps/%{name}.png
+install -Dm 644 icons/108x108/%{name}.png \
+    %{buildroot}%{_datadir}/icons/hicolor/108x108/apps/%{name}.png
+install -Dm 644 icons/128x128/%{name}.png \
+    %{buildroot}%{_datadir}/icons/hicolor/128x128/apps/%{name}.png
+install -Dm 644 icons/172x172/%{name}.png \
+    %{buildroot}%{_datadir}/icons/hicolor/172x172/apps/%{name}.png
+install -Dm 644 icons/256x256/%{name}.png \
+    %{buildroot}%{_datadir}/icons/hicolor/256x256/apps/%{name}.png
 
 %files
 %defattr(-,root,root,-)
-%{_bindir}/postivene
+%{_bindir}/%{name}
 %{appdatadir}
 %if 0%{?bundle_rpc_server}
 # The directory as well as the file: listing only the file leaves
-# /usr/libexec/postivene behind on uninstall.
+# /usr/libexec/%%{name} behind on uninstall.
 %dir %{appexecdir}
 %{appexecdir}/deltachat-rpc-server
 %endif

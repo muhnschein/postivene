@@ -100,7 +100,7 @@ remains the thing that stops this being usable as one's actual client.
 The cover shows the unread total across every chat and the core's
 state, with a cover action back to the chat list.
 The app declares a sailjail sandbox (`Internet`, and its own data
-directory) in `postivene.desktop`; `Camera` waits for QR scanning.
+directory) in `harbour-postivene.desktop`; `Camera` waits for QR scanning.
 `qsTr()` throughout with no `.ts` catalogs.
 Placeholder icons.
 

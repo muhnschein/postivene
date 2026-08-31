@@ -106,7 +106,7 @@ belongs upstream under MPL-2.0.
     GPL software target any platform with proprietary system libraries.
   - The ecosystem has already settled this in practice. Whisperfish — the
     Rust + Qt5/QML Sailfish app this repo uses as its architectural and
-    packaging template (`docs/SCOPE.md` §4, `rpm/postivene.spec`) — is
+    packaging template (`docs/SCOPE.md` §4, `rpm/harbour-postivene.spec`) — is
     **AGPLv3**, and its spec carries the identical
     `Requires: sailfishsilica-qt5` line.
   - If it is ever contested, GPLv3 §7 allows an explicit additional
@@ -122,7 +122,7 @@ to get the Corresponding Source, under GPLv3, by one of §6's routes. The
 intended route is §6(d): the source is this public repository, and the
 package points at it (the spec's `URL:`, plus the installed `LICENSE` and
 `docs/LICENSING.md`). For that to actually hold, an RPM must be built from
-an immutable tag whose tree is what `rpm/postivene.spec`'s `Version:` says
+an immutable tag whose tree is what `rpm/harbour-postivene.spec`'s `Version:` says
 — so tags are not to be moved, and the version is to be bumped with them.
 Where a channel (OBS/Chum, OpenRepos) distributes the RPM away from the
 repository, those installed pointers are the "clear directions next to the
@@ -130,7 +130,7 @@ object code" §6(d) asks for.
 
 **For the bundled `deltachat-rpc-server` (MPL-2.0 §3.2(a)).** Because the RPM
 bundles the Executable Form, recipients must be told how to obtain its
-Source Code Form. `rpm/postivene.spec` installs
+Source Code Form. `rpm/harbour-postivene.spec` installs
 `vendor/deltachat-rpc-server/SOURCE.md`, which names the exact upstream tag
 and the sha256 of every binary. This must be kept in sync whenever the
 bundled binary is updated — `scripts/fetch-rpc-server.sh` pins the version

@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
 X-Nemo-Application-Type=silica-qt5
-Icon=postivene
-Exec=postivene
+Icon=harbour-postivene
+Exec=harbour-postivene
 Name=Postivene
 Name[fi]=Postivene
 Comment=Delta Chat client

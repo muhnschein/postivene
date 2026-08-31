@@ -11,10 +11,10 @@ ran=0
 if command -v rpmspec >/dev/null 2>&1; then
     ran=$((ran + 1))
     # -P expands and parses only; BuildRequires are the SDK's job.
-    if rpmspec -P "$root/rpm/postivene.spec" >/dev/null; then
-        echo "packaging-lint: rpm/postivene.spec parses"
+    if rpmspec -P "$root/rpm/harbour-postivene.spec" >/dev/null; then
+        echo "packaging-lint: rpm/harbour-postivene.spec parses"
     else
-        echo "packaging-lint: FAIL rpm/postivene.spec does not parse" >&2
+        echo "packaging-lint: FAIL rpm/harbour-postivene.spec does not parse" >&2
         status=1
     fi
 else
@@ -31,7 +31,7 @@ bare=$(awk '/^[[:space:]]*#/ {
         stripped = $0
         gsub(/%%/, "", stripped)
         if (stripped ~ /%/) printf "%s:%d: %s\n", FILENAME, FNR, $0
-    }' "$root/rpm/postivene.spec")
+    }' "$root/rpm/harbour-postivene.spec")
 if [ -z "$bare" ]; then
     echo "packaging-lint: spec comments escape their macros"
 else
@@ -44,34 +44,53 @@ if command -v desktop-file-validate >/dev/null 2>&1; then
     ran=$((ran + 1))
     # Sailfish's own keys are not in the freedesktop spec; each expected
     # warning is named, and anything else still fails.
-    out=$(desktop-file-validate "$root/postivene.desktop" 2>&1 |
+    out=$(desktop-file-validate "$root/harbour-postivene.desktop" 2>&1 |
         grep -v 'value "silica-qt5" for key "X-Nemo-Application-Type"' |
         grep -v 'key "X-Nemo-Application-Type" .* is not known' || true)
     if [ -z "$out" ]; then
-        echo "packaging-lint: postivene.desktop valid"
+        echo "packaging-lint: harbour-postivene.desktop valid"
+    else
+        echo "$out" >&2
+        echo "packaging-lint: FAIL harbour-postivene.desktop" >&2
+        status=1
+    fi
+else
+    echo "packaging-lint: SKIP desktop-file-validate (install desktop-file-utils)"
+fi
 
 # Every build has to be a distinguishable package.
 #
 # The spec pins Version and Release, and mb2 runs with -X so nothing
 # derives them from git -- so without a stamp in the workflow every build
-# is postivene-0.1.0-1 and `rpm -U` refuses it as already installed. A
-# phone then keeps the build it has while the file claims to be new,
-# which is exactly what happened.
-if grep -q '^Release:' "$root/rpm/postivene.spec" &&
+# is harbour-postivene-0.1.0-1 and `rpm -U` refuses it as already
+# installed. A phone then keeps the build it has while the file claims to
+# be new, which is exactly what happened.
+ran=$((ran + 1))
+if grep -q '^Release:' "$root/rpm/harbour-postivene.spec" &&
     ! grep -q 'sed -i "s/\^Release:' "$root/.github/workflows/rpm.yml"; then
     echo "packaging-lint: FAIL the rpm workflow no longer stamps Release, so" \
          "every build would be the same NEVRA and refuse to install over" \
          "the last" >&2
-    exit 1
-fi
-echo "packaging-lint: the rpm workflow stamps a unique Release"
-    else
-        echo "$out" >&2
-        echo "packaging-lint: FAIL postivene.desktop" >&2
-        status=1
-    fi
+    status=1
 else
-    echo "packaging-lint: SKIP desktop-file-validate (install desktop-file-utils)"
+    echo "packaging-lint: the rpm workflow stamps a unique Release"
+fi
+
+# mb2 derives the package it is building from the directory it is run in,
+# and then looks for rpm/<that>.spec. The workflow mounts the checkout at a
+# path it chooses, so that name and the spec's have to agree or the build
+# stops before rpmbuild starts.
+ran=$((ran + 1))
+spec_base=$(basename "$(find "$root/rpm" -maxdepth 1 -name '*.spec' | sort | head -1)" .spec)
+# shellcheck disable=SC2016 # $home is the workflow's text, not ours.
+builddir=$(sed -n 's|.*BUILDDIR=\$home/\([^"]*\)".*|\1|p' \
+    "$root/.github/workflows/rpm.yml" | head -1)
+if [ "$spec_base" = "$builddir" ]; then
+    echo "packaging-lint: the rpm workflow builds in a directory named for the spec"
+else
+    echo "packaging-lint: FAIL rpm.yml mounts the checkout as '$builddir' but the" \
+         "spec is rpm/$spec_base.spec; mb2 would not find it" >&2
+    status=1
 fi
 
 # The catalog is generated from source, so it is only right if it matches

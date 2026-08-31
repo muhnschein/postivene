@@ -1,6 +1,6 @@
 # Building with the Sailfish Platform SDK (mb2)
 
-How the first real `mb2` builds of `rpm/postivene.spec` were performed, and
+How the first real `mb2` builds of `rpm/harbour-postivene.spec` were performed, and
 how to reproduce them. The normal developer path is the official Sailfish
 SDK (`sfdk build`); this documents the headless/CI-style path through the
 Platform SDK docker image, including the workarounds needed in a
@@ -215,12 +215,15 @@ mb2 -t SailfishOS-5.0.0.43-aarch64 -X -n build --no-check -- --nodeps
 # -> RPMS/postivene-0.1.0-1.aarch64.rpm  (11 MB)
 ```
 
-Verified on the produced package, not just on the build log:
+Verified on the produced package, not just on the build log. The package
+was still named `postivene` then; the paths below are `harbour-postivene`
+now (`docs/HARBOUR.md`), and nothing else about the build changed.
 
 - `/usr/bin/postivene` is an `ELF 64-bit LSB pie executable, ARM aarch64`
   dynamically linked against the target's Qt 5.6.3
   (`libQt5Core/Gui/Qml/Quick/Widgets.so.5`), with a highest glibc
-  requirement of `GLIBC_2.29`.
+  requirement of `GLIBC_2.29`. That `Widgets` is a Harbour blocker, found
+  later and tracked in `docs/HARBOUR.md`.
 - `/usr/libexec/postivene/deltachat-rpc-server` is the statically linked
   musl aarch64 build; rpm's own strip pass changes its hash but not its
   behavior -- extracted from the finished RPM it still answers

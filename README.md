@@ -27,14 +27,17 @@ rust/
                        dev headers.
   postivene-app/       main.rs harness: registers DeltaChatCore as a QML
                        context property and loads qml/postivene.qml.
+                       build.rs exports main() as a dynamic symbol, which
+                       Harbour requires of a Silica app (docs/HARBOUR.md).
 qml/                   Silica UI: postivene.qml (root), cover/, pages/
                        (setup/login, chat list, conversation).
-rpm/                   postivene.spec: Sailfish/OBS RPM packaging.
-postivene.desktop      Launcher entry. Plain `Exec=postivene`: Sailfish
-                       runs silica-qt5 apps through the invoker, which does
-                       not reliably honour an `Exec=env FOO=bar app`
-                       wrapper, so the server path is worked out in
-                       main.rs instead.
+rpm/                   harbour-postivene.spec: Sailfish/OBS RPM packaging.
+harbour-postivene.desktop
+                       Launcher entry. Plain `Exec=harbour-postivene`:
+                       Sailfish runs silica-qt5 apps through the invoker,
+                       which does not reliably honour an
+                       `Exec=env FOO=bar app` wrapper, so the server path
+                       is worked out in main.rs instead.
 icons/                 Placeholder app icons per hicolor size.
 vendor/                deltachat-rpc-server binaries per target arch
                        (not committed; run scripts/fetch-rpc-server.sh
@@ -42,10 +45,14 @@ vendor/                deltachat-rpc-server binaries per target arch
                        SOURCE.md for provenance and checksums).
 scripts/               fetch-rpc-server.sh: pinned, checksum-verified
                        fetch of upstream's static-musl rpc-server builds.
+ci/                    What CI runs. harbour/ holds Jolla's own validator
+                       allow-lists, copied verbatim by
+                       scripts/update-harbour-rules.sh.
 docs/                  Scope, architecture notes, licensing analysis.
                        GAP-ANALYSIS.md (what is missing), ONBOARDING.md
                        (how Delta Chat onboards a user), ENGINEERING.md
-                       (standards).
+                       (standards), HARBOUR.md (store rules and the one
+                       that still blocks submission).
 ```
 
 ## Building
@@ -82,9 +89,16 @@ only learned v4 in 1.78) and the workspace declares `rust-version = 1.75`.
 ### Checks
 
 `make check` runs what CI runs -- formatting, clippy, tests, qmllint,
-packaging checks -- from a clean checkout, with no phone, account, or
-network. `make msrv` compiles against Sailfish's Rust 1.75 floor. See
-[`docs/ENGINEERING.md`](docs/ENGINEERING.md).
+packaging and Harbour checks -- from a clean checkout, with no phone,
+account, or network. `make msrv` compiles against Sailfish's Rust 1.75
+floor. See [`docs/ENGINEERING.md`](docs/ENGINEERING.md).
+
+`make harbour` on its own answers what it can of Jolla's store rules from
+the sources, and is mandatory in CI: the package name, the install paths
+and the linker flags are all constrained by them, and all expensive to
+change later. [`docs/HARBOUR.md`](docs/HARBOUR.md) says what is covered,
+what only a built RPM can answer, and the one rule this package still
+breaks.
 
 ### Host builds (development)
 

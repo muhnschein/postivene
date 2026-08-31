@@ -83,7 +83,7 @@ unfinished.
 
 ## 6. Packaging & release
 
-- [x] `rpm/postivene.spec`, `postivene.desktop`, placeholder icons.
+- [x] `rpm/harbour-postivene.spec`, `harbour-postivene.desktop`, placeholder icons.
       Modeled on Whisperfish's spec, simplified: no vendored C/C++ deps.
 - [x] Real `mb2` builds inside the Platform SDK for **aarch64** and
       **i486**, producing real RPMs (`docs/SDK-BUILD.md`). Spec constraints
@@ -97,9 +97,11 @@ unfinished.
     linker must be scratchbox2's `host-gcc`.
   - `Cargo.lock` stays v3; the SDK's cargo 1.75 cannot read v4.
   - `--with vendor` mode for OBS/Chum, which build without network.
-  - `Exec=postivene`: the invoker does not honour an `Exec=env FOO=bar`
-    wrapper, so the bundled server path is a fallback inside the binary.
-- [x] A device RPM exists: `postivene-0.1.0-1.aarch64.rpm`, aarch64 ELF
+  - `Exec=harbour-postivene`: the invoker does not honour an
+    `Exec=env FOO=bar` wrapper, so the bundled server path is a fallback
+    inside the binary.
+- [x] A device RPM exists (built before the Harbour rename, as
+      `postivene-0.1.0-1.aarch64.rpm`), aarch64 ELF
       linked against the target's Qt 5.6.3, with a bundled server that still
       passes the integration suite under `qemu-aarch64`.
 - [x] `.github/workflows/rpm.yml` builds that package unattended on a
@@ -116,6 +118,38 @@ unfinished.
 - [ ] An `sfdk` or OBS build specifically. The CI path drives `mb2`
       directly, which is not the tooling OBS runs.
 - [ ] Chum/OpenRepos submission.
+
+## 7. Harbour
+
+`docs/HARBOUR.md` is the map. `ci/harbour-check.sh` is mandatory in CI and
+answers what a source tree can; `rpm.yml` runs Jolla's own validator
+against the built RPM.
+
+- [x] Package renamed `harbour-postivene` throughout: RPM name, binary,
+      `.desktop` file, icons, and every install path.
+- [x] `Requires:` reduced to what Harbour allows, unversioned. The 4.5.0
+      OS floor moves to the submission form's "From OS version".
+- [x] `main()` exported as a dynamic symbol, which the `silica-qt5`
+      booster needs and stripping would otherwise remove.
+- [x] The build `Release` stamped by `rpm.yml` is digits and periods; the
+      short SHA it used to carry would have failed intake.
+- [ ] **The binary links `libQt5Widgets.so.5`, which Harbour does not
+      allow.** `qmetaobject-rs` builds its QML engine on `QApplication`
+      rather than `QGuiApplication`, and `qttypes` links Widgets
+      unconditionally; both are still that way upstream, so it takes a
+      patch to each. Constrains every Sailfish app built on qmetaobject,
+      not only this one.
+- [ ] **The bundled `deltachat-rpc-server` is a second ELF executable,
+      which Harbour permits nowhere.** The clean fix is upstream's
+      `libdeltachat.so`, whose `dc_jsonrpc_*` API carries the same
+      protocol; it has no prebuilt for ARM and cannot use the static-musl
+      build that makes the current binary portable.
+
+  Both are waived in `ci/harbour/waivers.conf` and analysed in
+  `docs/HARBOUR.md` §"The open blockers".
+- [ ] A run under `sailjail` on a device, exercising every
+      permission-dependent path.
+- [ ] Store assets, privacy policy, and the §6 quality walk-through.
 
 ## Sailfish OS 5.2 readiness
 
@@ -138,6 +172,8 @@ or network. See `docs/ENGINEERING.md`.
   The stubs imitate no layout, and pages using Silica's `EnterKey` cannot be
   loaded at all.
 - Contract tests pin the JSON-RPC call sequence of each onboarding action.
+- `harbour`: every Harbour rule a source tree can answer, plus a self-test
+  that breaks each one and asserts the check names it (`docs/HARBOUR.md`).
 - `real_core.rs` distinguishes a request the real core could not decode from
   one it could not deliver.
 

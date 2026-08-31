@@ -34,7 +34,7 @@ fn rpc_server_path() -> String {
     if let Ok(env) = std::env::var("POSTIVENE_RPC_SERVER") {
         return env;
     }
-    let bundled = PathBuf::from("/usr/libexec/postivene/deltachat-rpc-server");
+    let bundled = PathBuf::from("/usr/libexec/harbour-postivene/deltachat-rpc-server");
     if bundled.is_file() {
         return bundled.to_string_lossy().into_owned();
     }
@@ -46,7 +46,7 @@ fn qml_dir() -> PathBuf {
     if let Ok(env) = std::env::var("POSTIVENE_QML_DIR") {
         return PathBuf::from(env);
     }
-    let installed = PathBuf::from("/usr/share/postivene/qml");
+    let installed = PathBuf::from("/usr/share/harbour-postivene/qml");
     if installed.is_dir() {
         return installed;
     }

@@ -326,16 +326,35 @@ Page {
         IconButton {
             id: sendButton
             objectName: "sendButton"
-            icon.source: "image://theme/icon-m-send"
+            // Hidden rather than greyed while a send is in flight: the
+            // indicator takes its place, so the row keeps its shape.
+            icon.source: messages.sending ? "" : "image://theme/icon-m-send"
             // A file on its own is a message; an empty field with nothing
-            // attached is not.
-            enabled: textField.text.length > 0
-                     || page.attachmentPath.length > 0
+            // attached is not. And nothing is sendable twice: copying a
+            // large video into the core's blob directory takes long enough
+            // for a second tap to land, and that sent the whole thing
+            // again.
+            enabled: !messages.sending
+                     && (textField.text.length > 0
+                         || page.attachmentPath.length > 0)
             onClicked: page.sendCurrentText()
+
+            BusyIndicator {
+                objectName: "sendBusy"
+                anchors.centerIn: parent
+                size: BusyIndicatorSize.Small
+                running: messages.sending
+            }
         }
     }
 
     function sendCurrentText() {
+        // The model refuses a second send while one is outstanding and the
+        // button is disabled meanwhile; this says so a third time because
+        // EnterKey reaches here without going through the button.
+        if (messages.sending) {
+            return
+        }
         // The bars are cleared from `onSent`, with the model's own copy:
         // clearing them here would drop the reply and the file the reader
         // chose on a send that never happened.

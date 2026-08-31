@@ -56,6 +56,12 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   via queued signals.
 - **Background reception** relies on IMAP IDLE plus a Sailfish background
   process. It is the hardest platform problem and the largest open risk.
+- **One send at a time.** The compose state clears when the core answers,
+  not when the button is tapped, so a send that fails leaves the reader
+  holding what they chose. `ChatMessages.sending` closes the window that
+  opens up in between: copying a large video into the core's blob directory
+  takes seconds, and a second tap in those seconds used to send the whole
+  thing again.
 - **The core classifies attachments, not the app.** Every file goes to
   `misc_send_msg` and comes back with a `viewType` the core chose from the
   file itself; `AttachmentPreview` picks a renderer from that answer and
@@ -63,7 +69,11 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   it reports no dimensions for a GIF and no duration for a sound file, so
   the row sizes pictures from the decoded image and lets the audio player
   report its own length (`deltachat-jsonrpc/tests/real_server.rs` pins
-  both).
+  both). It also declines to call a `.vcf` a contact card unless the file
+  holds exactly one contact *with an email address* -- a phone-only contact
+  exported from the address book is neither, and is not someone Delta Chat
+  could open a chat with anyway -- so those land on the file row, which
+  marks them as cards rather than as anonymous blobs.
 - **The server is supervised.** Its event stream ending is the app's only
   notice that the core has gone -- a phone reclaiming memory kills it and
   says nothing -- so that is where the next one is started, with a backoff

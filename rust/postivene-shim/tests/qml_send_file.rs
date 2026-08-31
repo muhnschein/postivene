@@ -89,6 +89,9 @@ fn a_picked_file_shows_above_the_field_and_leaves_with_the_message() {
         std::env::set_var("QT_QPA_PLATFORM", "offscreen");
         std::env::set_var("POSTIVENE_FAKE_JOURNAL", &journal);
         std::env::set_var("POSTIVENE_ACCOUNTS_DIR", temp.join("accounts"));
+        // Wide enough that the reads below land while the send is still
+        // outstanding, which is the state the button has to refuse in.
+        std::env::set_var("POSTIVENE_FAKE_SEND_DELAY_MS", "1500");
     }
 
     postivene_shim::register_qml_types();
@@ -166,6 +169,9 @@ fn a_picked_file_shows_above_the_field_and_leaves_with_the_message() {
         probe!("send-enabled-after", "sendButton", "enabled");
         probe!("placeholder", "messageField", "placeholderText");
         (*steps_ptr).push(("send", call!("send")));
+        // Read in the same callback, so the core cannot have answered yet.
+        probe!("send-enabled-during", "sendButton", "enabled");
+        probe!("busy-during", "sendBusy", "running");
     });
 
     single_shot(Duration::from_secs(6), move || unsafe {
@@ -258,6 +264,19 @@ fn assert_outcome(steps: &[(&str, String)], journal: &std::path::Path) {
 
     // Cleared by `onSent`, with the model's own answer -- not optimistically
     // on the way out, which would drop the file on a send that failed.
+    assert_eq!(
+        value("send-enabled-during"),
+        "false",
+        "the send button is still live while the send is in flight, so a \
+         second tap sends the whole thing again -- which is what an \
+         impatient thumb does to a large video. {context}"
+    );
+    assert_eq!(
+        value("busy-during"),
+        "true",
+        "nothing tells the reader the send is under way, which is why they \
+         tap again. {context}"
+    );
     assert_eq!(
         value("pending-after-send"),
         "",

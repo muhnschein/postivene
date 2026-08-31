@@ -105,6 +105,13 @@ through the real validator.
 - That the app works under Sailjail. Running it from a terminal or the
   IDE bypasses the sandbox entirely, so a missing permission does not
   surface until QA installs it. Force it: `sailjail /usr/bin/harbour-postivene`.
+  Note what the sandbox is *for*: it confines user data, not the read-only
+  system tree. A confined app still reads `/etc`, `/usr` and `/lib` -- it
+  has to, for certificates, fonts and `/etc/hosts` -- so being able to
+  attach `/etc/passwd` is expected and says nothing about whether
+  confinement is on. What confinement covers is `$HOME`: the test that
+  actually shows it working is failing to read *another app's* directory
+  under `~/.local/share/`.
   Silica's pickers run inside the app's own process, so a file the grant
   does not cover is one the picker can offer and the app cannot open --
   which is why the attach button needs `UserDirs` and the profile picture

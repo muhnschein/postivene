@@ -399,7 +399,15 @@ Item {
         color: Theme.highlightColor
         textFormat: Text.PlainText
         text: {
-            var mark = root.viewType === "Webxdc" ? "⚙" : "📎"
+            // A .vcf the core would not call a Vcard still says what
+            // it is. It declines the classification when the card
+            // holds no email address or more than one contact -- a
+            // phone-only contact exported from the address book is
+            // both common and not someone Delta Chat can open a chat
+            // with -- and a paperclip makes that look like a mystery
+            // blob rather than a contact this app cannot use.
+            var mark = root.viewType === "Webxdc" ? "⚙"
+                       : root.fileMime === "text/vcard" ? "📇" : "📎"
             var name = root.fileName.length > 0 ? root.fileName : root.filePath
             var size = root.readableSize(root.fileBytes)
             return mark + " " + name + (size.length > 0 ? " (" + size + ")" : "")

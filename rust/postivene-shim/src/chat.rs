@@ -25,6 +25,12 @@ const UNSEEN_STATES: [u32; 2] = [10, 13];
 /// SilicaListView { model: messages.rows }
 /// ```
 #[derive(QObject, Default)]
+// `loaded`, `is_group`, `reading_history` and `sending` are four bools, and
+// clippy would rather they were a state enum. They are not states of one
+// thing: each is an independent fact QML binds to on its own, and any
+// combination of them is legitimate. Collapsing them would mean inventing a
+// state machine that does not exist and hiding four bindings behind it.
+#[allow(clippy::struct_excessive_bools)]
 pub struct ChatMessages {
     base: qt_base_class!(trait QObject),
 
@@ -113,6 +119,18 @@ pub struct ChatMessages {
     pub resend_message: qt_method!(fn(&mut self, message_id: u32)),
     /// Send a copy of one message into another chat; QML calls this.
     pub forward_to: qt_method!(fn(&mut self, message_id: u32, chat_id: u32)),
+    /// True from a send being asked for until the core answers.
+    ///
+    /// The compose state is cleared on the answer rather than on the tap,
+    /// so that a send which fails leaves the reader holding what they
+    /// chose. That leaves a window -- seconds, for a large video the core
+    /// has to copy into its blob directory -- in which the field still
+    /// holds the text and the bar still holds the file, and tapping send
+    /// again sends the whole thing a second time. It is not hypothetical:
+    /// it is the first thing an impatient thumb does.
+    pub sending: qt_property!(bool; NOTIFY sending_changed),
+    /// Emitted when [`Self::sending`] changes.
+    pub sending_changed: qt_signal!(),
     /// A message of ours reached the core and is in `rows`.
     pub sent: qt_signal!(message_id: u32),
     /// This many messages from other people were just added. Said outright
@@ -586,6 +604,12 @@ impl ChatMessages {
     /// The one send. `file` is the path the core should attach and the name
     /// the recipient should see.
     fn send_message(&mut self, text: String, file: Option<(String, String)>) {
+        // One at a time. The UI disables its button too, but the guard
+        // belongs here: the button is not the only way in, and the model is
+        // what knows whether the core has answered.
+        if self.sending {
+            return;
+        }
         let (account_id, chat_id) = (self.account_id, self.chat_id);
         let quoted = self.quoted_message_id;
         let Some((rpc, runtime)) = connection() else {
@@ -593,9 +617,16 @@ impl ChatMessages {
             return;
         };
 
+        self.sending = true;
+        self.sending_changed();
+
         let ptr: QPointer<Self> = QPointer::from(&*self);
         let done = queued_callback(move |result: Result<MessageListItem, String>| {
             let Some(this) = ptr.as_pinned() else { return };
+            // Cleared before anything else, and on both paths: a send that
+            // failed has to leave the reader able to try again.
+            this.borrow_mut().sending = false;
+            this.borrow().sending_changed();
             match result {
                 Ok(item) => {
                     let message_id = item.message_id;

@@ -29,14 +29,14 @@ itself *never* touches a mail server or a key.
 - No protocol or crypto reimplementation — ever. We never roll our own crypto.
 - Chats via regular email or any non-chatmail servers.
 - Voice and video calling, for the time being.
+- No OpenRepos/Chum.
 
-See the non-goals in [`docs/PROJECT.md`](docs/PROJECT.md) for the full list.
+See the non-goals in [`docs/PROJECT.md`](docs/PROJECT.md) for more information.
 
 ## Documentation
 
 - [`docs/PROJECT.md`](docs/PROJECT.md) — project scope and explicit non-goals,
-current implementation status, what is missing, and what only a phone can
-settle;
+current implementation status, and what is missing
 - [`docs/BUILDING.md`](docs/BUILDING.md) — engineering standards, testing, and
 how a device RPM is built
 

@@ -173,8 +173,15 @@ validate_rpm pass "an RPM breaking only the waived rules" \
 '!BEGIN!x
 ERROR|/usr/libexec/harbour-postivene|Installation not allowed in this location
 ERROR|/usr/libexec/harbour-postivene/deltachat-rpc-server|ELF binary in wrong location
-ERROR|/usr/bin/harbour-postivene|Cannot link to shared library: libQt5Widgets.so.5
+ERROR|/usr/libexec/harbour-postivene/deltachat-rpc-server|File must not be executable (current permissions: 755)
 WARNING|/usr/bin/harbour-postivene|file is not stripped!
+!END!FAIL!x
+'
+# The vendored qmetaobject patch is what keeps this out of the binary. If
+# it is ever lost, the RPM check has to say so rather than wave it through.
+validate_rpm fail "a binary that links QtWidgets again" \
+'!BEGIN!x
+ERROR|/usr/bin/harbour-postivene|Cannot link to shared library: libQt5Widgets.so.5
 !END!FAIL!x
 '
 validate_rpm fail "an RPM installing somewhere new" \

@@ -17,4 +17,11 @@ fn main() {
         "cargo:rustc-link-arg-bins=-Wl,--dynamic-list={}",
         list.display()
     );
+
+    // qttypes links Qt5Widgets unconditionally, with no feature to turn it
+    // off. Once the vendored qmetaobject stops using QApplication nothing
+    // refers to it, and --as-needed drops the DT_NEEDED entry that would
+    // otherwise fail Harbour's allowed-libraries check. It prunes only
+    // libraries no symbol needs, so it is right for the others too.
+    println!("cargo:rustc-link-arg-bins=-Wl,--as-needed");
 }

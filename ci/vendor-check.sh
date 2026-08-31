@@ -1,0 +1,56 @@
+#!/bin/sh
+# Prove third_party/qmetaobject is upstream 0.2.10 plus one known patch.
+#
+# Carrying 7,000 lines of someone else's crate is only safe while everyone
+# can see exactly how it differs from the published one. So: fetch the
+# crates.io tarball, apply third_party/qmetaobject.patch to it, and require
+# the result to match the vendored tree byte for byte. An edit made
+# directly to the copy, or a patch that stops describing it, fails here.
+#
+# The .crate tarball is immutable once published, so this is the same
+# comparison every time.
+set -eu
+
+root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
+vendored="$root/third_party/qmetaobject"
+patch_file="$root/third_party/qmetaobject.patch"
+
+# The version to compare against is the one cargo is told to replace.
+version=$(sed -n 's/^version = "\(.*\)"/\1/p' "$vendored/Cargo.toml" | head -1)
+[ -n "$version" ] || { echo "vendor-check: FAIL no version in the vendored Cargo.toml" >&2; exit 1; }
+
+if ! command -v curl >/dev/null 2>&1; then
+    echo "vendor-check: SKIP curl not found"
+    exit 0
+fi
+
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+
+url="https://static.crates.io/crates/qmetaobject/qmetaobject-$version.crate"
+if ! curl -sSfL "$url" -o "$work/crate.tar.gz"; then
+    echo "vendor-check: FAIL could not fetch $url" >&2
+    exit 1
+fi
+tar -C "$work" -xzf "$work/crate.tar.gz"
+upstream="$work/qmetaobject-$version"
+[ -d "$upstream" ] || { echo "vendor-check: FAIL unexpected tarball layout" >&2; exit 1; }
+
+# cargo drops this marker into its own extraction; it is not in the
+# tarball and is not part of the comparison.
+rm -f "$vendored/.cargo-ok"
+
+if ! patch -s -p1 -d "$upstream" < "$patch_file"; then
+    echo "vendor-check: FAIL third_party/qmetaobject.patch does not apply to upstream $version" >&2
+    exit 1
+fi
+
+if diff -r -q "$upstream" "$vendored" >/dev/null 2>&1; then
+    echo "vendor-check: ok (qmetaobject $version + qmetaobject.patch)"
+    exit 0
+fi
+
+echo "vendor-check: FAIL third_party/qmetaobject is not upstream $version plus qmetaobject.patch:" >&2
+diff -r -q "$upstream" "$vendored" >&2 || true
+echo "vendor-check: either revert the stray edit, or fold it into third_party/qmetaobject.patch" >&2
+exit 1

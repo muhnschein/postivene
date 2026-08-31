@@ -150,84 +150,80 @@ line each with a reason. Nothing belongs there that can be fixed: every
 entry is a submission blocker.
 
 A waiver that stops matching anything fails the check, so the file cannot
-outlive what it excuses. Its entries cover the two blockers below.
+outlive what it excuses. Its entries cover the one blocker below --
+removing the QtWidgets waiver is what the fix above had to do to land.
 
-## The open blockers
+## QtWidgets, and the vendored qmetaobject
 
-**Postivene cannot be submitted to Harbour today.** Two rules are broken.
-Both are structural, both are waived in `ci/harbour/waivers.conf`, and
-neither can be fixed by editing anything in this repository.
+`qmetaobject-rs` builds its QML engine on `QApplication`, which comes from
+QtWidgets — a library Harbour does not allow, since a Silica app is
+expected to use QtGui's `QGuiApplication`. Upstream carries that
+unconditionally, on the released crate and on master, with no feature to
+turn it off.
 
-### 1. QtWidgets
+Nothing here needs QtWidgets. The application object is used only for
+`exec()` and `quit()`, both of which `QGuiApplication` provides. So
+`third_party/qmetaobject` is upstream 0.2.10 plus
+`third_party/qmetaobject.patch`: three lines, swapping the include, the
+member type and the constructor.
 
-The binary links `libQt5Widgets.so.5`, which is not on Harbour's
-allowed-libraries list — a Silica app is expected to use QtGui's
-`QGuiApplication`. This is not our code: `qmetaobject-rs` builds its QML
-engine on `QApplication`, from `QtWidgets`:
+`qttypes` separately passes `-lQt5Widgets` unconditionally, which would
+record the dependency even with nothing using it. Rather than fork a
+second crate for one line, `rust/postivene-app/build.rs` links with
+`--as-needed`, which drops any library no symbol refers to. That only
+works *because* the patch removed the last reference — with `QApplication`
+still in use the library is genuinely needed and `--as-needed` keeps it.
 
-```cpp
-#include <QtWidgets/QApplication>       // qmetaobject/src/qtdeclarative.rs
-...
-: app(new QApplication(argc, argv))
-```
+Carrying someone else's crate in-tree is only safe while the difference is
+visible, so `ci/vendor-check.sh` fetches the crates.io tarball, applies the
+patch, and requires the result to match the vendored tree exactly. A stray
+edit fails it; so does a patch that stops describing the tree.
 
-and `qttypes`' build script links the library unconditionally, not behind
-a feature:
+The real fix is upstream: a feature flag choosing between `QApplication`
+and `QGuiApplication` would serve every Sailfish app built on qmetaobject,
+all of which hit this. Until then the fork is three lines and rebases
+cleanly.
 
-```rust
-link_lib("Core");
-link_lib("Gui");
-link_lib("Widgets");                    // qttypes/build.rs
-```
+## The open blocker
 
-Both are still that way on upstream master, so there is no version to
-upgrade to. `--as-needed` does not help twice over: the symbols
-(`QApplication::QApplication`, `QApplication::exec`) really are
-referenced, and an explicit `-lQt5Widgets` records a `NEEDED` entry
-whether or not anything uses it.
-
-Fixing it means patching both crates — `QGuiApplication` in place of
-`QApplication`, and dropping the `Widgets` link — via `[patch.crates-io]`
-against forks, and ideally upstreaming a feature flag. It is the same
-change either way; the question is only who carries it.
-
-This one is worth knowing before any more is built on qmetaobject: it
-constrains every Sailfish app written with it, which may be why the
-Rust/Qt apps on Sailfish live on OpenRepos and Chum rather than Harbour.
-
-### 2. The bundled server
+**Postivene cannot be submitted to Harbour today.** One rule is broken, it
+is structural, and it cannot be fixed by editing anything in this
+repository.
 
 `deltachat-rpc-server` is an ELF executable, bundled at
 `/usr/libexec/harbour-postivene/`, spawned as a subprocess and spoken to
 over JSON-RPC on stdio. Harbour allows ELF files in exactly two places:
 `/usr/bin/<NAME>`, and `*.so` under `/usr/share/<NAME>/lib/`. Neither fits
-a second executable, so this is two validator errors — the path, and the
-binary in it.
+a second executable, so this is three validator errors — the path, the
+binary in it, and its executable bit.
 
-The clean fix is upstream's own shared library. `deltachat-ffi` in
-[chatmail/core](https://github.com/chatmail/core) builds `libdeltachat.so`,
-and its `dc_jsonrpc_init` / `dc_jsonrpc_request` /
-`dc_jsonrpc_next_response` API carries **the same JSON-RPC protocol** the
-shim already speaks — so only `rust/deltachat-jsonrpc`'s transport would
-change, not the message shapes above it. At
-`/usr/share/harbour-postivene/lib/libdeltachat.so`, with the binary's
-RPATH set to `$ORIGIN/../share/harbour-postivene/lib`, that is exactly the
-arrangement rules 1.6.2 and 1.6.3 describe.
+There are three ways to hold the core, and each is blocked differently:
 
-Two things make it a project rather than a packaging change:
+| | Current API? | Buildable here? |
+|---|---|---|
+| `libdeltachat.so` (C interface) | **no — being deprecated** | yes: a C ABI spans the compiler gap |
+| `deltachat-jsonrpc` crate, in-process | yes | **no**: needs Rust 1.89, the SDK ships 1.75, and Rust will not mix compiler versions |
+| `deltachat-rpc-server` subprocess *(today)* | **yes — what upstream recommends** | yes |
 
-- **No prebuilt exists.** Upstream ships the rpc-server binary through
-  PyPI wheels (`scripts/fetch-rpc-server.sh`) but publishes no
-  `libdeltachat.so` for `aarch64` or `armv7hl`.
-- **The static-musl trick does not transfer.** The bundled rpc-server runs
-  on any Sailfish release because it is statically linked against musl. A
-  shared library cannot be: it has to link the same libc as the process
-  that loads it. So `libdeltachat.so` must be cross-built against a
-  Sailfish glibc sysroot — with Rust ≥ 1.89, since core v2.53.0 declares
-  `edition = "2024"`, well above the 1.75 the SDK ships.
+Upstream is explicit that `libdeltachat` "is going to be deprecated and
+only exists because Android, iOS and Ubuntu Touch are still using it", and
+that new projects should use the JSON-RPC API. Migrating onto it to satisfy
+a packaging rule would mean adopting a dying interface. The Rust-native
+replacement cannot be compiled by the Rust the SDK ships, and Rust refuses
+to link output from two compiler versions — this project has already met
+that wall from the other side, where even the *same* 1.75 commit was
+rejected for carrying a different release string (`E0514`, `BUILDING.md`).
 
-Until both are resolved the gate's value is that it catches every *other*
-rule, and any new violation of these two.
+So the remaining move is not technical. Harbour's one-executable rule
+predates upstreams shipping self-contained helper binaries as the
+recommended integration, and Delta Chat's is reproducibly built,
+checksum-pinned (`scripts/fetch-rpc-server.sh`) and confined by the same
+sandbox as the app. That is a case to put to Jolla, on the forum their
+validator's README points at, rather than to engineer around.
+
+Renaming the binary to `.so` would pass the validator. It is also
+precisely what that README calls circumvention, and it says such apps are
+removed from the store even after approval. Not an option.
 
 ## Before submitting
 

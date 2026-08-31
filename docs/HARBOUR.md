@@ -89,11 +89,13 @@ the tree and asserts the check names it. A gate that only ever prints
 
 ## What it cannot cover
 
-Anything that needs the built package or a device, which is everything
-below. The `__libc_start_main` *version* above is the sharpest example: it
-depends entirely on which SDK built the binary, so no reading of the
-sources can predict it. `rpm.yml`'s validator step covers the first group; the rest is
-§10's pre-submission sequence.
+Anything that needs the built package or a device. `rpm.yml`'s validator
+step covers the first group; the rest is "Before submitting" below.
+
+The sharpest example is the `__libc_start_main` version: it depends
+entirely on which SDK built the binary, so no reading of the sources can
+predict it, and it went unnoticed until the first real package went
+through the real validator.
 
 - The `Requires:` and `Provides:` **rpm generates** from the binary, as
   opposed to the ones the spec states.

@@ -144,6 +144,62 @@ break_and_expect 2.6 "a write into the installed data directory" \
 break_and_expect 1.2.3 "a cargo binary named something other than the package" \
     "sed -i 's|^name = \"harbour-postivene\"\$|name = \"postivene\"|' rust/postivene-app/Cargo.toml"
 
+# ci/harbour-validate-rpm.sh judges the real validator's output against the
+# same waiver file, and its matching is the subtle part: a layout error
+# names the offending path as its subject, while a linking error names the
+# *binary* and puts the library in the message. Fed saved logs rather than
+# a built RPM, which needs the SDK.
+validate_rpm() {
+    local expect=$1 what=$2 body=$3
+    local log="$work/validation.log"
+    cases=$((cases + 1))
+    printf '%s' "$body" > "$log"
+
+    if "$pristine/ci/harbour-validate-rpm.sh" --log "$log" >/dev/null 2>&1; then
+        local got=pass
+    else
+        local got=fail
+    fi
+    if [ "$got" = "$expect" ]; then
+        echo "selftest: ok   $what -> $expect"
+    else
+        echo "selftest: FAIL $what should $expect, got $got" >&2
+        "$pristine/ci/harbour-validate-rpm.sh" --log "$log" >&2
+        status=1
+    fi
+}
+
+validate_rpm pass "an RPM breaking only the waived rules" \
+'!BEGIN!x
+ERROR|/usr/libexec/harbour-postivene|Installation not allowed in this location
+ERROR|/usr/libexec/harbour-postivene/deltachat-rpc-server|ELF binary in wrong location
+ERROR|/usr/bin/harbour-postivene|Cannot link to shared library: libQt5Widgets.so.5
+WARNING|/usr/bin/harbour-postivene|file is not stripped!
+!END!FAIL!x
+'
+validate_rpm fail "an RPM installing somewhere new" \
+'!BEGIN!x
+ERROR|/etc/harbour-postivene.conf|Installation not allowed in this location
+!END!FAIL!x
+'
+validate_rpm fail "an RPM whose binary stopped exporting main()" \
+'!BEGIN!x
+ERROR|/usr/bin/harbour-postivene|Binary must export main() symbol for booster to work (Q_DECL_EXPORT)
+!END!FAIL!x
+'
+validate_rpm fail "a dependency the allow-list does not carry" \
+'!BEGIN!x
+ERROR|libcurl.so.4|Dependency not allowed
+!END!FAIL!x
+'
+validate_rpm pass "an RPM the validator accepts outright" \
+'!BEGIN!x
+!END!PASS!x
+'
+validate_rpm fail "a validation log that was cut off before the verdict" \
+'ERROR|/usr/bin/harbour-postivene|something
+'
+
 # The waiver file has to stay honest in both directions: an entry that
 # stops matching is as much a defect as a missing check.
 cases=$((cases + 1))

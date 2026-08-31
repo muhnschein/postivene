@@ -6,7 +6,7 @@
 #
 # The SDK is what makes the result runnable on a phone: the app links against
 # the target's Qt 5.6 and glibc, and a host-built binary has neither. See
-# docs/SDK-BUILD.md.
+# docs/BUILDING.md.
 name: rpm
 
 on:
@@ -112,7 +112,7 @@ jobs:
       #   error: Unable to open /build/harbour-postivene/.mb2/spec: No such file
       #
       # A file that exists and cannot be opened is two different roots.
-      # docs/SDK-BUILD.md bind-mounted under /home/mersdk for this
+      # docs/BUILDING.md bind-mounted under /home/mersdk for this
       # reason. The directory keeps the project's name either way: mb2
       # derives the package from it, so rpm/harbour-postivene.spec is found.
       #
@@ -139,7 +139,7 @@ jobs:
               # own i686 and linked in sb2's *host* mode, where /usr is
               # the SDK filesystem rather than the target -- so the i686
               # rustlib has to exist there too, not only where rust was
-              # installed. docs/SDK-BUILD.md names this exact failure.
+              # installed. docs/BUILDING.md names this exact failure.
               echo '--- rustlib available ---'
               ls -d /srv/mer/toolings/*/usr/lib/rustlib/* \
                     /srv/mer/targets/*/usr/lib/rustlib/* 2>/dev/null || true
@@ -168,45 +168,6 @@ jobs:
           find RPMS -name '*.rpm' -print -exec rpm -qip {} \; 2>/dev/null || \
             find . -name '*.rpm' -print
 
-      # The authority. ci/harbour-check.sh answers the same questions from
-      # the sources on every pull request, but only this sees the built
-      # package -- the generated Requires and Provides, the stripped
-      # binary's symbols, the real file modes. A failure here is a
-      # guaranteed Harbour rejection.
-      #
-      # Upstream's own script, fetched rather than vendored: ci/harbour/
-      # carries the rules it reads, and this is the code that reads them.
-      # `|| true` on the run, because it exits non-zero for warnings too;
-      # the FAIL marker is what decides.
-      - name: Validate the RPM against Harbour's rules
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y binutils rpm cpio file
-          git clone --depth 1 \
-            https://github.com/sailfishos/sdk-harbour-rpmvalidator.git /tmp/validator
-          # The vendored rules are what ci/harbour-check.sh gates on, so
-          # the two must be judging the same Harbour.
-          for conf in ci/harbour/*.conf; do
-            [ "$(basename "$conf")" = waivers.conf ] && continue
-            if ! diff -q "$conf" "/tmp/validator/$(basename "$conf")"; then
-              echo "::warning::ci/harbour/$(basename "$conf") is behind upstream;" \
-                   "run scripts/update-harbour-rules.sh"
-            fi
-          done
-          rpm=$(find . -name 'harbour-postivene-*.rpm' ! -name '*debug*' \
-                       ! -name '*.src.rpm' | head -1)
-          [ -n "$rpm" ] || { echo "::error::no RPM to validate"; exit 1; }
-          echo "Validating $rpm"
-          BATCHERBATCHERBATCHER=1 /tmp/validator/rpmvalidation.sh \
-              -g /tmp/validator "$rpm" | tee /tmp/validation.log || true
-          if grep -q '^!END!FAIL!' /tmp/validation.log; then
-            echo "::error::sfdk check -s harbour would reject this package"
-            grep '^ERROR' /tmp/validation.log || true
-            exit 1
-          fi
-          grep '^WARNING' /tmp/validation.log || true
-          echo "Harbour validation passed"
-
       - uses: actions/upload-artifact@v4
         with:
           name: harbour-postivene-${{ env.ARCH }}-sfos${{ env.SFOS }}-${{ env.SHORT_SHA }}
@@ -215,3 +176,24 @@ jobs:
             **/*.rpm
           if-no-files-found: error
           retention-days: 30
+
+      # The authority. ci/harbour-check.sh answers the same questions from
+      # the sources on every pull request, but only this sees the built
+      # package -- the Requires and Provides rpm generated, the stripped
+      # binary's symbols, the real file modes.
+      #
+      # After the upload, deliberately: a package that Harbour would reject
+      # is still a package worth having on a phone, and this step failing
+      # must not be what stops you installing it.
+      #
+      # Known blockers do not fail it; ci/harbour/waivers.conf says which,
+      # and docs/HARBOUR.md says why. Anything else does.
+      - name: Validate the RPM against Harbour's rules
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y binutils rpm cpio file
+          rpm=$(find . -name 'harbour-postivene-*.rpm' ! -name '*debug*' \
+                       ! -name '*.src.rpm' | head -1)
+          [ -n "$rpm" ] || { echo "::error::no RPM to validate"; exit 1; }
+          echo "Validating $rpm"
+          ./ci/harbour-validate-rpm.sh "$rpm"

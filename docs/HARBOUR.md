@@ -19,9 +19,16 @@ and is mandatory.
 | Authority | no | **yes** |
 
 The second is Jolla's own `rpmvalidation.sh`, fetched and run against the
-RPM the SDK produces. It is the one that decides. The first exists because
-the second cannot run on every push, and because a rule broken in a pull
-request is cheaper to fix than one discovered at intake.
+RPM the SDK produces by `ci/harbour-validate-rpm.sh`. It is the one that
+decides. The first exists because the second cannot run on every push, and
+because a rule broken in a pull request is cheaper to fix than one
+discovered at intake.
+
+It runs *after* the artifact upload, and the blockers below do not fail it:
+a package Harbour would reject is still one worth putting on a phone, and a
+workflow that is red for a reason nobody intends to fix this week is a
+workflow people stop reading. Anything not in `ci/harbour/waivers.conf`
+fails it.
 
 They are kept honest against each other: `ci/harbour/` holds the
 validator's own allow-lists, copied verbatim by

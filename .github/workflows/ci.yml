@@ -53,9 +53,9 @@ jobs:
       - run: sudo apt-get update
       - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev
       - run: rustup toolchain install 1.75.0 --profile minimal
+      # Warnings are denied by the workspace lints table, not RUSTFLAGS:
+      # see rust/Cargo.toml.
       - run: cd rust && cargo +1.75.0 check --workspace --all-targets
-        env:
-          RUSTFLAGS: -D warnings
       # Checked here, next to the toolchain it constrains.
       - run: ./ci/check-lockfile.sh
 
@@ -117,10 +117,13 @@ jobs:
         env:
           HARBOUR_CHECK_STRICT: 1
       - run: ./ci/harbour-check-selftest.sh
+      # The vendored qmetaobject is what keeps QtWidgets out of the binary,
+      # so what it contains is a Harbour question too.
+      - run: ./ci/vendor-check.sh
 
   # Licences matter here: Postivene is GPLv3+ and ships beside an MPL-2.0
   # core binary, so an incompatible dependency is a distribution problem
-  # (docs/LICENSING.md).
+  # (docs/PROJECT.md).
   deny:
     runs-on: ubuntu-latest
     timeout-minutes: 10

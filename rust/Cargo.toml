@@ -23,6 +23,11 @@ publish = false
 # Lints live at the workspace level so a bare `cargo clippy` fails the same
 # way CI's `-D warnings` does, instead of only warning locally.
 [workspace.lints.rust]
+# Denied here rather than through RUSTFLAGS, which reaches the whole
+# dependency graph: cargo caps lints for crates it fetches, but not for the
+# vendored qmetaobject, whose own warnings would then fail our build.
+# This table applies to workspace members, which is what the rule is about.
+warnings = "deny"
 unsafe_code = "deny"
 missing_docs = "deny"
 
@@ -32,3 +37,11 @@ pedantic = { level = "deny", priority = -1 }
 unwrap_used = "deny"
 expect_used = "deny"
 disallowed_methods = "deny"
+
+# qmetaobject builds its QML engine on QApplication, from QtWidgets, which
+# Harbour does not allow (docs/HARBOUR.md). The vendored copy is upstream
+# 0.2.10 plus third_party/qmetaobject.patch, three lines swapping it for
+# QGuiApplication; ci/vendor-check.sh proves it is exactly that and nothing
+# more.
+[patch.crates-io]
+qmetaobject = { path = "../third_party/qmetaobject" }

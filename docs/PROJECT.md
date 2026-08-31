@@ -95,18 +95,21 @@ In order of what matters:
 
 1. **Harbour-readiness.** Every rule a source tree can answer is now a
    mandatory CI gate (`ci/harbour-check.sh`, `HARBOUR.md`), and the real
-   validator runs against each built RPM. Two blockers remain, neither
-   fixable here:
-   - The binary links `libQt5Widgets.so.5`, which Harbour does not allow.
-     `qmetaobject-rs` builds its QML engine on `QApplication` rather than
-     `QGuiApplication` and `qttypes` links Widgets unconditionally; both
-     are still that way upstream, so it takes a patch to each crate. This
-     one constrains every Sailfish app built on qmetaobject.
-   - The bundled `deltachat-rpc-server` is a second ELF executable, which
-     Harbour permits nowhere. The clean fix is upstream's `libdeltachat.so`,
-     whose `dc_jsonrpc_*` API carries the same protocol, but it has no ARM
-     prebuilt and cannot use the static-musl build that makes the current
-     binary portable.
+   validator runs against each built RPM. One blocker remains, and it is not
+   fixable here: the bundled `deltachat-rpc-server` is a second ELF
+   executable, which Harbour permits nowhere.
+
+   Of the three ways to hold the core, each is blocked differently.
+   `libdeltachat.so` would satisfy the rule, but upstream is deprecating
+   it. The `deltachat-jsonrpc` crate is its supported replacement, but
+   needs Rust 1.89 where the SDK ships 1.75, and Rust will not link output
+   from two compiler versions. The subprocess we use is the one upstream
+   recommends. So the next move is to put the case to Jolla rather than to
+   engineer around them.
+
+   The QtWidgets blocker is gone: `third_party/qmetaobject` is upstream
+   plus a three-line patch swapping `QApplication` for `QGuiApplication`,
+   and `ci/vendor-check.sh` proves the copy is exactly that.
 
    Also unproven: a run under `sailjail` on a device, exercising every
    permission-dependent path. Store assets and a privacy policy are not

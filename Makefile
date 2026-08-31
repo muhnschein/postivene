@@ -11,7 +11,7 @@
 # The last is the QtQuick runtime plugin, which the -dev packages omit.
 
 .PHONY: check test lint fmt qml-lint packaging-lint lockfile-lint doc-lint \
-        msrv deny integration harbour fetch-server clean
+        msrv deny integration harbour vendor-check fetch-server clean
 
 CARGO ?= cargo
 # The shim's tests drive a real Qt event loop, which needs a platform
@@ -22,7 +22,8 @@ export QT_QPA_PLATFORM = offscreen
 ##
 ## `msrv` fetches a toolchain the first time, so this is not quite
 ## network-free; `deny` needs the advisory database and is CI's job.
-check: fmt lint test doc-lint msrv qml-lint lockfile-lint packaging-lint harbour deny
+check: fmt lint test doc-lint msrv qml-lint lockfile-lint packaging-lint harbour \
+       vendor-check deny
 
 ## Unit, integration, and Qt event-loop tests.
 test:
@@ -56,7 +57,7 @@ doc-lint:
 ## syntax, so only a real 1.75 build proves the device still builds.
 msrv:
 	rustup toolchain install 1.75.0 --profile minimal
-	cd rust && RUSTFLAGS="-D warnings" $(CARGO) +1.75.0 check --workspace --all-targets
+	cd rust && $(CARGO) +1.75.0 check --workspace --all-targets
 
 ## What Harbour would reject, read off the sources. `sfdk check -s harbour`
 ## on a built RPM is the authority (docs/HARBOUR.md); this is what can be
@@ -67,6 +68,12 @@ msrv:
 harbour:
 	./ci/harbour-check.sh
 	./ci/harbour-check-selftest.sh
+
+## third_party/qmetaobject is upstream plus one three-line patch, and this
+## proves it. Needs the network: it fetches the crates.io tarball to compare
+## against.
+vendor-check:
+	./ci/vendor-check.sh
 
 ## Licences and advisories, as CI's `deny` job runs them. Needs
 ## `cargo install cargo-deny`, and the advisory database (network).

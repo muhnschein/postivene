@@ -40,6 +40,12 @@ upstream="$work/qmetaobject-$version"
 # tarball and is not part of the comparison.
 rm -f "$vendored/.cargo-ok"
 
+# The crate's own tests are not vendored. Cargo never builds a dependency's
+# tests, so they are 1,200 lines that cannot run -- and CodeQL scanned them
+# and reported seven high-severity findings in code this repository does not
+# compile. Dropped from both sides so the comparison stays exact.
+rm -rf "$upstream/tests"
+
 if ! patch -s -p1 -d "$upstream" < "$patch_file"; then
     echo "vendor-check: FAIL third_party/qmetaobject.patch does not apply to upstream $version" >&2
     exit 1

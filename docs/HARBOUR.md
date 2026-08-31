@@ -179,6 +179,11 @@ visible, so `ci/vendor-check.sh` fetches the crates.io tarball, applies the
 patch, and requires the result to match the vendored tree exactly. A stray
 edit fails it; so does a patch that stops describing the tree.
 
+The crate's own `tests/` are not vendored, and the check drops them from
+both sides. Cargo never builds a dependency's tests, so they were 1,200
+lines that could not run -- and CodeQL scanned them anyway and reported
+seven high-severity findings in code this repository does not compile.
+
 The real fix is upstream: a feature flag choosing between `QApplication`
 and `QGuiApplication` would serve every Sailfish app built on qmetaobject,
 all of which hit this. Until then the fork is three lines and rebases

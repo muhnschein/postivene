@@ -11,7 +11,7 @@ builds**:
   side by side in the RPM as separate works, and this file is installed
   with the package to satisfy MPL-2.0 §3.2(a)'s requirement that recipients
   of the Executable Form be told how to obtain the corresponding Source
-  Code Form. See `docs/LICENSING.md`.
+  Code Form.
 - **Build:** upstream's own release builds, produced by their
   `.github/workflows/deltachat-rpc-server.yml` nix builds, **statically
   linked against musl libc** ("to avoid problems with glibc version

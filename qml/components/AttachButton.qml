@@ -10,10 +10,16 @@ import Sailfish.Silica 1.0
  * one-handed reach right -- the choices appear directly under the thumb
  * that opened them.
  *
- * Two choices, because they are the two the sandbox can serve: the gallery
- * for a photo, the file system for anything else. No camera entry until the
- * app asks for the Camera permission, which harbour-postivene.desktop
- * deliberately does not (docs/HARBOUR.md).
+ * Four choices, one per library the sandbox grants: the gallery, the video
+ * library, the music library, and the file system for everything else. The
+ * media ones are not redundant with the file picker -- they browse the
+ * index rather than the filesystem, which is how anyone actually finds a
+ * photo taken last Tuesday.
+ *
+ * No camera entry until the app asks for the Camera permission, which
+ * harbour-postivene.desktop deliberately does not, and no voice recorder:
+ * QML has no audio recorder on Qt 5.6, so that needs native code
+ * (docs/HARBOUR.md, docs/PROJECT.md).
  *
  * Nothing is opened here. The page that owns the pageStack pushes the
  * pickers, the way ConversationPage already handles forwarding -- which
@@ -25,6 +31,8 @@ Item {
     /// Whether the tray is showing.
     property bool open: false
     signal photoRequested()
+    signal videoRequested()
+    signal audioRequested()
     signal fileRequested()
 
     function close() {
@@ -82,6 +90,24 @@ Item {
                 onClicked: {
                     root.close()
                     root.photoRequested()
+                }
+            }
+
+            IconButton {
+                objectName: "attachVideo"
+                icon.source: "image://theme/icon-m-video"
+                onClicked: {
+                    root.close()
+                    root.videoRequested()
+                }
+            }
+
+            IconButton {
+                objectName: "attachAudio"
+                icon.source: "image://theme/icon-m-music"
+                onClicked: {
+                    root.close()
+                    root.audioRequested()
                 }
             }
 

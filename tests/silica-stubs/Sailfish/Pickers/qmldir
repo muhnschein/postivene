@@ -1,3 +1,5 @@
 module Sailfish.Pickers
 ImagePickerPage 1.0 ImagePickerPage.qml
 FilePickerPage 1.0 FilePickerPage.qml
+VideoPickerPage 1.0 VideoPickerPage.qml
+MusicPickerPage 1.0 MusicPickerPage.qml

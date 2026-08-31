@@ -235,9 +235,14 @@ SilicaListView {
             quoteAuthor: model.quote_author
             filePath: model.file_path
             fileName: model.file_name
+            fileMime: model.file_mime
+            fileBytes: model.file_bytes
             viewType: model.view_type
             imageWidth: model.image_width
             imageHeight: model.image_height
+            vcardName: model.vcard_name
+            vcardAddr: model.vcard_addr
+            vcardColor: model.vcard_color
         }
     }
 

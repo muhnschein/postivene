@@ -56,6 +56,14 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   via queued signals.
 - **Background reception** relies on IMAP IDLE plus a Sailfish background
   process. It is the hardest platform problem and the largest open risk.
+- **The core classifies attachments, not the app.** Every file goes to
+  `misc_send_msg` and comes back with a `viewType` the core chose from the
+  file itself; `AttachmentPreview` picks a renderer from that answer and
+  nothing here inspects a file. What the core leaves blank matters as much:
+  it reports no dimensions for a GIF and no duration for a sound file, so
+  the row sizes pictures from the decoded image and lets the audio player
+  report its own length (`deltachat-jsonrpc/tests/real_server.rs` pins
+  both).
 - **The server is supervised.** Its event stream ending is the app's only
   notice that the core has gone -- a phone reclaiming memory kills it and
   says nothing -- so that is where the next one is started, with a backoff
@@ -86,8 +94,11 @@ the real binary offline.
 On top of that: the chat list (unread badges, timestamps, avatars,
 encryption/pin/mute marks, context menu, search across chats/contacts/
 messages, archive, contact requests, multiple profiles), the conversation
-view (bubbles, quotes, delivery marks, day separators, image previews,
-sending and receiving attachments, reply/copy/delete/resend), onboarding
+view (bubbles, quotes, delivery marks, day separators, reply/copy/delete/
+resend, and every kind of attachment the core classifies: photos and
+stickers inline, GIFs animated over a still poster, a video's poster frame
+from the platform thumbnailer, voice and audio played where they sit, a
+shared contact as a card, everything else named and sized), onboarding
 rebuilt on the core's current transport API, `secure_join` invites in both
 directions, encryption indicators, foreground notifications, and the
 cover.
@@ -145,9 +156,17 @@ In order of what matters:
    deciding deliberately rather than in passing.
 5. **Group member management, contact profile pages, blocking** outside a
    request; add-as-second-device and restore-from-backup.
-6. **Message polish**: avatars on bubbles, voice messages and audio,
-   reactions, drafts, an unread divider, and paging for long histories --
-   a chat is still fetched whole.
+6. **Message polish**: avatars on bubbles, reactions, drafts, an unread
+   divider, and paging for long histories -- a chat is still fetched whole.
+7. **Recording a voice message, and the camera.** Sending every kind of
+   attachment works; making one does not. QML has no audio recorder on
+   Qt 5.6 -- `harbour-whisperfish` wrote its own against gstreamer -- so a
+   voice note needs native code, an `unsafe` exception and the `Microphone`
+   permission. The camera is reachable from QML, but wants the `Camera`
+   permission, which is better added once with QR scanning than twice.
+8. **Running a webxdc app.** Sending one already works and the conversation
+   names it honestly; running it needs `Sailfish.WebView`, the `WebView`
+   permission and the webxdc bridge.
 
 Also open: no `sfdk` or OBS build specifically, since CI drives `mb2` 
 directly; icons are placeholders.

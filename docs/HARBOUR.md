@@ -109,6 +109,14 @@ through the real validator.
   does not cover is one the picker can offer and the app cannot open --
   which is why the attach button needs `UserDirs` and the profile picture
   needed `Pictures` *and* `MediaIndexing`.
+- Whether the `Sailfish.Pickers`, `QtMultimedia` and `Nemo.Thumbnailer`
+  types the conversation uses exist and behave on the target release.
+  Harbour's own `allowed_qmlimports.conf` permits all three, which settles
+  whether they may be used and says nothing about whether they work. The
+  pickers are one page each so that a missing type costs one button
+  (`qml/pages/Attach*Page.qml`); the media types are stubbed for tests in
+  `tests/silica-stubs`, which proves what this app asks of them and
+  nothing about what they answer.
 - Everything in the quality bar QA applies by hand — no placeholder
   content, translated strings, `Theme` values rather than pixel counts,
   recoverable errors, a useful cover.
@@ -243,10 +251,11 @@ removed from the store even after approval. Not an option.
 3. Install on a real device and launch it as
    `sailjail /usr/bin/harbour-postivene`.
 4. Exercise every permission-dependent path under the sandbox: the
-   profile picture picker needs both `Pictures` and `MediaIndexing`, and
-   the attach button's two pickers need `UserDirs` for anything outside
-   `~/Pictures`. Send one of each -- a photo from the gallery, a document
-   from `~/Documents` -- and open what arrives at the other end.
+   profile picture picker needs both `Pictures` and `MediaIndexing`, the
+   attach button's four pickers need `UserDirs` for anything outside
+   `~/Pictures`, and playing a voice message needs `Audio`. Send one of
+   each kind -- photo, video, sound, document -- and open what arrives at
+   the other end.
 5. Delete the cache directory while the app runs; confirm nothing breaks.
 6. Kill `deltachat-rpc-server` from a terminal while the app is open. The
    banner should say it is reconnecting and then clear itself, and messages

@@ -1,4 +1,4 @@
-//! The two attachment pickers, loaded on their own.
+//! The four attachment pickers, loaded on their own.
 //!
 //! They are pages rather than Components inside `ConversationPage`, precisely
 //! so that a `Sailfish.Pickers` type that is not there costs one button
@@ -30,22 +30,33 @@ const PROBE_QML: &str = r"
     Item {
         property string reported: ''
         Loader { id: loader }
-        function load(url) {
+        // Load, then choose, then say what was heard -- the picker's
+        // handler runs on the assignment, so this needs no waiting.
+        function pick(url, path) {
             loader.setSource('', {})
             loader.setSource(url, {})
             if (loader.status !== Loader.Ready) { return 'load-failed' }
             reported = ''
-            loader.item.picked.connect(function (path) { reported = path })
-            return 'ok'
-        }
-        // What the picker does when someone chooses a file.
-        function choose(path) {
+            loader.item.picked.connect(function (chosen) { reported = chosen })
+            // Nothing chosen yet: an empty path must not be reported as a
+            // file, or cancelling the picker would arm an attachment.
+            if (reported !== '') { return 'reported-before-choosing' }
             loader.item.selectedContentProperties = { filePath: path }
-            return 'ok'
+            return reported
         }
-        function heard() { return reported }
     }
 ";
+
+/// Each picker page, and the file a test hands it.
+const PICKERS: [(&str, &str); 4] = [
+    (
+        "AttachPhotoPage.qml",
+        "/home/user/Pictures/holiday photo.png",
+    ),
+    ("AttachVideoPage.qml", "/home/user/Videos/clip.mp4"),
+    ("AttachAudioPage.qml", "/home/user/Music/tune.ogg"),
+    ("AttachFilePage.qml", "/home/user/Documents/report.pdf"),
+];
 
 #[test]
 fn each_picker_reports_the_file_that_was_chosen() {
@@ -63,103 +74,46 @@ fn each_picker_reports_the_file_that_was_chosen() {
     engine.load_data(QByteArray::from(PROBE_QML));
 
     let engine_ptr = std::ptr::addr_of_mut!(engine);
-    let mut steps: Vec<(&str, String)> = Vec::new();
-    let steps_ptr: *mut Vec<(&str, String)> = std::ptr::addr_of_mut!(steps);
-
-    macro_rules! call {
-        ($name:expr $(, $arg:expr)*) => {{
-            let result = (*engine_ptr).invoke_method(
-                $name.into(),
-                &[$(QVariant::from($arg)),*],
-            );
-            QString::from_qvariant(result)
-                .map(|value| value.to_string())
-                .unwrap_or_default()
-        }};
-    }
+    let mut heard: Vec<(&str, String)> = Vec::new();
+    let heard_ptr: *mut Vec<(&str, String)> = std::ptr::addr_of_mut!(heard);
 
     single_shot(Duration::from_secs(1), move || unsafe {
-        for (label, page) in [
-            ("photo-load", "AttachPhotoPage.qml"),
-            ("photo-heard", ""),
-            ("file-load", "AttachFilePage.qml"),
-            ("file-heard", ""),
-        ] {
-            if page.is_empty() {
-                // Nothing chosen yet: an empty path must not be reported as
-                // a file, or cancelling the picker would arm an attachment.
-                (*steps_ptr).push((label, call!("heard")));
-                continue;
-            }
-            (*steps_ptr).push((label, call!("load", QString::from(common::page_url(page)))));
+        for (page, path) in PICKERS {
+            let result = (*engine_ptr).invoke_method(
+                "pick".into(),
+                &[
+                    QVariant::from(QString::from(common::page_url(page))),
+                    QVariant::from(QString::from(path)),
+                ],
+            );
+            (*heard_ptr).push((
+                page,
+                QString::from_qvariant(result)
+                    .map(|value| value.to_string())
+                    .unwrap_or_default(),
+            ));
         }
-    });
-
-    single_shot(Duration::from_secs(2), move || unsafe {
-        // The photo page has been replaced by the file page, so this drives
-        // the one still loaded and the assertions below say which.
-        (*steps_ptr).push((
-            "choose",
-            call!("choose", QString::from("/home/user/Documents/report.pdf")),
-        ));
-    });
-
-    single_shot(Duration::from_secs(3), move || unsafe {
-        (*steps_ptr).push(("chosen-heard", call!("heard")));
-        (*steps_ptr).push((
-            "photo-reload",
-            call!(
-                "load",
-                QString::from(common::page_url("AttachPhotoPage.qml"))
-            ),
-        ));
-    });
-
-    single_shot(Duration::from_secs(4), move || unsafe {
-        (*steps_ptr).push((
-            "choose-photo",
-            call!(
-                "choose",
-                QString::from("/home/user/Pictures/holiday photo.png")
-            ),
-        ));
-    });
-
-    single_shot(Duration::from_secs(5), move || unsafe {
-        (*steps_ptr).push(("photo-chosen-heard", call!("heard")));
         (*engine_ptr).quit();
     });
 
     engine.exec();
 
-    let value = |label: &str| {
-        steps
-            .iter()
-            .find(|(name, _)| *name == label)
-            .map(|(_, value)| value.clone())
-            .unwrap_or_default()
-    };
-    let context = format!("steps: {steps:?}");
-
-    for label in ["photo-load", "file-load", "photo-reload"] {
-        assert_eq!(value(label), "ok", "{label} did not load. {context}");
-    }
-    for label in ["photo-heard", "file-heard"] {
+    assert_eq!(
+        heard.len(),
+        PICKERS.len(),
+        "not every picker was driven: {heard:?}"
+    );
+    for ((page, path), (driven, reported)) in PICKERS.iter().zip(&heard) {
         assert_eq!(
-            value(label),
-            "",
-            "a picker reported a file before one was chosen, so cancelling it \
-             would arm an attachment. {context}"
+            page, driven,
+            "the pickers were driven out of order: {heard:?}"
+        );
+        assert_eq!(
+            reported, path,
+            "{page} did not report what was chosen. It answered {reported:?}, \
+             where 'load-failed' means the page does not load at all and \
+             'reported-before-choosing' means opening it arms an attachment \
+             on its own. All: {heard:?}"
         );
     }
-    assert_eq!(
-        value("chosen-heard"),
-        "/home/user/Documents/report.pdf",
-        "the file picker did not report what was chosen. {context}"
-    );
-    assert_eq!(
-        value("photo-chosen-heard"),
-        "/home/user/Pictures/holiday photo.png",
-        "the photo picker did not report what was chosen. {context}"
-    );
 }

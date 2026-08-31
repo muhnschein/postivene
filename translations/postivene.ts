@@ -10,6 +10,14 @@
     </message>
 </context>
 <context>
+    <name>AttachmentPreview</name>
+    <message>
+        <source>Voice message</source>
+        <extracomment>A recorded voice message, which has no useful file name.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ChatListDelegate</name>
     <message>
         <source>now</source>

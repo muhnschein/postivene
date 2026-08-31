@@ -55,6 +55,17 @@ pub fn stubs_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/silica-stubs")
 }
 
+/// A `file://` URL for one of the app's shared components.
+pub fn component_url(name: &str) -> String {
+    format!(
+        "file://{}",
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../qml/components")
+            .join(name)
+            .display()
+    )
+}
+
 /// A `file://` URL for one of the app's pages.
 pub fn page_url(name: &str) -> String {
     format!(

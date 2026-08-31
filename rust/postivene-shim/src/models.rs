@@ -85,12 +85,25 @@ pub struct MessageListItem {
     /// The attachment's name as it should be shown.
     pub file_name: QString,
     /// `viewType` upstream: Text, Image, Gif, Sticker, Audio, Voice,
-    /// Video, File, Webxdc, Vcard.
+    /// Video, File, Call, Webxdc, Vcard. What the conversation renders the
+    /// attachment as; the core decides it from the file itself.
     pub view_type: QString,
     /// Attachment pixel size, 0 when not an image.
     pub image_width: i32,
     /// Attachment pixel size, 0 when not an image.
     pub image_height: i32,
+    /// The attachment's MIME type, empty when the core has none. What a
+    /// generic file row names itself by when it has nothing better.
+    pub file_mime: QString,
+    /// The attachment's size in bytes, 0 when unknown.
+    pub file_bytes: f64,
+    /// A shared contact's name, empty when this is not a vCard. The core
+    /// parses the card; nothing here reads vCard syntax.
+    pub vcard_name: QString,
+    /// A shared contact's address.
+    pub vcard_addr: QString,
+    /// A shared contact's colour, `#rrggbb`.
+    pub vcard_color: QString,
 }
 
 /// Conversation model bound to a `SilicaListView` from QML.

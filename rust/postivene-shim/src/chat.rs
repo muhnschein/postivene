@@ -839,13 +839,31 @@ fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
         file_path: text_at(message, "/file"),
         file_name: text_at(message, "/fileName"),
         view_type: text_at(message, "/viewType"),
-        image_width: pixels(message, "dimensionsWidth"),
-        image_height: pixels(message, "dimensionsHeight"),
+        // Often 0 even for a picture: the core probes PNG and JPEG but
+        // returned 0x0 for a valid GIF, so nothing may divide by these.
+        image_width: int_field(message, "dimensionsWidth"),
+        image_height: int_field(message, "dimensionsHeight"),
+        file_mime: text_at(message, "/fileMime"),
+        file_bytes: message
+            .get("fileBytes")
+            .and_then(serde_json::Value::as_u64)
+            .map_or(0.0, |bytes| {
+                // Through f64 because QML has no 64-bit integer, and
+                // saturating at 4 GiB because f64 is only exact to 2^53.
+                // Nothing real is lost: the core will not carry an
+                // attachment anywhere near either bound.
+                f64::from(u32::try_from(bytes).unwrap_or(u32::MAX))
+            }),
+        vcard_name: text_at(message, "/vcardContact/displayName"),
+        vcard_addr: text_at(message, "/vcardContact/addr"),
+        vcard_color: text_at(message, "/vcardContact/color"),
     }
 }
 
-/// A pixel dimension, 0 when the core has none.
-fn pixels(message: &serde_json::Value, field: &str) -> i32 {
+/// A whole number from the message, 0 when the core has none. Pixel
+/// dimensions and the duration all arrive this way, and all are absent
+/// often enough that the absence is the normal case.
+fn int_field(message: &serde_json::Value, field: &str) -> i32 {
     message
         .get(field)
         .and_then(serde_json::Value::as_i64)

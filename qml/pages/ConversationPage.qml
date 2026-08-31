@@ -318,6 +318,8 @@ Page {
             id: attachButton
             objectName: "attachButton"
             onPhotoRequested: page.pickWith("AttachPhotoPage.qml")
+            onVideoRequested: page.pickWith("AttachVideoPage.qml")
+            onAudioRequested: page.pickWith("AttachAudioPage.qml")
             onFileRequested: page.pickWith("AttachFilePage.qml")
         }
 

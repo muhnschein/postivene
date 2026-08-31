@@ -148,10 +148,18 @@ jobs:
               host=i686-unknown-linux-gnu
               src=\$(ls -d /srv/mer/toolings/*/usr/lib/rustlib/\$host 2>/dev/null | head -1 || true)
               [ -n \"\$src\" ] || src=\$(ls -d /srv/mer/targets/*/usr/lib/rustlib/\$host 2>/dev/null | head -1 || true)
+              # Best effort. This is a 4.x workaround, and the 5.2 image
+              # has no passwordless sudo -- which used to fail the job in
+              # thirty seconds, before a single crate was compiled. If the
+              # graft is skipped and the build actually needed it, rustc
+              # says so plainly, and that is the more useful failure.
               if [ -n \"\$src\" ] && [ ! -d /usr/lib/rustlib/\$host ]; then
-                sudo mkdir -p /usr/lib/rustlib
-                sudo cp -a \"\$src\" /usr/lib/rustlib/
-                echo \"grafted \$src into /usr/lib/rustlib/\"
+                if sudo -n mkdir -p /usr/lib/rustlib 2>/dev/null &&
+                   sudo -n cp -a \"\$src\" /usr/lib/rustlib/ 2>/dev/null; then
+                  echo \"grafted \$src into /usr/lib/rustlib/\"
+                else
+                  echo \"could not graft \$src: no passwordless sudo here\"
+                fi
               fi
 
               mb2 -t '$TARGET' -X build --no-check"

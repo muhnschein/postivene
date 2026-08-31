@@ -60,9 +60,11 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
 ## Platform baseline
 
 - Toolchain floor **Rust 1.75.0, Qt 5.6.3** — what Sailfish ships.
-- Build against the oldest release worth supporting: a binary from a newer
-  SDK can call symbols an older phone lacks. CI defaults to 4.6.0.13. No
-  public 5.2 target exists yet.
+- Built against the **5.2** SDK, the Jolla Phone's baseline. Anything older
+  is out of scope: a binary from a newer SDK can call symbols an older
+  phone lacks, and that is accepted rather than worked around. Harbour
+  requires it too -- it rejects a binary that does not link
+  `__libc_start_main@GLIBC_2.34`, which only a 5.x glibc provides.
 - `aarch64` and `armv7hl` for devices; `i486`/`x86_64` for the emulator.
 - Account storage is the core's own, pinned inside the sailjail grant at
   `$XDG_DATA_HOME/postivene/postivene/accounts` (`POSTIVENE_ACCOUNTS_DIR`

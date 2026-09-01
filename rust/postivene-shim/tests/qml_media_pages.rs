@@ -31,7 +31,34 @@ use qmetaobject::*;
 
 mod common;
 
-use common::PageStackProbe;
+/// Silica's `pageStack`, recorded rather than performed. A context
+/// property, as in the app: an object declared in the probe below would not
+/// be visible inside a separately loaded page. Its own, as in every other
+/// test that needs one -- each records only what it asks about, and this
+/// one asks only which page a tap opened.
+#[derive(QObject, Default)]
+struct PageStackProbe {
+    base: qt_base_class!(trait QObject),
+    /// `push:PicturePage.qml|push:VideoPage.qml|...`
+    log: qt_property!(QString; NOTIFY log_changed),
+    log_changed: qt_signal!(),
+
+    push: qt_method!(fn(&mut self, page: QString, properties: QVariantMap)),
+}
+
+impl PageStackProbe {
+    // qt_method! declarations must match the generated dispatcher's
+    // by-value parameters; see postivene-shim/src/lib.rs.
+    #[allow(clippy::needless_pass_by_value)]
+    fn push(&mut self, page: QString, _properties: QVariantMap) {
+        // Only the file name matters; the rest is a checkout path.
+        let page = page.to_string();
+        let name = page.rsplit('/').next().unwrap_or(&page);
+        let current = self.log.to_string();
+        self.log = format!("{current}push:{name}|").into();
+        self.log_changed();
+    }
+}
 
 /// A 1x1 PNG, which is a picture as far as any of this is concerned.
 const ONE_PIXEL_PNG: &[u8] = &[

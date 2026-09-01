@@ -108,7 +108,8 @@ SilicaListView {
         root.newerRequested()
     }
 
-    onContentYChanged: {
+    /// Ask for whatever the view is now up against, if anything.
+    function checkEdges() {
         if (root.contentY - root.originY < root.topSlack) {
             root.askForOlder()
         }
@@ -117,6 +118,8 @@ SilicaListView {
             root.askForNewer()
         }
     }
+
+    onContentYChanged: root.checkEdges()
 
     // Above the oldest row, so it scrolls away with the history rather
     // than sitting over it. Zero-high when there is nothing more to fetch,
@@ -305,6 +308,12 @@ SilicaListView {
             // After the positioning, not before: the contentY change it
             // makes must not be read as the reader arriving at an edge.
             root.settled = true
+            // Asked here as well as on a move, because where the view was
+            // put may itself be an edge and there is no further change
+            // coming to notice it: a jump to the top of the loaded
+            // messages would sit there offering history and never fetch
+            // any.
+            root.checkEdges()
         }
     }
 

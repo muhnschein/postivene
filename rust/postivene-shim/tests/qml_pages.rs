@@ -36,8 +36,6 @@ use serde_json::Value;
 
 mod common;
 
-use common::PageStackProbe;
-
 /// QML forbids capitalised property names, so a `.qml` stub cannot provide
 /// `BusyIndicatorSize.Large`; a registered enum can.
 #[derive(QEnum)]
@@ -54,6 +52,102 @@ enum BusyIndicatorSize {
 enum TruncationMode {
     Elide = 0,
     Fade = 1,
+}
+
+/// Records navigation instead of performing it, and models the resulting
+/// page stack. A context property, as in the app: a QML object in the probe
+/// would not be visible inside a separately loaded page.
+///
+/// Method names are camelCase because they stand in for Silica's own API,
+/// which the pages call; `qmetaobject` exposes Rust identifiers verbatim.
+#[allow(non_snake_case)]
+#[derive(QObject, Default)]
+struct PageStackProbe {
+    base: qt_base_class!(trait QObject),
+    /// `push:CreateProfilePage.qml|replaceAbove:ChatListPage.qml|...`
+    log: qt_property!(QString; NOTIFY log_changed),
+    log_changed: qt_signal!(),
+    /// The stack as it now stands, bottom first, comma separated.
+    stack: qt_property!(QString; NOTIFY log_changed),
+    /// The properties handed to the most recent navigation, as JSON.
+    last_properties: qt_property!(QString; NOTIFY log_changed),
+
+    push: qt_method!(fn(&mut self, page: QString, properties: QVariantMap)),
+    replace: qt_method!(fn(&mut self, page: QString, properties: QVariantMap)),
+    /// Silica's `replaceAbove(target, page, properties)`. A `null` target
+    /// replaces the whole stack.
+    replaceAbove:
+        qt_method!(fn(&mut self, target: QVariant, page: QString, properties: QVariantMap)),
+    pop: qt_method!(fn(&mut self)),
+
+    pages: Vec<String>,
+}
+
+#[allow(non_snake_case)]
+impl PageStackProbe {
+    fn record(&mut self, action: &str, page: &QString, properties: &QVariantMap) -> String {
+        // Only the file name matters; the rest is a checkout path.
+        let page = page.to_string();
+        let name = page.rsplit('/').next().unwrap_or(&page).to_string();
+        let current = self.log.to_string();
+        self.log = format!("{current}{action}:{name}|").into();
+
+        // `QVariantMap` in qttypes 0.2 can be queried but not iterated, so
+        // these are the keys the pages pass.
+        let mut rendered = Vec::new();
+        for key in ["accountId", "chatId", "chatName"] {
+            let value = properties.value(QString::from(key), QVariant::default());
+            let text = i32::from_qvariant(value.clone())
+                .map(|number| number.to_string())
+                .or_else(|| QString::from_qvariant(value).map(|text| text.to_string()));
+            if let Some(text) = text {
+                rendered.push(format!("{key}={text}"));
+            }
+        }
+        self.last_properties = rendered.join(",").into();
+        name
+    }
+
+    fn publish(&mut self) {
+        self.stack = self.pages.join(",").into();
+        self.log_changed();
+    }
+
+    fn push(&mut self, page: QString, properties: QVariantMap) {
+        let name = self.record("push", &page, &properties);
+        self.pages.push(name);
+        self.publish();
+    }
+
+    fn replace(&mut self, page: QString, properties: QVariantMap) {
+        let name = self.record("replace", &page, &properties);
+        self.pages.pop();
+        self.pages.push(name);
+        self.publish();
+    }
+
+    fn replaceAbove(&mut self, target: QVariant, page: QString, properties: QVariantMap) {
+        let name = self.record("replaceAbove", &page, &properties);
+        // Only the whole-stack form is used here; a non-null target would
+        // need the page it names to decide where to cut.
+        // QML's `null` arrives as an empty QVariant.
+        let target_is_null =
+            QString::from_qvariant(target).map_or(true, |value| value.to_string().is_empty());
+        assert!(
+            target_is_null,
+            "replaceAbove with a non-null target is not modelled"
+        );
+        self.pages.clear();
+        self.pages.push(name);
+        self.publish();
+    }
+
+    fn pop(&mut self) {
+        let current = self.log.to_string();
+        self.log = format!("{current}pop|").into();
+        self.pages.pop();
+        self.publish();
+    }
 }
 
 /// Owns a `Loader` and walks the loaded page's children by `objectName`.

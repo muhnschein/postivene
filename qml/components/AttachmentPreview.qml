@@ -56,9 +56,13 @@ Item {
     readonly property bool hasFile: root.filePath.length > 0
     // Encoded, not concatenated: attachments are named by whoever sent
     // them, and a "#" or a "%" in the name makes a plain "file://" + path
-    // into a URL that points somewhere else, or nowhere.
+    // into a URL that points somewhere else, or nowhere. Per segment,
+    // with encodeURIComponent: encodeURI leaves "#" and "?" alone as
+    // URL syntax, which is exactly what they must not be here.
     readonly property url fileUrl: root.hasFile
-        ? Qt.resolvedUrl("file://" + encodeURI(root.filePath)) : ""
+        ? Qt.resolvedUrl("file://" + root.filePath.split("/")
+                                         .map(encodeURIComponent).join("/"))
+        : ""
 
     readonly property bool isStill: root.viewType === "Image"
                                     || root.viewType === "Sticker"

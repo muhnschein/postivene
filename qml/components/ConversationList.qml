@@ -12,7 +12,6 @@ import Sailfish.Silica 1.0
 SilicaListView {
     id: root
 
-    // Seconds east of UTC, for turning a day number back into a date.
     // Groups have to say who is speaking; one-to-one chats do not.
     property bool showSender: false
     property string placeholderText

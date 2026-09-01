@@ -1,5 +1,6 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
+import "../js/Format.js" as Format
 
 /*
  * One message. Its own component so it can be loaded and measured on its
@@ -77,14 +78,6 @@ Item {
     function below(previous, mine) {
         return previous.y + previous.height
                + (mine && previous.height > 0 ? Theme.paddingSmall : 0)
-    }
-
-    function stateMark(state) {
-        if (state === 28) return "✓✓"
-        if (state === 26) return "✓"
-        if (state === 24) return "✗"
-        if (state === 20) return "…"
-        return ""
     }
 
     Text {
@@ -274,7 +267,7 @@ Item {
             color: Theme.secondaryColor
             text: (root.showPadlock ? "" : "✉ ")
                   + Qt.formatTime(new Date(root.sentAt * 1000), "hh:mm")
-                  + (root.isOutgoing ? " " + root.stateMark(root.deliveryState) : "")
+                  + (root.isOutgoing ? " " + Format.stateMark(root.deliveryState) : "")
         }
     }
 }

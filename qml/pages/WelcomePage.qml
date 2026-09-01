@@ -3,7 +3,7 @@ import Sailfish.Silica 1.0
 
 /*
  * The first screen: no address, no password -- a new Delta Chat user has
- * neither (docs/ONBOARDING.md). Also the resume path: with a configured
+ * neither (docs/PROJECT.md). Also the resume path: with a configured
  * account it hands straight over to the chat list.
  */
 Page {
@@ -83,7 +83,7 @@ Page {
             text: qsTr("I Already Have a Profile")
             enabled: core.status === "ready"
             // Only the mailbox path so far; second device and backup
-            // restore need shim work (docs/GAP-ANALYSIS.md).
+            // restore need shim work (docs/PROJECT.md).
             onClicked: pageStack.push(Qt.resolvedUrl("EmailLoginPage.qml"), {})
         }
     }

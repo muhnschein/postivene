@@ -68,6 +68,12 @@ Page {
     }
 
     function openLoadedChat(chatId) {
+        // Only while this is the page on screen. The pulley menu stays
+        // open while a chat loads, and a reader who used it to go to
+        // Settings in the meantime did not ask for a conversation on top.
+        if (page.status !== PageStatus.Active) {
+            return
+        }
         pageStack.push(Qt.resolvedUrl("ConversationPage.qml"), {
             accountId: page.accountId,
             chatId: chatId,

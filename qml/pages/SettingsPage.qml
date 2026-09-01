@@ -1,6 +1,5 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
-import Sailfish.Pickers 1.0
 import "../components"
 import Postivene 1.0
 
@@ -81,14 +80,20 @@ Page {
         }
     }
 
-    Component {
-        id: picker
-        ImagePickerPage {
-            onSelectedContentPropertiesChanged: {
+    // The gallery, pushed by URL and connected to, the way the
+    // conversation attaches a photo: the Attach*Page files are the only
+    // ones that name a `Sailfish.Pickers` type, so a type that is not
+    // there costs this button rather than the settings page. That page
+    // also ignores a cancelled pick, which this one used to hand to the
+    // core as `undefined`.
+    function pickPicture() {
+        var picker = pageStack.push(Qt.resolvedUrl("AttachPhotoPage.qml"))
+        if (picker) {
+            picker.picked.connect(function(path) {
                 // The core copies the file into its own blob directory,
                 // so the picked one may go away afterwards.
-                profile.set_picture(selectedContentProperties.filePath)
-            }
+                profile.set_picture(path)
+            })
         }
     }
 
@@ -144,7 +149,7 @@ Page {
                 MouseArea {
                     objectName: "pictureTap"
                     anchors.fill: bigAvatar
-                    onClicked: pageStack.push(picker)
+                    onClicked: page.pickPicture()
                 }
             }
 
@@ -186,10 +191,16 @@ Page {
                 // coming back from the people who would have sent them.
                 description: qsTr("Tells the people you write to when you have read their messages, and asks the same of them. With this off you send none and see none.")
                 // Bound to the profile, not held here: the core is what
-                // decides, and a switch that drifts from it is a lie.
+                // decides, and a switch that drifts from it is a lie. So
+                // the tap must not flip it either -- Silica does that by
+                // default, which detaches the binding on the first tap and
+                // leaves a refused change looking like it took. The tap
+                // asks the core for the other state, and the binding
+                // shows whatever the core then says.
+                automaticCheck: false
                 checked: profile.read_receipts
                 enabled: profile.loaded
-                onClicked: profile.set_read_receipts(checked)
+                onClicked: profile.set_read_receipts(!checked)
             }
 
         }

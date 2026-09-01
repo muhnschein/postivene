@@ -4,7 +4,7 @@ import "../components"
 
 /*
  * Create a profile on a chatmail server: the user types a name, the server
- * mints the address and credentials (docs/ONBOARDING.md).
+ * mints the address and credentials (docs/PROJECT.md).
  *
  * The link field covers the QR scanner's ground without a camera -- every
  * dcaccount:, dclogin: and i.delta.chat payload is plain text.
@@ -29,7 +29,7 @@ Page {
     }
 
     // The core says what a link is; guessing at the formats here would be
-    // the protocol work docs/SCOPE.md rules out.
+    // the protocol work docs/PROJECT.md rules out.
     function useLink() {
         if (linkField.text.length === 0) {
             return
@@ -79,12 +79,13 @@ Page {
         onConfigure_progress: page.permille = permille
 
         // The core classifies the link; parsing it here would be the
-        // protocol work docs/SCOPE.md rules out.
+        // protocol work docs/PROJECT.md rules out.
         onQr_checked: {
             page.checkingLink = false
             if (kind === "account" || kind === "login") {
+                // The label follows providerQr by its binding; assigning
+                // it here too would break that binding for good.
                 page.providerQr = linkField.text
-                page.providerLabel = page.hostOf(linkField.text)
                 page.errorMessage = ""
             } else {
                 page.errorMessage = qsTr("That link is not an invite or login code")

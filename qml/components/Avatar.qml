@@ -44,9 +44,10 @@ Rectangle {
         visible: false
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
-        // Encoded; see MessageDelegate.qml.
+        // Encoded per segment; see AttachmentPreview.qml's fileUrl.
         source: avatar.picturePath.length > 0
-                ? Qt.resolvedUrl("file://" + encodeURI(avatar.picturePath))
+                ? Qt.resolvedUrl("file://" + avatar.picturePath.split("/")
+                                                 .map(encodeURIComponent).join("/"))
                 : ""
     }
 

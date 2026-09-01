@@ -1,5 +1,6 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
+import "../js/Format.js" as Format
 
 /*
  * One chat-list row. The name and the preview are whatever the other end
@@ -34,42 +35,6 @@ Item {
     height: Math.max(avatar.height, previewLabel.y + previewLabel.height)
             + 2 * Theme.paddingMedium
 
-    /// How long ago, in as few characters as will say it.
-    ///
-    /// "10 min" reads faster than "14:32" when the answer wanted is
-    /// "recently", and it does not need the reader to know what time it
-    /// is now. Past a week the elapsed count stops meaning anything, so
-    /// it goes back to a date.
-    function timeLabel(seconds) {
-        if (seconds <= 0) {
-            return ""
-        }
-        var when = new Date(seconds * 1000)
-        var elapsed = (new Date()).getTime() - when.getTime()
-        if (elapsed < 60000) {
-            return qsTr("now")
-        }
-        if (elapsed < 3600000) {
-            return qsTr("%1 min").arg(Math.floor(elapsed / 60000))
-        }
-        if (elapsed < 86400000) {
-            return qsTr("%1 h").arg(Math.floor(elapsed / 3600000))
-        }
-        if (elapsed < 7 * 86400000) {
-            var days = Math.floor(elapsed / 86400000)
-            return days === 1 ? qsTr("1 day") : qsTr("%1 days").arg(days)
-        }
-        return Qt.formatDate(when, Qt.DefaultLocaleShortDate)
-    }
-
-    function stateMark(state) {
-        if (state === 28) return "✓✓"
-        if (state === 26) return "✓"
-        if (state === 24) return "✗"
-        if (state === 20) return "…"
-        return ""
-    }
-
     // The chat's picture, or its colour with an initial on it.
     Avatar {
         id: avatar
@@ -102,7 +67,7 @@ Item {
             objectName: "timeLabel"
             font.pixelSize: Theme.fontSizeExtraSmall
             color: Theme.secondaryColor
-            text: root.timeLabel(root.lastUpdated)
+            text: Format.timeLabel(root.lastUpdated)
         }
 
         Label {
@@ -140,7 +105,7 @@ Item {
         textFormat: Text.PlainText
         // Ours carries its delivery mark; someone else's is named when the
         // core names them, which it does where it matters.
-        text: (root.summaryIsOurs ? root.stateMark(root.summaryState) + " " : "")
+        text: (root.summaryIsOurs ? Format.stateMark(root.summaryState) + " " : "")
               + (root.previewSender.length > 0 && !root.summaryIsOurs
                  ? root.previewSender + ": " : "")
               + root.preview

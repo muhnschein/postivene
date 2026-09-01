@@ -226,13 +226,19 @@ Page {
     // button rather than the whole conversation.
     function pickWith(pageName) {
         var picker = pageStack.push(Qt.resolvedUrl(pageName))
-        picker.picked.connect(page.attach)
+        // Null when the page could not be loaded, which is the case the
+        // comment above is about; connecting to it would throw.
+        if (picker) {
+            picker.picked.connect(page.attach)
+        }
     }
 
     // Outside the list rather than its `header`, so it stays put: a
     // header scrolls with the content, and in a long conversation the
-    // name of whoever you are talking to disappears off the top.
-    PageHeader {
+    // name of whoever you are talking to disappears off the top. Not
+    // Silica's PageHeader: the name is the other end's to choose, and
+    // that header cannot be told to show it as plain text.
+    ConversationHeader {
         id: conversationHeader
         objectName: "conversationHeader"
         title: page.chatName
@@ -279,9 +285,11 @@ Page {
             var picker = pageStack.push(
                 Qt.resolvedUrl("ChatPickerPage.qml"),
                 { accountId: page.accountId })
-            picker.chatPicked.connect(function(chatId) {
-                messages.forward_to(travelling, chatId)
-            })
+            if (picker) {
+                picker.chatPicked.connect(function(chatId) {
+                    messages.forward_to(travelling, chatId)
+                })
+            }
         }
     }
 
@@ -410,12 +418,12 @@ Page {
             // indicator takes its place, so the row keeps its shape.
             icon.source: messages.sending ? "" : "image://theme/icon-m-send"
             // A file on its own is a message; an empty field with nothing
-            // attached is not. And nothing is sendable twice: copying a
-            // large video into the core's blob directory takes long enough
-            // for a second tap to land, and that sent the whole thing
-            // again.
+            // attached is not, and neither is one holding only spaces.
+            // And nothing is sendable twice: copying a large video into
+            // the core's blob directory takes long enough for a second
+            // tap to land, and that sent the whole thing again.
             enabled: !messages.sending
-                     && (textField.text.length > 0
+                     && (textField.text.trim().length > 0
                          || page.attachmentPath.length > 0)
             onClicked: page.sendCurrentText()
 
@@ -461,12 +469,16 @@ Page {
         // The bars are cleared from `onSent`, with the model's own copy:
         // clearing them here would drop the reply and the file the reader
         // chose on a send that never happened.
+        //
+        // Trimmed: a message of nothing but whitespace is not a message,
+        // and a trailing newline from the keyboard is not part of one.
+        var text = textField.text.trim()
         if (page.attachmentPath.length > 0) {
             page.errorMessage = ""
-            messages.send_file(textField.text, page.attachmentPath)
-        } else if (textField.text.length > 0) {
+            messages.send_file(text, page.attachmentPath)
+        } else if (text.length > 0) {
             page.errorMessage = ""
-            messages.send(textField.text)
+            messages.send(text)
         }
     }
 }

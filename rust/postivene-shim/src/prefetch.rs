@@ -136,8 +136,11 @@ impl ChatPrefetch {
             if this.borrow().generation != generation {
                 return;
             }
+            // Under the account the fetch was made for, not the one the
+            // object points at now: a property change while it ran would
+            // otherwise file this chat's rows under another account.
             if let Some(loaded) = result {
-                store(this.borrow().account_id, chat_id, loaded);
+                store(account_id, chat_id, loaded);
             }
             {
                 let mut this_mut = this.borrow_mut();

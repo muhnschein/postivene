@@ -105,6 +105,9 @@ fn the_real_core_accepts_the_shapes_we_send() {
                 onProfile_error: errors = errors + '|' + message
                 onProfile_created: created = created + 1
                 onQr_checked: qrKind = kind
+                // In the report too: 'not started' from every call says
+                // only that the core never came up; the status says why.
+                onStatus_changed: errors = errors + '|status=' + core.status
             }
             function report() { return created + '#' + qrKind + '#' + errors }
         }

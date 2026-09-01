@@ -10,37 +10,6 @@ use std::path::PathBuf;
 use postivene_shim::DeltaChatCore;
 use qmetaobject::*;
 
-/// `--rpc-server <path>`, then `POSTIVENE_RPC_SERVER`, then the bundled
-/// path, then `PATH`.
-///
-/// Checked here rather than set by the desktop entry: Sailfish launches
-/// `silica-qt5` apps through the invoker, which executes the binary itself,
-/// so an `Exec=env FOO=bar app` wrapper is not reliably honoured.
-///
-/// Behind a flag rather than taking `argv[1]`: the invoker passes
-/// arguments of its own, and a bare positional turned any of them into
-/// "the server binary" and then failed to spawn it.
-fn rpc_server_path() -> String {
-    let mut args = std::env::args().skip(1);
-    while let Some(arg) = args.next() {
-        if arg == "--rpc-server" {
-            if let Some(path) = args.next() {
-                return path;
-            }
-        } else if let Some(path) = arg.strip_prefix("--rpc-server=") {
-            return path.to_string();
-        }
-    }
-    if let Ok(env) = std::env::var("POSTIVENE_RPC_SERVER") {
-        return env;
-    }
-    let bundled = PathBuf::from("/usr/libexec/harbour-postivene/deltachat-rpc-server");
-    if bundled.is_file() {
-        return bundled.to_string_lossy().into_owned();
-    }
-    "deltachat-rpc-server".to_string()
-}
-
 /// `POSTIVENE_QML_DIR`, then the installed path, then the source tree.
 fn qml_dir() -> PathBuf {
     if let Ok(env) = std::env::var("POSTIVENE_QML_DIR") {
@@ -67,13 +36,25 @@ fn main() {
     // Must exist before the QML is sourced, or bindings see undefined.
     view.engine()
         .set_object_property("core".into(), core.pinned());
-    view.engine().set_property(
-        "rpcServerPath".into(),
-        QString::from(rpc_server_path()).into(),
+    // `--rpc-server <path>`, then `POSTIVENE_RPC_SERVER`, then the bundled
+    // binary -- and never `PATH`; see `postivene_shim::server_path`.
+    // Resolved here rather than set by the desktop entry: Sailfish
+    // launches `silica-qt5` apps through the invoker, which executes the
+    // binary itself, so an `Exec=env FOO=bar app` wrapper is not reliably
+    // honoured.
+    let server = postivene_shim::server_path(
+        std::env::args().skip(1),
+        std::env::var("POSTIVENE_RPC_SERVER").ok(),
     );
+    view.engine()
+        .set_property("rpcServerPath".into(), QString::from(server).into());
 
     let main_qml = qml_dir().join("postivene.qml");
     view.set_source(QString::from(main_qml.to_string_lossy().into_owned()));
     view.show();
     view.engine().exec();
+
+    // The window is gone; so should the server be, by our hand rather
+    // than by its own reaction to a closed pipe.
+    postivene_shim::shutdown();
 }

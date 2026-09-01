@@ -6,6 +6,7 @@ use std::time::{Duration, Instant};
 use deltachat_jsonrpc::{spawn_event_loop, CoreEvent, RpcClient};
 use qmetaobject::*;
 
+use crate::json;
 use crate::models::{AccountItem, AccountListModel};
 use crate::runtime::CoreRuntime;
 
@@ -33,8 +34,84 @@ fn set_connection(value: Option<(Arc<RpcClient>, CoreRuntime)>) {
 }
 
 /// Default chatmail server, as the `dcaccount:` payload
-/// `add_transport_from_qr` takes. See `docs/ONBOARDING.md`.
+/// `add_transport_from_qr` takes. See `docs/PROJECT.md`.
 pub const DEFAULT_PROVIDER_QR: &str = "dcaccount:nine.testrun.org";
+
+/// Where the RPM installs the server: beside the app, and not on `PATH`.
+pub const BUNDLED_SERVER: &str = "/usr/libexec/harbour-postivene/deltachat-rpc-server";
+
+/// How long the app waits for the server to go at exit.
+const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(3);
+
+/// Which server binary to run: `--rpc-server <path>` or
+/// `--rpc-server=<path>` from `args`, else `POSTIVENE_RPC_SERVER` from
+/// `env`, else [`BUNDLED_SERVER`].
+///
+/// Never a `PATH` lookup. The server is handed the mail password and holds
+/// the keys, so it has to be the one this package installed or the one a
+/// developer named -- not whichever binary of that name is first on a
+/// search path. A bundled server that is missing fails at spawn with a
+/// message saying which file, which is the right failure.
+///
+/// Behind a flag rather than taking `argv[1]`: Sailfish launches
+/// `silica-qt5` apps through the invoker, which passes arguments of its
+/// own, and a bare positional turned any of them into "the server binary".
+#[must_use]
+pub fn server_path<I>(args: I, env: Option<String>) -> String
+where
+    I: IntoIterator<Item = String>,
+{
+    let mut args = args.into_iter();
+    while let Some(arg) = args.next() {
+        if arg == "--rpc-server" {
+            if let Some(path) = args.next() {
+                return path;
+            }
+        } else if let Some(path) = arg.strip_prefix("--rpc-server=") {
+            return path.to_string();
+        }
+    }
+    env.filter(|path| !path.is_empty())
+        .unwrap_or_else(|| BUNDLED_SERVER.to_string())
+}
+
+/// Stop the server, once the Qt event loop has returned.
+///
+/// Without this the child is only killed when the last `RpcClient` drops,
+/// and the one held for the models never does: statics are not dropped at
+/// exit. The server went anyway, on its stdin closing, but that was its
+/// courtesy rather than this app's doing. Bounded, so a server that will
+/// not die cannot hold the app open.
+pub fn shutdown() {
+    let Some((rpc, runtime)) = CONNECTION
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .take()
+    else {
+        return;
+    };
+    let (done_tx, done_rx) = std::sync::mpsc::channel::<()>();
+    runtime.spawn(async move {
+        let _ = rpc.shutdown().await;
+        let _ = done_tx.send(());
+    });
+    let _ = done_rx.recv_timeout(SHUTDOWN_TIMEOUT);
+}
+
+/// The last few lines the server wrote to stderr, as one message, or
+/// nothing when it said nothing. The one clue to why it went that anyone
+/// will ever see.
+fn last_words(tail: &[String]) -> Option<String> {
+    const KEEP: usize = 5;
+    if tail.is_empty() {
+        return None;
+    }
+    let start = tail.len().saturating_sub(KEEP);
+    Some(format!(
+        "the core's last output was: {}",
+        tail[start..].join(" | ")
+    ))
+}
 
 /// How long to wait before the first restart, and the ceiling the wait
 /// doubles towards. The first is short because the overwhelmingly likely
@@ -96,9 +173,6 @@ pub struct DeltaChatCore {
     /// An account-scoped call (create, list, resume) failed.
     pub account_error: qt_signal!(message: QString),
 
-    /// Configuration of `account_id` finished, successfully or not.
-    pub configure_done: qt_signal!(account_id: u32, success: bool, error: QString),
-
     /// Spawn `rpc_server_path` and drain its event stream. No-op if
     /// already started.
     pub start: qt_method!(fn(&mut self, rpc_server_path: QString)),
@@ -113,11 +187,6 @@ pub struct DeltaChatCore {
     /// `remove_account` is the core's name for it -- verified against the
     /// pinned binary, which has no `delete_account`. There is no undo.
     pub remove_account: qt_method!(fn(&mut self, account_id: u32)),
-
-    /// Legacy path: `set_config` + `configure`. Prefer
-    /// `create_profile_with_email` (`docs/ONBOARDING.md`).
-    pub configure_account:
-        qt_method!(fn(&mut self, account_id: u32, addr: QString, password: QString)),
 
     /// All accounts known to the core.
     pub account_list: qt_property!(RefCell<AccountListModel>; CONST),
@@ -276,7 +345,11 @@ impl DeltaChatCore {
                     // first spawn that fails is reported and left alone,
                     // which is what the first screen reads.
                     if this.borrow().supervising {
-                        Self::schedule_restart(started_ptr.clone(), retry_path.clone(), Some(err));
+                        Self::schedule_restart(
+                            started_ptr.clone(),
+                            retry_path.clone(),
+                            Some(format!("could not restart the core: {err}")),
+                        );
                         return;
                     }
                     // Never started: this is the app failing to start.
@@ -313,8 +386,9 @@ impl DeltaChatCore {
     /// The server is gone: put the app into `reconnecting` and spawn
     /// another one after a backoff, or give up and say `stopped`.
     ///
-    /// `failure` is the spawn error when a restart attempt is what failed,
-    /// and `None` when a running server exited.
+    /// `failure` is what to report if this round gives up: the spawn error
+    /// when a restart attempt is what failed, the server's last words when
+    /// a running server exited, and `None` when it left in silence.
     fn schedule_restart(ptr: QPointer<Self>, path: String, failure: Option<String>) {
         let Some(this) = ptr.as_pinned() else { return };
         set_connection(None);
@@ -358,9 +432,8 @@ impl DeltaChatCore {
         this.borrow().status_changed();
 
         let Some((delay, runtime)) = next else {
-            if let Some(err) = failure {
-                this.borrow()
-                    .core_error(format!("could not restart the core: {err}").into());
+            if let Some(detail) = failure {
+                this.borrow().core_error(detail.into());
             }
             return;
         };
@@ -426,8 +499,27 @@ impl DeltaChatCore {
             Self::adopt_legacy_accounts(&base.join("postivene/accounts"), &dir);
             dir
         };
-        std::fs::create_dir_all(&dir)
+        // Private to this user: the directory holds the keys, the mail
+        // password and every message. The mode is asked for at creation
+        // and set again afterwards, because a directory that already
+        // exists -- adopted from before the sandbox, or made by an older
+        // build with the umask default -- keeps whatever it was given.
+        let mut builder = std::fs::DirBuilder::new();
+        builder.recursive(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::DirBuilderExt;
+            builder.mode(0o700);
+        }
+        builder
+            .create(&dir)
             .map_err(|err| format!("cannot create accounts dir {}: {err}", dir.display()))?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700))
+                .map_err(|err| format!("cannot restrict accounts dir {}: {err}", dir.display()))?;
+        }
         Ok(dir.to_string_lossy().into_owned())
     }
 
@@ -471,35 +563,27 @@ impl DeltaChatCore {
         // for itself: every model goes quiet and the UI still looks fine.
         // So it is also where the next server gets started.
         let stopped_ptr = ptr.clone();
-        let stopped = queued_callback(move |()| {
-            Self::schedule_restart(stopped_ptr.clone(), path.clone(), None);
+        let stopped = queued_callback(move |tail: Vec<String>| {
+            Self::schedule_restart(stopped_ptr.clone(), path.clone(), last_words(&tail));
         });
         let emit = queued_callback(move |event: CoreEvent| {
             if let Some(this) = ptr.as_pinned() {
-                let kind = event
-                    .event
-                    .get("kind")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or("Unknown")
-                    .to_string();
+                let kind = match json::str_at(&event.event, "kind") {
+                    "" => "Unknown".to_string(),
+                    kind => kind.to_string(),
+                };
                 let payload = serde_json::to_string(&event.event).unwrap_or_default();
                 // A typed signal too, so a progress bar need not parse
                 // JSON. Both fire for these events.
                 if kind == "Error" {
-                    let text = event
-                        .event
-                        .get("msg")
-                        .and_then(serde_json::Value::as_str)
-                        .unwrap_or("the core reported an error");
+                    let text = match json::str_at(&event.event, "msg") {
+                        "" => "the core reported an error",
+                        text => text,
+                    };
                     this.borrow().core_error(text.into());
                 }
                 if kind == "ConfigureProgress" {
-                    if let Some(permille) = event
-                        .event
-                        .get("progress")
-                        .and_then(serde_json::Value::as_u64)
-                        .and_then(|value| u32::try_from(value).ok())
-                    {
+                    if let Some(permille) = json::u32_opt(&event.event, "progress") {
                         this.borrow().configure_progress(event.context_id, permille);
                     }
                 }
@@ -508,11 +592,14 @@ impl DeltaChatCore {
             }
         });
         runtime.spawn(async move {
-            let (mut events, _handle) = spawn_event_loop(rpc);
+            let (mut events, _handle) = spawn_event_loop(rpc.clone());
             while let Some(event) = events.recv().await {
                 emit(event);
             }
-            stopped(());
+            // The stream ends only when the transport does (see
+            // `spawn_event_loop`), so this is the server gone -- and what
+            // it wrote to stderr on the way out is the only clue why.
+            stopped(rpc.stderr_tail());
         });
     }
 
@@ -605,48 +692,6 @@ impl DeltaChatCore {
         });
     }
 
-    /// Configure `account_id` from an address and password.
-    pub fn configure_account(&mut self, account_id: u32, addr: QString, password: QString) {
-        let Some((rpc, runtime)) = self.connection() else {
-            self.configure_done(account_id, false, QString::from("not started"));
-            return;
-        };
-
-        let ptr: QPointer<Self> = QPointer::from(&*self);
-        let done = queued_callback(move |result: (u32, Result<(), String>)| {
-            let Some(this) = ptr.as_pinned() else { return };
-            let (account_id, result) = result;
-            match result {
-                Ok(()) => this
-                    .borrow()
-                    .configure_done(account_id, true, QString::default()),
-                Err(err) => this.borrow().configure_done(account_id, false, err.into()),
-            }
-        });
-
-        let addr = addr.to_string();
-        let password = password.to_string();
-        runtime.spawn(async move {
-            let result: Result<(), String> = async {
-                rpc.call::<_, ()>("set_config", (account_id, "addr", Some(addr)))
-                    .await
-                    .map_err(|err| err.to_string())?;
-                rpc.call::<_, ()>("set_config", (account_id, "mail_pw", Some(password)))
-                    .await
-                    .map_err(|err| err.to_string())?;
-                rpc.call::<_, ()>("configure", (account_id,))
-                    .await
-                    .map_err(|err| err.to_string())?;
-                rpc.call::<_, ()>("start_io", (account_id,))
-                    .await
-                    .map_err(|err| err.to_string())?;
-                Ok(())
-            }
-            .await;
-            done((account_id, result));
-        });
-    }
-
     /// Repopulate [`DeltaChatCore::account_list`] from the core.
     pub fn refresh_accounts(&mut self) {
         let Some((rpc, runtime)) = self.connection() else {
@@ -689,23 +734,11 @@ impl DeltaChatCore {
                     accounts
                         .iter()
                         .filter_map(|account| {
-                            let account_id = u32::try_from(account.get("id")?.as_u64()?).ok()?;
-                            let is_configured =
-                                account.get("kind").and_then(serde_json::Value::as_str)
-                                    == Some("Configured");
                             Some(AccountItem {
-                                account_id,
-                                display_name: account
-                                    .get("displayName")
-                                    .and_then(serde_json::Value::as_str)
-                                    .unwrap_or_default()
-                                    .into(),
-                                addr: account
-                                    .get("addr")
-                                    .and_then(serde_json::Value::as_str)
-                                    .unwrap_or_default()
-                                    .into(),
-                                is_configured,
+                                account_id: json::u32_opt(account, "id")?,
+                                display_name: json::text(account, "displayName"),
+                                addr: json::text(account, "addr"),
+                                is_configured: json::str_at(account, "kind") == "Configured",
                             })
                         })
                         .collect::<Vec<_>>()
@@ -769,7 +802,7 @@ impl DeltaChatCore {
                 Self::set_display_name(&rpc, account_id, display_name).await?;
                 // The core asks the server for an account, stores the
                 // credentials, and restarts IO. Not `configure`, which
-                // upstream deprecated (docs/ONBOARDING.md).
+                // upstream deprecated (docs/PROJECT.md).
                 rpc.call::<_, ()>("add_transport_from_qr", (account_id, provider_qr))
                     .await
                     .map_err(|err| err.to_string())?;
@@ -801,7 +834,7 @@ impl DeltaChatCore {
                 let account_id = Self::profile_account(&rpc).await?;
                 Self::set_display_name(&rpc, account_id, display_name).await?;
                 // `addr` and `password` only; the rest of
-                // EnteredLoginParam autoconfigures (docs/ONBOARDING.md).
+                // EnteredLoginParam autoconfigures (docs/PROJECT.md).
                 let param = serde_json::json!({ "addr": addr, "password": password });
                 rpc.call::<_, ()>("add_or_update_transport", (account_id, param))
                     .await
@@ -895,11 +928,10 @@ impl DeltaChatCore {
             let (account_id, result) = result;
             match result {
                 Ok(qr) => {
-                    let kind = qr
-                        .get("kind")
-                        .and_then(serde_json::Value::as_str)
-                        .unwrap_or("unknown")
-                        .to_string();
+                    let kind = match json::str_at(&qr, "kind") {
+                        "" => "unknown".to_string(),
+                        kind => kind.to_string(),
+                    };
                     let payload = serde_json::to_string(&qr).unwrap_or_default();
                     this.borrow()
                         .qr_checked(account_id, kind.into(), payload.into());
@@ -940,13 +972,10 @@ impl DeltaChatCore {
             .await
             .map_err(|err| err.to_string())?;
         Ok(accounts.iter().find_map(|account| {
-            if account.get("kind").and_then(serde_json::Value::as_str) != Some("Unconfigured") {
+            if json::str_at(account, "kind") != "Unconfigured" {
                 return None;
             }
-            account
-                .get("id")
-                .and_then(serde_json::Value::as_u64)
-                .and_then(|id| u32::try_from(id).ok())
+            json::u32_opt(account, "id")
         }))
     }
 
@@ -993,7 +1022,55 @@ impl DeltaChatCore {
 
 #[cfg(test)]
 mod tests {
-    use super::{restart_delay, RESTART_DELAY_MAX, RESTART_DELAY_MIN, RESTART_LIMIT};
+    use super::{
+        last_words, restart_delay, server_path, BUNDLED_SERVER, RESTART_DELAY_MAX,
+        RESTART_DELAY_MIN, RESTART_LIMIT,
+    };
+
+    fn args(list: &[&str]) -> Vec<String> {
+        list.iter().map(ToString::to_string).collect()
+    }
+
+    #[test]
+    fn the_server_is_the_flag_then_the_environment_then_the_bundle() {
+        assert_eq!(
+            server_path(args(&["--rpc-server", "/x/server"]), Some("/env".into())),
+            "/x/server"
+        );
+        assert_eq!(
+            server_path(args(&["--rpc-server=/y/server"]), None),
+            "/y/server"
+        );
+        // The invoker's own arguments are not a server.
+        assert_eq!(
+            server_path(
+                args(&["-prestart", "--type=silica-qt5"]),
+                Some("/env".into())
+            ),
+            "/env"
+        );
+        assert_eq!(server_path(args(&[]), None), BUNDLED_SERVER);
+    }
+
+    #[test]
+    fn the_server_is_never_looked_up_on_path() {
+        // A bare name would go to PATH, and whatever answered there would
+        // be handed the mail password. Nothing here produces one, an
+        // empty environment variable included.
+        for env in [None, Some(String::new())] {
+            let path = server_path(args(&["--rpc-server"]), env);
+            assert!(path.starts_with('/'), "{path:?} would be looked up on PATH");
+        }
+    }
+
+    #[test]
+    fn last_words_keep_the_tail_and_say_nothing_for_silence() {
+        assert_eq!(last_words(&[]), None);
+        let lines: Vec<String> = (1..=7).map(|n| format!("line {n}")).collect();
+        let words = last_words(&lines).unwrap_or_default();
+        assert!(words.ends_with("line 3 | line 4 | line 5 | line 6 | line 7"));
+        assert!(!words.contains("line 2"));
+    }
 
     #[test]
     fn the_backoff_doubles_and_then_stops_doubling() {

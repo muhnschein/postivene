@@ -50,6 +50,22 @@ fn a_profile_from_before_the_sandbox_is_adopted_but_never_overwrites_one() {
         !legacy.exists(),
         "the old directory is still there, so the profile now exists twice"
     );
+    // The directory holds the keys, the mail password and every message.
+    // The adopted one arrived with the umask default, which is the case
+    // that has to be tightened rather than merely created right.
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = fs::metadata(&wanted)
+            .expect("stat the accounts dir")
+            .permissions()
+            .mode()
+            & 0o777;
+        assert_eq!(
+            mode, 0o700,
+            "the accounts directory is readable by others (mode {mode:o})"
+        );
+    }
 
     // Asking again is a no-op, not a second move.
     let again = DeltaChatCore::accounts_dir().expect("accounts dir");

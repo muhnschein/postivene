@@ -11,12 +11,16 @@ use std::sync::mpsc;
 use std::sync::Arc;
 use std::time::Duration;
 
-use tokio::runtime::{Handle, Runtime};
+use tokio::runtime::{Builder, Handle};
 use tokio::task::JoinHandle;
 
 /// Bounded so a wedged thread cannot hang the UI. A thread spawn plus a
 /// runtime build is milliseconds.
 const HANDLE_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// Two, not one per core: everything here is one pipe to one process,
+/// and a phone's cores are wanted for drawing the page.
+const WORKER_THREADS: usize = 2;
 
 /// Handle to a tokio runtime on its own thread. Clones share it; when the
 /// last one drops, that thread shuts down and drops the runtime.
@@ -38,8 +42,11 @@ impl CoreRuntime {
             .name("postivene-tokio".to_string())
             .spawn(move || {
                 // The one place a runtime may be built: this thread.
-                #[allow(clippy::disallowed_methods)]
-                let runtime = match Runtime::new() {
+                let runtime = match Builder::new_multi_thread()
+                    .worker_threads(WORKER_THREADS)
+                    .enable_all()
+                    .build()
+                {
                     Ok(runtime) => runtime,
                     Err(err) => {
                         let _ = handle_tx.send(Err(err.to_string()));

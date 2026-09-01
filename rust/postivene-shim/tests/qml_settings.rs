@@ -63,7 +63,11 @@ const PROBE_QML: &str = r"
         function toggleReceipts() {
             var sw = findIn(loader.item, 'readReceiptsSwitch')
             if (!sw) { return 'missing:readReceiptsSwitch' }
-            sw.checked = !sw.checked
+            // A tap and nothing else. With automaticCheck off, Silica
+            // leaves `checked` to its binding, so the page has to read
+            // the state it shows and ask the core for the other one. A
+            // test that flipped `checked` first was standing in for the
+            // behaviour the page now switches off.
             sw.clicked()
             return 'ok'
         }

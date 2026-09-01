@@ -4,7 +4,8 @@ disallowed-methods = [
     # Building a tokio runtime on the Qt main thread panics on the Sailfish
     # aarch64 build. Everything goes through `CoreRuntime`, which owns its
     # own thread. `Builder::build` is not banned: `#[tokio::main]` and
-    # `#[tokio::test]` expand to it.
+    # `#[tokio::test]` expand to it, and CoreRuntime itself uses it to
+    # size the pool.
     { path = "tokio::runtime::Runtime::new", reason = "use CoreRuntime (postivene-shim/src/runtime.rs)" },
 
     # qmetaobject 0.2.10 truncates the sub-second part of a Duration to 0,

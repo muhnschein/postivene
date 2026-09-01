@@ -51,6 +51,31 @@ async fn echoes_arbitrary_json_params() {
     client.shutdown().await.expect("shutdown");
 }
 
+/// A line the reader cannot decode is one bad line, not the transport
+/// closing: the answer that follows it, and every call after that, still
+/// arrive. The reader used to end on it and report every pending call as
+/// `TransportClosed` while the server was still running.
+#[tokio::test]
+async fn an_undecodable_line_does_not_end_the_transport() {
+    let client = RpcClient::spawn(fake_server_path(), Vec::<&str>::new())
+        .await
+        .expect("spawn fake server");
+
+    let answer: String = client
+        .call_unit("garbage")
+        .await
+        .expect("the answer written after the undecodable line");
+    assert_eq!(answer, "after-garbage");
+
+    let echoed: serde_json::Value = client
+        .call("echo", json!("still here"))
+        .await
+        .expect("a call made after the undecodable line");
+    assert_eq!(echoed, json!("still here"));
+
+    client.shutdown().await.expect("shutdown");
+}
+
 #[tokio::test]
 async fn remote_errors_are_reported_as_rpc_error() {
     let client = RpcClient::spawn(fake_server_path(), Vec::<&str>::new())
@@ -142,13 +167,17 @@ async fn event_loop_streams_batches_in_order() {
     assert_eq!(first.context_id, 1);
     assert_eq!(first.event["msg"], json!("batch 1"));
 
-    // The server answers the next poll with an error object. That is one
-    // bad answer, not the transport going away, and the stream has to
-    // carry on past it -- ending here would stop every event for the life
-    // of the process, and the shim reads the stream ending as the core
-    // having died, so the app would report a dead core that is running.
-    let third = events.recv().await.expect("the loop stopped on one error");
-    assert_eq!(third.event["msg"], json!("batch 3"));
+    // The server answers the next six polls with an error object. Each is
+    // one bad answer, not the transport going away, and the stream has to
+    // carry on past every one of them: the loop used to give up after
+    // five, the shim read the stream ending as the core having died, and
+    // the app then killed a running core to start another. The wait
+    // between attempts backs off, so this takes a few seconds by design.
+    let eighth = events
+        .recv()
+        .await
+        .expect("the loop stopped on a run of errors");
+    assert_eq!(eighth.event["msg"], json!("batch 8"));
 
     // The fake server now simulates an indefinite long-poll with no new
     // events; stopping the handle must not hang the test.

@@ -47,6 +47,16 @@ async fn main() {
                     ok(id, &json!(sum))
                 }
                 "fail" => err(id, -32000, "boom"),
+                // A line the client cannot decode, before the real answer.
+                // Stands in for a server writing something that is not
+                // UTF-8 to its stdout: one bad line, not a closed pipe.
+                "garbage" => {
+                    let mut out = stdout.lock().await;
+                    let _ = out.write_all(b"\xff\xfe this is not text\n").await;
+                    let _ = out.flush().await;
+                    drop(out);
+                    ok(id, &json!("after-garbage"))
+                }
                 "slow" => {
                     let ms = params
                         .as_array()
@@ -59,14 +69,16 @@ async fn main() {
                 "get_next_event_batch" => {
                     let mut count = batch_counter.lock().await;
                     *count += 1;
-                    // One answer in the middle the client cannot use. The
-                    // real core would do this by changing an event's shape
+                    // A run of answers the client cannot use. The real
+                    // core would do this by changing an event's shape
                     // across a version; here an error object does the same
-                    // job. What matters is that it is not the transport
-                    // closing, so the stream has to carry on past it.
-                    if *count == 2 {
+                    // job. Six of them, one more than the tolerance the
+                    // loop used to give up after: what matters is that
+                    // none of them is the transport closing, so the stream
+                    // has to carry on past all of them.
+                    if (2..=7).contains(&*count) {
                         err(id, -32000, "no events for you")
-                    } else if *count <= 3 {
+                    } else if *count <= 8 {
                         let n = *count;
                         ok(
                             id,

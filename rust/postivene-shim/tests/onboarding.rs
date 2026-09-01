@@ -211,7 +211,7 @@ fn assert_current_transport_api(calls: &[Call]) {
     assert!(
         !names.contains(&"configure"),
         "onboarding called the deprecated `configure`; use \
-         add_transport_from_qr / add_or_update_transport (docs/ONBOARDING.md). \
+         add_transport_from_qr / add_or_update_transport (docs/PROJECT.md). \
          Calls were: {names:?}"
     );
     for call in calls {
@@ -224,7 +224,7 @@ fn assert_current_transport_api(calls: &[Call]) {
             assert_ne!(
                 key, "mail_pw",
                 "credentials were pushed through set_config; they belong in \
-                 an EnteredLoginParam (docs/ONBOARDING.md)"
+                 an EnteredLoginParam (docs/PROJECT.md)"
             );
         }
     }

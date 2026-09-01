@@ -19,6 +19,7 @@ mod chat;
 mod chatlist;
 mod contacts;
 mod core;
+mod json;
 mod models;
 mod prefetch;
 mod profile;
@@ -28,7 +29,7 @@ mod search;
 pub use crate::chat::{local_day_number, ChatMessages};
 pub use crate::chatlist::ChatList;
 pub use crate::contacts::ContactList;
-pub use crate::core::DeltaChatCore;
+pub use crate::core::{server_path, shutdown, DeltaChatCore, BUNDLED_SERVER};
 pub use crate::prefetch::ChatPrefetch;
 pub use crate::profile::Profile;
 pub use crate::search::SearchResults;
@@ -61,6 +62,6 @@ pub fn register_qml_types() {
     qmetaobject::qml_register_type::<ChatPrefetch>(uri, 1, 0, prefetch);
 }
 pub use models::{
-    ChatListItem, ChatListModel, ContactItem, ContactListModel, MessageListItem, MessageListModel,
-    SearchItem, SearchListModel,
+    AccountItem, ChatListItem, ChatListModel, ContactItem, ContactListModel, MessageListItem,
+    MessageListModel, SearchItem, SearchListModel,
 };

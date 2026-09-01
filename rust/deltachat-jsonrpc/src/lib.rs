@@ -3,7 +3,7 @@
 //!
 //! Knows nothing of Delta Chat's protocol, accounts, chats or messages: it
 //! spawns the server, frames and correlates requests, and drains the event
-//! stream. See `docs/SCOPE.md` §3 for why that boundary is strict.
+//! stream. See `docs/PROJECT.md` for why that boundary is strict.
 
 mod client;
 mod error;

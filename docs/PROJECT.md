@@ -59,13 +59,35 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
 - **A chat loads a page at a time.** The ids are cheap and the messages are
   not: `get_message_list_items` returns a number per message for the whole
   chat, while `get_messages` builds every field of every row. So the model
-  holds every id and fetches a window of messages at the end of that list,
-  which is why paging needs no cursor and no server-side paging call. The
-  window is anchored on the *oldest loaded id*, not on a count: one message
-  arriving shifts every count-based slice by one, which drops the oldest
-  loaded row off the front and reads as a deletion. Rows inserted above the
-  ones on screen also carry the view with them -- Qt does not put it back,
-  so `ConversationList` does, by index rather than by pixels.
+  holds every id and fetches a window of messages out of that list, which
+  is why paging needs no cursor and no server-side paging call. The window
+  is anchored on *ids*, not on counts: one message arriving shifts every
+  count-based slice by one, which drops the oldest loaded row off the front
+  and reads as a deletion. Rows inserted above the ones on screen also
+  carry the view with them -- Qt does not put it back, so
+  `ConversationList` does, by index rather than by pixels.
+- **The window has two ends.** It starts at the newest message and takes in
+  arrivals, which is the ordinary case and the one `has_newer` is false
+  for. Reaching somewhere it does not cover -- the beginning of the
+  history, a search result from last March -- *moves* it rather than
+  growing it back to today, because growing it back is the cost paging
+  exists to avoid. A window that has been moved off the end stops taking in
+  arrivals: swallowing them would drag a reader who went looking for
+  something old back to today one message at a time. Sending from there
+  moves it back, because a message you just sent is one you should be able
+  to see.
+- **The chat is on the page before the page arrives.** `ChatPrefetch` loads
+  it while the reader is still looking at the chat list, and
+  `ConversationPage` takes it in `Component.onCompleted` -- after
+  `reading_history` is bound, or the model reads the default and marks the
+  chat read behind a page nobody has seen. A prefetch hit is a move, not a
+  fetch. When a search result is what was tapped, the prefetch loads the
+  page *that message* is on, so the page never shows today and jumps.
+- **The top of the list offers the beginning of the chat.** Not decoration:
+  the system's own scroll-to-top gesture goes to the top of what is loaded
+  and gives no sign that it is not the top of the chat. That is where the
+  gesture leaves the reader looking, so that is where the way to the real
+  beginning goes.
 - **One send at a time.** The compose state clears when the core answers,
   not when the button is tapped, so a send that fails leaves the reader
   holding what they chose. `ChatMessages.sending` closes the window that

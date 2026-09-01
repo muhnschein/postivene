@@ -78,6 +78,17 @@ Page {
         }
         // Rows have gone in above the ones on screen; put the view back.
         onOlder_loaded: listView.olderLoaded(count)
+        // The loaded messages were replaced with a page from somewhere else
+        // in the chat. `row` is where in it the reader was going.
+        onWindow_moved: {
+            if (messages.has_newer) {
+                listView.jumpToRow(row)
+            } else {
+                // Back at the end of the chat, so this is the ordinary
+                // "newest message" case, arrivals and all.
+                listView.jumpToNewest()
+            }
+        }
     }
 
     // The flash says "this one" and then gets out of the way.
@@ -194,7 +205,13 @@ Page {
         messageCount: messages.count
         hasOlder: messages.has_older
         loadingOlder: messages.loading_older
+        hasNewer: messages.has_newer
+        loadingNewer: messages.loading_newer
+        loadingWindow: messages.loading_window
         onOlderRequested: messages.load_older()
+        onNewerRequested: messages.load_newer()
+        onOldestRequested: messages.jump_oldest()
+        onNewestRequested: messages.jump_newest()
         showSender: messages.is_group
         placeholderText: qsTr("No messages yet")
 

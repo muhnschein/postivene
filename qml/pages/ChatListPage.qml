@@ -61,7 +61,10 @@ Page {
         // Told before the push, so a message arriving during the
         // transition is not announced into the reader's face.
         notifier.viewingChatId = chatId
-        prefetch.start(chatId)
+        // The message a search found goes in too: the page it opens on is
+        // the one that message is in, rather than the newest page and a
+        // jump away from it a moment later.
+        prefetch.start(chatId, messageId ? messageId : 0)
     }
 
     function openLoadedChat(chatId) {

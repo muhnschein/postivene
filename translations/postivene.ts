@@ -188,6 +188,11 @@
         <source>Deleting</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Beginning of chat</source>
+        <extracomment>Tapped at the top of a conversation to go to its first messages.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>

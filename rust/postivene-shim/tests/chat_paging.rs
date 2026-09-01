@@ -2,10 +2,18 @@
 //! at a time.
 //!
 //! The ids are cheap and the messages are not, so the model holds every id
-//! and fetches a window of messages at the end of the list. What is worth
-//! pinning is that the window is a window -- an arrival must extend it
-//! rather than slide it, or the oldest loaded row drops off the front and
-//! every incoming message turns into a full reload.
+//! and fetches a window of messages out of that list. What is worth pinning
+//! is that the window is a window -- an arrival must extend it rather than
+//! slide it, or the oldest loaded row drops off the front and every
+//! incoming message turns into a full reload.
+//!
+//! The window has two ends. It starts at the newest message and takes in
+//! arrivals, which is the ordinary case; going to somewhere it does not
+//! reach -- the beginning of a long chat, a search result from last March
+//! -- moves it off the end instead of growing it back to today. A window
+//! that has been moved off the end must stop taking in arrivals, or a
+//! reader who went looking for something old gets dragged back to now one
+//! message at a time.
 
 // Qt harness: see qml_chat_list.rs.
 #![allow(
@@ -33,8 +41,13 @@ const PROBE_QML: &str = r"
     Item {
         property int olderRuns: 0
         property int olderRows: 0
+        property int newerRuns: 0
         property string revealedAt: ''
         ChatMessages { id: chat; account_id: 1; chat_id: 1 }
+        // A second model on the same chat, only to put a message into it
+        // from outside. A send through `chat` is its own reply and its own
+        // row; what the window has to survive is somebody else's.
+        ChatMessages { id: other; account_id: 1; chat_id: 1 }
         Repeater {
             id: rows
             model: chat.rows
@@ -43,6 +56,7 @@ const PROBE_QML: &str = r"
         Connections {
             target: chat
             onOlder_loaded: { olderRuns += 1; olderRows += count }
+            onNewer_loaded: newerRuns += 1
             onRevealed: revealedAt = message_id + '@' + row
         }
         Connections {
@@ -57,12 +71,20 @@ const PROBE_QML: &str = r"
         }
         function count() { return '' + chat.count }
         function hasOlder() { return '' + chat.has_older }
+        function hasNewer() { return '' + chat.has_newer }
         function older() { chat.load_older(); return 'ok' }
+        function newer() { chat.load_newer(); return 'ok' }
+        function toOldest() { chat.jump_oldest(); return 'ok' }
+        function toNewest() { chat.jump_newest(); return 'ok' }
         function reveal(id) { chat.reveal(id); return 'ok' }
         function revealed() { return revealedAt }
         function olderStats() { return olderRuns + '/' + olderRows }
+        function newerRunCount() { return '' + newerRuns }
         // An arrival, which must extend the window rather than slide it.
         function arrive() { chat.send('from the other end'); return 'ok' }
+        // One that this model did not send, so it reaches it as an event
+        // rather than as the reply to its own call.
+        function arriveElsewhere() { other.send('from someone else'); return 'ok' }
     }
 ";
 
@@ -135,6 +157,34 @@ fn a_long_chat_opens_on_its_newest_page_and_walks_back() {
         (*steps_ptr).push(("revealed-edges", call!("edges")));
         (*steps_ptr).push(("older-stats", call!("olderStats")));
         (*steps_ptr).push(("has-older-now", call!("hasOlder")));
+        (*steps_ptr).push(("has-newer-now", call!("hasNewer")));
+        // An arrival with the window off the end of the chat. This is the
+        // one that matters: it must land in the id list and nowhere near
+        // the rows.
+        (*steps_ptr).push(("arrive-away", call!("arriveElsewhere")));
+    });
+    single_shot(Duration::from_secs(11), move || unsafe {
+        (*steps_ptr).push(("away-count", call!("count")));
+        (*steps_ptr).push(("away-edges", call!("edges")));
+        // Forwards, a page at a time, the mirror of the step back.
+        (*steps_ptr).push(("step-forward", call!("newer")));
+    });
+    single_shot(Duration::from_secs(13), move || unsafe {
+        (*steps_ptr).push(("forward-edges", call!("edges")));
+        (*steps_ptr).push(("forward-has-newer", call!("hasNewer")));
+        (*steps_ptr).push(("newer-runs", call!("newerRunCount")));
+        (*steps_ptr).push(("to-newest", call!("toNewest")));
+    });
+    single_shot(Duration::from_secs(15), move || unsafe {
+        (*steps_ptr).push(("newest-count", call!("count")));
+        (*steps_ptr).push(("newest-edges", call!("edges")));
+        (*steps_ptr).push(("newest-has-newer", call!("hasNewer")));
+        (*steps_ptr).push(("to-oldest", call!("toOldest")));
+    });
+    single_shot(Duration::from_secs(17), move || unsafe {
+        (*steps_ptr).push(("oldest-edges", call!("edges")));
+        (*steps_ptr).push(("oldest-has-older", call!("hasOlder")));
+        (*steps_ptr).push(("oldest-has-newer", call!("hasNewer")));
         (*engine_ptr).quit();
     });
 
@@ -217,17 +267,100 @@ fn assert_outcome(steps: &[(&str, String)], journal: &std::path::Path) {
     assert_eq!(
         value("has-older-now"),
         "false",
-        "the whole chat is loaded and the model still offers more. {context}"
+        "the window reaches the first message in the chat and the model \
+         still offers older ones. {context}"
+    );
+    assert_eq!(
+        value("has-newer-now"),
+        "true",
+        "the window was moved off the end of the chat and the model does \
+         not know it, so nothing can offer the way back. {context}"
     );
 
-    // Two steps back in total, and each one fetched: the reveal must not
-    // have re-fetched what was already there.
+    // One step back, and one fetch for it. Reaching message 3 moved the
+    // window rather than growing it: walking back to it is what paging was
+    // for in the first place, and doing it here would load everything from
+    // last March to today.
     assert_eq!(
         value("older-stats"),
-        "2/80",
-        "the steps back did not bring in what they should have -- 50 for \
-         the explicit one, then the 30 above message 3 that were still \
-         missing. {context}"
+        "1/50",
+        "the explicit step back did not bring in a page, or reaching \
+         message 3 walked back to it a page at a time instead of moving \
+         the window there. {context}"
+    );
+
+    // The whole reason the window has a far end.
+    assert_eq!(
+        value("away-count"),
+        "50",
+        "a message arrived while the reader was reading last March, and it \
+         was pulled into the window with them. {context}"
+    );
+    assert_eq!(
+        value("away-edges"),
+        "1..50",
+        "an arrival moved a window that is nowhere near the end of the \
+         chat. {context}"
+    );
+
+    // Forwards, a page at a time.
+    assert_eq!(
+        value("forward-edges"),
+        "1..100",
+        "a step forward did not bring in the page below. {context}"
+    );
+    assert_eq!(
+        value("newer-runs"),
+        "1",
+        "the step forward did not say how many rows went in, so nothing \
+         can tell the view. {context}"
+    );
+    assert_eq!(
+        value("forward-has-newer"),
+        "true",
+        "there are messages below the window and the model says there are \
+         not. {context}"
+    );
+
+    // Back to the end in one go, which is what the jump button needs.
+    assert_eq!(
+        value("newest-count"),
+        "50",
+        "going back to the newest messages loaded something other than a \
+         page. {context}"
+    );
+    assert_eq!(
+        value("newest-edges"),
+        "83..132",
+        "going back to the newest messages did not land on them -- 132 \
+         being the one that arrived while the reader was away. {context}"
+    );
+    assert_eq!(
+        value("newest-has-newer"),
+        "false",
+        "the window is back at the end of the chat and the model still \
+         thinks there is more below it, so it will not take in arrivals \
+         again. {context}"
+    );
+
+    // And to the beginning, which is what the top of the list offers.
+    assert_eq!(
+        value("oldest-edges"),
+        "1..50",
+        "the beginning of the chat is not where the jump to it landed. \
+         {context}"
+    );
+    assert_eq!(
+        value("oldest-has-older"),
+        "false",
+        "the window is on the first message in the chat and the model \
+         offers older ones. {context}"
+    );
+    assert_eq!(
+        value("oldest-has-newer"),
+        "true",
+        "the window is at the beginning of a 132-message chat and the \
+         model does not offer the way back. {context}"
     );
 
     // The point of all of it: never the whole chat in one go.

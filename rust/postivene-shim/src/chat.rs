@@ -39,23 +39,61 @@ pub(crate) fn newest_page(ids: &[u32]) -> &[u32] {
     newest(ids, PAGE)
 }
 
-/// The ids the loaded rows stand for: from the oldest one loaded to the end
-/// of the chat.
+/// The page a chat opens on, and whether it reaches the end of the chat.
 ///
-/// Anchored on that id rather than on a count, because a count is wrong the
+/// `find` names a message to open at -- what a search result gives -- and
+/// anything not in the chat, 0 included, opens at the newest messages.
+/// Opening at the newest and then walking back to the result is what made
+/// jumping to one show today's messages for a moment before yanking the
+/// reader off them.
+pub(crate) fn opening_page(ids: &[u32], find: u32) -> (&[u32], bool) {
+    let start = match ids.iter().position(|id| *id == find) {
+        // Half a page above it, so it does not land against the top edge
+        // with nothing before it.
+        Some(index) => index.saturating_sub(PAGE / 2),
+        None => ids.len().saturating_sub(PAGE),
+    };
+    let end = (start + PAGE).min(ids.len());
+    (&ids[start..end], end == ids.len())
+}
+
+/// The ids the loaded rows stand for.
+///
+/// Anchored on ids rather than on counts, because a count is wrong the
 /// moment anything changes. One message arrives and the newest `loaded` ids
 /// no longer start where the rows do -- the oldest loaded row drops off the
 /// front of the slice and reads as a deletion, which would send every
 /// arrival through a full reload.
-fn window_from(ids: &[u32], oldest_loaded: Option<u32>, loaded: usize) -> &[u32] {
-    if let Some(index) = oldest_loaded.and_then(|id| ids.iter().position(|other| *other == id)) {
-        return &ids[index..];
+///
+/// `far_end` is the newest loaded id, or `None` for a window that runs to
+/// the end of the chat and takes in whatever arrives. That is where a chat
+/// opens and where it stays, unless the reader goes looking for something
+/// far enough back that the window is moved off the end to reach it.
+fn window_from(
+    ids: &[u32],
+    oldest_loaded: Option<u32>,
+    far_end: Option<u32>,
+    loaded: usize,
+) -> &[u32] {
+    let Some(first) = oldest_loaded.and_then(|id| ids.iter().position(|other| *other == id)) else {
+        // The oldest loaded row is gone from the chat, or nothing is
+        // loaded. Falling back to a count keeps the window roughly where it
+        // was, and the disagreement it leaves is what `removals` and the
+        // reload behind it are for.
+        return newest(ids, loaded);
+    };
+    let Some(far_end) = far_end else {
+        return &ids[first..];
+    };
+    match ids.iter().rposition(|other| *other == far_end) {
+        Some(last) if last >= first => &ids[first..=last],
+        // The newest loaded row was deleted. Keeping the near anchor and
+        // the count leaves the window one id too long at this end, which
+        // `sync_rows` cannot reconcile and answers with a reload -- the
+        // reader loses their place, which is worse than the alternative
+        // only in that it is not silent.
+        _ => &ids[first..(first + loaded).min(ids.len())],
     }
-    // The oldest loaded row is gone from the chat, or nothing is loaded.
-    // Falling back to a count keeps the window roughly where it was, and
-    // the disagreement it leaves is what `removals` and the reload behind
-    // it are for.
-    newest(ids, loaded)
 }
 
 /// The messages of one chat.
@@ -125,6 +163,35 @@ pub struct ChatMessages {
     /// what is on screen move it, and putting it back means knowing how
     /// far by.
     pub older_loaded: qt_signal!(count: u32),
+
+    /// True when the chat has messages newer than the ones loaded.
+    ///
+    /// Only after the window has been moved off the end of the chat to
+    /// reach something -- the beginning of the history, or a search result
+    /// from last March. A chat opens with this false and stays that way
+    /// while it is reading arrivals.
+    pub has_newer: qt_property!(bool; NOTIFY window_changed),
+    /// True while a step forward through the history is in flight.
+    pub loading_newer: qt_property!(bool; NOTIFY window_changed),
+    /// True while the window is being moved somewhere else entirely.
+    pub loading_window: qt_property!(bool; NOTIFY window_changed),
+    /// Take one step forward through the history.
+    pub load_newer: qt_method!(fn(&mut self)),
+    /// This many newer rows were just put after the others.
+    pub newer_loaded: qt_signal!(count: u32),
+
+    /// Move the window to the first messages in the chat.
+    ///
+    /// What the top of the list offers. Without it the only way back to
+    /// the beginning of a long chat is a page at a time, and the system's
+    /// own scroll-to-top lands at the top of what happens to be loaded --
+    /// which reads as the start of the chat and is not.
+    pub jump_oldest: qt_method!(fn(&mut self)),
+    /// Move the window back to the newest messages.
+    pub jump_newest: qt_method!(fn(&mut self)),
+    /// The window was replaced. `row` is where to put the view, or -1 if
+    /// the message it was moved for is not in it after all.
+    pub window_moved: qt_signal!(row: i32),
 
     /// Load back to `message_id` if it is not loaded, then say where it is.
     ///
@@ -245,14 +312,27 @@ impl ChatMessages {
         if account_id == 0 || chat_id == 0 {
             return;
         }
+        // Back to the newest page, whatever the reader had moved the window
+        // onto. Putting the in-flight flags down is also what tells a reply
+        // for the window being thrown away here to drop rather than splice
+        // its rows into the one that replaces it.
+        self.has_newer = false;
+        self.loading_older = false;
+        self.loading_newer = false;
+        self.loading_window = false;
+        self.window_changed();
         // Already loaded, by whoever opened this page: take it and skip
         // the round trip entirely. This is what lets the transition start
         // with the rows in place rather than fill in behind it.
-        if let Some((is_group, ids, items)) = crate::prefetch::take(account_id, chat_id) {
+        if let Some((is_group, ids, items, has_newer)) = crate::prefetch::take(account_id, chat_id)
+        {
             self.is_group = is_group;
             self.all_ids = ids;
             self.rows.borrow_mut().reset_data(items);
             self.loaded = true;
+            // A prefetch loaded for a search result sits in the middle of
+            // the chat rather than at its end.
+            self.has_newer = has_newer;
             self.note_window();
             self.is_group_changed();
             self.loaded_changed();
@@ -320,13 +400,36 @@ impl ChatMessages {
         });
     }
 
-    /// Say whether there is more history, after anything that could have
-    /// changed the answer.
+    /// The newest loaded id, or `None` for a window that runs to the end of
+    /// the chat and takes in whatever arrives.
+    fn far_end(&self) -> Option<u32> {
+        if !self.has_newer {
+            return None;
+        }
+        self.rows.borrow().iter().last().map(|item| item.message_id)
+    }
+
+    /// Say whether there is more history at either end, after anything that
+    /// could have changed the answer.
     fn note_window(&mut self) {
-        let loaded = self.rows.borrow().iter().count();
-        let has_older = self.all_ids.len() > loaded;
-        if has_older != self.has_older {
+        let rows = self.rows.borrow();
+        let oldest = rows.iter().next().map(|item| item.message_id);
+        let newest_row = rows.iter().last().map(|item| item.message_id);
+        drop(rows);
+        let has_older = match oldest {
+            Some(oldest) => self.all_ids.first() != Some(&oldest),
+            // Nothing loaded yet: whatever the chat holds is still to come.
+            None => !self.all_ids.is_empty(),
+        };
+        // Reaching the end of the chat is what puts the window back to
+        // taking in arrivals. Only ever cleared here, never set: an arrival
+        // extends the id list, and setting it on that would stop a chat
+        // sitting at its newest message from following the moment anything
+        // came in.
+        let has_newer = self.has_newer && self.all_ids.last().copied() != newest_row;
+        if has_older != self.has_older || has_newer != self.has_newer {
             self.has_older = has_older;
+            self.has_newer = has_newer;
             self.window_changed();
         }
     }
@@ -342,7 +445,7 @@ impl ChatMessages {
         self.extend_back(PAGE, 0);
     }
 
-    /// Load back to `message_id`, then say where it ended up.
+    /// Put the window where `message_id` is, then say where it ended up.
     pub fn reveal(&mut self, message_id: u32) {
         let row = self.row_of(message_id);
         if row >= 0 {
@@ -355,11 +458,197 @@ impl ChatMessages {
             self.revealed(message_id, -1);
             return;
         };
-        // Everything from it to the end, and half a page above so it does
-        // not land against the top edge with nothing before it.
-        let loaded = self.rows.borrow().iter().count();
-        let wanted = self.all_ids.len() - index + PAGE / 2;
-        self.extend_back(wanted.saturating_sub(loaded), message_id);
+        // The window moves rather than growing. Reaching a message from
+        // last March by loading everything between it and today costs
+        // exactly what paging was for -- and this used to do that. Half a
+        // page above it, so it does not land against the top edge with
+        // nothing before it.
+        self.show_window(index.saturating_sub(PAGE / 2), message_id, true);
+    }
+
+    /// Move the window to the first messages in the chat.
+    pub fn jump_oldest(&mut self) {
+        let Some(first) = self.all_ids.first().copied() else {
+            return;
+        };
+        self.show_window(0, first, false);
+    }
+
+    /// Move the window back to the newest messages.
+    pub fn jump_newest(&mut self) {
+        let Some(last) = self.all_ids.last().copied() else {
+            return;
+        };
+        self.show_window(self.all_ids.len().saturating_sub(PAGE), last, false);
+    }
+
+    /// Take one step forward through the history.
+    pub fn load_newer(&mut self) {
+        self.extend_forward(PAGE);
+    }
+
+    /// Move the window to a page of the chat starting at `start`, replacing
+    /// what is loaded.
+    ///
+    /// `settle_on` is the message the view should be put on once the rows
+    /// are in. `reveal` announces it as a search result as well, which is
+    /// what makes the row flash; a plain jump to one end does not.
+    fn show_window(&mut self, start: usize, settle_on: u32, reveal: bool) {
+        if self.loading_window || self.all_ids.is_empty() {
+            return;
+        }
+        let len = self.all_ids.len();
+        let start = start.min(len.saturating_sub(1));
+        let end = (start + PAGE).min(len);
+        let wanted: Vec<u32> = self.all_ids[start..end].to_vec();
+        let already = {
+            let rows = self.rows.borrow();
+            rows.iter().count() == wanted.len()
+                && rows
+                    .iter()
+                    .zip(wanted.iter())
+                    .all(|(row, id)| row.message_id == *id)
+        };
+        if already {
+            let row = self.row_of(settle_on);
+            self.window_moved(row);
+            if reveal {
+                self.revealed(settle_on, row);
+            }
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            return;
+        };
+        let account_id = self.account_id;
+        let chat = self.chat_id;
+        // Whether the new window reaches the end of the chat, which is what
+        // decides whether it goes back to taking in arrivals.
+        let reaches_end = end == len;
+
+        self.loading_window = true;
+        self.window_changed();
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<Vec<MessageListItem>, String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            // The flag is its own guard: `reload` puts it down, so a reply
+            // for a window that has since been thrown away drops here.
+            if !this.borrow().loading_window || this.borrow().chat_id != chat {
+                return;
+            }
+            match result {
+                Ok(items) => {
+                    {
+                        let mut this_mut = this.borrow_mut();
+                        this_mut.rows.borrow_mut().reset_data(items);
+                        this_mut.has_newer = !reaches_end;
+                        this_mut.loading_window = false;
+                    }
+                    this.borrow_mut().note_window();
+                    this.borrow().window_changed();
+                    this.borrow().rows_changed();
+                    let row = this.borrow().row_of(settle_on);
+                    this.borrow().window_moved(row);
+                    if reveal {
+                        this.borrow().revealed(settle_on, row);
+                    }
+                }
+                Err(err) => {
+                    this.borrow_mut().loading_window = false;
+                    this.borrow().window_changed();
+                    this.borrow().error(err.into());
+                    if reveal {
+                        this.borrow().revealed(settle_on, -1);
+                    }
+                }
+            }
+        });
+
+        runtime.spawn(async move {
+            done(fetch_messages(&rpc, account_id, &wanted).await);
+        });
+    }
+
+    /// Put `extra` newer rows after the loaded ones.
+    fn extend_forward(&mut self, extra: usize) {
+        if self.loading_newer || self.loading_window || extra == 0 || !self.has_newer {
+            return;
+        }
+        let account_id = self.account_id;
+        let newest_row = self.rows.borrow().iter().last().map(|item| item.message_id);
+        let Some(start) = newest_row
+            .and_then(|id| self.all_ids.iter().rposition(|other| *other == id))
+            .map(|index| index + 1)
+        else {
+            return;
+        };
+        let end = (start + extra).min(self.all_ids.len());
+        let newer: Vec<u32> = self.all_ids.get(start..end).unwrap_or_default().to_vec();
+        if newer.is_empty() {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            return;
+        };
+
+        self.loading_newer = true;
+        self.window_changed();
+
+        let chat = self.chat_id;
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<Vec<MessageListItem>, String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            let stale = {
+                let this_ref = this.borrow();
+                !this_ref.loading_newer
+                    || this_ref.chat_id != chat
+                    || this_ref
+                        .rows
+                        .borrow()
+                        .iter()
+                        .last()
+                        .map(|item| item.message_id)
+                        != newest_row
+            };
+            if stale {
+                this.borrow_mut().loading_newer = false;
+                this.borrow().window_changed();
+                return;
+            }
+            let count = match result {
+                Ok(items) => {
+                    let added = items.len();
+                    {
+                        let this_mut = this.borrow_mut();
+                        let mut rows = this_mut.rows.borrow_mut();
+                        // At the back, in order: these are newer than
+                        // everything already there. Appended rather than
+                        // reset, so the view keeps its place.
+                        for item in items {
+                            rows.push(item);
+                        }
+                    }
+                    added
+                }
+                Err(err) => {
+                    this.borrow().error(err.into());
+                    0
+                }
+            };
+            this.borrow_mut().loading_newer = false;
+            this.borrow_mut().note_window();
+            this.borrow().window_changed();
+            if count > 0 {
+                this.borrow().rows_changed();
+                this.borrow()
+                    .newer_loaded(u32::try_from(count).unwrap_or(u32::MAX));
+            }
+        });
+
+        runtime.spawn(async move {
+            done(fetch_messages(&rpc, account_id, &newer).await);
+        });
     }
 
     /// Put `extra` older rows in front of the loaded ones.
@@ -368,7 +657,7 @@ impl ChatMessages {
     /// caller that is stepping back in order to reach one; 0 for a plain
     /// step back through the history.
     fn extend_back(&mut self, extra: usize, reveal_after: u32) {
-        if self.loading_older || extra == 0 {
+        if self.loading_older || self.loading_window || extra == 0 {
             return;
         }
         let account_id = self.account_id;
@@ -524,6 +813,11 @@ impl ChatMessages {
         // the first message that arrived.
         let loaded = known.len();
         let oldest = self.rows.borrow().iter().next().map(|item| item.message_id);
+        // And how far forward. A window moved off the end of the chat does
+        // not take in arrivals: they are past its far end, and swallowing
+        // them would drag a reader who went looking for something in last
+        // March back to today one message at a time.
+        let far_end = self.far_end();
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
         let done = queued_callback(
@@ -536,7 +830,7 @@ impl ChatMessages {
                         // The window, not the whole chat: the rows stand
                         // for the newest slice of the id list, and this is
                         // the slice they have to agree with.
-                        let wanted = window_from(&ids, oldest, rows.iter().count());
+                        let wanted = window_from(&ids, oldest, far_end, rows.iter().count());
                         // A deletion or a reorder is rare and cheap to
                         // handle wholesale; the common case is an append.
                         let unchanged_prefix = wanted.len() >= rows.iter().count()
@@ -605,7 +899,7 @@ impl ChatMessages {
                 // The window grows by whatever arrived, and by nothing
                 // else: an id older than the window is one the reader has
                 // not asked for.
-                let missing: Vec<u32> = window_from(&ids, oldest, loaded)
+                let missing: Vec<u32> = window_from(&ids, oldest, far_end, loaded)
                     .iter()
                     .copied()
                     .filter(|id| !known.contains(id))
@@ -867,19 +1161,32 @@ impl ChatMessages {
             match result {
                 Ok(item) => {
                     let message_id = item.message_id;
-                    {
-                        let this_mut = this.borrow_mut();
-                        let mut rows = this_mut.rows.borrow_mut();
-                        // The event for our own send can beat this reply,
-                        // in which case the row is already there.
-                        let existing = rows.iter().position(|row| row.message_id == message_id);
-                        if let Some(index) = existing {
-                            rows.change_line(index, item);
-                        } else {
-                            rows.push(item);
+                    if this.borrow().has_newer {
+                        // The window is somewhere else in the chat -- the
+                        // reader went looking for something old and sent
+                        // from there. Their message belongs at the end of
+                        // the chat, and so, now, do they: put the window
+                        // back rather than appending today to a page from
+                        // last March, which is a window that stands for no
+                        // slice of the id list and reloads on the next
+                        // event anyway.
+                        this.borrow_mut().reload();
+                    } else {
+                        {
+                            let this_mut = this.borrow_mut();
+                            let mut rows = this_mut.rows.borrow_mut();
+                            // The event for our own send can beat this
+                            // reply, in which case the row is already there.
+                            let existing =
+                                rows.iter().position(|row| row.message_id == message_id);
+                            if let Some(index) = existing {
+                                rows.change_line(index, item);
+                            } else {
+                                rows.push(item);
+                            }
                         }
+                        this.borrow().rows_changed();
                     }
-                    this.borrow().rows_changed();
                     // Cleared once the message is really gone, not before
                     // it is sent: a send that fails leaves the reader with
                     // the reply they chose rather than silently dropping it.

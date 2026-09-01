@@ -19,7 +19,7 @@ use std::sync::Mutex;
 
 use qmetaobject::*;
 
-use crate::chat::{chat_is_group, fetch_messages, message_ids, newest_page};
+use crate::chat::{chat_is_group, fetch_messages, message_ids, opening_page};
 use crate::core::connection;
 use crate::models::MessageListItem;
 
@@ -32,12 +32,20 @@ struct Cached {
     /// of. Cheap to carry and pointless to fetch twice.
     ids: Vec<u32>,
     rows: Vec<MessageListItem>,
+    /// Whether `rows` stops short of the newest message, which it does when
+    /// the chat was opened at a search result rather than at its end.
+    has_newer: bool,
 }
 
 static CACHE: Mutex<Option<Cached>> = Mutex::new(None);
 
+/// What one prefetch found: the chat's kind, its ids, the rows of the page
+/// it opens on, and whether that page stops short of the newest message.
+type Loaded = (bool, Vec<u32>, Vec<MessageListItem>, bool);
+
 /// Hand a finished prefetch over to whichever model asks for it next.
-fn store(account_id: u32, chat_id: u32, is_group: bool, ids: Vec<u32>, rows: Vec<MessageListItem>) {
+fn store(account_id: u32, chat_id: u32, loaded: Loaded) {
+    let (is_group, ids, rows, has_newer) = loaded;
     if let Ok(mut cache) = CACHE.lock() {
         *cache = Some(Cached {
             account_id,
@@ -45,6 +53,7 @@ fn store(account_id: u32, chat_id: u32, is_group: bool, ids: Vec<u32>, rows: Vec
             is_group,
             ids,
             rows,
+            has_newer,
         });
     }
 }
@@ -53,10 +62,7 @@ fn store(account_id: u32, chat_id: u32, is_group: bool, ids: Vec<u32>, rows: Vec
 ///
 /// Anything else is left alone: a prefetch for another chat is still
 /// wanted by the page that asked for it.
-pub(crate) fn take(
-    account_id: u32,
-    chat_id: u32,
-) -> Option<(bool, Vec<u32>, Vec<MessageListItem>)> {
+pub(crate) fn take(account_id: u32, chat_id: u32) -> Option<Loaded> {
     let mut cache = CACHE.lock().ok()?;
     let held = cache.as_ref()?;
     if held.account_id != account_id || held.chat_id != chat_id {
@@ -64,7 +70,7 @@ pub(crate) fn take(
     }
     cache
         .take()
-        .map(|held| (held.is_group, held.ids, held.rows))
+        .map(|held| (held.is_group, held.ids, held.rows, held.has_newer))
 }
 
 /// Loads a chat so a page can be opened onto it already full.
@@ -84,7 +90,10 @@ pub struct ChatPrefetch {
     pub account_id: qt_property!(u32),
 
     /// Start loading a chat. Answers on `ready`, whatever happens.
-    pub start: qt_method!(fn(&mut self, chat_id: u32)),
+    ///
+    /// `find_message_id` names a message the chat should open at -- what a
+    /// search result gives -- and 0 opens at the newest messages.
+    pub start: qt_method!(fn(&mut self, chat_id: u32, find_message_id: u32)),
 
     /// The chat is loaded, or loading it failed and waiting longer would
     /// not help. Either way the page can be opened now: a page that never
@@ -103,7 +112,7 @@ pub struct ChatPrefetch {
 
 impl ChatPrefetch {
     /// Start loading a chat.
-    pub fn start(&mut self, chat_id: u32) {
+    pub fn start(&mut self, chat_id: u32, find_message_id: u32) {
         let account_id = self.account_id;
         if account_id == 0 || chat_id == 0 {
             return;
@@ -123,7 +132,7 @@ impl ChatPrefetch {
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
         let done = queued_callback(
-            move |result: Option<(bool, Vec<u32>, Vec<MessageListItem>)>| {
+            move |result: Option<Loaded>| {
                 let Some(this) = ptr.as_pinned() else { return };
                 // A second tap started a newer one: that is the chat the
                 // reader is waiting for, and this answer would open the wrong
@@ -131,8 +140,8 @@ impl ChatPrefetch {
                 if this.borrow().generation != generation {
                     return;
                 }
-                if let Some((is_group, ids, rows)) = result {
-                    store(this.borrow().account_id, chat_id, is_group, ids, rows);
+                if let Some(loaded) = result {
+                    store(this.borrow().account_id, chat_id, loaded);
                 }
                 {
                     let mut this_mut = this.borrow_mut();
@@ -149,9 +158,12 @@ impl ChatPrefetch {
                 let ids = message_ids(&rpc, account_id, chat_id).await?;
                 // The same window the model would have fetched for itself:
                 // a prefetch that loaded the whole chat would put the cost
-                // paging removes back, one step earlier.
-                let rows = fetch_messages(&rpc, account_id, newest_page(&ids)).await?;
-                Ok::<_, String>((is_group, ids, rows))
+                // paging removes back, one step earlier. Around the message
+                // a search found, when there is one, so the page arrives
+                // showing it rather than showing today and jumping.
+                let (page, reaches_end) = opening_page(&ids, find_message_id);
+                let rows = fetch_messages(&rpc, account_id, page).await?;
+                Ok::<_, String>((is_group, ids, rows, !reaches_end))
             }
             .await;
             // A failure is not reported here: the page's own model will

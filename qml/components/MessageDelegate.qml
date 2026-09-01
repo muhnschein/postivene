@@ -18,6 +18,10 @@ import Sailfish.Silica 1.0
 Item {
     id: root
 
+    /// The reader asked to open the attachment. The URL rather than the
+    /// path: the encoding it needs is already done once, in the preview.
+    signal openRequested(url fileUrl, string fileName, string viewType)
+
     property string messageText: ""
     property bool isOutgoing: false
     property bool isInfo: false
@@ -235,7 +239,12 @@ Item {
             vcardName: root.vcardName
             vcardAddr: root.vcardAddr
             vcardColor: root.vcardColor
-            onOpenRequested: Qt.openUrlExternally(attachment.fileUrl)
+            // Passed up rather than acted on, which is what the comment
+            // above always said and what this row now actually does: what
+            // opening an attachment means is a page's decision, and a
+            // delegate cannot push one.
+            onOpenRequested: root.openRequested(attachment.fileUrl,
+                                                root.fileName, root.viewType)
         }
 
         Label {

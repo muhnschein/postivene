@@ -1,5 +1,6 @@
 //! The reverse of `chat_send_race`: the send's reply lands while the event's
-//! own fetch is still in flight, so that fetch must not append the row again.
+//! own reconciliation is still in flight, so that reconciliation must not
+//! append the row again.
 
 // Qt harness: needs `unsafe` for `env::set_var` before Qt starts
 // (`unused_unsafe` because it is only unsafe from edition 2024 on),
@@ -83,14 +84,19 @@ fn a_send_answered_mid_fetch_lands_once() {
 
     let names = common::methods(&journal);
 
-    // The event's fetch has to have run, or the ordering under test never
-    // happened.
+    // The event's reconciliation has to have run, or the ordering under
+    // test never happened. It is the id list that has to have been read,
+    // not the message: the send's own reply put the row in, so the
+    // reconciliation finds it already there and fetches nothing. That *is*
+    // the duplicate not being made -- it used to be avoided one step later,
+    // by a fetch that then had to notice the row it had just asked for was
+    // already present.
     assert!(
         names
             .iter()
             .skip_while(|name| *name != "misc_send_msg")
-            .any(|name| name == "get_messages"),
-        "the event never fetched the new message: {names:?}"
+            .any(|name| name == "get_message_list_items"),
+        "the event never reconciled after the send: {names:?}"
     );
 
     // Two seeded messages plus the one just sent.

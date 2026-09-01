@@ -18,6 +18,84 @@ use crate::models::{MessageListItem, MessageListModel};
 /// account has not read yet.
 const UNSEEN_STATES: [u32; 2] = [10, 13];
 
+/// How many messages are fetched in one go.
+///
+/// The ids are cheap and the messages are not: `get_message_list_items`
+/// returns a list of numbers for the whole chat, while `get_messages`
+/// builds every field of every row. So the model holds a row for *every*
+/// message from the moment that list arrives, and fills in only the ones
+/// somebody is looking at.
+///
+/// That is what makes the first message row 0 and keeps it there. The model
+/// used to hold a moving window of loaded messages instead, and every way
+/// of getting somewhere in a chat meant replacing its contents: the view's
+/// idea of where it was went with them, positioning into a model that had
+/// just been reset was unreliable in ways that depended on how fast rows
+/// were measured, and a reconciliation that overlapped a move undid it. It
+/// took three attempts at the symptoms to be sure the shape was the fault.
+/// Whisperfish and deltachat-android both keep the whole conversation
+/// addressable and neither has any of this.
+const PAGE: usize = 50;
+
+/// How far beyond what the reader can see to fill in, so that scrolling
+/// does not walk into blank rows before the next fetch answers.
+const MARGIN: usize = 25;
+
+/// A message as the id list knows it: which message, and which day it is
+/// under.
+///
+/// The day arrives here rather than with the message, and that is the point.
+/// A placeholder whose day is unknown until it is fetched has to be
+/// re-sectioned when it is -- and a day heading that gains its height after
+/// the view has laid out is drawn on top of the row beneath it, while the
+/// rows still waiting share one section headed by the epoch. Both were
+/// reported: a strip saying 1 January 1970, then a real date overlapping
+/// the first message.
+///
+/// `get_message_list_items` interleaves the core's own day markers when
+/// asked for them, so this costs nothing but the flag.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) struct Entry {
+    pub message_id: u32,
+    pub day_number: i64,
+}
+
+/// The page a chat opens with filled in.
+///
+/// `find` names a message to open at -- what a search result gives -- and
+/// anything not in the chat, 0 included, opens at the newest messages.
+pub(crate) fn opening_page(entries: &[Entry], find: u32) -> &[Entry] {
+    let start = match entries.iter().position(|entry| entry.message_id == find) {
+        // Half a page above it, so it does not land against the top edge
+        // with nothing before it.
+        Some(index) => index.saturating_sub(PAGE / 2),
+        None => entries.len().saturating_sub(PAGE),
+    };
+    let end = (start + PAGE).min(entries.len());
+    &entries[start..end]
+}
+
+/// The message ids of a run of entries, for handing to `get_messages`.
+pub(crate) fn ids_of(entries: &[Entry]) -> Vec<u32> {
+    entries.iter().map(|entry| entry.message_id).collect()
+}
+
+/// One row per message, with `items` filled in where they were fetched.
+fn rows_for(entries: &[Entry], items: Vec<MessageListItem>) -> Vec<MessageListItem> {
+    let mut fetched: BTreeMap<u32, MessageListItem> = items
+        .into_iter()
+        .map(|item| (item.message_id, item))
+        .collect();
+    entries
+        .iter()
+        .map(|entry| {
+            fetched
+                .remove(&entry.message_id)
+                .unwrap_or_else(|| placeholder(*entry))
+        })
+        .collect()
+}
+
 /// The messages of one chat.
 ///
 /// ```qml
@@ -68,8 +146,40 @@ pub struct ChatMessages {
     /// Loading or sending failed. The message is the core's own.
     pub error: qt_signal!(message: QString),
 
-    /// Reload the whole chat. Called automatically when the chat changes.
+    /// Reload the chat. Called automatically when the chat changes.
     pub reload: qt_method!(fn(&mut self)),
+
+    /// Fill in the rows between `first` and `last`, and a little either
+    /// side.
+    ///
+    /// The view asks as it scrolls. Rows outside what anyone is looking at
+    /// stay as placeholders; this is the only thing that fetches messages
+    /// after the chat is opened.
+    pub hydrate: qt_method!(fn(&mut self, first: i32, last: i32)),
+    /// True while rows are being filled in, for a quiet indicator.
+    pub hydrating: qt_property!(bool; NOTIFY hydrating_changed),
+    /// Emitted when [`Self::hydrating`] changes.
+    pub hydrating_changed: qt_signal!(),
+
+    /// Say where `message_id` is, so the view can go there.
+    ///
+    /// What a search result needs. Every message in the chat has a row from
+    /// the moment the id list arrives, so this is a lookup rather than
+    /// anything that has to be fetched first.
+    pub reveal: qt_method!(fn(&mut self, message_id: u32)),
+    /// `message_id` sits at `row`, or -1 if this chat has no such message.
+    pub revealed: qt_signal!(message_id: u32, row: i32),
+
+    /// The unsent text this chat is holding.
+    ///
+    /// The core's, not ours: it keeps drafts itself, so one survives the
+    /// app being closed, and a chat holding one says so in its own chat
+    /// list summary without anything here building that text.
+    pub draft: qt_property!(QString; NOTIFY draft_changed),
+    /// Emitted when the draft is loaded or written.
+    pub draft_changed: qt_signal!(),
+    /// Remember `text` as this chat's draft, or forget it when empty.
+    pub save_draft: qt_method!(fn(&mut self, text: QString)),
 
     /// Feed a `core_event` in. Events for other accounts or chats are
     /// ignored, so a page can connect this without filtering first.
@@ -162,10 +272,118 @@ impl ChatMessages {
         if self.chat_id != chat_id {
             self.chat_id = chat_id;
             self.loaded = false;
+            // Whatever the last chat was holding is not this one's.
+            self.draft = QString::default();
             self.loaded_changed();
+            self.draft_changed();
             self.chat_changed();
             self.reload();
+            self.load_draft();
         }
+    }
+
+    /// Read back whatever this chat is holding.
+    ///
+    /// Its own call rather than part of the reload: a draft is one small
+    /// answer and the messages are the expensive one, and waiting for the
+    /// second to show the first would put the reader's own unsent words
+    /// behind a page fetch.
+    fn load_draft(&mut self) {
+        let (account_id, chat_id) = (self.account_id, self.chat_id);
+        if account_id == 0 || chat_id == 0 {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |text: String| {
+            let Some(this) = ptr.as_pinned() else { return };
+            // The reader can have moved on, or started typing, while this
+            // was in flight. Neither wants an older answer written over it.
+            if this.borrow().chat_id != chat_id || !this.borrow().draft.to_string().is_empty() {
+                return;
+            }
+            if text.is_empty() {
+                return;
+            }
+            this.borrow_mut().draft = text.into();
+            this.borrow().draft_changed();
+        });
+
+        runtime.spawn(async move {
+            // Null when there is none, and a whole message object when
+            // there is: pinned against the real core in
+            // deltachat-jsonrpc/tests/real_server.rs.
+            let draft: serde_json::Value = rpc
+                .call("get_draft", (account_id, chat_id))
+                .await
+                .unwrap_or(serde_json::Value::Null);
+            done(
+                draft
+                    .get("text")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or_default()
+                    .to_string(),
+            );
+        });
+    }
+
+    /// Remember `text` as this chat's draft, or forget it when empty.
+    pub fn save_draft(&mut self, text: QString) {
+        let (account_id, chat_id) = (self.account_id, self.chat_id);
+        if account_id == 0 || chat_id == 0 {
+            return;
+        }
+        let text = text.to_string();
+        if self.draft.to_string() == text {
+            return;
+        }
+        self.draft = QString::from(text.clone());
+        self.draft_changed();
+
+        let Some((rpc, runtime)) = connection() else {
+            return;
+        };
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |failure: Option<String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            if let Some(message) = failure {
+                this.borrow().error(message.into());
+            }
+        });
+
+        runtime.spawn(async move {
+            let result = if text.is_empty() {
+                rpc.call::<_, serde_json::Value>("remove_draft", (account_id, chat_id))
+                    .await
+            } else {
+                // misc_set_draft params: account, chat, text, file,
+                // filename, quoted message, view type. Not the same tail
+                // as misc_send_msg, which takes a location where this
+                // takes the quote. Pinned against the real core in
+                // deltachat-jsonrpc/tests/real_server.rs.
+                //
+                // Only the text for now: a file chosen but not sent, and a
+                // reply not yet made, are still the page's and not the
+                // core's.
+                rpc.call::<_, serde_json::Value>(
+                    "misc_set_draft",
+                    (
+                        account_id,
+                        chat_id,
+                        Some(text),
+                        Option::<String>::None,
+                        Option::<String>::None,
+                        Option::<u32>::None,
+                        Option::<String>::None,
+                    ),
+                )
+                .await
+            };
+            done(result.err().map(|err| err.to_string()));
+        });
     }
 
     /// Reload the whole chat.
@@ -174,12 +392,16 @@ impl ChatMessages {
         if account_id == 0 || chat_id == 0 {
             return;
         }
+        // Anything in flight is filling rows this reload is replacing; the
+        // flag being down is what tells such a reply to drop.
+        self.hydrating = false;
+        self.hydrating_changed();
         // Already loaded, by whoever opened this page: take it and skip
         // the round trip entirely. This is what lets the transition start
         // with the rows in place rather than fill in behind it.
-        if let Some((is_group, items)) = crate::prefetch::take(account_id, chat_id) {
+        if let Some((is_group, entries, items)) = crate::prefetch::take(account_id, chat_id) {
             self.is_group = is_group;
-            self.rows.borrow_mut().reset_data(items);
+            self.rows.borrow_mut().reset_data(rows_for(&entries, items));
             self.loaded = true;
             self.is_group_changed();
             self.loaded_changed();
@@ -196,14 +418,17 @@ impl ChatMessages {
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
         let done = queued_callback(
-            move |result: Result<(bool, Vec<MessageListItem>), String>| {
+            move |result: Result<(bool, Vec<Entry>, Vec<MessageListItem>), String>| {
                 let Some(this) = ptr.as_pinned() else { return };
                 match result {
-                    Ok((is_group, items)) => {
+                    Ok((is_group, entries, items)) => {
                         {
                             let mut this_mut = this.borrow_mut();
                             this_mut.is_group = is_group;
-                            this_mut.rows.borrow_mut().reset_data(items);
+                            this_mut
+                                .rows
+                                .borrow_mut()
+                                .reset_data(rows_for(&entries, items));
                             this_mut.loaded = true;
                         }
                         this.borrow().is_group_changed();
@@ -231,14 +456,129 @@ impl ChatMessages {
         runtime.spawn(async move {
             let result = async {
                 let is_group = chat_is_group(&rpc, account_id, chat_id).await;
-                let ids = message_ids(&rpc, account_id, chat_id).await?;
-                let items = fetch_messages(&rpc, account_id, &ids).await?;
+                let entries = message_entries(&rpc, account_id, chat_id).await?;
+                // A row for every message, but the content of only one
+                // page. Ten thousand rows is a vector of ids; ten thousand
+                // *messages* is what used to be built on the Qt thread
+                // before the page could show any of them.
+                let items =
+                    fetch_messages(&rpc, account_id, &ids_of(opening_page(&entries, 0))).await?;
                 // Marking read is the callback's job, not this one's: what
                 // the reader can see is only knowable once the rows land.
-                Ok::<_, String>((is_group, items))
+                Ok::<_, String>((is_group, entries, items))
             }
             .await;
             done(result);
+        });
+    }
+
+    /// Say where `message_id` is, so the view can go there.
+    pub fn reveal(&mut self, message_id: u32) {
+        let row = self.row_of(message_id);
+        self.revealed(message_id, row);
+    }
+
+    /// Fill in the rows between `first` and `last`, and `MARGIN` either
+    /// side.
+    ///
+    /// The view asks as it scrolls, and asks generously: rows already
+    /// filled in are skipped here rather than counted there.
+    pub fn hydrate(&mut self, first: i32, last: i32) {
+        let (account_id, chat_id) = (self.account_id, self.chat_id);
+        if account_id == 0 || chat_id == 0 || self.hydrating {
+            return;
+        }
+        let count = self.rows.borrow().iter().count();
+        if count == 0 {
+            return;
+        }
+        let first = usize::try_from(first.max(0))
+            .unwrap_or(0)
+            .saturating_sub(MARGIN);
+        let last = usize::try_from(last.max(0))
+            .unwrap_or(0)
+            .saturating_add(MARGIN)
+            .min(count - 1);
+        if first > last {
+            return;
+        }
+        // Only what is not there yet, and never more than a page at a time:
+        // a reader who flings the view the length of a long chat would
+        // otherwise ask for every row they passed.
+        let wanted: Vec<u32> = self
+            .rows
+            .borrow()
+            .iter()
+            .skip(first)
+            .take(last - first + 1)
+            .filter(|item| !item.loaded)
+            .map(|item| item.message_id)
+            .take(PAGE)
+            .collect();
+        if wanted.is_empty() {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            return;
+        };
+
+        self.hydrating = true;
+        self.hydrating_changed();
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<Vec<MessageListItem>, String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            // The flag is its own guard: `reload` puts it down, so a reply
+            // for rows that have since been replaced drops here.
+            if !this.borrow().hydrating || this.borrow().chat_id != chat_id {
+                return;
+            }
+            match result {
+                Ok(items) => {
+                    let mut filled = 0_usize;
+                    {
+                        let this_mut = this.borrow_mut();
+                        let mut rows = this_mut.rows.borrow_mut();
+                        // By id rather than by index: rows can have been
+                        // added or taken out while this ran, and writing to
+                        // a remembered index would put a message where
+                        // another one is. Looked up through a map rather
+                        // than by scanning, because the rows are the whole
+                        // chat -- a scan per fetched message is a scan of
+                        // ten thousand rows fifty times over.
+                        let index_of: BTreeMap<u32, usize> = rows
+                            .iter()
+                            .enumerate()
+                            .map(|(index, row)| (row.message_id, index))
+                            .collect();
+                        for item in items {
+                            let Some(index) = index_of.get(&item.message_id).copied() else {
+                                continue;
+                            };
+                            // Filling a row in place leaves the order and
+                            // the count alone, so the map stays true.
+                            rows.change_line(index, item);
+                            filled += 1;
+                        }
+                    }
+                    this.borrow_mut().hydrating = false;
+                    this.borrow().hydrating_changed();
+                    if filled > 0 {
+                        // Changed in place, so the view keeps its position
+                        // and its delegates: nothing here moves the reader.
+                        this.borrow().rows_changed();
+                    }
+                }
+                Err(err) => {
+                    this.borrow_mut().hydrating = false;
+                    this.borrow().hydrating_changed();
+                    this.borrow().error(err.into());
+                }
+            }
+        });
+
+        runtime.spawn(async move {
+            done(fetch_messages(&rpc, account_id, &wanted).await);
         });
     }
 
@@ -281,103 +621,142 @@ impl ChatMessages {
         }
     }
 
-    /// Bring `rows` in line with the chat's current id list, fetching only
-    /// the messages that are not loaded yet.
+    /// Bring the rows in line with the chat's current id list.
+    ///
+    /// There is no window to reconcile against any more: the rows *are* the
+    /// id list, one for each, so the only differences are messages that
+    /// have arrived and messages that have gone. Both are done in place, so
+    /// neither moves the reader.
     fn sync_rows(&mut self) {
+        let (account_id, chat_id) = (self.account_id, self.chat_id);
+        if account_id == 0 || chat_id == 0 {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<Vec<Entry>, String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            if this.borrow().chat_id != chat_id {
+                return;
+            }
+            let entries = match result {
+                Ok(entries) => entries,
+                Err(err) => {
+                    this.borrow().error(err.into());
+                    return;
+                }
+            };
+            let ids = ids_of(&entries);
+
+            let current: Vec<u32> = this
+                .borrow()
+                .rows
+                .borrow()
+                .iter()
+                .map(|item| item.message_id)
+                .collect();
+            if current == ids {
+                return;
+            }
+
+            let present: HashSet<u32> = ids.iter().copied().collect();
+            let kept: Vec<u32> = current
+                .iter()
+                .copied()
+                .filter(|id| present.contains(id))
+                .collect();
+            // Whatever is left has to still be the front of the chat, or
+            // this is a reorder rather than an arrival and a removal.
+            if !ids.starts_with(&kept) {
+                this.borrow_mut().reload();
+                return;
+            }
+
+            let gone: Vec<usize> = current
+                .iter()
+                .enumerate()
+                .filter(|(_, id)| !present.contains(id))
+                .map(|(index, _)| index)
+                .collect();
+            if !gone.is_empty() {
+                let this_mut = this.borrow_mut();
+                let mut rows = this_mut.rows.borrow_mut();
+                // Backwards, so each index still means what it did when it
+                // was worked out.
+                for index in gone.into_iter().rev() {
+                    rows.remove(index);
+                }
+            }
+
+            let arrived: Vec<u32> = ids[kept.len()..].to_vec();
+            this.borrow().rows_changed();
+            if !arrived.is_empty() {
+                this.borrow_mut().absorb(arrived);
+            }
+        });
+
+        runtime.spawn(async move {
+            done(message_entries(&rpc, account_id, chat_id).await);
+        });
+    }
+
+    /// Fetch messages that have just arrived and put them at the end.
+    ///
+    /// Fetched rather than left as placeholders: what arrived is what the
+    /// reader is told about, and a placeholder does not know whether it is
+    /// theirs or somebody else's.
+    fn absorb(&mut self, ids: Vec<u32>) {
         let (account_id, chat_id) = (self.account_id, self.chat_id);
         let Some((rpc, runtime)) = connection() else {
             return;
         };
-        // A set: this is asked once per message in the chat, and a long
-        // history would otherwise make the scan quadratic.
-        let known: HashSet<u32> = self
-            .rows
-            .borrow()
-            .iter()
-            .map(|item| item.message_id)
-            .collect();
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
-        let done = queued_callback(
-            move |result: Result<(Vec<u32>, Vec<MessageListItem>), String>| {
-                let Some(this) = ptr.as_pinned() else { return };
-                match result {
-                    Ok((ids, fetched)) => {
-                        let this_mut = this.borrow_mut();
-                        let mut rows = this_mut.rows.borrow_mut();
-                        // A deletion or a reorder is rare and cheap to
-                        // handle wholesale; the common case is an append.
-                        let unchanged_prefix = ids.len() >= rows.iter().count()
-                            && rows
-                                .iter()
-                                .zip(ids.iter())
-                                .all(|(row, id)| row.message_id == *id);
-                        if unchanged_prefix {
-                            // A send in flight may have pushed a row this
-                            // fetch also carries: the id list was read
-                            // before that reply landed. Appending it again
-                            // is the duplicate that survives until reload.
-                            let mut appended = Vec::new();
-                            for item in fetched {
-                                if rows.iter().any(|row| row.message_id == item.message_id) {
-                                    continue;
-                                }
-                                appended.push(item.clone());
-                                rows.push(item);
-                            }
-                            drop(rows);
-                            drop(this_mut);
-                            this.borrow().rows_changed();
-                            // Asked after the push rather than before the
-                            // fetch, so a reader who scrolled away while it
-                            // ran is not credited with seeing what arrived.
-                            let looking = !this.borrow().reading_history;
-                            let incoming = u32::try_from(
-                                appended.iter().filter(|item| !item.is_outgoing).count(),
-                            )
-                            .unwrap_or(u32::MAX);
-                            if looking {
-                                this.borrow().mark_items_seen(appended);
-                            }
-                            if incoming > 0 {
-                                this.borrow().arrived(incoming);
-                            }
-                        } else if let Some(gone) = removals(&rows, &ids) {
-                            // A pure removal, so the rows that remain are
-                            // still right: take the others out rather than
-                            // resetting the model, which drops the view's
-                            // place and lands the reader at the oldest
-                            // message in the chat.
-                            for index in gone.into_iter().rev() {
-                                rows.remove(index);
-                            }
-                            drop(rows);
-                            drop(this_mut);
-                            this.borrow().rows_changed();
-                        } else {
-                            drop(rows);
-                            drop(this_mut);
-                            this.borrow_mut().reload();
-                        }
+        let done = queued_callback(move |result: Result<Vec<MessageListItem>, String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            if this.borrow().chat_id != chat_id {
+                return;
+            }
+            let Ok(items) = result else { return };
+            let mut appended = Vec::new();
+            {
+                let this_mut = this.borrow_mut();
+                let mut rows = this_mut.rows.borrow_mut();
+                for item in items {
+                    // A send in flight may have pushed a row this fetch
+                    // also carries: the id list was read before that reply
+                    // landed. Appending it again is the duplicate that
+                    // survives until reload.
+                    if rows.iter().any(|row| row.message_id == item.message_id) {
+                        continue;
                     }
-                    Err(err) => this.borrow().error(err.into()),
+                    appended.push(item.clone());
+                    rows.push(item);
                 }
-            },
-        );
+            }
+            if appended.is_empty() {
+                return;
+            }
+            this.borrow().rows_changed();
+            // Asked after the push rather than before the fetch, so a
+            // reader who scrolled away while it ran is not credited with
+            // seeing what arrived.
+            let looking = !this.borrow().reading_history;
+            let incoming = u32::try_from(appended.iter().filter(|item| !item.is_outgoing).count())
+                .unwrap_or(u32::MAX);
+            if looking {
+                this.borrow().mark_items_seen(appended);
+            }
+            if incoming > 0 {
+                this.borrow().arrived(incoming);
+            }
+        });
 
         runtime.spawn(async move {
-            let result = async {
-                let ids = message_ids(&rpc, account_id, chat_id).await?;
-                let missing: Vec<u32> = ids
-                    .iter()
-                    .copied()
-                    .filter(|id| !known.contains(id))
-                    .collect();
-                let fetched = fetch_messages(&rpc, account_id, &missing).await?;
-                Ok::<_, String>((ids, fetched))
-            }
-            .await;
-            done(result);
+            done(fetch_messages(&rpc, account_id, &ids).await);
         });
     }
 
@@ -634,7 +1013,9 @@ impl ChatMessages {
                         let this_mut = this.borrow_mut();
                         let mut rows = this_mut.rows.borrow_mut();
                         // The event for our own send can beat this reply,
-                        // in which case the row is already there.
+                        // in which case the row is already there. Wherever
+                        // the reader happens to be in the chat, the message
+                        // goes at the end of it and nothing else moves.
                         let existing = rows.iter().position(|row| row.message_id == message_id);
                         if let Some(index) = existing {
                             rows.change_line(index, item);
@@ -685,51 +1066,54 @@ impl ChatMessages {
     }
 }
 
-/// The row indices to drop, when `ids` is the model's own list with some
-/// taken out and nothing added or moved. `None` when it is anything else,
-/// which has to go through a reload.
-fn removals(rows: &MessageListModel, ids: &[u32]) -> Option<Vec<usize>> {
-    let mut wanted = ids.iter();
-    let mut next = wanted.next();
-    let mut gone = Vec::new();
-    for (index, row) in rows.iter().enumerate() {
-        if next == Some(&row.message_id) {
-            next = wanted.next();
-        } else {
-            gone.push(index);
-        }
-    }
-    // Anything left over is an id the model does not have, in the order the
-    // core wants it -- an arrival or a reorder, not a removal.
-    (next.is_none() && wanted.next().is_none() && !gone.is_empty()).then_some(gone)
-}
-
-/// The chat's message ids, oldest first.
-pub(crate) async fn message_ids(
+/// The chat's messages, oldest first, each under the day it belongs to.
+///
+/// The last argument asks the core to interleave day markers, which it
+/// gives as the local midnight starting each day -- checked against the
+/// real `deltachat-rpc-server` in three zones, because a marker at *UTC*
+/// midnight would put every message in a zone behind UTC under yesterday.
+/// `local_day_number` is the same function the fetched rows go through, so
+/// a row's day cannot change when it is filled in.
+pub(crate) async fn message_entries(
     rpc: &RpcClient,
     account_id: u32,
     chat_id: u32,
-) -> Result<Vec<u32>, String> {
+) -> Result<Vec<Entry>, String> {
     let items: Vec<serde_json::Value> = rpc
-        .call(
-            "get_message_list_items",
-            (account_id, chat_id, false, false),
-        )
+        .call("get_message_list_items", (account_id, chat_id, false, true))
         .await
         .map_err(|err| err.to_string())?;
-    Ok(items
-        .iter()
-        .filter(|item| item.get("kind").and_then(serde_json::Value::as_str) == Some("message"))
-        .filter_map(|item| {
-            // `rename_all` sits at the enum level upstream, renaming variants
-            // but not fields: this really is snake_case on the wire. `msgId`
-            // accepted in case that changes.
-            item.get("msg_id")
-                .or_else(|| item.get("msgId"))
-                .and_then(serde_json::Value::as_u64)
-                .and_then(|id| u32::try_from(id).ok())
-        })
-        .collect())
+    let mut entries = Vec::with_capacity(items.len());
+    // Carried forward from the last marker seen: the core emits one before
+    // each day's first message, so every message after it is under that day.
+    let mut day_number = 0;
+    for item in &items {
+        match item.get("kind").and_then(serde_json::Value::as_str) {
+            Some("dayMarker") => {
+                if let Some(timestamp) = item.get("timestamp").and_then(serde_json::Value::as_i64) {
+                    day_number = local_day_number(timestamp);
+                }
+            }
+            Some("message") => {
+                // `rename_all` sits at the enum level upstream, renaming
+                // variants but not fields: this really is snake_case on the
+                // wire. `msgId` accepted in case that changes.
+                if let Some(message_id) = item
+                    .get("msg_id")
+                    .or_else(|| item.get("msgId"))
+                    .and_then(serde_json::Value::as_u64)
+                    .and_then(|id| u32::try_from(id).ok())
+                {
+                    entries.push(Entry {
+                        message_id,
+                        day_number,
+                    });
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(entries)
 }
 
 /// Fetch several messages in one call. The old code asked for them one at a
@@ -823,6 +1207,22 @@ pub fn local_day_number(timestamp: i64) -> i64 {
 }
 
 /// One row from the core's message object.
+/// A row standing in for a message that has not been fetched.
+///
+/// The model holds one of these per message in the chat from the moment the
+/// id list arrives, which is what makes the first message row 0 and keeps it
+/// there however far the reader scrolls.
+fn placeholder(entry: Entry) -> MessageListItem {
+    MessageListItem {
+        message_id: entry.message_id,
+        // Known before the message is, so the row is under the right day
+        // heading from the start and that heading never changes size.
+        day_number: entry.day_number,
+        loaded: false,
+        ..MessageListItem::default()
+    }
+}
+
 fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
     let timestamp = message
         .get("timestamp")
@@ -837,6 +1237,7 @@ fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
     };
     MessageListItem {
         message_id,
+        loaded: true,
         text: text_at(message, "/text"),
         // Contact id 1 is the well-known DC_CONTACT_ID_SELF.
         is_outgoing: message.get("fromId").and_then(serde_json::Value::as_u64) == Some(1),

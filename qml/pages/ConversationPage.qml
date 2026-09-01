@@ -21,12 +21,6 @@ Page {
         id: messages
         objectName: "messages"
         account_id: page.accountId
-        // Deliberately not bound to page.chatId. A binding starts the
-        // fetch the moment the page is created -- while it is still
-        // transitioning in -- and building every row of a long history in
-        // one go on the Qt thread is what makes that transition stutter
-        // and freeze. The chat is handed over once the page has settled;
-        // the handler below does it.
         // What the reader can actually see decides what counts as read.
         reading_history: !page.readerIsLooking
         onError: page.errorMessage = message
@@ -34,38 +28,116 @@ Page {
         // message just sent rather than counting it as one that was missed.
         onSent: {
             textField.text = ""
+            // Now, not a second from now: the chat list would otherwise
+            // show the message as a draft it is still holding, next to the
+            // same message as the one just sent.
+            page.storeDraft()
             page.replyBody = ""
             page.replyAuthor = ""
             page.attachmentPath = ""
             listView.jumpToNewest()
         }
         onArrived: listView.noteArrivals(count)
-    }
-
-    // The fetch waits for the page to arrive. Until then the list shows
-    // nothing and says nothing: `loaded` keeps the "no messages yet"
-    // placeholder off the screen while this is pending.
-    onStatusChanged: {
-        if (status === PageStatus.Active && messages.chat_id !== page.chatId) {
-            messages.chat_id = page.chatId
+        // The chat's unsent text, once the core has answered with it.
+        //
+        // `draftApplied` is set only when something is actually put in the
+        // field. Handing the chat over clears the draft and says so, and
+        // treating that as the answer would mark the field filled before
+        // the core had replied -- which is how this first went in and why
+        // nothing came back.
+        onDraft_changed: {
+            if (!page.draftApplied && messages.draft.length > 0
+                    && textField.text.length === 0) {
+                textField.text = messages.draft
+                page.draftApplied = true
+            }
         }
     }
 
+    // The chat is handed over as the page is built, so a prefetched one is
+    // already in the model before the transition starts and the page comes
+    // in with its messages rather than filling in behind itself.
+    //
+    // This used to wait for PageStatus.Active. It had to: a chat was
+    // fetched whole, and building every row of a long history in one go on
+    // the Qt thread froze the transition. A chat now opens on one page of
+    // fifty, and the prefetch has usually built those rows already -- the
+    // handover is then a move, with no core round trip in it at all.
+    //
+    // In `Component.onCompleted` rather than a binding on the declaration
+    // above, because the order matters: this must run after
+    // `reading_history` has been bound, or the model would see the default
+    // `false`, take it for a reader looking at the screen, and mark the
+    // chat read before the page is even on it.
+    Component.onCompleted: messages.chat_id = page.chatId
+
+    // A page pushed over this one takes the list's place in it with them:
+    // it is torn down far enough to forget where it was, and comes back at
+    // the top of whatever is loaded. Opening a picture full screen and
+    // coming back is the way most readers meet that.
+    onStatusChanged: {
+        if (page.status === PageStatus.Deactivating) {
+            listView.rememberPlace()
+            // Written now rather than a second from now: leaving the chat
+            // is exactly when the debounce below has not fired yet, and
+            // that was the whole complaint.
+            page.storeDraft()
+        } else if (page.status === PageStatus.Active) {
+            listView.restorePlace()
+        }
+    }
+
+    /// Whether the chat's own draft has been put in the field yet.
+    ///
+    /// The answer comes back from the core a moment after the page opens,
+    /// and a reader who started typing in that moment must not have it
+    /// written over them.
+    property bool draftApplied: false
+
+    function storeDraft() {
+        draftDebounce.stop()
+        messages.save_draft(textField.text)
+    }
+
+    // Not on every keystroke: that is one call to the core per character.
+    Timer {
+        id: draftDebounce
+        interval: 1000
+        onTriggered: messages.save_draft(textField.text)
+    }
+
     // Where a search result lands. The row cannot be looked up until the
-    // fetch above has finished, so this waits for the model to say so
-    // rather than for the page: the two are no longer the same moment.
+    // fetch has finished, so this waits for the model to say so rather
+    // than for the page: the two are not the same moment. And a chat opens
+    // on its newest page, so the message a search found may not be loaded
+    // at all -- `reveal` steps back until it is and then says where it
+    // went, which is why this is two handlers rather than one lookup.
     Connections {
         target: messages
         onLoaded_changed: {
             if (messages.loaded && page.findMessageId !== 0) {
-                listView.foundMessageId = page.findMessageId
-                listView.jumpToRow(messages.row_of(page.findMessageId))
-                // Once is enough; a later reload must not drag the reader
-                // back off whatever they have scrolled to since.
-                page.findMessageId = 0
-                foundFlash.restart()
+                messages.reveal(page.findMessageId)
             }
         }
+        onRevealed: {
+            if (row >= 0) {
+                listView.foundMessageId = message_id
+                // Held rather than jumped to: the page is still arriving
+                // and its rows still being measured, and one jump lands
+                // the reader wherever the measuring has got to.
+                listView.holdAt(row)
+                foundFlash.restart()
+            }
+            // Once is enough, found or not: a later reload must not drag
+            // the reader back off whatever they have scrolled to since.
+            page.findMessageId = 0
+        }
+        // A fill takes at most a page at a time, and a screenful of a chat
+        // with big rows in it can want more than that. Asking again when
+        // one finishes is what covers the rest. It stops on its own: the
+        // ask is dropped when there is nothing left to fill, so nothing
+        // comes back to prompt another.
+        onHydrating_changed: if (!messages.hydrating) listView.askForRows()
     }
 
     // The flash says "this one" and then gets out of the way.
@@ -180,6 +252,9 @@ Page {
         // The model's own count, which changes when a row arrives rather
         // than when the view gets round to showing it.
         messageCount: messages.count
+        // The model holds a row for every message and fills in the ones on
+        // screen; this is what tells it which those are.
+        onHydrateRequested: messages.hydrate(first, last)
         showSender: messages.is_group
         placeholderText: qsTr("No messages yet")
 
@@ -194,6 +269,7 @@ Page {
             Clipboard.text = body
             notice.show(qsTr("Copied to clipboard"))
         }
+        onOpenRequested: page.openAttachment(fileUrl, fileName, viewType)
         onDeleteRequested: messages.delete_message(messageId)
         onResendRequested: messages.resend_message(messageId)
         onForwardRequested: {
@@ -312,6 +388,10 @@ Page {
                              ? qsTr("Caption") : qsTr("Message")
             EnterKey.iconSource: "image://theme/icon-m-enter-accept"
             EnterKey.onClicked: page.sendCurrentText()
+            // Kept in the core, so it is still here after the app has been
+            // closed and reopened, and so the chat list can say which
+            // chats are holding one.
+            onTextChanged: draftDebounce.restart()
         }
 
         AttachButton {
@@ -345,6 +425,29 @@ Page {
                 size: BusyIndicatorSize.Small
                 running: messages.sending
             }
+        }
+    }
+
+    // Which kinds Postivene shows itself, and which it hands on. Handing a
+    // picture or a video to the system took the reader out of the app to
+    // something that then failed to play it; everything else is still
+    // somebody else's file to open, and a page here that could only say
+    // "cannot show this" would be worse than the handover.
+    function openAttachment(fileUrl, fileName, viewType) {
+        if (viewType === "Image" || viewType === "Gif"
+                || viewType === "Sticker") {
+            pageStack.push(Qt.resolvedUrl("PicturePage.qml"), {
+                fileUrl: fileUrl,
+                fileName: fileName,
+                viewType: viewType
+            })
+        } else if (viewType === "Video") {
+            pageStack.push(Qt.resolvedUrl("VideoPage.qml"), {
+                fileUrl: fileUrl,
+                fileName: fileName
+            })
+        } else {
+            Qt.openUrlExternally(fileUrl)
         }
     }
 

@@ -48,6 +48,13 @@ pub type ChatListModel = SimpleListModel<ChatListItem>;
 pub struct MessageListItem {
     /// The core's message id.
     pub message_id: u32,
+    /// Whether this row's content has been fetched yet.
+    ///
+    /// The model holds one row per message in the chat, because that is what
+    /// makes the first message row 0 and keeps it there. Only the rows near
+    /// the reader are filled in; the rest stand as placeholders of their own
+    /// height until they come into view.
+    pub loaded: bool,
     /// Message body text.
     pub text: QString,
     /// True when this account sent it.

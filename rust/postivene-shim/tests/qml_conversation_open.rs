@@ -1,10 +1,22 @@
-//! Opening a chat must not start fetching it mid-transition.
+//! Opening a chat puts the messages on the page before it arrives.
 //!
-//! A binding from `page.chatId` to the model started the fetch the moment
-//! the page was created -- while it was still transitioning in. Building
-//! every row of a long history in one go on the Qt thread is what made
-//! that transition stutter, freeze, and then continue. The chat is handed
-//! over once the page reports Active instead.
+//! This one has been round the houses. A binding from `page.chatId` to the
+//! model used to start the fetch the moment the page was created, while it
+//! was still transitioning in, and building every row of a whole history on
+//! the Qt thread froze the transition. So the handover moved to
+//! `PageStatus.Active` -- which traded the stutter for a wait: the page
+//! arrived empty and filled in behind itself, which is what a reader
+//! actually sees and complains about.
+//!
+//! Both halves of the reason are now gone. A chat opens on one page of
+//! fifty rather than on all of it, and `ChatPrefetch` has usually built
+//! those rows before the push. So the handover goes back to the page's own
+//! construction, where a prefetch hit makes it a move rather than a fetch,
+//! and the page comes in already full.
+//!
+//! What is pinned below is that last part, in the only terms that mean
+//! anything: the rows are there in the same turn the page is built, before
+//! anything could have run a transition, let alone finished one.
 //!
 //! The page is loaded from a copy of the QML tree with `EnterKey` taken
 //! out; see `common::qml_tree_without_enter_key` for why the shipped file
@@ -29,8 +41,24 @@ mod common;
 const PROBE_QML: &str = r"
     import QtQuick 2.0
     import Sailfish.Silica 1.0
+    import Postivene 1.0
     Item {
         Loader { id: loader }
+        // What the chat list does before it pushes the page.
+        property int readyFor: 0
+        ChatPrefetch {
+            id: prefetch
+            account_id: 1
+            onReady: readyFor = chat_id
+        }
+        // 0 for the message to open at: this is an ordinary tap on a
+        // chat, not a search result.
+        function prefetchChat(chatId) {
+            prefetch.start(chatId, 0)
+            return 'ok'
+        }
+        function prefetched() { return '' + readyFor }
+
         // Created the way pageStack.push does, still on its way in.
         function loadInactive(url, accountId, chatId) {
             loader.setSource('', {})
@@ -59,11 +87,25 @@ const PROBE_QML: &str = r"
             var model = findIn(loader.item, 'messages')
             return model ? '' + model.chat_id : 'missing:messages'
         }
+        function rowsOfModel() {
+            var model = findIn(loader.item, 'messages')
+            return model ? '' + model.count : 'missing:messages'
+        }
+        // Whether the chat counts as read yet. Handing the chat over before
+        // `reading_history` has been bound would mark it read on open,
+        // behind a page the reader has not seen.
+        function readingHistory() {
+            var model = findIn(loader.item, 'messages')
+            return model ? '' + model.reading_history : 'missing:messages'
+        }
     }
 ";
 
+/// What the fake server seeds chat 1 with.
+const SEEDED: &str = "2";
+
 #[test]
-fn a_chat_is_not_fetched_until_its_page_has_arrived() {
+fn a_chat_is_on_its_page_before_the_page_arrives() {
     let temp = std::env::temp_dir().join(format!("postivene-open-chat-{}", std::process::id()));
     std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
     let tree = common::qml_tree_without_enter_key();
@@ -105,7 +147,13 @@ fn a_chat_is_not_fetched_until_its_page_has_arrived() {
         }};
     }
 
+    // The tap on the chat list: load the chat, then push the page.
     single_shot(Duration::from_secs(1), move || unsafe {
+        (*steps_ptr).push(("prefetch", call!("prefetchChat", 1)));
+    });
+
+    single_shot(Duration::from_secs(3), move || unsafe {
+        (*steps_ptr).push(("prefetched", call!("prefetched")));
         (*steps_ptr).push((
             "load",
             call!(
@@ -115,20 +163,27 @@ fn a_chat_is_not_fetched_until_its_page_has_arrived() {
                 1
             ),
         ));
-    });
-
-    single_shot(Duration::from_secs(3), move || unsafe {
-        (*steps_ptr).push(("while-arriving", call!("chatOfModel")));
+        // Read in the same callback as the load, on purpose: nothing has
+        // had a turn in between, so whatever is here was put here by the
+        // page building itself.
+        (*steps_ptr).push(("chat-while-arriving", call!("chatOfModel")));
+        (*steps_ptr).push(("rows-while-arriving", call!("rowsOfModel")));
+        (*steps_ptr).push(("reading-history", call!("readingHistory")));
         (*steps_ptr).push(("settle", call!("settle")));
     });
 
     single_shot(Duration::from_secs(5), move || unsafe {
-        (*steps_ptr).push(("after-arriving", call!("chatOfModel")));
+        (*steps_ptr).push(("rows-after-arriving", call!("rowsOfModel")));
         (*engine_ptr).quit();
     });
 
     engine.exec();
 
+    assert_outcome(&steps);
+}
+
+/// What the run has to show for itself, out of the test body.
+fn assert_outcome(steps: &[(&str, String)]) {
     let value = |label: &str| {
         steps
             .iter()
@@ -144,15 +199,36 @@ fn a_chat_is_not_fetched_until_its_page_has_arrived() {
         "the conversation page did not load. {context}"
     );
     assert_eq!(
-        value("while-arriving"),
-        "0",
-        "the fetch started while the page was still transitioning in, which is \
-         what makes opening a busy chat stutter. {context}"
+        value("prefetched"),
+        "1",
+        "the prefetch never answered, so this run proves nothing about what \
+         a page does with one. {context}"
     );
     assert_eq!(
-        value("after-arriving"),
+        value("chat-while-arriving"),
         "1",
-        "the chat was never handed to the model once the page arrived, so it \
-         would stay empty for ever. {context}"
+        "the page was built without being told which chat it is showing, so \
+         it can only start loading one once it has arrived. {context}"
+    );
+    // The point of all of it.
+    assert_eq!(
+        value("rows-while-arriving"),
+        SEEDED,
+        "the page was built empty: the messages the prefetch had already \
+         loaded were not in it, so the reader watches an empty conversation \
+         fill in after the transition instead of one that arrives whole. \
+         {context}"
+    );
+    assert_eq!(
+        value("reading-history"),
+        "true",
+        "the chat was handed to the model before `reading_history` was \
+         bound, so opening a chat marks it read behind a page that is still \
+         transitioning in. {context}"
+    );
+    assert_eq!(
+        value("rows-after-arriving"),
+        SEEDED,
+        "the messages did not survive the page arriving. {context}"
     );
 }

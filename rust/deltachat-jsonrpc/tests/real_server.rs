@@ -262,6 +262,56 @@ async fn offline_round_trip_against_real_core() {
     );
     assert_eq!(item.get("name").and_then(Value::as_str), Some("Testy"));
 
+    // A chat holding a draft says so in its own summary, which is why
+    // nothing in the app builds that text: `summaryText1` is the prefix a
+    // row already shows in front of `summaryText2`, so a draft reads as
+    // "Draft: ..." for free. `summaryStatus` 19 is DC_STATE_OUT_DRAFT, and
+    // being under 20 is what keeps a delivery mark off a message that has
+    // not been sent.
+    assert_eq!(
+        item.get("summaryText1").and_then(Value::as_str),
+        Some("Draft"),
+        "a chat with a draft does not name it in its summary, so the chat \
+         list cannot say which chats are holding one: {item:?}"
+    );
+    assert_eq!(
+        item.get("summaryText2").and_then(Value::as_str),
+        Some("draft from integration test"),
+        "the draft's own text is not what the chat list previews: {item:?}"
+    );
+    assert_eq!(
+        item.get("summaryStatus").and_then(Value::as_u64),
+        Some(19),
+        "a draft's summary state is not DC_STATE_OUT_DRAFT, so the row \
+         cannot tell it from something sent: {item:?}"
+    );
+
+    // Reading one back. The core keeps drafts, so this is what survives
+    // the app being closed -- and it comes back as a whole message object
+    // rather than a string.
+    let draft: Value = client
+        .call("get_draft", (account_id, chat_id))
+        .await
+        .expect("get_draft");
+    assert_eq!(
+        draft.get("text").and_then(Value::as_str),
+        Some("draft from integration test"),
+        "the draft did not come back: {draft:?}"
+    );
+
+    // And clearing one. `misc_set_draft` with no text is not the way --
+    // there is a call for it, and it answers null afterwards rather than
+    // an empty message.
+    client
+        .call::<_, Value>("remove_draft", (account_id, chat_id))
+        .await
+        .expect("remove_draft");
+    let gone: Value = client
+        .call("get_draft", (account_id, chat_id))
+        .await
+        .expect("get_draft after remove");
+    assert!(gone.is_null(), "a removed draft still reads back: {gone:?}");
+
     // And the message-list wire shape DeltaChatCore::fetch_messages relies
     // on: `kind` is "message" and the id field is snake_case `msg_id`
     // (this exact spelling was a bug once; keep it pinned by a test that

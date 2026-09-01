@@ -56,12 +56,127 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   via queued signals.
 - **Background reception** relies on IMAP IDLE plus a Sailfish background
   process. It is the hardest platform problem and the largest open risk.
+- **A chat holds a row for every message in it.** The ids are cheap and the
+  messages are not: `get_message_list_items` returns a list of numbers for
+  the whole chat, while `get_messages` builds every field of every row. So
+  the model builds one row per id the moment that list arrives, and fills in
+  only the ones somebody is looking at. `hydrate(first, last)` is the only
+  thing that fetches messages after a chat opens; the view asks as it
+  scrolls.
+- **Which is what makes the first message row 0, and keeps it there.** The
+  model used to hold a moving *window* of loaded messages, and every way of
+  getting somewhere -- the beginning of the chat, a search result -- meant
+  replacing its contents. That is the shape the bug was in, and it took
+  three attempts at the symptoms to be sure: positioning into a model that
+  has just been reset is contingent on how fast rows are measured, a
+  reconciliation that overlapped a move undid it, and the control that
+  offered the move hid itself at the moment it was wanted. Each was a real
+  defect. None of them was the cause. Whisperfish and deltachat-android both
+  keep the whole conversation addressable and have none of this; going to
+  the beginning of a chat is now a scroll, with nothing to fetch, nothing to
+  replace, and nothing that can put the reader somewhere else.
+- **Rows are filled in where they stand.** `change_line` rather than a
+  reset, so the view keeps its position and its delegates. An arrival is one
+  row appended; a deletion is one removed. Nothing else moves.
+- **The day heading is drawn inside the row it heads.** `section.property`
+  is set, so the view still groups by day and fills in `ListView.section`
+  and `ListView.previousSection` on each delegate -- but there is no
+  `section.delegate`. A section delegate is its own item, positioned above
+  its row and sized from whatever height the view last measured, and a date
+  drawn on top of the message beneath it was reported twice. Getting the
+  height right at creation was not enough, because where the row goes is the
+  view's bookkeeping rather than ours. Inside the row it is arithmetic: the
+  heading is part of `contentHeight`, and a row cannot be drawn over itself.
+- **A row knows its day before it knows its message.**
+  `get_message_list_items` interleaves the core's own day markers when asked
+  for them, so the day comes with the id rather than with the message. Not a
+  nicety: the list is sectioned by day, so a row that does not know its day
+  sits under day 0, and a screenful of them is a heading reading 1 January
+  1970. Worse, each row moves to its real day as it is filled in, which
+  resizes a heading the view has already laid out and leaves it drawn over
+  the row beneath. The markers are local midnight, checked against the real
+  `deltachat-rpc-server` in three zones -- a marker at *UTC* midnight would
+  file every message in a zone behind UTC under yesterday -- and go through
+  the same `local_day_number` as a fetched row, so a row's day cannot change
+  when its message arrives.
+- **Following the newest message stops the moment something else moves the
+  view.** A chat opens at its newest message and stays there as messages
+  arrive -- which means every change to the content height sends the view
+  back to the end. The system's own scroll-to-top changes `contentY` without
+  a drag, so nothing would otherwise tell the list that the reader has gone
+  somewhere, and the first row measured after the jump would haul them back
+  down. `ConversationList` reads a jump it did not make as the reader
+  leaving, and only once the view has actually reached the end at least
+  once: before that, a view far from the end is a chat that has not finished
+  opening.
+- **The chat is on the page before the page arrives.** `ChatPrefetch` loads
+  it while the reader is still looking at the chat list, and
+  `ConversationPage` takes it in `Component.onCompleted` -- after
+  `reading_history` is bound, or the model reads the default and marks the
+  chat read behind a page nobody has seen. A prefetch hit is a move, not a
+  fetch. When a search result is what was tapped, the prefetch fills in the
+  rows around *that message* rather than the newest ones, so the page never
+  shows today and then jumps.
+- **A row jumped to has to be held, not jumped to.** One
+  `positionViewAtIndex` is enough only where every row is already its final
+  height, which is nowhere real: rows are measured as they are laid out,
+  wrapped text at the device's own metrics is taller than an estimate, a
+  picture's row changes height again when the picture decodes, and a row
+  gains its text the moment it is filled in. Each of those that happens
+  above the reader moves them, and they all happen after the jump. So
+  `holdAt` re-applies the row on every change to the content, until the
+  reader takes the view over or it stops moving under them. Landing on a
+  search result and back on the place a full-screen picture was opened from
+  are both this.
+- **A page pushed over the conversation takes its place with it.** The list
+  is torn down far enough to forget where it was, and replaces what it
+  forgets with the beginning. The row is *held* from `Deactivating`, not
+  merely written down and restored on `Active`: restoring is too late,
+  because the reset happens while the page is away and a frame showing the
+  top of the chat is painted before anything corrects it. That was the
+  flash of the oldest messages, and being yanked back from it. Held, the
+  reset is undone in the same turn it happens and no wrong frame is drawn.
+  A hold is let go of when the reader touches the list, and otherwise on a
+  deadline -- but never on a quiet timer: a device lays its rows out,
+  goes quiet while a picture decodes, and moves them again, and the gap is
+  longer than any timer worth having.
+- **Zoom is about the point that was touched.** A picture that grows about
+  its own top-left corner takes a reader who pinched a face in the bottom
+  right to the top left instead. `PicturePage.zoomAt` works out where in
+  the picture the fingers are, changes the zoom, and puts the view back so
+  the same point is under them.
+- **The top of the list offers the beginning of the chat.** Not decoration:
+  the system's own scroll-to-top gesture goes to the top of what is loaded
+  and gives no sign that it is not the top of the chat. That is where the
+  gesture leaves the reader looking, so that is where the way to the real
+  beginning goes.
+- **Drafts belong to the core, not the page.** `misc_set_draft` and
+  `get_draft` keep what was typed and not sent, so it survives the app
+  being closed rather than only the trip back to the chat list. It also
+  means the chat list needs no new field: a chat holding one comes back
+  with `summaryText1` "Draft", which the row already shows in front of the
+  preview, so it reads "Draft: ..." in whatever language the core is in.
+  Written on a debounce while typing and again the moment the page goes,
+  because leaving is exactly when the debounce has not fired yet.
 - **One send at a time.** The compose state clears when the core answers,
   not when the button is tapped, so a send that fails leaves the reader
   holding what they chose. `ChatMessages.sending` closes the window that
   opens up in between: copying a large video into the core's blob directory
   takes seconds, and a second tap in those seconds used to send the whole
   thing again.
+- **Pictures and video open in the app.** Handing them to the system took
+  the reader out of Postivene to something that then failed to show them.
+  A picture gets a page with a pinch-zoom flickable; a video gets
+  QtMultimedia, which is already how a voice message plays in its own row.
+  Everything else is still somebody else's file: a page here that could
+  only say "cannot show this" would be worse than the handover. The way
+  out to another app stays in each viewer's pull-down.
+- **A photo is shown the way it was taken.** `Image.autoTransform` reads
+  the EXIF orientation tag, which is where a camera records the turn
+  rather than applying it to the pixels. The row is measured from the
+  decoded picture rather than from the core's dimensions for the same
+  reason: the core reads the file's header, so its answer is the size
+  before the turn.
 - **The core classifies attachments, not the app.** Every file goes to
   `misc_send_msg` and comes back with a `viewType` the core chose from the
   file itself; `AttachmentPreview` picks a renderer from that answer and
@@ -105,7 +220,8 @@ On top of that: the chat list (unread badges, timestamps, avatars,
 encryption/pin/mute marks, context menu, search across chats/contacts/
 messages, archive, contact requests, multiple profiles), the conversation
 view (bubbles, quotes, delivery marks, day separators, reply/copy/delete/
-resend, and every kind of attachment the core classifies: photos and
+resend, a page of history at a time, and every kind of attachment the core
+classifies: photos and
 stickers inline, GIFs animated over a still poster, a video's poster frame
 from the platform thumbnailer, voice and audio played where they sit, a
 shared contact as a card, everything else named and sized), onboarding
@@ -166,8 +282,8 @@ In order of what matters:
    deciding deliberately rather than in passing.
 5. **Group member management, contact profile pages, blocking** outside a
    request; add-as-second-device and restore-from-backup.
-6. **Message polish**: avatars on bubbles, reactions, drafts, an unread
-   divider, and paging for long histories -- a chat is still fetched whole.
+6. **Message polish**: avatars on bubbles, reactions, drafts, and an unread
+   divider.
 7. **Recording a voice message, and the camera.** Sending every kind of
    attachment works; making one does not. QML has no audio recorder on
    Qt 5.6 -- `harbour-whisperfish` wrote its own against gstreamer -- so a

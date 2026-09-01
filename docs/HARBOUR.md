@@ -203,6 +203,26 @@ both sides. Cargo never builds a dependency's tests, so they were 1,200
 lines that could not run -- and CodeQL scanned them anyway and reported
 seven high-severity findings in code this repository does not compile.
 
+The same scanner reports the same kind of finding on our own code, and it
+is worth knowing before spending an afternoon on it. **Every
+`#[derive(QObject)]` a pull request adds draws a high-severity "Access of
+invalid pointer" alert**, on the `#[derive]` line itself: the macro
+generates the dispatcher and destructor Qt calls through raw pointers, and
+CodeQL attributes expanded code to the macro. It follows the derive rather
+than the file -- moving one from `tests/qml_media_pages.rs` into
+`tests/common/mod.rs` moved the alert with it. The derives already
+throughout `src/` do not report, only because CodeQL comments on lines a
+pull request changed.
+
+Nothing in the code answers it. Test scaffolding that stands in for a
+`pageStack` has to be a QObject, because a page loaded on its own reads
+`pageStack` from the QML context and nothing else can be put there.
+Rewriting a test to avoid the derive means putting it somewhere it does
+not belong, which costs more than the alert does. Dismiss it in the
+Security tab, or -- for a lasting answer -- move the repository from
+CodeQL's default setup to an advanced one whose configuration can exclude
+`rust/postivene-shim/tests/`.
+
 The real fix is upstream: a feature flag choosing between `QApplication`
 and `QGuiApplication` would serve every Sailfish app built on qmetaobject,
 all of which hit this. Until then the fork is three lines and rebases

@@ -13,6 +13,7 @@ use std::collections::VecDeque;
 use std::io::Write;
 use std::sync::Arc;
 
+use chrono::{Local, TimeZone};
 use serde_json::{json, Value};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::sync::Mutex;
@@ -187,14 +188,35 @@ fn wordy(msg: u64) -> String {
     format!("{text}, and then a good deal more of it, long enough that where it wraps depends on how wide the row is drawn")
 }
 
-fn message_object(msg: u64) -> Value {
-    // 2023-11-14T22:13:20Z and a day later, so a day separator has
-    // something to separate.
-    let timestamp = if msg == 1 {
+/// When a message was sent.
+///
+/// 2023-11-14T22:13:20Z and a day later, so a day separator has something to
+/// separate. Its own function because the day markers below have to agree
+/// with it: a placeholder row takes its day from the marker and a filled-in
+/// row from the message, and the two disagreeing is the heading changing
+/// under the reader.
+fn message_timestamp(msg: u64) -> i64 {
+    if msg == 1 {
         1_700_000_000
     } else {
         1_700_090_000
+    }
+}
+
+/// Local midnight starting the day `timestamp` falls in, which is what the
+/// real core gives as a day marker -- checked against it in three zones.
+fn day_start(timestamp: i64) -> i64 {
+    let Some(when) = Local.timestamp_opt(timestamp, 0).single() else {
+        return timestamp.div_euclid(86_400) * 86_400;
     };
+    when.date_naive()
+        .and_hms_opt(0, 0, 0)
+        .and_then(|midnight| midnight.and_local_timezone(Local).earliest())
+        .map_or(timestamp, |midnight| midnight.timestamp())
+}
+
+fn message_object(msg: u64) -> Value {
+    let timestamp = message_timestamp(msg);
     let mut message = json!({
         "kind": "message",
         "text": wordy(msg),
@@ -640,14 +662,22 @@ async fn main() {
                         .as_u64()
                         .and_then(|value| u32::try_from(value).ok())
                         .unwrap_or_default();
-                    let items: Vec<Value> = state
-                        .chats
-                        .get(&chat)
-                        .cloned()
-                        .unwrap_or_default()
-                        .into_iter()
-                        .map(|msg| json!({"kind": "message", "msg_id": msg}))
-                        .collect();
+                    // The fourth argument asks for day markers. The real
+                    // core interleaves one before each day's first message,
+                    // and the model reads a placeholder row's day off them.
+                    let markers = positional(3).as_bool().unwrap_or(false);
+                    let mut items: Vec<Value> = Vec::new();
+                    let mut day = None;
+                    for msg in state.chats.get(&chat).cloned().unwrap_or_default() {
+                        if markers {
+                            let start = day_start(message_timestamp(u64::from(msg)));
+                            if day != Some(start) {
+                                items.push(json!({"kind": "dayMarker", "timestamp": start}));
+                                day = Some(start);
+                            }
+                        }
+                        items.push(json!({"kind": "message", "msg_id": msg}));
+                    }
                     ok(&id, &Value::Array(items))
                 }
                 "get_messages" => {

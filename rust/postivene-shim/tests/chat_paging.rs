@@ -42,6 +42,7 @@ const PROBE_QML: &str = r"
             Item {
                 property int mid: model.message_id
                 property bool filled: model.loaded
+                property int day: model.day_number
             }
         }
         Connections {
@@ -69,6 +70,21 @@ const PROBE_QML: &str = r"
         function filledAt(index) {
             if (index < 0 || index >= rows.count) { return 'no-row' }
             return '' + rows.itemAt(index).filled
+        }
+        /// The day a row is filed under, fetched or not. A list section is
+        /// this number, so a row that does not know it yet is a heading
+        /// saying 1 January 1970.
+        function dayAt(index) {
+            if (index < 0 || index >= rows.count) { return 'no-row' }
+            return '' + rows.itemAt(index).day
+        }
+        /// How many rows are under the epoch, which must be none.
+        function epochRows() {
+            var total = 0
+            for (var i = 0; i < rows.count; i++) {
+                if (rows.itemAt(i).day === 0) { total += 1 }
+            }
+            return '' + total
         }
         function hydrate(first, last) { chat.hydrate(first, last); return 'ok' }
         function reveal(id) { chat.reveal(id); return 'ok' }
@@ -129,6 +145,9 @@ fn every_message_has_a_row_and_only_what_is_looked_at_is_fetched() {
         // The first message is row 0 from the start: nothing has to be
         // fetched to know where the beginning is.
         (*steps_ptr).push(("first-empty", call!("filledAt", 0)));
+        // And it knows which day it is under before it knows anything else.
+        (*steps_ptr).push(("epoch-rows", call!("epochRows")));
+        (*steps_ptr).push(("day-empty", call!("dayAt", 0)));
         // A search result, which is a lookup rather than a fetch.
         (*steps_ptr).push(("reveal", call!("reveal", 3)));
     });
@@ -139,6 +158,7 @@ fn every_message_has_a_row_and_only_what_is_looked_at_is_fetched() {
     });
     single_shot(Duration::from_secs(6), move || unsafe {
         (*steps_ptr).push(("first-filled", call!("filledAt", 0)));
+        (*steps_ptr).push(("day-filled", call!("dayAt", 0)));
         (*steps_ptr).push(("still-whole", call!("count")));
         (*steps_ptr).push(("still-edges", call!("edges")));
         (*steps_ptr).push(("arrive", call!("arrive")));
@@ -192,6 +212,8 @@ fn assert_outcome(steps: &[(&str, String)], journal: &std::path::Path) {
         "the first message was fetched on open, so this run says nothing \
          about filling in. {context}"
     );
+
+    assert_days(steps);
 
     // A search result needs no fetch to be found.
     assert_eq!(
@@ -249,5 +271,46 @@ fn assert_outcome(steps: &[(&str, String)], journal: &std::path::Path) {
         biggest <= 50,
         "one fetch asked the core for {biggest} messages at once; the whole \
          point is that no single fetch is the size of the chat. {context}"
+    );
+}
+
+/// Every row knows its day before it knows its message, and keeps it.
+///
+/// The list is sectioned by day. Without the core's day markers the rows
+/// waiting to be filled in share one section under the epoch -- a heading
+/// reading 1 January 1970 -- and each moves to its real day as it arrives,
+/// which resizes a heading the view has already laid out and leaves it drawn
+/// over the row beneath.
+fn assert_days(steps: &[(&str, String)]) {
+    let value = |label: &str| {
+        steps
+            .iter()
+            .find(|(name, _)| *name == label)
+            .map(|(_, value)| value.clone())
+            .unwrap_or_default()
+    };
+    let context = format!("steps: {steps:?}");
+
+    assert_eq!(
+        value("epoch-rows"),
+        "0",
+        "{} rows opened under day 0, so the list has a section headed 1 \
+         January 1970 in it. {context}",
+        value("epoch-rows")
+    );
+    assert_ne!(
+        value("day-empty"),
+        "0",
+        "the first row, which has not been fetched, does not know its day. \
+         {context}"
+    );
+    assert_eq!(
+        value("day-filled"),
+        value("day-empty"),
+        "the first row moved from day {:?} to day {:?} when it was filled \
+         in, so its heading is rebuilt and resized after the view has laid \
+         out around it. {context}",
+        value("day-empty"),
+        value("day-filled")
     );
 }

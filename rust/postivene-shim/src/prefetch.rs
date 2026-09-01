@@ -19,7 +19,7 @@ use std::sync::Mutex;
 
 use qmetaobject::*;
 
-use crate::chat::{chat_is_group, fetch_messages, message_ids, opening_page};
+use crate::chat::{chat_is_group, fetch_messages, ids_of, message_entries, opening_page, Entry};
 use crate::core::connection;
 use crate::models::MessageListItem;
 
@@ -28,28 +28,28 @@ struct Cached {
     account_id: u32,
     chat_id: u32,
     is_group: bool,
-    /// Every id in the chat: the model holds a row for each. Cheap to
-    /// carry and pointless to fetch twice.
-    ids: Vec<u32>,
+    /// Every message in the chat, each under its day: the model holds a row
+    /// for each. Cheap to carry and pointless to fetch twice.
+    entries: Vec<Entry>,
     /// The messages of the one page that is filled in to start with.
     rows: Vec<MessageListItem>,
 }
 
 static CACHE: Mutex<Option<Cached>> = Mutex::new(None);
 
-/// What one prefetch found: the chat's kind, every id in it, and the
-/// messages of the one page that is filled in to start with.
-type Loaded = (bool, Vec<u32>, Vec<MessageListItem>);
+/// What one prefetch found: the chat's kind, every message in it, and the
+/// content of the one page that is filled in to start with.
+type Loaded = (bool, Vec<Entry>, Vec<MessageListItem>);
 
 /// Hand a finished prefetch over to whichever model asks for it next.
 fn store(account_id: u32, chat_id: u32, loaded: Loaded) {
-    let (is_group, ids, rows) = loaded;
+    let (is_group, entries, rows) = loaded;
     if let Ok(mut cache) = CACHE.lock() {
         *cache = Some(Cached {
             account_id,
             chat_id,
             is_group,
-            ids,
+            entries,
             rows,
         });
     }
@@ -67,7 +67,7 @@ pub(crate) fn take(account_id: u32, chat_id: u32) -> Option<Loaded> {
     }
     cache
         .take()
-        .map(|held| (held.is_group, held.ids, held.rows))
+        .map(|held| (held.is_group, held.entries, held.rows))
 }
 
 /// Loads a chat so a page can be opened onto it already full.
@@ -150,16 +150,16 @@ impl ChatPrefetch {
         runtime.spawn(async move {
             let loaded = async {
                 let is_group = chat_is_group(&rpc, account_id, chat_id).await;
-                let ids = message_ids(&rpc, account_id, chat_id).await?;
+                let entries = message_entries(&rpc, account_id, chat_id).await?;
                 // The same page the model would have filled in for
                 // itself. Fetching every message in the chat here would
                 // put back exactly the cost the placeholders remove, one
                 // step earlier. Around the message a search found, when
                 // there is one, so the page arrives showing it rather than
                 // showing today and jumping.
-                let rows =
-                    fetch_messages(&rpc, account_id, opening_page(&ids, find_message_id)).await?;
-                Ok::<_, String>((is_group, ids, rows))
+                let page = ids_of(opening_page(&entries, find_message_id));
+                let rows = fetch_messages(&rpc, account_id, &page).await?;
+                Ok::<_, String>((is_group, entries, rows))
             }
             .await;
             // A failure is not reported here: the page's own model will

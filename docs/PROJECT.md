@@ -78,6 +78,18 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
 - **Rows are filled in where they stand.** `change_line` rather than a
   reset, so the view keeps its position and its delegates. An arrival is one
   row appended; a deletion is one removed. Nothing else moves.
+- **A row knows its day before it knows its message.**
+  `get_message_list_items` interleaves the core's own day markers when asked
+  for them, so the day comes with the id rather than with the message. Not a
+  nicety: the list is sectioned by day, so a row that does not know its day
+  sits under day 0, and a screenful of them is a heading reading 1 January
+  1970. Worse, each row moves to its real day as it is filled in, which
+  resizes a heading the view has already laid out and leaves it drawn over
+  the row beneath. The markers are local midnight, checked against the real
+  `deltachat-rpc-server` in three zones -- a marker at *UTC* midnight would
+  file every message in a zone behind UTC under yesterday -- and go through
+  the same `local_day_number` as a fetched row, so a row's day cannot change
+  when its message arrives.
 - **Following the newest message stops the moment something else moves the
   view.** A chat opens at its newest message and stays there as messages
   arrive -- which means every change to the content height sends the view

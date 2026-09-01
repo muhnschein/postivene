@@ -49,9 +49,14 @@ SilicaListView {
         }
     }
 
+    // Short: this is the wait between the reader arriving somewhere and the
+    // rows there having anything in them, and the system's scroll-to-top
+    // arrives in one step rather than over a flick's worth of frames. Long
+    // enough still to coalesce a flick, which changes `contentY` every frame
+    // and would otherwise walk the view for each of them.
     Timer {
         id: fillRows
-        interval: 120
+        interval: 60
         onTriggered: root.askForRows()
     }
 
@@ -371,8 +376,15 @@ SilicaListView {
     section.delegate: Label {
         objectName: "dayLabel"
         width: root.width
-        // A row that has not been filled in yet has no day, and every one
-        // of them would otherwise share a section headed by the epoch.
+        // A row knows its day before it knows its message -- the core's own
+        // day markers come with the id list -- so this heading is built at
+        // its final size and never changes it. That matters more than it
+        // sounds: a heading that gains its height after the view has laid
+        // out is drawn over the row beneath it, which is what was reported
+        // as the date strip overlapping the encryption notice.
+        //
+        // The guard is for a core that answers without markers, where every
+        // waiting row would otherwise share a section headed by the epoch.
         // Zero-high rather than absent, because the section delegate is
         // built whether or not it says anything.
         height: section === "0" ? 0 : implicitHeight

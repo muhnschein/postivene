@@ -41,29 +41,58 @@ const PAGE: usize = 50;
 /// does not walk into blank rows before the next fetch answers.
 const MARGIN: usize = 25;
 
+/// A message as the id list knows it: which message, and which day it is
+/// under.
+///
+/// The day arrives here rather than with the message, and that is the point.
+/// A placeholder whose day is unknown until it is fetched has to be
+/// re-sectioned when it is -- and a day heading that gains its height after
+/// the view has laid out is drawn on top of the row beneath it, while the
+/// rows still waiting share one section headed by the epoch. Both were
+/// reported: a strip saying 1 January 1970, then a real date overlapping
+/// the first message.
+///
+/// `get_message_list_items` interleaves the core's own day markers when
+/// asked for them, so this costs nothing but the flag.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) struct Entry {
+    pub message_id: u32,
+    pub day_number: i64,
+}
+
 /// The page a chat opens with filled in.
 ///
 /// `find` names a message to open at -- what a search result gives -- and
 /// anything not in the chat, 0 included, opens at the newest messages.
-pub(crate) fn opening_page(ids: &[u32], find: u32) -> &[u32] {
-    let start = match ids.iter().position(|id| *id == find) {
+pub(crate) fn opening_page(entries: &[Entry], find: u32) -> &[Entry] {
+    let start = match entries.iter().position(|entry| entry.message_id == find) {
         // Half a page above it, so it does not land against the top edge
         // with nothing before it.
         Some(index) => index.saturating_sub(PAGE / 2),
-        None => ids.len().saturating_sub(PAGE),
+        None => entries.len().saturating_sub(PAGE),
     };
-    let end = (start + PAGE).min(ids.len());
-    &ids[start..end]
+    let end = (start + PAGE).min(entries.len());
+    &entries[start..end]
+}
+
+/// The message ids of a run of entries, for handing to `get_messages`.
+pub(crate) fn ids_of(entries: &[Entry]) -> Vec<u32> {
+    entries.iter().map(|entry| entry.message_id).collect()
 }
 
 /// One row per message, with `items` filled in where they were fetched.
-fn rows_for(ids: &[u32], items: Vec<MessageListItem>) -> Vec<MessageListItem> {
+fn rows_for(entries: &[Entry], items: Vec<MessageListItem>) -> Vec<MessageListItem> {
     let mut fetched: BTreeMap<u32, MessageListItem> = items
         .into_iter()
         .map(|item| (item.message_id, item))
         .collect();
-    ids.iter()
-        .map(|id| fetched.remove(id).unwrap_or_else(|| placeholder(*id)))
+    entries
+        .iter()
+        .map(|entry| {
+            fetched
+                .remove(&entry.message_id)
+                .unwrap_or_else(|| placeholder(*entry))
+        })
         .collect()
 }
 
@@ -219,11 +248,6 @@ pub struct ChatMessages {
     /// moves too -- and which does not move at all when a removal and an
     /// arrival land in the same reload.
     pub arrived: qt_signal!(count: u32),
-
-    /// Every message id in the chat, oldest first. Cheap to hold and cheap
-    /// to refresh, and it is what every row stands for: reconciling after
-    /// an event is comparing this against the rows, nothing more.
-    all_ids: Vec<u32>,
 }
 
 impl ChatMessages {
@@ -375,10 +399,9 @@ impl ChatMessages {
         // Already loaded, by whoever opened this page: take it and skip
         // the round trip entirely. This is what lets the transition start
         // with the rows in place rather than fill in behind it.
-        if let Some((is_group, ids, items)) = crate::prefetch::take(account_id, chat_id) {
+        if let Some((is_group, entries, items)) = crate::prefetch::take(account_id, chat_id) {
             self.is_group = is_group;
-            self.rows.borrow_mut().reset_data(rows_for(&ids, items));
-            self.all_ids = ids;
+            self.rows.borrow_mut().reset_data(rows_for(&entries, items));
             self.loaded = true;
             self.is_group_changed();
             self.loaded_changed();
@@ -395,15 +418,17 @@ impl ChatMessages {
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
         let done = queued_callback(
-            move |result: Result<(bool, Vec<u32>, Vec<MessageListItem>), String>| {
+            move |result: Result<(bool, Vec<Entry>, Vec<MessageListItem>), String>| {
                 let Some(this) = ptr.as_pinned() else { return };
                 match result {
-                    Ok((is_group, ids, items)) => {
+                    Ok((is_group, entries, items)) => {
                         {
                             let mut this_mut = this.borrow_mut();
                             this_mut.is_group = is_group;
-                            this_mut.rows.borrow_mut().reset_data(rows_for(&ids, items));
-                            this_mut.all_ids = ids;
+                            this_mut
+                                .rows
+                                .borrow_mut()
+                                .reset_data(rows_for(&entries, items));
                             this_mut.loaded = true;
                         }
                         this.borrow().is_group_changed();
@@ -431,15 +456,16 @@ impl ChatMessages {
         runtime.spawn(async move {
             let result = async {
                 let is_group = chat_is_group(&rpc, account_id, chat_id).await;
-                let ids = message_ids(&rpc, account_id, chat_id).await?;
+                let entries = message_entries(&rpc, account_id, chat_id).await?;
                 // A row for every message, but the content of only one
                 // page. Ten thousand rows is a vector of ids; ten thousand
                 // *messages* is what used to be built on the Qt thread
                 // before the page could show any of them.
-                let items = fetch_messages(&rpc, account_id, opening_page(&ids, 0)).await?;
+                let items =
+                    fetch_messages(&rpc, account_id, &ids_of(opening_page(&entries, 0))).await?;
                 // Marking read is the callback's job, not this one's: what
                 // the reader can see is only knowable once the rows land.
-                Ok::<_, String>((is_group, ids, items))
+                Ok::<_, String>((is_group, entries, items))
             }
             .await;
             done(result);
@@ -611,18 +637,19 @@ impl ChatMessages {
         };
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
-        let done = queued_callback(move |result: Result<Vec<u32>, String>| {
+        let done = queued_callback(move |result: Result<Vec<Entry>, String>| {
             let Some(this) = ptr.as_pinned() else { return };
             if this.borrow().chat_id != chat_id {
                 return;
             }
-            let ids = match result {
-                Ok(ids) => ids,
+            let entries = match result {
+                Ok(entries) => entries,
                 Err(err) => {
                     this.borrow().error(err.into());
                     return;
                 }
             };
+            let ids = ids_of(&entries);
 
             let current: Vec<u32> = this
                 .borrow()
@@ -632,7 +659,6 @@ impl ChatMessages {
                 .map(|item| item.message_id)
                 .collect();
             if current == ids {
-                this.borrow_mut().all_ids = ids;
                 return;
             }
 
@@ -666,7 +692,6 @@ impl ChatMessages {
             }
 
             let arrived: Vec<u32> = ids[kept.len()..].to_vec();
-            this.borrow_mut().all_ids = ids;
             this.borrow().rows_changed();
             if !arrived.is_empty() {
                 this.borrow_mut().absorb(arrived);
@@ -674,7 +699,7 @@ impl ChatMessages {
         });
 
         runtime.spawn(async move {
-            done(message_ids(&rpc, account_id, chat_id).await);
+            done(message_entries(&rpc, account_id, chat_id).await);
         });
     }
 
@@ -1041,32 +1066,54 @@ impl ChatMessages {
     }
 }
 
-/// The chat's message ids, oldest first.
-pub(crate) async fn message_ids(
+/// The chat's messages, oldest first, each under the day it belongs to.
+///
+/// The last argument asks the core to interleave day markers, which it
+/// gives as the local midnight starting each day -- checked against the
+/// real `deltachat-rpc-server` in three zones, because a marker at *UTC*
+/// midnight would put every message in a zone behind UTC under yesterday.
+/// `local_day_number` is the same function the fetched rows go through, so
+/// a row's day cannot change when it is filled in.
+pub(crate) async fn message_entries(
     rpc: &RpcClient,
     account_id: u32,
     chat_id: u32,
-) -> Result<Vec<u32>, String> {
+) -> Result<Vec<Entry>, String> {
     let items: Vec<serde_json::Value> = rpc
-        .call(
-            "get_message_list_items",
-            (account_id, chat_id, false, false),
-        )
+        .call("get_message_list_items", (account_id, chat_id, false, true))
         .await
         .map_err(|err| err.to_string())?;
-    Ok(items
-        .iter()
-        .filter(|item| item.get("kind").and_then(serde_json::Value::as_str) == Some("message"))
-        .filter_map(|item| {
-            // `rename_all` sits at the enum level upstream, renaming variants
-            // but not fields: this really is snake_case on the wire. `msgId`
-            // accepted in case that changes.
-            item.get("msg_id")
-                .or_else(|| item.get("msgId"))
-                .and_then(serde_json::Value::as_u64)
-                .and_then(|id| u32::try_from(id).ok())
-        })
-        .collect())
+    let mut entries = Vec::with_capacity(items.len());
+    // Carried forward from the last marker seen: the core emits one before
+    // each day's first message, so every message after it is under that day.
+    let mut day_number = 0;
+    for item in &items {
+        match item.get("kind").and_then(serde_json::Value::as_str) {
+            Some("dayMarker") => {
+                if let Some(timestamp) = item.get("timestamp").and_then(serde_json::Value::as_i64) {
+                    day_number = local_day_number(timestamp);
+                }
+            }
+            Some("message") => {
+                // `rename_all` sits at the enum level upstream, renaming
+                // variants but not fields: this really is snake_case on the
+                // wire. `msgId` accepted in case that changes.
+                if let Some(message_id) = item
+                    .get("msg_id")
+                    .or_else(|| item.get("msgId"))
+                    .and_then(serde_json::Value::as_u64)
+                    .and_then(|id| u32::try_from(id).ok())
+                {
+                    entries.push(Entry {
+                        message_id,
+                        day_number,
+                    });
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(entries)
 }
 
 /// Fetch several messages in one call. The old code asked for them one at a
@@ -1165,9 +1212,12 @@ pub fn local_day_number(timestamp: i64) -> i64 {
 /// The model holds one of these per message in the chat from the moment the
 /// id list arrives, which is what makes the first message row 0 and keeps it
 /// there however far the reader scrolls.
-fn placeholder(message_id: u32) -> MessageListItem {
+fn placeholder(entry: Entry) -> MessageListItem {
     MessageListItem {
-        message_id,
+        message_id: entry.message_id,
+        // Known before the message is, so the row is under the right day
+        // heading from the start and that heading never changes size.
+        day_number: entry.day_number,
         loaded: false,
         ..MessageListItem::default()
     }

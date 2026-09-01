@@ -226,6 +226,7 @@ Page {
             Clipboard.text = body
             notice.show(qsTr("Copied to clipboard"))
         }
+        onOpenRequested: page.openAttachment(fileUrl, fileName, viewType)
         onDeleteRequested: messages.delete_message(messageId)
         onResendRequested: messages.resend_message(messageId)
         onForwardRequested: {
@@ -377,6 +378,29 @@ Page {
                 size: BusyIndicatorSize.Small
                 running: messages.sending
             }
+        }
+    }
+
+    // Which kinds Postivene shows itself, and which it hands on. Handing a
+    // picture or a video to the system took the reader out of the app to
+    // something that then failed to play it; everything else is still
+    // somebody else's file to open, and a page here that could only say
+    // "cannot show this" would be worse than the handover.
+    function openAttachment(fileUrl, fileName, viewType) {
+        if (viewType === "Image" || viewType === "Gif"
+                || viewType === "Sticker") {
+            pageStack.push(Qt.resolvedUrl("PicturePage.qml"), {
+                fileUrl: fileUrl,
+                fileName: fileName,
+                viewType: viewType
+            })
+        } else if (viewType === "Video") {
+            pageStack.push(Qt.resolvedUrl("VideoPage.qml"), {
+                fileUrl: fileUrl,
+                fileName: fileName
+            })
+        } else {
+            Qt.openUrlExternally(fileUrl)
         }
     }
 

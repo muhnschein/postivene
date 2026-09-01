@@ -196,6 +196,9 @@ SilicaListView {
     signal deleteRequested(int messageId)
     signal resendRequested(int messageId)
     signal forwardRequested(int messageId)
+    /// The reader tapped an attachment. What opening it means -- a page
+    /// here, or handing it to another app -- is the page's decision.
+    signal openRequested(url fileUrl, string fileName, string viewType)
 
     /// Back to the newest message, and following again.
     function jumpToNewest() {
@@ -436,6 +439,7 @@ SilicaListView {
             vcardName: model.vcard_name
             vcardAddr: model.vcard_addr
             vcardColor: model.vcard_color
+            onOpenRequested: root.openRequested(fileUrl, fileName, viewType)
         }
     }
 

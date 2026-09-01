@@ -131,26 +131,24 @@ impl ChatPrefetch {
         }
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
-        let done = queued_callback(
-            move |result: Option<Loaded>| {
-                let Some(this) = ptr.as_pinned() else { return };
-                // A second tap started a newer one: that is the chat the
-                // reader is waiting for, and this answer would open the wrong
-                // page.
-                if this.borrow().generation != generation {
-                    return;
-                }
-                if let Some(loaded) = result {
-                    store(this.borrow().account_id, chat_id, loaded);
-                }
-                {
-                    let mut this_mut = this.borrow_mut();
-                    this_mut.loading = false;
-                }
-                this.borrow().loading_changed();
-                this.borrow().ready(chat_id);
-            },
-        );
+        let done = queued_callback(move |result: Option<Loaded>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            // A second tap started a newer one: that is the chat the
+            // reader is waiting for, and this answer would open the wrong
+            // page.
+            if this.borrow().generation != generation {
+                return;
+            }
+            if let Some(loaded) = result {
+                store(this.borrow().account_id, chat_id, loaded);
+            }
+            {
+                let mut this_mut = this.borrow_mut();
+                this_mut.loading = false;
+            }
+            this.borrow().loading_changed();
+            this.borrow().ready(chat_id);
+        });
 
         runtime.spawn(async move {
             let loaded = async {

@@ -408,6 +408,14 @@
     </message>
 </context>
 <context>
+    <name>PicturePage</name>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ProfilesPage</name>
     <message>
         <source>Profiles</source>
@@ -515,6 +523,14 @@
     </message>
     <message>
         <source>Tells the people you write to when you have read their messages, and asks the same of them. With this off you send none and see none.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>VideoPage</name>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
         <translation type="unfinished"></translation>
     </message>
 </context>

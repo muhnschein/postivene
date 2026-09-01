@@ -144,7 +144,11 @@ fn a_photo_with_an_orientation_tag_is_shown_turned_and_measured_turned() {
     single_shot(Duration::from_secs(2), move || unsafe {
         (*steps_ptr).push((
             "status",
-            call!("get", QString::from("attachmentImage"), QString::from("status")),
+            call!(
+                "get",
+                QString::from("attachmentImage"),
+                QString::from("status")
+            ),
         ));
         (*steps_ptr).push((
             "decoded-width",

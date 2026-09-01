@@ -23,6 +23,7 @@ SearchField 1.0 SearchField.qml
 SectionHeader 1.0 SectionHeader.qml
 SilicaFlickable 1.0 SilicaFlickable.qml
 SilicaListView 1.0 SilicaListView.qml
+Slider 1.0 Slider.qml
 TextField 1.0 TextField.qml
 TextSwitch 1.0 TextSwitch.qml
 ViewPlaceholder 1.0 ViewPlaceholder.qml

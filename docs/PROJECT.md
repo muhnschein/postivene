@@ -94,6 +94,19 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   opens up in between: copying a large video into the core's blob directory
   takes seconds, and a second tap in those seconds used to send the whole
   thing again.
+- **Pictures and video open in the app.** Handing them to the system took
+  the reader out of Postivene to something that then failed to show them.
+  A picture gets a page with a pinch-zoom flickable; a video gets
+  QtMultimedia, which is already how a voice message plays in its own row.
+  Everything else is still somebody else's file: a page here that could
+  only say "cannot show this" would be worse than the handover. The way
+  out to another app stays in each viewer's pull-down.
+- **A photo is shown the way it was taken.** `Image.autoTransform` reads
+  the EXIF orientation tag, which is where a camera records the turn
+  rather than applying it to the pixels. The row is measured from the
+  decoded picture rather than from the core's dimensions for the same
+  reason: the core reads the file's header, so its answer is the size
+  before the turn.
 - **The core classifies attachments, not the app.** Every file goes to
   `misc_send_msg` and comes back with a `viewType` the core chose from the
   file itself; `AttachmentPreview` picks a renderer from that answer and

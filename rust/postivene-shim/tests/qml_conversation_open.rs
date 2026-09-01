@@ -51,7 +51,12 @@ const PROBE_QML: &str = r"
             account_id: 1
             onReady: readyFor = chat_id
         }
-        function prefetchChat(chatId) { prefetch.start(chatId); return 'ok' }
+        // 0 for the message to open at: this is an ordinary tap on a
+        // chat, not a search result.
+        function prefetchChat(chatId) {
+            prefetch.start(chatId, 0)
+            return 'ok'
+        }
         function prefetched() { return '' + readyFor }
 
         // Created the way pageStack.push does, still on its way in.

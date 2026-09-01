@@ -533,7 +533,7 @@ fn qualified_uses(code: &str) -> Vec<(usize, String)> {
 #[test]
 fn qml_reads_no_name_that_is_not_there() {
     // What QML puts in scope without the file saying so.
-    const IN_SCOPE: [&str; 13] = [
+    const IN_SCOPE: [&str; 14] = [
         // Grouped properties, and properties of the element being
         // configured read without qualifying them.
         "anchors",
@@ -543,6 +543,9 @@ fn qml_reads_no_name_that_is_not_there() {
         "parent",
         // On Image, AnimatedImage and Nemo's Thumbnail: how big to decode.
         "sourceSize",
+        // PinchArea's own grouped property, and the PinchEvent its
+        // handlers are passed under the same name.
+        "pinch",
         // A delegate's scope.
         "model",
         "modelData",

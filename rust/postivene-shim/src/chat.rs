@@ -1177,8 +1177,7 @@ impl ChatMessages {
                             let mut rows = this_mut.rows.borrow_mut();
                             // The event for our own send can beat this
                             // reply, in which case the row is already there.
-                            let existing =
-                                rows.iter().position(|row| row.message_id == message_id);
+                            let existing = rows.iter().position(|row| row.message_id == message_id);
                             if let Some(index) = existing {
                                 rows.change_line(index, item);
                             } else {

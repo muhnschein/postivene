@@ -156,7 +156,10 @@ fn a_search_result_is_on_the_page_and_the_beginning_is_a_tap_away() {
     }
 
     single_shot(Duration::from_secs(1), move || unsafe {
-        (*steps_ptr).push(("prefetch", call!("prefetchAt", 1, i32::try_from(FOUND).unwrap_or(0))));
+        (*steps_ptr).push((
+            "prefetch",
+            call!("prefetchAt", 1, i32::try_from(FOUND).unwrap_or(0)),
+        ));
     });
 
     single_shot(Duration::from_secs(3), move || unsafe {

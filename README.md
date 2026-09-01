@@ -52,13 +52,16 @@ architecture.
 $ git clone https://github.com/muhnschein/postivene.git
 $ cd postivene
 $ scripts/fetch-rpc-server.sh     # bundled deltachat-rpc-server binaries
-$ scripts/build-rpm.sh aarch64    # or: armv7hl; add a version, e.g. 5.0.0.62
+$ scripts/build-rpm.sh aarch64    # or: armv7hl; add a version, e.g. 5.2.0.15
 ```
 
-Everything else needs no phone, account, or network:
+Everything else needs no phone or account, and mostly no network (`msrv`
+fetches a toolchain once, `deny` and `vendor-check` fetch what they
+compare against):
 
 ```
-# Everything CI runs: fmt, clippy, tests, qmllint, packaging checks.
+# What CI runs, less the real-core integration tests: fmt, clippy, tests,
+# qmllint, packaging and Harbour checks, licences and advisories.
 $ make check
 
 # Compile against Sailfish's Rust 1.75 floor.

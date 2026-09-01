@@ -32,11 +32,13 @@ for f in $files; do
 done
 
 cat > "$dest/UPSTREAM" <<EOF
-The .conf files in this directory are copied verbatim from
+The .conf files in this directory, waivers.conf excepted, are copied
+verbatim from
 
     $repo
 
 at commit $commit ($date), by scripts/update-harbour-rules.sh.
+ci/harbour-validate-rpm.sh runs the validator from that same commit.
 
 They carry that project's licence, GPL-2.0-or-later, which Postivene's own
 GPL-3.0-or-later terms accept. rpmvalidation.sh itself is not vendored:

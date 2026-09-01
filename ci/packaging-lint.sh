@@ -8,6 +8,19 @@ root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 status=0
 ran=0
 
+# PACKAGING_LINT_STRICT=1 turns "the tool for this check is missing" into
+# a failure. CI sets it, so the job cannot quietly stop checking when the
+# apt line that installs the tools changes.
+strict=${PACKAGING_LINT_STRICT:-0}
+skip() {
+    if [ "$strict" = 1 ]; then
+        echo "packaging-lint: FAIL $1 is not installed ($2) (strict mode)" >&2
+        status=1
+    else
+        echo "packaging-lint: SKIP $1 ($2)"
+    fi
+}
+
 if command -v rpmspec >/dev/null 2>&1; then
     ran=$((ran + 1))
     # -P expands and parses only; BuildRequires are the SDK's job.
@@ -18,7 +31,7 @@ if command -v rpmspec >/dev/null 2>&1; then
         status=1
     fi
 else
-    echo "packaging-lint: SKIP rpmspec (install rpm)"
+    skip rpmspec "install rpm"
 fi
 
 # rpm expands macros inside comments, and the SDK's rpm still does even
@@ -55,7 +68,7 @@ if command -v desktop-file-validate >/dev/null 2>&1; then
         status=1
     fi
 else
-    echo "packaging-lint: SKIP desktop-file-validate (install desktop-file-utils)"
+    skip desktop-file-validate "install desktop-file-utils"
 fi
 
 # Every build has to be a distinguishable package.
@@ -100,7 +113,10 @@ fi
 if command -v lupdate >/dev/null 2>&1 || command -v lupdate-qt5 >/dev/null 2>&1; then
     ran=$((ran + 1))
     # The suffix matters: lupdate picks its format from the extension.
-    fresh=$(mktemp --suffix=.ts)
+    # A directory from mktemp and a name inside it, since `--suffix` is
+    # GNU's alone and this is a /bin/sh script.
+    fresh_dir=$(mktemp -d)
+    fresh="$fresh_dir/postivene.ts"
     cp "$root/translations/postivene.ts" "$fresh"
     if "$root/scripts/update-translations.sh" "$fresh" >/dev/null 2>&1 &&
         diff -q "$root/translations/postivene.ts" "$fresh" >/dev/null; then
@@ -109,9 +125,30 @@ if command -v lupdate >/dev/null 2>&1 || command -v lupdate-qt5 >/dev/null 2>&1;
         echo "packaging-lint: FAIL translations/postivene.ts is stale; run scripts/update-translations.sh" >&2
         status=1
     fi
-    rm -f "$fresh"
+    rm -rf "$fresh_dir"
 else
-    echo "packaging-lint: SKIP lupdate (install qttools5-dev-tools)"
+    skip lupdate "install qttools5-dev-tools"
+fi
+
+# Every docs/<name>.md that a comment, a script or a document points at
+# has to exist. Seven of them went in a tidy-up and left thirty-odd
+# references behind, each sending a reader to a file that was not there.
+ran=$((ran + 1))
+missing=$(grep -rhoE 'docs/[A-Za-z0-9_-]+\.md' "$root" \
+        --include='*.rs' --include='*.qml' --include='*.js' --include='*.sh' \
+        --include='*.yml' --include='*.toml' --include='*.md' --include='*.spec' \
+        --include='.gitignore' --include='Makefile' --include='*.conf' \
+        --exclude-dir=.git --exclude-dir=target --exclude-dir=vendor \
+        --exclude-dir=third_party |
+    sort -u | while read -r ref; do
+        [ -f "$root/$ref" ] || echo "  $ref"
+    done)
+if [ -z "$missing" ]; then
+    echo "packaging-lint: every docs/*.md referenced exists"
+else
+    echo "$missing" >&2
+    echo "packaging-lint: FAIL these documents are referenced but do not exist; repoint or restore them" >&2
+    status=1
 fi
 
 if command -v shellcheck >/dev/null 2>&1; then
@@ -123,7 +160,7 @@ if command -v shellcheck >/dev/null 2>&1; then
         status=1
     fi
 else
-    echo "packaging-lint: SKIP shellcheck (install shellcheck)"
+    skip shellcheck "install shellcheck"
 fi
 
 if [ "$ran" -eq 0 ]; then

@@ -1,0 +1,11 @@
+# Moves the commit-pinned actions in .github/workflows along, with the
+# version in the trailing comment kept in step. Cargo is deliberately not
+# here: a dependency bump has to respect the 1.75 floor (rust/Cargo.toml),
+# which Dependabot does not know about, and CI's msrv job is what judges
+# one.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

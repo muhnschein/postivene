@@ -40,7 +40,9 @@ fmt:
 qml-lint:
 	./ci/qml-lint.sh
 
-## The spec parses, the desktop entry is valid, the shell scripts are clean.
+## The spec parses, the desktop entry is valid, the shell scripts are
+## clean, every docs/*.md a comment points at exists. A missing tool is a
+## SKIP here and a failure in CI (PACKAGING_LINT_STRICT=1).
 packaging-lint:
 	./ci/packaging-lint.sh
 
@@ -77,9 +79,14 @@ vendor-check:
 
 ## Licences and advisories, as CI's `deny` job runs them. Needs
 ## `cargo install cargo-deny`, and the advisory database (network).
+##
+## A missing tool is a skip; a finding is a failure. The two used to share
+## one `||`, which printed SKIP over a real advisory and let `make check`
+## exit 0 on it.
 deny:
-	cd rust && $(CARGO) deny check || \
-		echo "deny: SKIP (cargo-deny not installed)"
+	@command -v cargo-deny >/dev/null 2>&1 || \
+		{ echo "deny: SKIP (cargo-deny not installed)"; exit 0; }
+	cd rust && $(CARGO) deny check
 
 ## Fetch the pinned upstream deltachat-rpc-server binaries (network).
 fetch-server:

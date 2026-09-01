@@ -8,7 +8,6 @@
 # ("to avoid problems with glibc version incompatibility", per their CI
 # workflow), so a binary depends only on the kernel -- this is why a
 # generic upstream build is expected to run on Sailfish unmodified.
-# On-device confirmation is still Milestone 1's final step.
 #
 # Source: the exact same binaries upstream attaches to its GitHub release
 # are also published inside its PyPI wheels (see
@@ -46,16 +45,27 @@ fetch_one() {
     echo ">> $sfos_arch (upstream $upstream_arch)"
     # pip resolves PyPI's hash-addressed file URL; --no-deps and the exact
     # version pin keep it honest, and the sha256 check below keeps it
-    # honest even if the index were tampered with.
+    # honest even if the index were tampered with. --isolated and the
+    # explicit index: a PIP_INDEX_URL or pip.conf on the machine running
+    # this would otherwise point it at a mirror without anyone knowing --
+    # the hashes would still catch a substitution, but as a puzzling
+    # failure rather than a named one.
     pip download "deltachat-rpc-server==$VERSION" --no-deps \
+        --isolated --index-url https://pypi.org/simple --no-cache-dir \
         --platform "musllinux_1_1_$upstream_arch" --only-binary=:all: \
         -d "$workdir" >/dev/null
 
-    echo "$wheel_sha  $workdir/$wheel" | sha256sum -c - >/dev/null
+    echo "$wheel_sha  $workdir/$wheel" | sha256sum -c - >/dev/null || {
+        echo "fetch-rpc-server: checksum mismatch for $wheel; refusing to install it" >&2
+        exit 1
+    }
 
     unzip -oq "$workdir/$wheel" -d "$workdir/$sfos_arch"
     bin="$workdir/$sfos_arch/deltachat_rpc_server/deltachat-rpc-server"
-    echo "$bin_sha  $bin" | sha256sum -c - >/dev/null
+    echo "$bin_sha  $bin" | sha256sum -c - >/dev/null || {
+        echo "fetch-rpc-server: checksum mismatch for the $sfos_arch binary inside $wheel; refusing to install it" >&2
+        exit 1
+    }
 
     install -Dm 755 "$bin" "$vendor_dir/$sfos_arch/deltachat-rpc-server"
     echo "   -> vendor/deltachat-rpc-server/$sfos_arch/deltachat-rpc-server"

@@ -78,6 +78,15 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
 - **Rows are filled in where they stand.** `change_line` rather than a
   reset, so the view keeps its position and its delegates. An arrival is one
   row appended; a deletion is one removed. Nothing else moves.
+- **The day heading is drawn inside the row it heads.** `section.property`
+  is set, so the view still groups by day and fills in `ListView.section`
+  and `ListView.previousSection` on each delegate -- but there is no
+  `section.delegate`. A section delegate is its own item, positioned above
+  its row and sized from whatever height the view last measured, and a date
+  drawn on top of the message beneath it was reported twice. Getting the
+  height right at creation was not enough, because where the row goes is the
+  view's bookkeeping rather than ours. Inside the row it is arithmetic: the
+  heading is part of `contentHeight`, and a row cannot be drawn over itself.
 - **A row knows its day before it knows its message.**
   `get_message_list_items` interleaves the core's own day markers when asked
   for them, so the day comes with the id rather than with the message. Not a

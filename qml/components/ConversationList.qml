@@ -372,38 +372,22 @@ SilicaListView {
 
     // The model counts days in the viewer's timezone, so grouping by that
     // number is enough to break the list into days.
+    //
+    // Declared without a `section.delegate`: the grouping is wanted, the
+    // separate item is not. A section delegate is its own item, positioned
+    // by the view above the row it heads and sized from whatever height it
+    // reported when the view last measured it -- and a heading drawn over
+    // the message beneath it was the report. Getting the height right at
+    // creation was not enough, and the bookkeeping that decides where the
+    // row goes is the view's rather than ours.
+    //
+    // So the heading is drawn *inside* the row instead, in `dayHeading`
+    // below. `ListView.section` and `ListView.previousSection` come from
+    // this property alone -- the view fills them in whether or not there is
+    // a delegate to build -- so the view still says where a day starts, and
+    // the heading is part of the row's own height. A row cannot be drawn
+    // over itself.
     section.property: "day_number"
-    section.delegate: Label {
-        objectName: "dayLabel"
-        width: root.width
-        // A row knows its day before it knows its message -- the core's own
-        // day markers come with the id list -- so this heading is built at
-        // its final size and never changes it. That matters more than it
-        // sounds: a heading that gains its height after the view has laid
-        // out is drawn over the row beneath it, which is what was reported
-        // as the date strip overlapping the encryption notice.
-        //
-        // The guard is for a core that answers without markers, where every
-        // waiting row would otherwise share a section headed by the epoch.
-        // Zero-high rather than absent, because the section delegate is
-        // built whether or not it says anything.
-        height: section === "0" ? 0 : implicitHeight
-        visible: section !== "0"
-        horizontalAlignment: Text.AlignHCenter
-        font.pixelSize: Theme.fontSizeExtraSmall
-        color: Theme.secondaryColor
-        // No offset arithmetic: the section is a day number, so read its
-        // calendar date in UTC and rebuild it as a local date with the
-        // same parts. Subtracting an offset here would reintroduce
-        // exactly the daylight-saving error the model now avoids.
-        text: {
-            var utc = new Date(parseInt(section, 10) * 86400000)
-            return Qt.formatDate(new Date(utc.getUTCFullYear(),
-                                          utc.getUTCMonth(),
-                                          utc.getUTCDate(), 12),
-                                 Qt.DefaultLocaleLongDate)
-        }
-    }
 
     delegate: ListItem {
         id: messageRow
@@ -462,8 +446,59 @@ SilicaListView {
         // dozen wrapped lines, and a fixed row height makes them overlap
         // each other and the header. A row whose message has not been
         // fetched yet stands at one line, which is what gives the list a
-        // length before any of it has been read.
-        contentHeight: model.loaded ? body.height : Theme.itemSizeExtraSmall
+        // length before any of it has been read. The day heading, when
+        // this row carries one, is part of that height rather than
+        // something the view has to find room for.
+        contentHeight: dayHeading.height
+                       + (model.loaded ? body.height : Theme.itemSizeExtraSmall)
+
+        /// The date this row's day starts under, on the first row of each
+        /// day and nowhere else.
+        ///
+        /// Inside the row rather than a `section.delegate`, so that where it
+        /// sits is arithmetic here rather than the view's bookkeeping: see
+        /// `section.property` above.
+        Label {
+            id: dayHeading
+            objectName: "dayLabel"
+            width: parent.width
+            // The view fills these in from `section.property`. A row whose
+            // day differs from the one before it is the first of its day;
+            // the first row in the list has no previous section, which
+            // reads as an empty string and so counts as a change.
+            //
+            // Day 0 is a row whose day is not known, which happens only if
+            // the core answers the id list without day markers. Heading a
+            // run of those with the epoch would be worse than heading them
+            // with nothing.
+            // Attached to the delegate root, not to this label: `ListView`
+            // attaches to the item the view created. Outside a view both
+            // read undefined, which is not "0" and does equal itself, so
+            // this comes out false rather than erroring.
+            visible: messageRow.ListView.section !== "0"
+                     && messageRow.ListView.section
+                        !== messageRow.ListView.previousSection
+            height: visible ? implicitHeight + Theme.paddingMedium : 0
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            font.pixelSize: Theme.fontSizeExtraSmall
+            color: Theme.secondaryColor
+            // No offset arithmetic: the section is a day number, so read
+            // its calendar date in UTC and rebuild it as a local date with
+            // the same parts. Subtracting an offset here would reintroduce
+            // exactly the daylight-saving error the model now avoids.
+            text: {
+                var day = parseInt(messageRow.ListView.section, 10)
+                if (isNaN(day)) {
+                    return ""
+                }
+                var utc = new Date(day * 86400000)
+                return Qt.formatDate(new Date(utc.getUTCFullYear(),
+                                              utc.getUTCMonth(),
+                                              utc.getUTCDate(), 12),
+                                     Qt.DefaultLocaleLongDate)
+            }
+        }
 
         // Only what is on screen is built, so this is not the whole chat's
         // worth of delegates -- but a placeholder must not try to draw a
@@ -471,6 +506,7 @@ SilicaListView {
         MessageDelegate {
             id: body
             visible: model.loaded
+            y: dayHeading.height
             width: parent.width
             messageText: model.text
             isOutgoing: model.is_outgoing

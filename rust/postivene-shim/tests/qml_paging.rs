@@ -101,6 +101,35 @@ const PROBE_QML: &str = r"
             list.forceLayout()
             return 'ok'
         }
+        /// Where the topmost day heading and the topmost row actually sit.
+        ///
+        /// Both are children of the list's content item, so their `y` is in
+        /// one coordinate space and can be compared. A heading whose bottom
+        /// is past the top of the row beneath it is drawn over that row.
+        function geometry() {
+            var list = find('messageList')
+            var kids = list.contentItem.children
+            var row = null
+            for (var i = 0; i < kids.length; i++) {
+                var kid = kids[i]
+                if (kid.objectName === 'messageRow'
+                        && (row === null || kid.y < row.y)) {
+                    row = kid
+                }
+            }
+            if (!row) { return 'no-row' }
+            var head = findIn(row, 'dayLabel')
+            if (!head) { return 'no-heading' }
+            if (!head.visible) { return 'heading-hidden' }
+            // In the row's own coordinates, so containment is the question.
+            var top = head.mapToItem(row, 0, 0).y
+            var bottom = head.mapToItem(row, 0, head.height).y
+            if (top < 0) { return 'above-row:' + Math.round(top) }
+            if (bottom > row.height) {
+                return 'past-row:' + Math.round(bottom - row.height)
+            }
+            return 'inside'
+        }
         /// Whether the list is still trying to keep the reader at the
         /// newest message after they asked for the oldest.
         function stillFollowing() {
@@ -134,6 +163,10 @@ fn the_top_of_the_view_is_the_first_message_in_the_chat() {
         // Messages long enough to wrap, so filling a row in really does
         // change its height -- which is what used to carry the reader off.
         std::env::set_var("POSTIVENE_FAKE_WORDY", "1");
+        // And the first row a core notice, as a real chat's is: the report
+        // was a date drawn over "messages are end-to-end encrypted", which
+        // is the first row of the first day of every chat there is.
+        std::env::set_var("POSTIVENE_FAKE_INFO_FIRST", "1");
     }
 
     postivene_shim::register_qml_types();
@@ -193,6 +226,7 @@ fn the_top_of_the_view_is_the_first_message_in_the_chat() {
         // The rows the reader is looking at have just gained their text and
         // grown; they must not have taken the reader with them.
         (*steps_ptr).push(("relayout", call!("relayout")));
+        (*steps_ptr).push(("geometry", call!("geometry")));
         (*steps_ptr).push(("top-after", call!("topId")));
         (*steps_ptr).push(("rows-after", call!("rowCount")));
         (*engine_ptr).quit();
@@ -228,6 +262,19 @@ fn assert_outcome(steps: &[(&str, String)]) {
         "the list was still following the newest message after the reader \
          was taken to the oldest, so the next row to be measured hauls them \
          back down again. {context}"
+    );
+
+    // The day heading is part of the row, not an item the view has to find
+    // room for above it. That is what makes the overlap reported against the
+    // section delegate -- a date drawn on top of the encryption notice --
+    // impossible rather than merely fixed: a row cannot be drawn over
+    // itself, whatever the view believes about section sizes.
+    assert_eq!(
+        value("geometry"),
+        "inside",
+        "the day heading is not inside the row it heads ({:?}), so where it \
+         is drawn depends on the view's own section bookkeeping. {context}",
+        value("geometry")
     );
 
     // The whole report, in one assertion.

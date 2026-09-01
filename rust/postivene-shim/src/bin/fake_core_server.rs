@@ -217,16 +217,24 @@ fn day_start(timestamp: i64) -> i64 {
 
 fn message_object(msg: u64) -> Value {
     let timestamp = message_timestamp(msg);
+    let info_first = msg == 1 && std::env::var_os("POSTIVENE_FAKE_INFO_FIRST").is_some();
     let mut message = json!({
         "kind": "message",
-        "text": wordy(msg),
+        "text": if info_first {
+            "Messages are end-to-end encrypted.".to_string()
+        } else {
+            wordy(msg)
+        },
         "fromId": 10,
         "timestamp": timestamp,
         "showPadlock": true,
         // One seeded message is unread, and so is anything added while
         // the test runs: an arrival is the case worth covering.
         "state": if msg == 2 || msg > 100 { 10 } else { 16 },
-        "isInfo": false,
+        // The first message of a real chat is the core's own "messages are
+        // end-to-end encrypted" notice, which is the row the day heading
+        // was reported drawn on top of.
+        "isInfo": info_first,
         "viewType": "Text",
         "sender": {"id": 10, "displayName": "Ada Lovelace", "color": "#00875a"},
         "overrideSenderName": null,

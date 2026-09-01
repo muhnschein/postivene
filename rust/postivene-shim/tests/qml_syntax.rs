@@ -80,10 +80,24 @@ fn wrapping_list_rows_size_to_their_text() {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/components/ConversationList.qml");
     let text = fs::read_to_string(&path).expect("read ConversationList.qml");
 
-    let height = text
-        .lines()
-        .find(|line| line.trim_start().starts_with("contentHeight:"))
-        .unwrap_or("");
+    // The whole binding, not the line it starts on. It wraps -- a row's
+    // height is its message plus the day heading it may carry -- and
+    // reading only the first line would fail a row that does follow its
+    // delegate, or pass one that stopped.
+    let lines: Vec<&str> = text.lines().collect();
+    let start = lines
+        .iter()
+        .position(|line| line.trim_start().starts_with("contentHeight:"))
+        .expect("ConversationList.qml states a row's contentHeight");
+    let mut height = lines[start].trim().to_string();
+    for line in &lines[start + 1..] {
+        let trimmed = line.trim();
+        if !trimmed.starts_with(['+', '-', '*', '/', '?', ':', '&', '|']) {
+            break;
+        }
+        height.push(' ');
+        height.push_str(trimmed);
+    }
     assert!(
         height.contains("body.height"),
         "the message row's contentHeight does not follow the delegate it \

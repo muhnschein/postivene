@@ -6,10 +6,20 @@
 //! its list forgets where it was, and what a list forgets it replaces with
 //! the beginning.
 //!
-//! Offscreen Qt has no render loop, so nothing here tears the view down on
-//! its own -- the forgetting has to be done by hand. That makes this a test
-//! of the answer rather than of the fault: the place is remembered as the
-//! page goes, thrown away, and put back as the page returns.
+//! Putting the place back when the page returns was not enough, and the
+//! second report said exactly why: the reader saw the top of the chat and
+//! was *then* yanked back. The list is reset while the page is away, and a
+//! frame showing the wrong rows is painted before anything gets round to
+//! correcting it. So the row is held from the moment the page goes rather
+//! than restored when it comes back, and the reset is undone in the same
+//! turn it happens.
+//!
+//! Which is what this pins, and why the check is on the moment the place
+//! is thrown away rather than on the moment it comes back: the view has to
+//! be right *there*, with no wrong frame in between. Offscreen Qt has no
+//! render loop, so the throwing away is done by hand -- but a
+//! `positionViewAtBeginning` that does not stick is exactly the reset the
+//! device performs on its own.
 
 // Qt harness: see qml_conversation_open.rs.
 #![allow(
@@ -221,20 +231,30 @@ fn assert_outcome(steps: &[(&str, String)]) {
         "the test never established where the reader was, so it proved \
          nothing. {context}"
     );
-    // The setup has to have actually lost the place, or putting it back
-    // proves nothing either.
-    assert_ne!(
+    // The whole point. Not "it comes back right in the end" -- it must
+    // never be wrong, because every moment it is wrong is a frame the
+    // reader sees.
+    assert_eq!(
         value("forgotten"),
         value("before"),
-        "the view kept its place on its own, so this run says nothing \
-         about getting it back. {context}"
+        "the view was knocked off the reader's place while the page was \
+         away: it went to message {:?} and would have been painted there \
+         before anything put it back, which is the flash of the oldest \
+         messages this is here to stop. {context}",
+        value("forgotten")
+    );
+    assert_eq!(
+        value("straight-back"),
+        value("before"),
+        "the page came back somewhere other than where the reader left \
+         it. {context}"
     );
     assert_eq!(
         value("after"),
         value("before"),
-        "the reader opened something over the conversation and came back \
-         to a different part of it: they were looking at message {:?} and \
-         returned to {:?}. {context}",
+        "the rows settled after the page came back and carried the reader \
+         off with them: they were looking at message {:?} and ended up at \
+         {:?}. {context}",
         value("before"),
         value("after")
     );

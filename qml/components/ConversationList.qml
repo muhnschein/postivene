@@ -119,7 +119,16 @@ SilicaListView {
         }
     }
 
-    onContentYChanged: root.checkEdges()
+    onContentYChanged: {
+        // While the page is away nobody is scrolling, so anything moving
+        // the view is the list losing its place rather than the reader
+        // choosing to.
+        if (root.away && root.pendingRow >= 0) {
+            root.putBack()
+            return
+        }
+        root.checkEdges()
+    }
 
     // Above the oldest row, so it scrolls away with the history rather
     // than sitting over it. Zero-high when there is nothing more to fetch,
@@ -134,14 +143,24 @@ SilicaListView {
         width: root.width
         height: root.hasOlder ? Theme.itemSizeMedium : 0
 
+        // Offered whenever there is history above, fetch or no fetch. It
+        // used to hide itself while one was running, on the reasoning that
+        // the two were reaching for the same rows -- but reaching the top
+        // is what starts that fetch, so the control disappeared at exactly
+        // the moment the reader arrived looking for it. What they reached
+        // for instead was the system's own scroll-to-top, which goes to the
+        // top of what happens to be loaded: the middle of the chat, and the
+        // report that the beginning still could not be got to.
+        //
+        // The two reaching at once is safe. A step back that lands after
+        // the window has been moved is dropped rather than spliced into it
+        // -- ChatMessages::extend_back checks the row it anchored on is
+        // still there.
         BackgroundItem {
             id: toOldest
             objectName: "toOldest"
             anchors.fill: parent
-            enabled: root.hasOlder && !root.loadingOlder
-            // Never mid-fetch: the two would be reaching for the same rows,
-            // and the one that lost would put the view somewhere the reader
-            // did not ask for.
+            enabled: root.hasOlder
             visible: enabled
             onClicked: root.oldestRequested()
 
@@ -155,9 +174,15 @@ SilicaListView {
             }
         }
 
+        // Beside the label rather than over it, so a fetch says it is
+        // running without taking the control away.
         BusyIndicator {
             objectName: "olderBusy"
-            anchors.centerIn: parent
+            anchors {
+                right: parent.right
+                rightMargin: Theme.horizontalPageMargin
+                verticalCenter: parent.verticalCenter
+            }
             size: BusyIndicatorSize.Small
             running: root.loadingOlder
         }
@@ -265,9 +290,7 @@ SilicaListView {
         // A held row first: the content changing height is exactly what
         // moves the reader off it, so this is the moment to put them back.
         if (root.pendingRow >= 0) {
-            root.positionViewAtIndex(root.pendingRow, ListView.Center)
-            // The content is still moving, so the hold has more to do.
-            holdRow.restart()
+            root.putBack()
         } else if (root.following) {
             toEnd.restart()
         }
@@ -326,39 +349,50 @@ SilicaListView {
         // the page below one they have not looked at yet.
         root.settled = false
         root.pendingRow = index
-        root.positionViewAtIndex(index, ListView.Center)
-        holdRow.restart()
+        root.putBack()
         holdDeadline.restart()
     }
 
     /// Let go of the held row: the reader has taken over, or the view has
     /// stopped moving under them.
     function releaseRow() {
-        holdRow.stop()
         holdDeadline.stop()
+        root.away = false
         root.pendingRow = -1
         root.settled = true
     }
 
     /// The row a jump is holding the view on, or -1.
     property int pendingRow: -1
+    /// True while `putBack` is running, so the view moving because this
+    /// moved it does not read as one more reason to move it.
+    property bool restoring: false
 
-    // Restarted every time the row is put back, so the hold lasts as long
-    // as the content is still moving and no longer: a screen of plain text
-    // settles in a frame, a screen of pictures takes as long as the
-    // pictures take, and neither needs a number guessed in advance.
-    Timer {
-        id: holdRow
-        interval: 400
-        onTriggered: root.releaseRow()
+    function putBack() {
+        if (root.restoring || root.pendingRow < 0) {
+            return
+        }
+        root.restoring = true
+        // The first row has nothing above it to be centred against, and
+        // asking for its centre relies on the view clamping. Beginning is
+        // what "the top" means.
+        root.positionViewAtIndex(
+            root.pendingRow,
+            root.pendingRow === 0 ? ListView.Beginning : ListView.Center)
+        root.restoring = false
     }
 
-    // Except that it does need one in the end. Something that never stops
-    // changing height would otherwise hold the view for ever, and a view
-    // that will not let go is worse than one that lands in the wrong place.
+    // A held row is let go of when the reader takes the view over, and
+    // otherwise not until this. There used to be a shorter timer as well,
+    // restarted on each change, on the reasoning that the hold should last
+    // exactly as long as the content was still moving -- but a device does
+    // not move its content in one run. It lays the rows out, goes quiet
+    // while a picture decodes, and moves them again; the gap was longer
+    // than the timer, so the hold was gone by the time the reader was
+    // carried off. Holding a view nobody is touching costs nothing.
     Timer {
         id: holdDeadline
-        interval: 5000
+        interval: 6000
         onTriggered: root.releaseRow()
     }
 
@@ -385,17 +419,43 @@ SilicaListView {
     /// the same reason a step back through the history is.
     property int rememberedRow: -1
     property bool rememberedFollowing: false
+    /// True between the page going away and coming back, during which the
+    /// row is held with no deadline: a reader can look at a picture for as
+    /// long as they like.
+    property bool away: false
 
     function rememberPlace() {
         root.rememberedFollowing = root.stickToBottom
         root.rememberedRow = root.rowNear(root.height / 2)
+        if (root.rememberedRow >= 0 && !root.rememberedFollowing) {
+            // Armed, not merely written down. Putting the view back when
+            // the page returns is too late: the list is reset while the
+            // page is away, and a frame showing the top of the chat is
+            // painted before anything gets round to correcting it -- which
+            // is the flash of the oldest messages, followed by being
+            // yanked back, that this had left behind. Armed, the reset is
+            // undone in the same turn it happens and no wrong frame is
+            // ever drawn.
+            root.away = true
+            root.settled = false
+            root.pendingRow = root.rememberedRow
+            holdDeadline.stop()
+        }
     }
 
     function restorePlace() {
+        // The hold that was armed on the way out ends here, whatever
+        // happens next: from now on the reader is looking at this page and
+        // the deadline applies again.
+        root.away = false
         if (root.rememberedFollowing) {
             root.jumpToNewest()
         } else if (root.rememberedRow >= 0) {
+            // Held again rather than merely positioned: coming back is a
+            // relayout like any other, and the rows settle after it.
             root.holdAt(root.rememberedRow)
+        } else {
+            root.releaseRow()
         }
         root.rememberedRow = -1
     }

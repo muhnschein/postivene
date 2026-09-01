@@ -153,6 +153,21 @@ const PROBE_QML: &str = r"
             list.forceLayout()
             return '' + Math.round(list.contentHeight)
         }
+        /// Whether the way to the beginning is on offer, and reachable,
+        /// while a step back through the history is running -- which is
+        /// what reaching the top starts, so it is the state the reader
+        /// actually meets the control in.
+        function beginningOfferedDuringFetch() {
+            var list = find('messageList')
+            var item = find('toOldest')
+            if (!list || !item) { return 'missing' }
+            list.loadingOlder = true
+            var answer = item.visible && item.enabled ? 'offered' : 'hidden'
+            list.loadingOlder = Qt.binding(function () {
+                return find('messages').loading_older
+            })
+            return answer
+        }
         /// The control at the top of the list, tapped.
         function tapBeginning() {
             var item = find('toOldest')
@@ -253,6 +268,7 @@ fn a_search_result_is_on_the_page_and_the_beginning_is_a_tap_away() {
         // opening at a search result rather than near one.
         (*steps_ptr).push(("landed-middle", call!("middleId")));
         (*steps_ptr).push(("landed-top", call!("topId")));
+        (*steps_ptr).push(("offered-mid-fetch", call!("beginningOfferedDuringFetch")));
         (*steps_ptr).push(("to-beginning", call!("tapBeginning")));
     });
 
@@ -268,6 +284,11 @@ fn a_search_result_is_on_the_page_and_the_beginning_is_a_tap_away() {
             "beginning-has-newer",
             call!("get", QString::from("messages"), QString::from("has_newer")),
         ));
+        // And the rows settle after the jump, the way they do on a device
+        // once fifty of them have been laid out at real metrics and the
+        // header above them has collapsed. The reader must not move.
+        (*steps_ptr).push(("beginning-rewrap", call!("narrow", 240)));
+        (*steps_ptr).push(("beginning-top-after", call!("topId")));
     });
 
     // A row held while everything around it changes height. Reading a
@@ -311,6 +332,7 @@ fn a_search_result_is_on_the_page_and_the_beginning_is_a_tap_away() {
 }
 
 /// What the run has to show for itself, out of the test body.
+#[allow(clippy::too_many_lines)]
 fn assert_outcome(steps: &[(&str, String)]) {
     let value = |label: &str| {
         steps
@@ -378,6 +400,16 @@ fn assert_outcome(steps: &[(&str, String)]) {
          top of a section the reader did not ask for. {context}"
     );
 
+    // Reaching the top is what starts a step back, so a control that
+    // hides itself for the duration is a control the reader never sees.
+    assert_eq!(
+        value("offered-mid-fetch"),
+        "offered",
+        "the way to the beginning of the chat is taken away while history \
+         is being fetched -- which is exactly when the reader is at the top \
+         looking for it. {context}"
+    );
+
     assert_eq!(
         value("beginning-edges"),
         "1..50",
@@ -403,6 +435,15 @@ fn assert_outcome(steps: &[(&str, String)]) {
         "the window is on the first message in the chat and the model \
          still offers older ones. {context}"
     );
+    assert_eq!(
+        value("beginning-top-after"),
+        "1",
+        "the rows settled after the jump to the beginning and carried the \
+         reader off it: they ended up at {:?}, which is the middle of some \
+         page they did not ask for. {context}",
+        value("beginning-top-after")
+    );
+
     // The reader stays on the row they were put on while the rows around
     // it are still settling. Without the hold, re-wrapping moves them off
     // it and they land wherever the measuring got to -- which is what

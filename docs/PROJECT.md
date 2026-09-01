@@ -83,6 +83,13 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   chat read behind a page nobody has seen. A prefetch hit is a move, not a
   fetch. When a search result is what was tapped, the prefetch loads the
   page *that message* is on, so the page never shows today and jumps.
+- **The way to the beginning of a chat stays on offer during a fetch.**
+  Reaching the top is what starts a step back through the history, so a
+  control that hid itself for the duration was gone at exactly the moment
+  the reader arrived looking for it -- and what they reached for instead
+  was the system's scroll-to-top, which goes to the top of what happens to
+  be loaded. Both reaching at once is safe: a step back that lands after
+  the window has moved is dropped rather than spliced into it.
 - **A row jumped to has to be held, not jumped to.** One
   `positionViewAtIndex` is enough only where every row is already its final
   height, which is nowhere real: rows are measured as they are laid out,
@@ -96,9 +103,16 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   back on the place a full-screen picture was opened from are all this.
 - **A page pushed over the conversation takes its place with it.** The list
   is torn down far enough to forget where it was, and replaces what it
-  forgets with the beginning. `rememberPlace` on `Deactivating` and
-  `restorePlace` on `Active` put it back -- as a row, not a pixel offset,
-  for the same reason a step back through the history is.
+  forgets with the beginning. The row is *held* from `Deactivating`, not
+  merely written down and restored on `Active`: restoring is too late,
+  because the reset happens while the page is away and a frame showing the
+  top of the chat is painted before anything corrects it. That was the
+  flash of the oldest messages, and being yanked back from it. Held, the
+  reset is undone in the same turn it happens and no wrong frame is drawn.
+  A hold is let go of when the reader touches the list, and otherwise on a
+  deadline -- but never on a quiet timer: a device lays its rows out,
+  goes quiet while a picture decodes, and moves them again, and the gap is
+  longer than any timer worth having.
 - **Zoom is about the point that was touched.** A picture that grows about
   its own top-left corner takes a reader who pinched a face in the bottom
   right to the top left instead. `PicturePage.zoomAt` works out where in

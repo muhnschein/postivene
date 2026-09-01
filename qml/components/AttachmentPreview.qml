@@ -1,4 +1,6 @@
-import QtQuick 2.0
+// 2.5 rather than 2.0 for Image.autoTransform, which is what reads a
+// photo's orientation tag. Harbour allows QtQuick up to 2.6.
+import QtQuick 2.5
 import QtMultimedia 5.6
 import Sailfish.Silica 1.0
 import Nemo.Thumbnailer 1.0
@@ -123,11 +125,19 @@ Item {
     /// shows the whole picture whatever shape it turns out to be; it costs
     /// some blank space and nothing else.
     function pictureHeight(width, item) {
-        if (root.imageWidth > 0 && root.imageHeight > 0) {
-            return width * root.imageHeight / root.imageWidth
-        }
+        // The decoded picture's own proportions first, once it has been
+        // decoded. The core reads its dimensions out of the file's header,
+        // which are the ones before any turn the orientation tag asks for:
+        // a photo taken in portrait is stored landscape and marked, and
+        // measuring the row from the stored size shapes the box the wrong
+        // way round. The core's answer is still what sizes the row while
+        // the decode is in flight, which is what keeps it from starting
+        // square and reflowing.
         if (item.implicitWidth > 0 && item.implicitHeight > 0) {
             return width * item.implicitHeight / item.implicitWidth
+        }
+        if (root.imageWidth > 0 && root.imageHeight > 0) {
+            return width * root.imageHeight / root.imageWidth
         }
         return width
     }
@@ -148,6 +158,13 @@ Item {
         height: visible ? root.pictureHeight(width, still) : 0
         fillMode: Image.PreserveAspectFit
         asynchronous: true
+        // A camera reads its sensor out landscape however the phone is
+        // held and writes which way to turn it into an EXIF tag rather
+        // than into the pixels. Every other client honours the tag; Image
+        // does not unless it is asked, which is why a photo sent from here
+        // arrived upright for whoever received it and lay on its side in
+        // our own message view.
+        autoTransform: true
         source: visible ? root.fileUrl : ""
 
         AnimatedImage {

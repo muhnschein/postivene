@@ -56,65 +56,57 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   via queued signals.
 - **Background reception** relies on IMAP IDLE plus a Sailfish background
   process. It is the hardest platform problem and the largest open risk.
-- **A chat loads a page at a time.** The ids are cheap and the messages are
-  not: `get_message_list_items` returns a number per message for the whole
-  chat, while `get_messages` builds every field of every row. So the model
-  holds every id and fetches a window of messages out of that list, which
-  is why paging needs no cursor and no server-side paging call. The window
-  is anchored on *ids*, not on counts: one message arriving shifts every
-  count-based slice by one, which drops the oldest loaded row off the front
-  and reads as a deletion. Rows inserted above the ones on screen also
-  carry the view with them -- Qt does not put it back, so
-  `ConversationList` does, by index rather than by pixels.
-- **The window has two ends.** It starts at the newest message and takes in
-  arrivals, which is the ordinary case and the one `has_newer` is false
-  for. Reaching somewhere it does not cover -- the beginning of the
-  history, a search result from last March -- *moves* it rather than
-  growing it back to today, because growing it back is the cost paging
-  exists to avoid. A window that has been moved off the end stops taking in
-  arrivals: swallowing them would drag a reader who went looking for
-  something old back to today one message at a time. Sending from there
-  moves it back, because a message you just sent is one you should be able
-  to see.
+- **A chat holds a row for every message in it.** The ids are cheap and the
+  messages are not: `get_message_list_items` returns a list of numbers for
+  the whole chat, while `get_messages` builds every field of every row. So
+  the model builds one row per id the moment that list arrives, and fills in
+  only the ones somebody is looking at. `hydrate(first, last)` is the only
+  thing that fetches messages after a chat opens; the view asks as it
+  scrolls.
+- **Which is what makes the first message row 0, and keeps it there.** The
+  model used to hold a moving *window* of loaded messages, and every way of
+  getting somewhere -- the beginning of the chat, a search result -- meant
+  replacing its contents. That is the shape the bug was in, and it took
+  three attempts at the symptoms to be sure: positioning into a model that
+  has just been reset is contingent on how fast rows are measured, a
+  reconciliation that overlapped a move undid it, and the control that
+  offered the move hid itself at the moment it was wanted. Each was a real
+  defect. None of them was the cause. Whisperfish and deltachat-android both
+  keep the whole conversation addressable and have none of this; going to
+  the beginning of a chat is now a scroll, with nothing to fetch, nothing to
+  replace, and nothing that can put the reader somewhere else.
+- **Rows are filled in where they stand.** `change_line` rather than a
+  reset, so the view keeps its position and its delegates. An arrival is one
+  row appended; a deletion is one removed. Nothing else moves.
+- **Following the newest message stops the moment something else moves the
+  view.** A chat opens at its newest message and stays there as messages
+  arrive -- which means every change to the content height sends the view
+  back to the end. The system's own scroll-to-top changes `contentY` without
+  a drag, so nothing would otherwise tell the list that the reader has gone
+  somewhere, and the first row measured after the jump would haul them back
+  down. `ConversationList` reads a jump it did not make as the reader
+  leaving, and only once the view has actually reached the end at least
+  once: before that, a view far from the end is a chat that has not finished
+  opening.
 - **The chat is on the page before the page arrives.** `ChatPrefetch` loads
   it while the reader is still looking at the chat list, and
   `ConversationPage` takes it in `Component.onCompleted` -- after
   `reading_history` is bound, or the model reads the default and marks the
   chat read behind a page nobody has seen. A prefetch hit is a move, not a
-  fetch. When a search result is what was tapped, the prefetch loads the
-  page *that message* is on, so the page never shows today and jumps.
-- **A reconciliation answers to the window that is there, not the one it
-  set out with.** An event makes the model check its rows against a fresh
-  id list, and it reads where its window starts and ends *before* asking
-  the core. Move the window while that is in the air -- which is exactly
-  what going to the beginning of a chat does -- and it wakes holding the
-  old window's anchors and the new window's rows, agrees with neither, and
-  falls through to reloading. A reload goes to the newest page, so the
-  jump undoes itself. It only showed up in chats busy enough to be sending
-  events during the jump, which means chats full of media. The anchors are
-  now read when the answer lands; a window that moved under it costs one
-  more round rather than the reader's place.
-- **What cannot be reconciled is reloaded onto the reader's own window**,
-  not onto the newest page. Being sent back to today because something
-  changed further up the chat is the same complaint by another route.
-- **The way to the beginning of a chat stays on offer during a fetch.**
-  Reaching the top is what starts a step back through the history, so a
-  control that hid itself for the duration was gone at exactly the moment
-  the reader arrived looking for it -- and what they reached for instead
-  was the system's scroll-to-top, which goes to the top of what happens to
-  be loaded. Both reaching at once is safe: a step back that lands after
-  the window has moved is dropped rather than spliced into it.
+  fetch. When a search result is what was tapped, the prefetch fills in the
+  rows around *that message* rather than the newest ones, so the page never
+  shows today and then jumps.
 - **A row jumped to has to be held, not jumped to.** One
   `positionViewAtIndex` is enough only where every row is already its final
   height, which is nowhere real: rows are measured as they are laid out,
   wrapped text at the device's own metrics is taller than an estimate, a
-  picture's row changes height again when the picture decodes, and the
-  header above the oldest row collapses when there is no more history to
-  offer. Each of those that happens above the reader moves them, and they
-  all happen after the jump. So `holdAt` re-applies the row on every change
-  to the content, until the reader takes the view over or it stops moving
-  under them. Landing on a search result, on the beginning of the chat, and
-  back on the place a full-screen picture was opened from are all this.
+  picture's row changes height again when the picture decodes, and a row
+  gains its text the moment it is filled in. Each of those that happens
+  above the reader moves them, and they all happen after the jump. So
+  `holdAt` re-applies the row on every change to the content, until the
+  reader takes the view over or it stops moving under them. Landing on a
+  search result and back on the place a full-screen picture was opened from
+  are both this.
 - **A page pushed over the conversation takes its place with it.** The list
   is torn down far enough to forget where it was, and replaces what it
   forgets with the beginning. The row is *held* from `Deactivating`, not

@@ -19,187 +19,42 @@ SilicaListView {
 
     property bool stickToBottom: true
 
-    /// True when the chat has messages older than the ones in the model.
-    property bool hasOlder: false
-    /// True while a step back through the history is in flight.
-    property bool loadingOlder: false
-    /// True when the chat has messages newer than the ones in the model,
-    /// which is what the reader gets after going to a search result or to
-    /// the beginning of the history.
-    property bool hasNewer: false
-    /// True while a step forward through the history is in flight.
-    property bool loadingNewer: false
-    /// True while the loaded messages are being replaced wholesale.
-    property bool loadingWindow: false
-    /// The reader has reached the top and there is more above them.
+    /// The view has moved; these rows want filling in.
     ///
-    /// Raised rather than acted on, like every other request here: the
-    /// component knows nothing about the core.
-    signal olderRequested()
-    /// The reader has reached the bottom and there is more below them.
-    signal newerRequested()
-    /// The reader asked for the beginning of the chat.
-    signal oldestRequested()
-    /// The reader asked for the newest messages, from somewhere the view
-    /// cannot simply scroll to.
-    signal newestRequested()
+    /// The model holds a row for every message in the chat and fills in
+    /// only the ones somebody is looking at, so this is what asks. Raised
+    /// rather than acted on, like every other request here: the component
+    /// knows nothing about the core.
+    signal hydrateRequested(int first, int last)
 
-    /// Which row was at the top when the last step back was asked for, so
-    /// the rows that arrive above it can be put above it rather than in
-    /// front of the reader.
-    property int anchorIndex: 0
-
-    // How near the top starts the next step back. A page further on is
-    // more useful than a page the reader has to wait at the edge for.
-    readonly property real topSlack: Theme.itemSizeLarge
-
-    /// Whether the view is where it is meant to be, and a reader at the
-    /// edge of it really is a reader asking for more.
+    /// Ask for whatever is on screen to be filled in.
     ///
-    /// A window that arrives to be scrolled to -- a search result, the
-    /// beginning of the chat -- lays out at contentY 0 before anything has
-    /// put the view on the row it came for, and the top trigger would read
-    /// that as the reader having dragged all the way back.
-    property bool settled: true
-
-    onLoadingWindowChanged: if (root.loadingWindow) root.settled = false
-
-    function askForOlder() {
-        // Not while following the newest message. Two reasons, and the
-        // second is the one that bites: a chat opens with its view at the
-        // bottom but its content still being measured, so contentY sits at
-        // 0 for a pass and this would fetch the page above on every open;
-        // and following means an insert above grows contentHeight, which
-        // sends the view back to the end and undoes the anchoring below.
-        // Asking for history is what someone who has stopped following
-        // does.
-        if (!root.hasOlder || root.loadingOlder || root.following
-                || !root.settled || root.loadingWindow) {
-            return
-        }
-        // indexAt takes content coordinates, and lands on nothing between
-        // rows or over a day separator. Row 0 is the honest fallback: this
-        // only runs near the top.
-        var index = root.indexAt(root.width / 2, root.contentY + 1)
-        root.anchorIndex = index < 0 ? 0 : index
-        root.olderRequested()
-    }
-
-    /// `count` older rows have gone in above the others.
-    ///
-    /// Rows inserted above what is on screen push it down by their height,
-    /// and their height is not known until they are laid out -- so the view
-    /// is put back by index rather than by pixels. Without this, a step
-    /// back through the history throws the reader further back than they
-    /// asked to go.
-    function olderLoaded(count) {
-        if (count > 0) {
-            root.positionViewAtIndex(root.anchorIndex + count, ListView.Beginning)
-        }
-    }
-
-    /// The other end of the same thing. Nothing has to be put back here:
-    /// rows appended below what is on screen do not move it.
-    function askForNewer() {
-        if (!root.hasNewer || root.loadingNewer || !root.settled
-                || root.loadingWindow) {
-            return
-        }
-        root.newerRequested()
-    }
-
-    /// Ask for whatever the view is now up against, if anything.
-    function checkEdges() {
-        if (root.contentY - root.originY < root.topSlack) {
-            root.askForOlder()
-        }
-        if (root.contentY + root.height
-                > root.contentHeight + root.originY - root.bottomSlack) {
-            root.askForNewer()
-        }
-    }
-
-    onContentYChanged: {
-        // While the page is away nobody is scrolling, so anything moving
-        // the view is the list losing its place rather than the reader
-        // choosing to.
-        if (root.away && root.pendingRow >= 0) {
-            root.putBack()
-            return
-        }
-        root.checkEdges()
-    }
-
-    // Above the oldest row, so it scrolls away with the history rather
-    // than sitting over it. Zero-high when there is nothing more to fetch,
-    // which is also what keeps it from moving the view when it goes.
-    //
-    // It offers the beginning of the chat as well as spinning, because the
-    // system's own scroll-to-top puts the reader here and calls it the top.
-    // It is not: it is the top of what happens to be loaded, and in a chat
-    // with ten thousand messages in it the difference is years. This is
-    // exactly where someone who used that gesture ends up looking.
-    header: Item {
-        width: root.width
-        height: root.hasOlder ? Theme.itemSizeMedium : 0
-
-        // Offered whenever there is history above, fetch or no fetch. It
-        // used to hide itself while one was running, on the reasoning that
-        // the two were reaching for the same rows -- but reaching the top
-        // is what starts that fetch, so the control disappeared at exactly
-        // the moment the reader arrived looking for it. What they reached
-        // for instead was the system's own scroll-to-top, which goes to the
-        // top of what happens to be loaded: the middle of the chat, and the
-        // report that the beginning still could not be got to.
-        //
-        // The two reaching at once is safe. A step back that lands after
-        // the window has been moved is dropped rather than spliced into it
-        // -- ChatMessages::extend_back checks the row it anchored on is
-        // still there.
-        BackgroundItem {
-            id: toOldest
-            objectName: "toOldest"
-            anchors.fill: parent
-            enabled: root.hasOlder
-            visible: enabled
-            onClicked: root.oldestRequested()
-
-            Label {
-                anchors.centerIn: parent
-                //: Tapped at the top of a conversation to go to its first
-                //: messages.
-                text: qsTr("Beginning of chat")
-                font.pixelSize: Theme.fontSizeSmall
-                color: toOldest.down ? Theme.highlightColor : Theme.secondaryColor
+    /// `indexAt` lands on nothing between rows and over a day separator, so
+    /// this walks the view rather than probing its two edges. Debounced by
+    /// the timer below: a flick would otherwise ask once per frame.
+    function askForRows() {
+        var first = -1
+        var last = -1
+        for (var y = 1; y < root.height; y += Theme.paddingLarge) {
+            var index = root.indexAt(root.width / 2, root.contentY + y)
+            if (index >= 0) {
+                if (first < 0) {
+                    first = index
+                }
+                last = index
             }
         }
-
-        // Beside the label rather than over it, so a fetch says it is
-        // running without taking the control away.
-        BusyIndicator {
-            objectName: "olderBusy"
-            anchors {
-                right: parent.right
-                rightMargin: Theme.horizontalPageMargin
-                verticalCenter: parent.verticalCenter
-            }
-            size: BusyIndicatorSize.Small
-            running: root.loadingOlder
+        if (first >= 0) {
+            root.hydrateRequested(first, last)
         }
     }
 
-    // The same at the far end, for a window that has been moved off it.
-    footer: Item {
-        width: root.width
-        height: root.hasNewer ? Theme.itemSizeSmall : 0
-
-        BusyIndicator {
-            objectName: "newerBusy"
-            anchors.centerIn: parent
-            size: BusyIndicatorSize.Small
-            running: root.loadingNewer
-        }
+    Timer {
+        id: fillRows
+        interval: 120
+        onTriggered: root.askForRows()
     }
+
     // How many rows the model holds. Bound by the page rather than read off
     // the view: `count` there only changes when the view has laid out, and
     // an arrival has to be noticed whether or not it is on screen yet.
@@ -230,13 +85,6 @@ SilicaListView {
 
     /// Back to the newest message, and following again.
     function jumpToNewest() {
-        // Not something the view can scroll to when the newest message is
-        // not loaded: the window has to be moved back to the end of the
-        // chat first, and whoever owns the model does that.
-        if (root.hasNewer) {
-            root.newestRequested()
-            return
-        }
         // The button sits over the list rather than inside it, so a tap
         // does not stop an inertial flick the way touching the list would.
         // Left running, `held` stays true, `following` stays false, and the
@@ -261,8 +109,20 @@ SilicaListView {
         interval: 0
         // Checked again here: the reader can scroll away between the
         // arrival that started this and the pass it fires on.
-        onTriggered: if (root.following) root.positionViewAtEnd()
+        onTriggered: {
+            if (root.following) {
+                root.positionViewAtEnd()
+                root.reachedEnd = true
+            }
+        }
     }
+
+    /// Whether the view has ever actually been put at the newest message.
+    ///
+    /// Only true after that, because until then a view sitting far from the
+    /// end is a chat that has not opened yet rather than a reader who has
+    /// gone somewhere.
+    property bool reachedEnd: false
 
     // True between the start and end of a drag or flick. Tracked rather
     // than read off `moving`, which no test can set.
@@ -271,11 +131,7 @@ SilicaListView {
     // Not while the reader has hold of it. Rows are measured as they come
     // into view, so a drag upwards grows `contentHeight` on its own, and
     // following that hauls them straight back down again.
-    // `hasNewer` as well: the bottom of a window that has been moved off
-    // the end of the chat is not the newest message, and treating it as one
-    // would mark a chat read the reader has only seen the middle of.
-    readonly property bool following:
-        root.stickToBottom && !root.held && !root.hasNewer
+    readonly property bool following: root.stickToBottom && !root.held
 
     // Taking hold of the list is taking it over, so a held row lets go.
     onMovementStarted: {
@@ -294,15 +150,39 @@ SilicaListView {
         } else if (root.following) {
             toEnd.restart()
         }
+        // And whatever is on screen now wants filling in. Opening a chat
+        // may never move contentY at all, so this is the ask that covers
+        // the first screen.
+        fillRows.restart()
     }
-    // How close to the end still counts as being at it. Exactly `atYEnd`
-    // is the wrong test: rows are measured as they scroll into view, so
-    // `contentHeight` is still growing at the moment a scroll stops, and
-    // the comparison lands just short. That is why the button could not
-    // be dismissed -- `jumpToNewest` set `stickToBottom`, the scroll it
-    // started then ended, and this handler read `atYEnd` as false and put
-    // it straight back. A reader a line short of the bottom has, for every
-    // purpose this drives, arrived.
+
+    onContentYChanged: {
+        // While the page is away nobody is scrolling, so anything moving
+        // the view is the list losing its place rather than the reader
+        // choosing to.
+        if (root.away && root.pendingRow >= 0) {
+            root.putBack()
+            return
+        }
+        // Scrolling through rows that are all still placeholders does not
+        // change `contentHeight` at all -- they are the same height as each
+        // other -- so without this the reader can walk into a screenful of
+        // blanks and nothing ever asks for them.
+        fillRows.restart()
+        // Something has moved the view a long way from the newest message
+        // without touching it: the system's own scroll-to-top, which is how
+        // one gets to the beginning of a chat. Following would notice the
+        // next row being measured and haul the reader straight back down,
+        // which is being thrown to the newest message a moment after asking
+        // for the oldest. A drag or a flick is excluded by `held`, a jump
+        // this component made by `pendingRow`, and the chat still opening
+        // by `reachedEnd`.
+        if (root.reachedEnd && root.stickToBottom && !root.held
+                && !root.restoring && root.pendingRow < 0 && !root.nearBottom) {
+            root.stickToBottom = false
+        }
+    }
+
     /// The message a search sent the reader here for, flashed once so it
     /// can be picked out of the wall of text around it. 0 for none.
     property int foundMessageId: 0
@@ -343,11 +223,6 @@ SilicaListView {
             return
         }
         root.stickToBottom = false
-        // Edges mean nothing while this is going on: the content is still
-        // being measured, so its end is wherever the measuring has got to,
-        // and reading that as the reader having reached the end asks for
-        // the page below one they have not looked at yet.
-        root.settled = false
         root.pendingRow = index
         root.putBack()
         holdDeadline.restart()
@@ -359,7 +234,6 @@ SilicaListView {
         holdDeadline.stop()
         root.away = false
         root.pendingRow = -1
-        root.settled = true
     }
 
     /// The row a jump is holding the view on, or -1.
@@ -437,7 +311,6 @@ SilicaListView {
             // undone in the same turn it happens and no wrong frame is
             // ever drawn.
             root.away = true
-            root.settled = false
             root.pendingRow = root.rememberedRow
             holdDeadline.stop()
         }
@@ -460,15 +333,22 @@ SilicaListView {
         root.rememberedRow = -1
     }
 
+    // How close to the end still counts as being at it. Exactly `atYEnd`
+    // is the wrong test: rows are measured as they scroll into view, so
+    // `contentHeight` is still growing at the moment a scroll stops, and
+    // the comparison lands just short. That is why the button could not
+    // be dismissed -- `jumpToNewest` set `stickToBottom`, the scroll it
+    // started then ended, `onMovementEnded` read `atYEnd` as false and put
+    // it straight back. A reader a line short of the bottom has, for every
+    // purpose this drives, arrived.
     readonly property real bottomSlack: Theme.itemSizeLarge
 
     /// At or near the newest message -- including a chat too short to
     /// scroll at all, where there is no "end" to reach.
     readonly property bool nearBottom:
-        !root.hasNewer
-        && (root.contentHeight <= root.height
-            || root.contentY + root.height
-               >= root.contentHeight + root.originY - root.bottomSlack)
+        root.contentHeight <= root.height
+        || root.contentY + root.height
+           >= root.contentHeight + root.originY - root.bottomSlack
 
     // Where the reader left off, once they stop moving.
     onMovementEnded: {
@@ -491,6 +371,12 @@ SilicaListView {
     section.delegate: Label {
         objectName: "dayLabel"
         width: root.width
+        // A row that has not been filled in yet has no day, and every one
+        // of them would otherwise share a section headed by the epoch.
+        // Zero-high rather than absent, because the section delegate is
+        // built whether or not it says anything.
+        height: section === "0" ? 0 : implicitHeight
+        visible: section !== "0"
         horizontalAlignment: Text.AlignHCenter
         font.pixelSize: Theme.fontSizeExtraSmall
         color: Theme.secondaryColor
@@ -562,11 +448,17 @@ SilicaListView {
         }
         // Sized by its content, not fixed: a device message runs to a
         // dozen wrapped lines, and a fixed row height makes them overlap
-        // each other and the header.
-        contentHeight: body.height
+        // each other and the header. A row whose message has not been
+        // fetched yet stands at one line, which is what gives the list a
+        // length before any of it has been read.
+        contentHeight: model.loaded ? body.height : Theme.itemSizeExtraSmall
 
+        // Only what is on screen is built, so this is not the whole chat's
+        // worth of delegates -- but a placeholder must not try to draw a
+        // message it has not got.
         MessageDelegate {
             id: body
+            visible: model.loaded
             width: parent.width
             messageText: model.text
             isOutgoing: model.is_outgoing

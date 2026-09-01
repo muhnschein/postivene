@@ -132,19 +132,12 @@ Page {
             // the reader back off whatever they have scrolled to since.
             page.findMessageId = 0
         }
-        // Rows have gone in above the ones on screen; put the view back.
-        onOlder_loaded: listView.olderLoaded(count)
-        // The loaded messages were replaced with a page from somewhere else
-        // in the chat. `row` is where in it the reader was going.
-        onWindow_moved: {
-            if (messages.has_newer) {
-                listView.holdAt(row)
-            } else {
-                // Back at the end of the chat, so this is the ordinary
-                // "newest message" case, arrivals and all.
-                listView.jumpToNewest()
-            }
-        }
+        // A fill takes at most a page at a time, and a screenful of a chat
+        // with big rows in it can want more than that. Asking again when
+        // one finishes is what covers the rest. It stops on its own: the
+        // ask is dropped when there is nothing left to fill, so nothing
+        // comes back to prompt another.
+        onHydrating_changed: if (!messages.hydrating) listView.askForRows()
     }
 
     // The flash says "this one" and then gets out of the way.
@@ -259,15 +252,9 @@ Page {
         // The model's own count, which changes when a row arrives rather
         // than when the view gets round to showing it.
         messageCount: messages.count
-        hasOlder: messages.has_older
-        loadingOlder: messages.loading_older
-        hasNewer: messages.has_newer
-        loadingNewer: messages.loading_newer
-        loadingWindow: messages.loading_window
-        onOlderRequested: messages.load_older()
-        onNewerRequested: messages.load_newer()
-        onOldestRequested: messages.jump_oldest()
-        onNewestRequested: messages.jump_newest()
+        // The model holds a row for every message and fills in the ones on
+        // screen; this is what tells it which those are.
+        onHydrateRequested: messages.hydrate(first, last)
         showSender: messages.is_group
         placeholderText: qsTr("No messages yet")
 

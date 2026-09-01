@@ -28,24 +28,22 @@ struct Cached {
     account_id: u32,
     chat_id: u32,
     is_group: bool,
-    /// Every id in the chat, which is what the model's window is a slice
-    /// of. Cheap to carry and pointless to fetch twice.
+    /// Every id in the chat: the model holds a row for each. Cheap to
+    /// carry and pointless to fetch twice.
     ids: Vec<u32>,
+    /// The messages of the one page that is filled in to start with.
     rows: Vec<MessageListItem>,
-    /// Whether `rows` stops short of the newest message, which it does when
-    /// the chat was opened at a search result rather than at its end.
-    has_newer: bool,
 }
 
 static CACHE: Mutex<Option<Cached>> = Mutex::new(None);
 
-/// What one prefetch found: the chat's kind, its ids, the rows of the page
-/// it opens on, and whether that page stops short of the newest message.
-type Loaded = (bool, Vec<u32>, Vec<MessageListItem>, bool);
+/// What one prefetch found: the chat's kind, every id in it, and the
+/// messages of the one page that is filled in to start with.
+type Loaded = (bool, Vec<u32>, Vec<MessageListItem>);
 
 /// Hand a finished prefetch over to whichever model asks for it next.
 fn store(account_id: u32, chat_id: u32, loaded: Loaded) {
-    let (is_group, ids, rows, has_newer) = loaded;
+    let (is_group, ids, rows) = loaded;
     if let Ok(mut cache) = CACHE.lock() {
         *cache = Some(Cached {
             account_id,
@@ -53,7 +51,6 @@ fn store(account_id: u32, chat_id: u32, loaded: Loaded) {
             is_group,
             ids,
             rows,
-            has_newer,
         });
     }
 }
@@ -70,7 +67,7 @@ pub(crate) fn take(account_id: u32, chat_id: u32) -> Option<Loaded> {
     }
     cache
         .take()
-        .map(|held| (held.is_group, held.ids, held.rows, held.has_newer))
+        .map(|held| (held.is_group, held.ids, held.rows))
 }
 
 /// Loads a chat so a page can be opened onto it already full.
@@ -154,14 +151,15 @@ impl ChatPrefetch {
             let loaded = async {
                 let is_group = chat_is_group(&rpc, account_id, chat_id).await;
                 let ids = message_ids(&rpc, account_id, chat_id).await?;
-                // The same window the model would have fetched for itself:
-                // a prefetch that loaded the whole chat would put the cost
-                // paging removes back, one step earlier. Around the message
-                // a search found, when there is one, so the page arrives
-                // showing it rather than showing today and jumping.
-                let (page, reaches_end) = opening_page(&ids, find_message_id);
-                let rows = fetch_messages(&rpc, account_id, page).await?;
-                Ok::<_, String>((is_group, ids, rows, !reaches_end))
+                // The same page the model would have filled in for
+                // itself. Fetching every message in the chat here would
+                // put back exactly the cost the placeholders remove, one
+                // step earlier. Around the message a search found, when
+                // there is one, so the page arrives showing it rather than
+                // showing today and jumping.
+                let rows =
+                    fetch_messages(&rpc, account_id, opening_page(&ids, find_message_id)).await?;
+                Ok::<_, String>((is_group, ids, rows))
             }
             .await;
             // A failure is not reported here: the page's own model will

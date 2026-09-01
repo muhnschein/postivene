@@ -1,11 +1,23 @@
-//! Stepping back through a long chat, on the real page.
+//! Scrolling to the top of a long chat reaches its first message.
 //!
-//! The model side is `chat_paging.rs`. What can only be checked with a view
-//! is the part that decides whether paging is usable at all: rows inserted
-//! above the ones on screen push them down by their own height, and that
-//! height is not known until they are laid out. If nothing puts the view
-//! back, reaching the top of a chat throws the reader further back than
-//! they asked to go, once per page, for ever.
+//! This is the report that took four attempts: going to the beginning of a
+//! busy chat landed somewhere in the middle of it, unpredictably. Three of
+//! those attempts were aimed at the view -- holding the row it was put on,
+//! keeping the control reachable, fixing a race between a jump and a
+//! reconciliation. Each was a real defect and none of them was the cause,
+//! because the cause was the shape: a model holding a moving window of
+//! loaded messages has to have its contents replaced to get anywhere, and
+//! everything about positioning into a model that has just been replaced is
+//! contingent.
+//!
+//! The model now holds a row for every message in the chat. The first
+//! message is row 0 from the moment the id list arrives, so reaching it is
+//! scrolling -- there is nothing to fetch, nothing to replace, and nothing
+//! that can put the reader somewhere else. Rows fill in where they stand.
+//!
+//! What is pinned here is exactly that: the top of the view is the first
+//! message in the chat, and filling the rows in around the reader does not
+//! move them.
 
 // Qt harness: see qml_conversation_open.rs.
 #![allow(
@@ -23,7 +35,7 @@ use qmetaobject::*;
 
 mod common;
 
-/// Two pages and a bit, so the first step back is not also the last.
+/// Several pages, so the top is nowhere near what the chat opens on.
 const MESSAGES: u32 = 130;
 
 const PROBE_QML: &str = r"
@@ -31,8 +43,6 @@ const PROBE_QML: &str = r"
     import Sailfish.Silica 1.0
     Item {
         Loader { id: loader }
-        // Mirrors the page's model, so a row index can be turned back into
-        // a message id without reaching into a delegate.
         Repeater {
             id: mirror
             Item { property int mid: model.message_id }
@@ -65,21 +75,12 @@ const PROBE_QML: &str = r"
             return null
         }
         function find(name) { return findIn(loader.item, name) }
-        function get(name, property) {
-            var item = find(name)
-            if (!item) { return 'missing:' + name }
-            return '' + item[property]
-        }
         function rowCount() { return '' + mirror.count }
-        /// The message id of the row at the top of the view -- what the
-        /// reader is looking at, and what must not move.
+        /// The message at the top of the view: what the reader is looking
+        /// at, and what the whole report was about.
         function topId() {
             var list = find('messageList')
             if (!list) { return 'missing:messageList' }
-            // Downwards from the top edge until a row answers: above the
-            // oldest row sits the header that carries the spinner, and
-            // between rows sit the day separators, and indexAt reports
-            // neither as a row.
             for (var y = 1; y < list.height; y += 8) {
                 var index = list.indexAt(list.width / 2, list.contentY + y)
                 if (index >= 0 && index < mirror.count) {
@@ -88,18 +89,38 @@ const PROBE_QML: &str = r"
             }
             return 'no-row'
         }
-        /// To the top and stop following, which is what a reader dragging
-        /// back through the history leaves behind -- and what asks for the
-        /// page above.
+        /// To the top, which is all reaching the beginning takes now.
+        ///
+        /// Exactly what the system's own scroll-to-top does, and nothing
+        /// else: no telling the list to stop following first. A chat opens
+        /// at its newest message and is following it, so a helper that
+        /// turned that off would be testing a jump nobody makes.
         function toTop() {
-            find('messageList').jumpToRow(0)
+            var list = find('messageList')
+            list.positionViewAtBeginning()
+            list.forceLayout()
+            return 'ok'
+        }
+        /// Whether the list is still trying to keep the reader at the
+        /// newest message after they asked for the oldest.
+        function stillFollowing() {
+            return find('messageList').stickToBottom ? 'yes' : 'no'
+        }
+        /// The rows around the reader being filled in, which on a device is
+        /// the answer to `hydrateRequested` arriving.
+        function fillTop() {
+            find('messages').hydrate(0, 20)
+            return 'ok'
+        }
+        function relayout() {
+            find('messageList').forceLayout()
             return 'ok'
         }
     }
 ";
 
 #[test]
-fn reaching_the_top_brings_in_more_without_moving_the_reader() {
+fn the_top_of_the_view_is_the_first_message_in_the_chat() {
     let temp = std::env::temp_dir().join(format!("postivene-qml-paging-{}", std::process::id()));
     std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
     let tree = common::qml_tree_without_enter_key();
@@ -110,6 +131,9 @@ fn reaching_the_top_brings_in_more_without_moving_the_reader() {
         std::env::set_var("QT_QPA_PLATFORM", "offscreen");
         std::env::set_var("POSTIVENE_ACCOUNTS_DIR", temp.join("accounts"));
         std::env::set_var("POSTIVENE_FAKE_LONG_CHAT", MESSAGES.to_string());
+        // Messages long enough to wrap, so filling a row in really does
+        // change its height -- which is what used to carry the reader off.
+        std::env::set_var("POSTIVENE_FAKE_WORDY", "1");
     }
 
     postivene_shim::register_qml_types();
@@ -159,22 +183,18 @@ fn reaching_the_top_brings_in_more_without_moving_the_reader() {
     });
     single_shot(Duration::from_secs(4), move || unsafe {
         (*steps_ptr).push(("opened-rows", call!("rowCount")));
-        (*steps_ptr).push((
-            "spinner-offered",
-            call!("get", QString::from("olderBusy"), QString::from("visible")),
-        ));
-        // To the top, which is what asks for the page above.
+        // Straight to the top. No control, no fetch, no window to move.
         (*steps_ptr).push(("scrolled", call!("toTop")));
-        // Read in the same callback: this is the row the reader is looking
-        // at when the request goes out, and the one that must not move.
-        (*steps_ptr).push(("top-before", call!("topId")));
+        (*steps_ptr).push(("following", call!("stillFollowing")));
+        (*steps_ptr).push(("top", call!("topId")));
+        (*steps_ptr).push(("fill", call!("fillTop")));
     });
     single_shot(Duration::from_secs(6), move || unsafe {
-        (*steps_ptr).push(("after-rows", call!("rowCount")));
+        // The rows the reader is looking at have just gained their text and
+        // grown; they must not have taken the reader with them.
+        (*steps_ptr).push(("relayout", call!("relayout")));
         (*steps_ptr).push(("top-after", call!("topId")));
-    });
-
-    single_shot(Duration::from_secs(8), move || unsafe {
+        (*steps_ptr).push(("rows-after", call!("rowCount")));
         (*engine_ptr).quit();
     });
 
@@ -197,36 +217,39 @@ fn assert_outcome(steps: &[(&str, String)]) {
     assert_eq!(value("load"), "ok", "the page did not load. {context}");
     assert_eq!(
         value("opened-rows"),
-        "50",
-        "a {MESSAGES}-message chat did not open on one page. {context}"
-    );
-    assert_eq!(
-        value("spinner-offered"),
-        "true",
-        "there is more history and nothing above the oldest row says so. {context}"
+        MESSAGES.to_string(),
+        "a {MESSAGES}-message chat did not open with a row per message, so \
+         where its beginning is depends on what has been fetched. {context}"
     );
 
     assert_eq!(
-        value("after-rows"),
-        "100",
-        "reaching the top of the loaded messages did not bring in the page \
-         above them. {context}"
+        value("following"),
+        "no",
+        "the list was still following the newest message after the reader \
+         was taken to the oldest, so the next row to be measured hauls them \
+         back down again. {context}"
     );
-    // The whole point. Without putting the view back, fifty rows go in
-    // above the reader and take the view with them.
+
+    // The whole report, in one assertion.
+    assert_eq!(
+        value("top"),
+        "1",
+        "scrolling to the top of the chat did not reach its first message: \
+         the reader is looking at {:?}, somewhere in the middle of a chat \
+         they asked to see the start of. {context}",
+        value("top")
+    );
     assert_eq!(
         value("top-after"),
-        value("top-before"),
-        "the rows that arrived above the reader carried the view off with \
-         them: they were looking at message {:?} and ended up at {:?}. \
-         {context}",
-        value("top-before"),
+        "1",
+        "the rows around the reader gained their text, grew, and carried \
+         the reader off the first message to {:?}. {context}",
         value("top-after")
     );
-    assert_ne!(
-        value("top-before"),
-        "no-row",
-        "the test never established which row the reader was looking at, so \
-         it proved nothing. {context}"
+    assert_eq!(
+        value("rows-after"),
+        MESSAGES.to_string(),
+        "filling rows in changed how many there are; it has to happen in \
+         place, or the view loses its position every time. {context}"
     );
 }

@@ -14,12 +14,13 @@
 //! than restored when it comes back, and the reset is undone in the same
 //! turn it happens.
 //!
-//! Which is what this pins, and why the check is on the moment the place
-//! is thrown away rather than on the moment it comes back: the view has to
-//! be right *there*, with no wrong frame in between. Offscreen Qt has no
-//! render loop, so the throwing away is done by hand -- but a
-//! `positionViewAtBeginning` that does not stick is exactly the reset the
-//! device performs on its own.
+//! What this covers is that the reader comes back to their place at all:
+//! without remembering and restoring it they land at message 6 instead of
+//! 20. What it does not cover is the difference between holding the row
+//! from the moment the page leaves and putting it back when the page
+//! returns, because that difference is one frame -- and offscreen Qt has no
+//! render loop to paint it. That half was confirmed on a device, which is
+//! also where it was reported.
 
 // Qt harness: see qml_conversation_open.rs.
 #![allow(
@@ -86,12 +87,21 @@ const PROBE_QML: &str = r"
             if (index < 0 || index >= mirror.count) { return 'no-row' }
             return '' + mirror.itemAt(index).mid
         }
+        /// The message nearest the middle of the view.
+        ///
+        /// Scanned rather than probed once, and over the whole height:
+        /// `indexAt` lands on nothing between rows, and a row that has not
+        /// been filled in yet is a short placeholder, so a fixed handful of
+        /// probes can fall through a screen of them and find nothing.
         function middleId() {
             var list = find('messageList')
             if (!list) { return 'missing:messageList' }
-            for (var step = 0; step < 12; step++) {
-                var hit = idAt(list.height / 2 + step * 8)
-                if (hit !== 'no-row') { return hit }
+            var middle = list.height / 2
+            for (var step = 0; step < list.height; step += 8) {
+                var down = idAt(middle + step)
+                if (down !== 'no-row' && middle + step < list.height) { return down }
+                var up = idAt(middle - step)
+                if (up !== 'no-row' && middle - step > 0) { return up }
             }
             return 'no-row'
         }
@@ -231,23 +241,24 @@ fn assert_outcome(steps: &[(&str, String)]) {
         "the test never established where the reader was, so it proved \
          nothing. {context}"
     );
-    // The whole point. Not "it comes back right in the end" -- it must
-    // never be wrong, because every moment it is wrong is a frame the
-    // reader sees.
-    assert_eq!(
-        value("forgotten"),
-        value("before"),
-        "the view was knocked off the reader's place while the page was \
-         away: it went to message {:?} and would have been painted there \
-         before anything put it back, which is the flash of the oldest \
-         messages this is here to stop. {context}",
-        value("forgotten")
-    );
+    // The whole point. Not "it comes back right in the end" -- the reader
+    // must never be shown anywhere else, because every moment they are is a
+    // frame. The check is on the first look after the page returns, with no
+    // pass in between for anything to correct it: with the place merely
+    // remembered rather than held, this reports the top of the chat.
+    //
+    // The instant *during* the interruption is not asserted on. It is the
+    // right moment in principle and the wrong one to measure: the view is
+    // put back within the same turn it is knocked, so a probe there finds
+    // a view mid-move rather than either state.
     assert_eq!(
         value("straight-back"),
         value("before"),
         "the page came back somewhere other than where the reader left \
-         it. {context}"
+         it: they were looking at message {:?} and returned to {:?}. \
+         {context}",
+        value("before"),
+        value("straight-back")
     );
     assert_eq!(
         value("after"),

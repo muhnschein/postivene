@@ -21,12 +21,6 @@ Page {
         id: messages
         objectName: "messages"
         account_id: page.accountId
-        // Deliberately not bound to page.chatId. A binding starts the
-        // fetch the moment the page is created -- while it is still
-        // transitioning in -- and building every row of a long history in
-        // one go on the Qt thread is what makes that transition stutter
-        // and freeze. The chat is handed over once the page has settled;
-        // the handler below does it.
         // What the reader can actually see decides what counts as read.
         reading_history: !page.readerIsLooking
         onError: page.errorMessage = message
@@ -42,14 +36,22 @@ Page {
         onArrived: listView.noteArrivals(count)
     }
 
-    // The fetch waits for the page to arrive. Until then the list shows
-    // nothing and says nothing: `loaded` keeps the "no messages yet"
-    // placeholder off the screen while this is pending.
-    onStatusChanged: {
-        if (status === PageStatus.Active && messages.chat_id !== page.chatId) {
-            messages.chat_id = page.chatId
-        }
-    }
+    // The chat is handed over as the page is built, so a prefetched one is
+    // already in the model before the transition starts and the page comes
+    // in with its messages rather than filling in behind itself.
+    //
+    // This used to wait for PageStatus.Active. It had to: a chat was
+    // fetched whole, and building every row of a long history in one go on
+    // the Qt thread froze the transition. A chat now opens on one page of
+    // fifty, and the prefetch has usually built those rows already -- the
+    // handover is then a move, with no core round trip in it at all.
+    //
+    // In `Component.onCompleted` rather than a binding on the declaration
+    // above, because the order matters: this must run after
+    // `reading_history` has been bound, or the model would see the default
+    // `false`, take it for a reader looking at the screen, and mark the
+    // chat read before the page is even on it.
+    Component.onCompleted: messages.chat_id = page.chatId
 
     // Where a search result lands. The row cannot be looked up until the
     // fetch has finished, so this waits for the model to say so rather

@@ -630,6 +630,10 @@ async fn main() {
                     ok(&id, &json!(hits))
                 }
                 "get_message_list_items" => {
+                    // Delayed with the same knob as get_messages: a real
+                    // core takes time over both, and a test that wants two
+                    // of these in the air at once needs them to overlap.
+                    tokio::time::sleep(delay("POSTIVENE_FAKE_FETCH_DELAY_MS")).await;
                     let mut state = state.lock().await;
                     state.seed_chats();
                     let chat = positional(1)

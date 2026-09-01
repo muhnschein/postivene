@@ -519,13 +519,17 @@ impl ChatMessages {
         });
     }
 
-    /// The newest loaded id, or `None` for a window that runs to the end of
-    /// the chat and takes in whatever arrives.
-    fn far_end(&self) -> Option<u32> {
-        if !self.has_newer {
-            return None;
-        }
-        self.rows.borrow().iter().last().map(|item| item.message_id)
+    /// Where the window is: the oldest loaded id, and the newest one when
+    /// the window has been moved off the end of the chat.
+    ///
+    /// The second is `None` for a window that runs to the end and takes in
+    /// whatever arrives, which is where a chat opens and mostly stays.
+    fn anchors(&self) -> (Option<u32>, Option<u32>) {
+        let rows = self.rows.borrow();
+        let oldest = rows.iter().next().map(|item| item.message_id);
+        let newest = rows.iter().last().map(|item| item.message_id);
+        drop(rows);
+        (oldest, if self.has_newer { newest } else { None })
     }
 
     /// Say whether there is more history at either end, after anything that
@@ -931,12 +935,11 @@ impl ChatMessages {
         // reader's to ask for; fetching it here would undo the paging on
         // the first message that arrived.
         let loaded = known.len();
-        let oldest = self.rows.borrow().iter().next().map(|item| item.message_id);
         // And how far forward. A window moved off the end of the chat does
         // not take in arrivals: they are past its far end, and swallowing
         // them would drag a reader who went looking for something in last
         // March back to today one message at a time.
-        let far_end = self.far_end();
+        let (oldest, far_end) = self.anchors();
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
         let done = queued_callback(
@@ -944,12 +947,26 @@ impl ChatMessages {
                 let Some(this) = ptr.as_pinned() else { return };
                 match result {
                     Ok((ids, fetched)) => {
+                        // Where the window is *now*, not where it was when
+                        // this went out. Going to the beginning of a chat
+                        // moves it while this is in the air, and waking up
+                        // holding the old window's anchors and the new
+                        // window's rows means agreeing with neither --
+                        // which falls through to the reload below, and a
+                        // reload goes back to the newest page. That is the
+                        // jump to the beginning undoing itself, and it took
+                        // an event landing in the same moment, which is why
+                        // it only happened in chats busy enough to be
+                        // sending them: ones full of pictures.
+                        let (oldest_now, far_now) = this.borrow().anchors();
+                        let moved = oldest_now != oldest || far_now != far_end;
+
                         let this_mut = this.borrow_mut();
                         let mut rows = this_mut.rows.borrow_mut();
                         // The window, not the whole chat: the rows stand
-                        // for the newest slice of the id list, and this is
-                        // the slice they have to agree with.
-                        let wanted = window_from(&ids, oldest, far_end, rows.iter().count());
+                        // for one slice of the id list, and this is the
+                        // slice they have to agree with.
+                        let wanted = window_from(&ids, oldest_now, far_now, rows.iter().count());
                         // A deletion or a reorder is rare and cheap to
                         // handle wholesale; the common case is an append.
                         let unchanged_prefix = wanted.len() >= rows.iter().count()
@@ -967,6 +984,12 @@ impl ChatMessages {
                                 if rows.iter().any(|row| row.message_id == item.message_id) {
                                     continue;
                                 }
+                                // Chosen against the window this went out
+                                // with, so a window that moved since leaves
+                                // some of these belonging to nothing.
+                                if !wanted.contains(&item.message_id) {
+                                    continue;
+                                }
                                 appended.push(item.clone());
                                 rows.push(item);
                             }
@@ -974,6 +997,14 @@ impl ChatMessages {
                             drop(this_mut);
                             this.borrow_mut().adopt_ids(ids);
                             this.borrow().rows_changed();
+                            if moved {
+                                // What this fetched was chosen for a window
+                                // that is no longer there, so whatever the
+                                // new one is missing was never asked for.
+                                // One more round, with the anchors it
+                                // actually has.
+                                this.borrow_mut().sync_rows();
+                            }
                             // Asked after the push rather than before the
                             // fetch, so a reader who scrolled away while it
                             // ran is not credited with seeing what arrived.
@@ -1004,7 +1035,25 @@ impl ChatMessages {
                         } else {
                             drop(rows);
                             drop(this_mut);
-                            this.borrow_mut().reload();
+                            // The rows cannot be reconciled with the chat
+                            // as it now is, so they have to be replaced.
+                            // Onto the window the reader is looking at
+                            // rather than the newest page: being sent back
+                            // to today because something changed further up
+                            // is the same complaint as the jump to the
+                            // beginning undoing itself.
+                            let start =
+                                oldest_now.and_then(|id| ids.iter().position(|other| *other == id));
+                            this.borrow_mut().adopt_ids(ids);
+                            match (start, oldest_now) {
+                                (Some(start), Some(settle)) => {
+                                    this.borrow_mut().show_window(start, settle, false);
+                                }
+                                // The row the window started at is not in
+                                // the chat any more; there is nothing to
+                                // keep, so take the newest page.
+                                _ => this.borrow_mut().reload(),
+                            }
                         }
                     }
                     Err(err) => this.borrow().error(err.into()),

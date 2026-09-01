@@ -83,6 +83,20 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   chat read behind a page nobody has seen. A prefetch hit is a move, not a
   fetch. When a search result is what was tapped, the prefetch loads the
   page *that message* is on, so the page never shows today and jumps.
+- **A reconciliation answers to the window that is there, not the one it
+  set out with.** An event makes the model check its rows against a fresh
+  id list, and it reads where its window starts and ends *before* asking
+  the core. Move the window while that is in the air -- which is exactly
+  what going to the beginning of a chat does -- and it wakes holding the
+  old window's anchors and the new window's rows, agrees with neither, and
+  falls through to reloading. A reload goes to the newest page, so the
+  jump undoes itself. It only showed up in chats busy enough to be sending
+  events during the jump, which means chats full of media. The anchors are
+  now read when the answer lands; a window that moved under it costs one
+  more round rather than the reader's place.
+- **What cannot be reconciled is reloaded onto the reader's own window**,
+  not onto the newest page. Being sent back to today because something
+  changed further up the chat is the same complaint by another route.
 - **The way to the beginning of a chat stays on offer during a fetch.**
   Reaching the top is what starts a step back through the history, so a
   control that hid itself for the duration was gone at exactly the moment

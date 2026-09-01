@@ -109,6 +109,14 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   and gives no sign that it is not the top of the chat. That is where the
   gesture leaves the reader looking, so that is where the way to the real
   beginning goes.
+- **Drafts belong to the core, not the page.** `misc_set_draft` and
+  `get_draft` keep what was typed and not sent, so it survives the app
+  being closed rather than only the trip back to the chat list. It also
+  means the chat list needs no new field: a chat holding one comes back
+  with `summaryText1` "Draft", which the row already shows in front of the
+  preview, so it reads "Draft: ..." in whatever language the core is in.
+  Written on a debounce while typing and again the moment the page goes,
+  because leaving is exactly when the debounce has not fired yet.
 - **One send at a time.** The compose state clears when the core answers,
   not when the button is tapped, so a send that fails leaves the reader
   holding what they chose. `ChatMessages.sending` closes the window that

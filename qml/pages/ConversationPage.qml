@@ -28,12 +28,30 @@ Page {
         // message just sent rather than counting it as one that was missed.
         onSent: {
             textField.text = ""
+            // Now, not a second from now: the chat list would otherwise
+            // show the message as a draft it is still holding, next to the
+            // same message as the one just sent.
+            page.storeDraft()
             page.replyBody = ""
             page.replyAuthor = ""
             page.attachmentPath = ""
             listView.jumpToNewest()
         }
         onArrived: listView.noteArrivals(count)
+        // The chat's unsent text, once the core has answered with it.
+        //
+        // `draftApplied` is set only when something is actually put in the
+        // field. Handing the chat over clears the draft and says so, and
+        // treating that as the answer would mark the field filled before
+        // the core had replied -- which is how this first went in and why
+        // nothing came back.
+        onDraft_changed: {
+            if (!page.draftApplied && messages.draft.length > 0
+                    && textField.text.length === 0) {
+                textField.text = messages.draft
+                page.draftApplied = true
+            }
+        }
     }
 
     // The chat is handed over as the page is built, so a prefetched one is
@@ -60,9 +78,32 @@ Page {
     onStatusChanged: {
         if (page.status === PageStatus.Deactivating) {
             listView.rememberPlace()
+            // Written now rather than a second from now: leaving the chat
+            // is exactly when the debounce below has not fired yet, and
+            // that was the whole complaint.
+            page.storeDraft()
         } else if (page.status === PageStatus.Active) {
             listView.restorePlace()
         }
+    }
+
+    /// Whether the chat's own draft has been put in the field yet.
+    ///
+    /// The answer comes back from the core a moment after the page opens,
+    /// and a reader who started typing in that moment must not have it
+    /// written over them.
+    property bool draftApplied: false
+
+    function storeDraft() {
+        draftDebounce.stop()
+        messages.save_draft(textField.text)
+    }
+
+    // Not on every keystroke: that is one call to the core per character.
+    Timer {
+        id: draftDebounce
+        interval: 1000
+        onTriggered: messages.save_draft(textField.text)
     }
 
     // Where a search result lands. The row cannot be looked up until the
@@ -360,6 +401,10 @@ Page {
                              ? qsTr("Caption") : qsTr("Message")
             EnterKey.iconSource: "image://theme/icon-m-enter-accept"
             EnterKey.onClicked: page.sendCurrentText()
+            // Kept in the core, so it is still here after the app has been
+            // closed and reopened, and so the chat list can say which
+            // chats are holding one.
+            onTextChanged: draftDebounce.restart()
         }
 
         AttachButton {

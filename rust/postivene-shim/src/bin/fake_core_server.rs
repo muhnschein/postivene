@@ -42,6 +42,9 @@ struct State {
     group_members: std::collections::BTreeMap<u32, Vec<u32>>,
     /// Config values per account, so a set can be read back.
     config: std::collections::BTreeMap<(u32, String), String>,
+    /// The unsent text each chat is holding. The core keeps drafts, so a
+    /// fake standing in for it has to as well.
+    drafts: std::collections::BTreeMap<u32, String>,
 }
 
 impl State {
@@ -566,14 +569,29 @@ async fn main() {
                         .as_array()
                         .map(|array| array.iter().filter_map(Value::as_u64).collect())
                         .unwrap_or_default();
+                    let state = state.lock().await;
                     let mut items = serde_json::Map::new();
                     for chat in ids {
+                        // A chat holding a draft previews the draft, and
+                        // names it in the prefix the row shows in front:
+                        // "Draft", and DC_STATE_OUT_DRAFT for the state.
+                        // The real core does this itself, which is pinned
+                        // in deltachat-jsonrpc/tests/real_server.rs.
+                        let draft = u32::try_from(chat)
+                            .ok()
+                            .and_then(|chat| state.drafts.get(&chat))
+                            .filter(|text| !text.is_empty());
                         items.insert(
                             chat.to_string(),
                             json!({
                                 "kind": "ChatListItem",
                                 "name": format!("chat {chat}"),
-                                "summaryText2": format!("last in {chat}"),
+                                "summaryText1": draft.map(|_| "Draft"),
+                                "summaryText2": draft.map_or_else(
+                                    || format!("last in {chat}"),
+                                    Clone::clone,
+                                ),
+                                "summaryStatus": if draft.is_some() { 19 } else { 0 },
                                 "freshMessageCounter": 0,
                                 "isEncrypted": true,
                                 // Chat 1 is pinned, so the ordinary list
@@ -645,6 +663,40 @@ async fn main() {
                         loaded.insert(msg.to_string(), message);
                     }
                     ok(&id, &Value::Object(loaded))
+                }
+                // Drafts, which the core keeps per chat. Enough of them to
+                // drive the page: one text per chat, read back and cleared.
+                "misc_set_draft" => {
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let text = positional(2).as_str().unwrap_or_default().to_string();
+                    let mut state = state.lock().await;
+                    state.drafts.insert(chat, text);
+                    ok(&id, &Value::Null)
+                }
+                "remove_draft" => {
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.drafts.remove(&chat);
+                    ok(&id, &Value::Null)
+                }
+                "get_draft" => {
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let state = state.lock().await;
+                    // Null for none and a whole message object for one, as
+                    // the real core answers.
+                    match state.drafts.get(&chat) {
+                        Some(text) => ok(&id, &json!({"text": text, "state": 19})),
+                        None => ok(&id, &Value::Null),
+                    }
                 }
                 "misc_send_msg" => {
                     let account = account_id();

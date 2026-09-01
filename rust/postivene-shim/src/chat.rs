@@ -204,6 +204,17 @@ pub struct ChatMessages {
     /// such message.
     pub revealed: qt_signal!(message_id: u32, row: i32),
 
+    /// The unsent text this chat is holding.
+    ///
+    /// The core's, not ours: it keeps drafts itself, so one survives the
+    /// app being closed, and a chat holding one says so in its own chat
+    /// list summary without anything here building that text.
+    pub draft: qt_property!(QString; NOTIFY draft_changed),
+    /// Emitted when the draft is loaded or written.
+    pub draft_changed: qt_signal!(),
+    /// Remember `text` as this chat's draft, or forget it when empty.
+    pub save_draft: qt_method!(fn(&mut self, text: QString)),
+
     /// Feed a `core_event` in. Events for other accounts or chats are
     /// ignored, so a page can connect this without filtering first.
     pub handle_event:
@@ -300,10 +311,118 @@ impl ChatMessages {
         if self.chat_id != chat_id {
             self.chat_id = chat_id;
             self.loaded = false;
+            // Whatever the last chat was holding is not this one's.
+            self.draft = QString::default();
             self.loaded_changed();
+            self.draft_changed();
             self.chat_changed();
             self.reload();
+            self.load_draft();
         }
+    }
+
+    /// Read back whatever this chat is holding.
+    ///
+    /// Its own call rather than part of the reload: a draft is one small
+    /// answer and the messages are the expensive one, and waiting for the
+    /// second to show the first would put the reader's own unsent words
+    /// behind a page fetch.
+    fn load_draft(&mut self) {
+        let (account_id, chat_id) = (self.account_id, self.chat_id);
+        if account_id == 0 || chat_id == 0 {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |text: String| {
+            let Some(this) = ptr.as_pinned() else { return };
+            // The reader can have moved on, or started typing, while this
+            // was in flight. Neither wants an older answer written over it.
+            if this.borrow().chat_id != chat_id || !this.borrow().draft.to_string().is_empty() {
+                return;
+            }
+            if text.is_empty() {
+                return;
+            }
+            this.borrow_mut().draft = text.into();
+            this.borrow().draft_changed();
+        });
+
+        runtime.spawn(async move {
+            // Null when there is none, and a whole message object when
+            // there is: pinned against the real core in
+            // deltachat-jsonrpc/tests/real_server.rs.
+            let draft: serde_json::Value = rpc
+                .call("get_draft", (account_id, chat_id))
+                .await
+                .unwrap_or(serde_json::Value::Null);
+            done(
+                draft
+                    .get("text")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or_default()
+                    .to_string(),
+            );
+        });
+    }
+
+    /// Remember `text` as this chat's draft, or forget it when empty.
+    pub fn save_draft(&mut self, text: QString) {
+        let (account_id, chat_id) = (self.account_id, self.chat_id);
+        if account_id == 0 || chat_id == 0 {
+            return;
+        }
+        let text = text.to_string();
+        if self.draft.to_string() == text {
+            return;
+        }
+        self.draft = QString::from(text.clone());
+        self.draft_changed();
+
+        let Some((rpc, runtime)) = connection() else {
+            return;
+        };
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |failure: Option<String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            if let Some(message) = failure {
+                this.borrow().error(message.into());
+            }
+        });
+
+        runtime.spawn(async move {
+            let result = if text.is_empty() {
+                rpc.call::<_, serde_json::Value>("remove_draft", (account_id, chat_id))
+                    .await
+            } else {
+                // misc_set_draft params: account, chat, text, file,
+                // filename, quoted message, view type. Not the same tail
+                // as misc_send_msg, which takes a location where this
+                // takes the quote. Pinned against the real core in
+                // deltachat-jsonrpc/tests/real_server.rs.
+                //
+                // Only the text for now: a file chosen but not sent, and a
+                // reply not yet made, are still the page's and not the
+                // core's.
+                rpc.call::<_, serde_json::Value>(
+                    "misc_set_draft",
+                    (
+                        account_id,
+                        chat_id,
+                        Some(text),
+                        Option::<String>::None,
+                        Option::<String>::None,
+                        Option::<u32>::None,
+                        Option::<String>::None,
+                    ),
+                )
+                .await
+            };
+            done(result.err().map(|err| err.to_string()));
+        });
     }
 
     /// Reload the whole chat.

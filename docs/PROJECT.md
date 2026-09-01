@@ -83,6 +83,27 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   chat read behind a page nobody has seen. A prefetch hit is a move, not a
   fetch. When a search result is what was tapped, the prefetch loads the
   page *that message* is on, so the page never shows today and jumps.
+- **A row jumped to has to be held, not jumped to.** One
+  `positionViewAtIndex` is enough only where every row is already its final
+  height, which is nowhere real: rows are measured as they are laid out,
+  wrapped text at the device's own metrics is taller than an estimate, a
+  picture's row changes height again when the picture decodes, and the
+  header above the oldest row collapses when there is no more history to
+  offer. Each of those that happens above the reader moves them, and they
+  all happen after the jump. So `holdAt` re-applies the row on every change
+  to the content, until the reader takes the view over or it stops moving
+  under them. Landing on a search result, on the beginning of the chat, and
+  back on the place a full-screen picture was opened from are all this.
+- **A page pushed over the conversation takes its place with it.** The list
+  is torn down far enough to forget where it was, and replaces what it
+  forgets with the beginning. `rememberPlace` on `Deactivating` and
+  `restorePlace` on `Active` put it back -- as a row, not a pixel offset,
+  for the same reason a step back through the history is.
+- **Zoom is about the point that was touched.** A picture that grows about
+  its own top-left corner takes a reader who pinched a face in the bottom
+  right to the top left instead. `PicturePage.zoomAt` works out where in
+  the picture the fingers are, changes the zoom, and puts the view back so
+  the same point is under them.
 - **The top of the list offers the beginning of the chat.** Not decoration:
   the system's own scroll-to-top gesture goes to the top of what is loaded
   and gives no sign that it is not the top of the chat. That is where the

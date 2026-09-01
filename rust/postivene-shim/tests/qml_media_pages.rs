@@ -93,6 +93,13 @@ const PROBE_QML: &str = r"
             return 'ok'
         }
         function call(name) { return '' + loader.item[name]() }
+        /// A double tap at a point in the view, and where the view ends up.
+        function zoomAt(viewX, viewY) {
+            loader.item.toggleZoom(viewX, viewY)
+            var flick = findIn(loader.item, 'pictureFlick')
+            if (!flick) { return 'missing:pictureFlick' }
+            return Math.round(flick.contentX) + ',' + Math.round(flick.contentY)
+        }
         function get(property) { return '' + loader.item[property] }
         function set(property, value) {
             loader.item[property] = value
@@ -241,7 +248,9 @@ fn pictures_and_video_open_here_and_everything_else_goes_to_the_system() {
                 QString::from("contentWidth")
             ),
         ));
-        (*steps_ptr).push(("zoomed", call!("call", QString::from("toggleZoom"))));
+        // Zoomed in on the bottom right of the picture, which is where
+        // the reader put their fingers.
+        (*steps_ptr).push(("zoomed", call!("zoomAt", 480, 700)));
         (*steps_ptr).push((
             "zoomed-content",
             call!(
@@ -346,6 +355,7 @@ fn pictures_and_video_open_here_and_everything_else_goes_to_the_system() {
 }
 
 /// What the run has to show for itself, out of the test body.
+#[allow(clippy::too_many_lines)]
 fn assert_outcome(steps: &[(&str, String)], navigation: &str) {
     let value = |label: &str| {
         steps
@@ -394,6 +404,17 @@ fn assert_outcome(steps: &[(&str, String)], navigation: &str) {
         number("fitted-content"),
         540,
         "the picture did not open fitted to the page. {context}"
+    );
+    // Toward what was tapped, not toward the corner. Zooming about the
+    // picture's own top left is what takes a reader who tapped a face in
+    // the bottom right somewhere else entirely.
+    let corner = value("zoomed");
+    let (across, down) = corner.split_once(',').unwrap_or(("0", "0"));
+    assert!(
+        across.parse::<i64>().unwrap_or(0) > 0 && down.parse::<i64>().unwrap_or(0) > 0,
+        "zooming in on the bottom right of the picture left the view at \
+         {corner:?}: it grew about its own top left corner and took the \
+         reader there. {context}"
     );
     assert!(
         number("zoomed-content") > number("fitted-content"),

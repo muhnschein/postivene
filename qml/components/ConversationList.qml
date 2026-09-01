@@ -252,12 +252,26 @@ SilicaListView {
     readonly property bool following:
         root.stickToBottom && !root.held && !root.hasNewer
 
-    onMovementStarted: root.held = true
+    // Taking hold of the list is taking it over, so a held row lets go.
+    onMovementStarted: {
+        root.held = true
+        root.releaseRow()
+    }
 
     // Both of these, because a row arriving and that row being measured are
     // separate steps: the first moves `count`, the second `contentHeight`.
     onMessageCountChanged: if (root.following) toEnd.restart()
-    onContentHeightChanged: if (root.following) toEnd.restart()
+    onContentHeightChanged: {
+        // A held row first: the content changing height is exactly what
+        // moves the reader off it, so this is the moment to put them back.
+        if (root.pendingRow >= 0) {
+            root.positionViewAtIndex(root.pendingRow, ListView.Center)
+            // The content is still moving, so the hold has more to do.
+            holdRow.restart()
+        } else if (root.following) {
+            toEnd.restart()
+        }
+    }
     // How close to the end still counts as being at it. Exactly `atYEnd`
     // is the wrong test: rows are measured as they scroll into view, so
     // `contentHeight` is still growing at the moment a scroll stops, and
@@ -282,39 +296,108 @@ SilicaListView {
             return
         }
         root.stickToBottom = false
-        root.settled = false
-        root.pendingRow = index
-        // Both, and in this order. Straight away is what a view that has
-        // already been laid out needs, and is what the tests drive. Again
-        // on the next pass is for the other case: a window that arrived
-        // with the page, positioned from Component.onCompleted before the
-        // view has measured a single row, where positionViewAtIndex has
-        // nothing to work with and quietly does nothing.
         root.positionViewAtIndex(index, ListView.Center)
-        toRow.restart()
     }
 
-    /// The row `jumpToRow` is waiting for a layout pass to reach.
+    /// Put the view on a row and keep it there while the rows settle.
+    ///
+    /// One `positionViewAtIndex` is enough only where every row is already
+    /// its final height, which is nowhere real. Rows are measured as they
+    /// are laid out, wrapped text at the device's own metrics is taller
+    /// than an estimate, a picture's row changes height again when the
+    /// picture decodes, and the header above the oldest row collapses to
+    /// nothing the moment there is no more history to offer. Every one of
+    /// those that happens above the reader moves them, and they all happen
+    /// after the jump.
+    ///
+    /// So the row is held rather than jumped to: re-applied on each change
+    /// to the content until the reader takes the view over or it stops
+    /// moving under them. This is what a search result lands on and what
+    /// the beginning of the chat lands on, and both were reported landing
+    /// at the top of whatever had just loaded instead.
+    function holdAt(index) {
+        if (index < 0) {
+            return
+        }
+        root.stickToBottom = false
+        // Edges mean nothing while this is going on: the content is still
+        // being measured, so its end is wherever the measuring has got to,
+        // and reading that as the reader having reached the end asks for
+        // the page below one they have not looked at yet.
+        root.settled = false
+        root.pendingRow = index
+        root.positionViewAtIndex(index, ListView.Center)
+        holdRow.restart()
+        holdDeadline.restart()
+    }
+
+    /// Let go of the held row: the reader has taken over, or the view has
+    /// stopped moving under them.
+    function releaseRow() {
+        holdRow.stop()
+        holdDeadline.stop()
+        root.pendingRow = -1
+        root.settled = true
+    }
+
+    /// The row a jump is holding the view on, or -1.
     property int pendingRow: -1
 
+    // Restarted every time the row is put back, so the hold lasts as long
+    // as the content is still moving and no longer: a screen of plain text
+    // settles in a frame, a screen of pictures takes as long as the
+    // pictures take, and neither needs a number guessed in advance.
     Timer {
-        id: toRow
-        interval: 0
-        onTriggered: {
-            if (root.pendingRow >= 0) {
-                root.positionViewAtIndex(root.pendingRow, ListView.Center)
-                root.pendingRow = -1
+        id: holdRow
+        interval: 400
+        onTriggered: root.releaseRow()
+    }
+
+    // Except that it does need one in the end. Something that never stops
+    // changing height would otherwise hold the view for ever, and a view
+    // that will not let go is worse than one that lands in the wrong place.
+    Timer {
+        id: holdDeadline
+        interval: 5000
+        onTriggered: root.releaseRow()
+    }
+
+    /// The first row at or below `y` in the view.
+    ///
+    /// `indexAt` lands on nothing between rows or over a day separator, so
+    /// a single probe answers -1 about half the time.
+    function rowNear(y) {
+        for (var offset = 0; y + offset < root.height; offset += Theme.paddingLarge) {
+            var index = root.indexAt(root.width / 2, root.contentY + y + offset)
+            if (index >= 0) {
+                return index
             }
-            // After the positioning, not before: the contentY change it
-            // makes must not be read as the reader arriving at an edge.
-            root.settled = true
-            // Asked here as well as on a move, because where the view was
-            // put may itself be an edge and there is no further change
-            // coming to notice it: a jump to the top of the loaded
-            // messages would sit there offering history and never fetch
-            // any.
-            root.checkEdges()
         }
+        return -1
+    }
+
+    /// Where the reader is, before another page goes over this one.
+    ///
+    /// A conversation with a picture opened over it came back with its view
+    /// at the top of the loaded messages: the list is torn down far enough
+    /// to forget where it was, and what it forgets it replaces with the
+    /// beginning. Remembered as a row rather than as a pixel offset, for
+    /// the same reason a step back through the history is.
+    property int rememberedRow: -1
+    property bool rememberedFollowing: false
+
+    function rememberPlace() {
+        root.rememberedFollowing = root.stickToBottom
+        root.rememberedRow = root.rowNear(root.height / 2)
+    }
+
+    function restorePlace() {
+        if (root.rememberedFollowing) {
+            root.jumpToNewest()
+        } else if (root.rememberedRow >= 0) {
+            root.holdAt(root.rememberedRow)
+        }
+        root.rememberedRow = -1
     }
 
     readonly property real bottomSlack: Theme.itemSizeLarge

@@ -47,14 +47,53 @@ Page {
         ? page.fittedWidth * picture.implicitHeight / picture.implicitWidth
         : page.height
 
-    /// Zoom, kept between fitted and the maximum.
-    function setZoom(value) {
-        page.zoom = Math.max(1, Math.min(page.maximumZoom, value))
+    /// Kept inside the content. The flickable would do this itself, but
+    /// only once it has been laid out, and this runs before that.
+    function within(value, limit) {
+        return Math.max(0, Math.min(Math.max(0, limit), value))
     }
 
-    /// What a double tap does: all the way in, or all the way back.
-    function toggleZoom() {
-        page.setZoom(page.zoom > 1 ? 1 : 3)
+    /// Where the picture's left edge sits when it is narrower than the view.
+    function inset(size, viewport) {
+        return Math.max(0, (Math.max(size, viewport) - size) / 2)
+    }
+
+    /// Change the zoom, keeping whatever is under (`viewX`, `viewY`) under
+    /// it afterwards.
+    ///
+    /// The coordinates are in the view, not in the picture. Without this
+    /// the picture simply grows about its own top-left corner, and zooming
+    /// in on a face in the bottom right takes the reader to the top left
+    /// and leaves them to find their way back.
+    function zoomAt(target, viewX, viewY) {
+        var next = Math.max(1, Math.min(page.maximumZoom, target))
+        var wide = page.fittedWidth * page.zoom
+        var high = page.fittedHeight * page.zoom
+        if (wide <= 0 || high <= 0 || next === page.zoom) {
+            return
+        }
+        // Where that point sits in the picture, 0..1, before the change.
+        var across = (flick.contentX + viewX - page.inset(wide, flick.width)) / wide
+        var down = (flick.contentY + viewY - page.inset(high, flick.height)) / high
+
+        page.zoom = next
+
+        var wideAfter = page.fittedWidth * next
+        var highAfter = page.fittedHeight * next
+        // And where it has to be for that point to be under the same place
+        // on the screen.
+        flick.contentX = page.within(
+            page.inset(wideAfter, flick.width) + across * wideAfter - viewX,
+            Math.max(wideAfter, flick.width) - flick.width)
+        flick.contentY = page.within(
+            page.inset(highAfter, flick.height) + down * highAfter - viewY,
+            Math.max(highAfter, flick.height) - flick.height)
+    }
+
+    /// What a double tap does: all the way in on what was tapped, or all
+    /// the way back out.
+    function toggleZoom(viewX, viewY) {
+        page.zoomAt(page.zoom > 1 ? 1 : 3, viewX, viewY)
     }
 
     // Behind the picture rather than the theme's own background: a photo
@@ -94,9 +133,21 @@ Page {
             /// reports its scale relative to its own start, not to the
             /// picture.
             property real startZoom: 1
+            /// And where on the screen they went down, which is the point
+            /// the picture has to stay still under.
+            property real focusX: 0
+            property real focusY: 0
 
-            onPinchStarted: pincher.startZoom = page.zoom
-            onPinchUpdated: page.setZoom(pincher.startZoom * pinch.scale)
+            onPinchStarted: {
+                pincher.startZoom = page.zoom
+                // This area is the flickable's content, so its coordinates
+                // are content coordinates; the view's are what zoomAt
+                // wants.
+                pincher.focusX = pinch.startCenter.x - flick.contentX
+                pincher.focusY = pinch.startCenter.y - flick.contentY
+            }
+            onPinchUpdated: page.zoomAt(pincher.startZoom * pinch.scale,
+                                        pincher.focusX, pincher.focusY)
 
             Item {
                 id: frame
@@ -133,8 +184,12 @@ Page {
                 }
 
                 MouseArea {
+                    id: tap
                     anchors.fill: parent
-                    onDoubleClicked: page.toggleZoom()
+                    onDoubleClicked: {
+                        var point = tap.mapToItem(flick, mouse.x, mouse.y)
+                        page.toggleZoom(point.x, point.y)
+                    }
                 }
             }
         }

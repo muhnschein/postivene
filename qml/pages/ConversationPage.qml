@@ -53,6 +53,18 @@ Page {
     // chat read before the page is even on it.
     Component.onCompleted: messages.chat_id = page.chatId
 
+    // A page pushed over this one takes the list's place in it with them:
+    // it is torn down far enough to forget where it was, and comes back at
+    // the top of whatever is loaded. Opening a picture full screen and
+    // coming back is the way most readers meet that.
+    onStatusChanged: {
+        if (page.status === PageStatus.Deactivating) {
+            listView.rememberPlace()
+        } else if (page.status === PageStatus.Active) {
+            listView.restorePlace()
+        }
+    }
+
     // Where a search result lands. The row cannot be looked up until the
     // fetch has finished, so this waits for the model to say so rather
     // than for the page: the two are not the same moment. And a chat opens
@@ -69,7 +81,10 @@ Page {
         onRevealed: {
             if (row >= 0) {
                 listView.foundMessageId = message_id
-                listView.jumpToRow(row)
+                // Held rather than jumped to: the page is still arriving
+                // and its rows still being measured, and one jump lands
+                // the reader wherever the measuring has got to.
+                listView.holdAt(row)
                 foundFlash.restart()
             }
             // Once is enough, found or not: a later reload must not drag
@@ -82,7 +97,7 @@ Page {
         // in the chat. `row` is where in it the reader was going.
         onWindow_moved: {
             if (messages.has_newer) {
-                listView.jumpToRow(row)
+                listView.holdAt(row)
             } else {
                 // Back at the end of the chat, so this is the ordinary
                 // "newest message" case, arrivals and all.

@@ -168,6 +168,22 @@ fn journal(method: &str, params: &Value) {
 /// One message, shaped like the real core's. Seeded message 1 quotes,
 /// 2 is unread, and 10 carries an image, so one fetch covers the cases the
 /// conversation view has to render.
+/// What a message says.
+///
+/// Short by default, because most tests assert on it. `POSTIVENE_FAKE_WORDY`
+/// makes it long enough to wrap, which is what a real conversation looks
+/// like to a view: a row's height then depends on how wide it is drawn, and
+/// changes when that changes. Nothing else here can make a laid-out row
+/// change size, and a view that cannot be made to shift cannot be shown to
+/// hold its place.
+fn wordy(msg: u64) -> String {
+    let text = format!("message {msg}");
+    if std::env::var_os("POSTIVENE_FAKE_WORDY").is_none() {
+        return text;
+    }
+    format!("{text}, and then a good deal more of it, long enough that where it wraps depends on how wide the row is drawn")
+}
+
 fn message_object(msg: u64) -> Value {
     // 2023-11-14T22:13:20Z and a day later, so a day separator has
     // something to separate.
@@ -178,7 +194,7 @@ fn message_object(msg: u64) -> Value {
     };
     let mut message = json!({
         "kind": "message",
-        "text": format!("message {msg}"),
+        "text": wordy(msg),
         "fromId": 10,
         "timestamp": timestamp,
         "showPadlock": true,

@@ -23,6 +23,8 @@ struct Loaded {
     color: String,
     is_group: bool,
     can_edit: bool,
+    can_send: bool,
+    ephemeral_timer: u32,
     members: Vec<ContactItem>,
 }
 
@@ -65,6 +67,13 @@ pub struct ChatInfo {
     /// to one it has left, or to a chat that is not a group at all, so
     /// the page offers none.
     pub can_edit: qt_property!(bool; NOTIFY loaded_changed),
+    /// A chat this account can write to. False for a group it has left
+    /// and for a contact request, and what settings that apply to the
+    /// whole chat -- disappearing messages -- are offered on.
+    pub can_send: qt_property!(bool; NOTIFY loaded_changed),
+    /// Seconds after which messages in this chat disappear, 0 for never.
+    /// The core's `ephemeralTimer`.
+    pub ephemeral_timer: qt_property!(u32; NOTIFY loaded_changed),
     /// True once a load has finished, however it went. Emitted again on
     /// every reload, since every field above changes with it.
     pub loaded: qt_property!(bool; NOTIFY loaded_changed),
@@ -107,6 +116,10 @@ pub struct ChatInfo {
     pub remove_member: qt_method!(fn(&mut self, contact_id: u32)),
     /// Leave the group. Answers on `left`.
     pub leave: qt_method!(fn(&mut self)),
+    /// Make messages in this chat disappear after `seconds`, or never for
+    /// 0. Applies to every member, since the core tells them. Answers on
+    /// `saved`.
+    pub set_ephemeral_timer: qt_method!(fn(&mut self, seconds: u32)),
 
     /// Counts loads, so a slow answer to an older question cannot land on
     /// top of a newer one; see `ContactList`.
@@ -174,6 +187,8 @@ impl ChatInfo {
                         this_mut.color = found.color.into();
                         this_mut.is_group = found.is_group;
                         this_mut.can_edit = found.can_edit;
+                        this_mut.can_send = found.can_send;
+                        this_mut.ephemeral_timer = found.ephemeral_timer;
                         this_mut.members.borrow_mut().reset_data(found.members);
                         this_mut.loaded = true;
                     }
@@ -204,8 +219,9 @@ impl ChatInfo {
             // does not say whose changed.
             "ContactsChanged" | "EventChannelOverflow" => self.reload(),
             // Renaming, a new picture, and anyone joining or leaving --
-            // from this device or another.
-            "ChatModified" => {
+            // from this device or another -- and the timer, which any
+            // member can set.
+            "ChatModified" | "ChatEphemeralTimerModified" => {
                 let payload: serde_json::Value =
                     serde_json::from_str(&payload_json.to_string()).unwrap_or_default();
                 if json::u32_opt(&payload, "chatId") == Some(self.chat_id) {
@@ -356,6 +372,24 @@ impl ChatInfo {
         });
     }
 
+    /// Make messages in this chat disappear after `seconds`.
+    pub fn set_ephemeral_timer(&mut self, seconds: u32) {
+        let (account_id, chat_id) = (self.account_id, self.chat_id);
+        let Some((rpc, runtime)) = connection() else {
+            self.error(QString::from("not started"));
+            return;
+        };
+        let done = self.stored_callback(Outcome::Saved);
+
+        runtime.spawn(async move {
+            let result = rpc
+                .call::<_, ()>("set_chat_ephemeral_timer", (account_id, chat_id, seconds))
+                .await
+                .map_err(|err| err.to_string());
+            done(result);
+        });
+    }
+
     /// Leave the group.
     pub fn leave(&mut self) {
         let (account_id, chat_id) = (self.account_id, self.chat_id);
@@ -438,6 +472,8 @@ async fn fetch(rpc: &RpcClient, account_id: u32, chat_id: u32) -> Result<Loaded,
         // Pinned against the real core: after leaving, `selfInGroup` and
         // `canSend` both go false and every edit is refused.
         can_edit: is_group && json::flag(&chat, "selfInGroup"),
+        can_send: json::flag(&chat, "canSend"),
+        ephemeral_timer: json::u32_at(&chat, "ephemeralTimer"),
         members,
     })
 }

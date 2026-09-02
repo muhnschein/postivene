@@ -31,6 +31,7 @@ Page {
         account_id: page.accountId
         chat_id: page.chatId
         onError: page.errorMessage = message
+        onSaved: notice.show(qsTr("Saved"))
     }
 
     Connections {
@@ -133,6 +134,13 @@ Page {
                     }
                 }
             }
+
+            DisappearingMessages {
+                objectName: "disappearing"
+                seconds: chat.ephemeral_timer
+                canChange: chat.can_send
+                onChosen: chat.set_ephemeral_timer(seconds)
+            }
         }
     }
 
@@ -141,10 +149,24 @@ Page {
         anchors {
             left: parent.left
             right: parent.right
-            bottom: parent.bottom
+            bottom: notice.top
         }
         text: page.errorMessage
         timeout: 8
         onDismissed: page.errorMessage = ""
+    }
+
+    Banner {
+        id: notice
+        objectName: "notice"
+        labelObjectName: "noticeLabel"
+        tone: "info"
+        timeout: 2
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+        onDismissed: notice.text = ""
     }
 }

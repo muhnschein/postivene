@@ -5,6 +5,7 @@ BusyIndicatorSize 1.0 BusyIndicatorSize.qml
 BackgroundItem 1.0 BackgroundItem.qml
 Button 1.0 Button.qml
 Column 1.0 Column.qml
+ComboBox 1.0 ComboBox.qml
 DetailItem 1.0 DetailItem.qml
 ContextMenu 1.0 ContextMenu.qml
 CoverAction 1.0 CoverAction.qml
@@ -29,6 +30,7 @@ TextField 1.0 TextField.qml
 TextSwitch 1.0 TextSwitch.qml
 ViewPlaceholder 1.0 ViewPlaceholder.qml
 singleton Theme 1.0 Theme.qml
+singleton Screen 1.0 Screen.qml
 singleton Clipboard 1.0 Clipboard.qml
 TruncationMode 1.0 TruncationMode.qml
 PageStatus 1.0 PageStatus.qml

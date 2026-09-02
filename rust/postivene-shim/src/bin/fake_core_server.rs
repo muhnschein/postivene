@@ -54,6 +54,8 @@ struct State {
     /// Groups this account has left. The real core refuses every change
     /// to one of these.
     left_groups: std::collections::BTreeSet<u32>,
+    /// Seconds after which a chat's messages disappear, by chat.
+    timers: std::collections::BTreeMap<u32, u32>,
     /// Config values per account, so a set can be read back.
     config: std::collections::BTreeMap<(u32, String), String>,
     /// The unsent text each chat is holding. The core keeps drafts, so a
@@ -570,6 +572,7 @@ async fn main() {
                             // a group the account is "in" at all.
                             "selfInGroup": is_group && !left,
                             "canSend": !left,
+                            "ephemeralTimer": state.timers.get(&chat).copied().unwrap_or(0),
                         }),
                     )
                 }
@@ -662,6 +665,27 @@ async fn main() {
                         state.left_groups.insert(chat);
                     }
                     state.chat_modified(account, chat);
+                    ok(&id, &Value::Null)
+                }
+                // Verified against the real core: accepted on any chat,
+                // and announced with its own event carrying the timer.
+                "set_chat_ephemeral_timer" => {
+                    let account = account_id();
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let timer = positional(2)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    state.timers.insert(chat, timer);
+                    state.events.push_back(json!({
+                        "contextId": account,
+                        "event": {"kind": "ChatEphemeralTimerModified", "chatId": chat, "timer": timer},
+                    }));
                     ok(&id, &Value::Null)
                 }
                 "leave_group" => {

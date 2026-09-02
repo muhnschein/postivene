@@ -45,6 +45,12 @@ const PROBE_QML: &str = r"
             if (node.contentItem && node.contentItem !== node) {
                 return findIn(node.contentItem, name)
             }
+            // A ComboBox's items live in its menu, which is not among
+            // its children.
+            if (node.menu) {
+                var inMenu = findIn(node.menu, name)
+                if (inMenu) { return inMenu }
+            }
             return null
         }
         function get(name, property) {
@@ -56,6 +62,12 @@ const PROBE_QML: &str = r"
             var item = findIn(loader.item, name)
             if (!item) { return 'missing:' + name }
             item.text = value
+            return 'ok'
+        }
+        function click(name) {
+            var item = findIn(loader.item, name)
+            if (!item) { return 'missing:' + name }
+            item.clicked()
             return 'ok'
         }
         /// Leaving the page is what applies what was typed.
@@ -140,6 +152,14 @@ fn the_group_page_shows_the_group_and_renames_it() {
         record!("leave-offered", get!("leaveButton", "visible"));
         record!("badge", get!("editBadge", "visible"));
         record!("remove-picture", get!("removePicture", "visible"));
+        // Disappearing messages: off, as the core holds it, and a tap on
+        // a duration goes to the core.
+        record!("timer-off", get!("disappearingCombo", "currentIndex"));
+        record!("timer-offered", get!("disappearingCombo", "enabled"));
+        record!(
+            "timer-pick",
+            call!("click", QString::from("timerOption86400"))
+        );
         // A new name, applied on the way out rather than a pause later.
         record!(
             "typed",
@@ -186,9 +206,29 @@ fn assert_page(steps: &[(&str, String)], calls: &[(String, Value)]) {
             .unwrap_or_default()
     };
 
-    for label in ["load", "typed", "leave", "load-single"] {
+    for label in ["load", "typed", "leave", "load-single", "timer-pick"] {
         assert_eq!(value(label), "ok", "step {label} failed. {context}");
     }
+    assert_eq!(
+        value("timer-off"),
+        "0",
+        "a chat with no timer does not show Off. {context}"
+    );
+    assert_eq!(
+        value("timer-offered"),
+        "true",
+        "the timer cannot be changed on a group the account is in. {context}"
+    );
+    let timer = calls
+        .iter()
+        .find(|(name, _)| name == "set_chat_ephemeral_timer")
+        .map(|(_, params)| params.clone())
+        .unwrap_or_default();
+    assert_eq!(
+        timer,
+        serde_json::json!([1, 2, 86400]),
+        "picking a duration did not reach the core. {context}"
+    );
     assert_eq!(value("loaded"), "true", "the group never loaded. {context}");
     assert_eq!(
         value("name"),

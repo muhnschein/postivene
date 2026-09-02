@@ -482,6 +482,24 @@ async fn offline_round_trip_against_real_core() {
         "an address contact went into an encrypted group; the shim's \
          refused-member reporting is built on this being refused"
     );
+    // Disappearing messages: seconds in, and read back on the chat as
+    // `ephemeralTimer`. The core tells the other members itself.
+    client
+        .call::<_, ()>(
+            "set_chat_ephemeral_timer",
+            (account_id, group_chat_id, 3600),
+        )
+        .await
+        .expect("set_chat_ephemeral_timer");
+    let timed: Value = client
+        .call("get_full_chat_by_id", (account_id, group_chat_id))
+        .await
+        .expect("get_full_chat_by_id after the timer");
+    assert_eq!(
+        timed.get("ephemeralTimer").and_then(Value::as_u64),
+        Some(3600),
+        "the timer did not come back on the chat: {timed:?}"
+    );
     // Removing someone who is not in the group is not an error, and null
     // is how a picture is cleared -- of a group that never had one too.
     client

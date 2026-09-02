@@ -172,6 +172,10 @@
         <source>Not encrypted: a plain email contact</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Saved</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ConversationList</name>
@@ -283,6 +287,56 @@
     </message>
     <message>
         <source>Cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DisappearingMessages</name>
+    <message>
+        <source>Off</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After 1 minute</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After 5 minutes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After 30 minutes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After 5 weeks</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disappearing messages</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <source>After %n second(s)</source>
+        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

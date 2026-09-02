@@ -228,6 +228,13 @@ Page {
                 onTextChanged: page.noteEdit()
             }
 
+            DisappearingMessages {
+                objectName: "disappearing"
+                seconds: chat.ephemeral_timer
+                canChange: chat.can_send
+                onChosen: chat.set_ephemeral_timer(seconds)
+            }
+
             SectionHeader {
                 objectName: "membersHeader"
                 //: Heading over the member list. %n is how many there are.

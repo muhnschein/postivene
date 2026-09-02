@@ -91,9 +91,12 @@ const PROBE_QML: &str = r"
                     group.clear_picture()
                 } else if (step === 5 && group.avatar_path.length === 0) {
                     step = 6
-                    group.leave()
-                } else if (step === 6 && !group.can_edit) {
+                    group.set_ephemeral_timer(3600)
+                } else if (step === 6 && group.ephemeral_timer === 3600) {
                     step = 7
+                    group.leave()
+                } else if (step === 7 && !group.can_edit) {
+                    step = 8
                 }
             }
         }
@@ -168,7 +171,7 @@ fn assert_changes(calls: &[(String, Value)], report: &str) {
     let members = parts.next().unwrap_or_default();
     let log = parts.next().unwrap_or_default();
 
-    assert_eq!(step, "7", "the scenario did not run to the end. {context}");
+    assert_eq!(step, "8", "the scenario did not run to the end. {context}");
 
     // The members came from the id list, with the account's own contact
     // marked, and in the core's order.
@@ -259,6 +262,19 @@ fn assert_changes(calls: &[(String, Value)], report: &str) {
         "the cleared picture is still showing. {context}"
     );
 
+    // Disappearing messages: seconds to the core, and the model reads
+    // the timer back off the chat.
+    let timer = calls
+        .iter()
+        .find(|(name, _)| name == "set_chat_ephemeral_timer")
+        .map(|(_, params)| params.clone())
+        .unwrap_or_default();
+    assert_eq!(
+        timer,
+        serde_json::json!([1, 2, 3600]),
+        "the timer was not set on this chat. {context}"
+    );
+
     // Leaving is its own call, after which the core allows no edits and
     // the model says so.
     assert!(
@@ -280,8 +296,8 @@ fn assert_changes(calls: &[(String, Value)], report: &str) {
     );
     assert_eq!(
         log.matches("saved;").count(),
-        4,
-        "adding, removing, and setting and clearing the picture should each \
-         have been confirmed once. {context}"
+        5,
+        "adding, removing, setting and clearing the picture, and the timer \
+         should each have been confirmed once. {context}"
     );
 }

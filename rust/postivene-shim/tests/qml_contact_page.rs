@@ -137,6 +137,7 @@ fn the_contact_page_names_the_contact_and_no_address() {
         record!("status", get!("statusLabel", "text"));
         record!("status-shown", get!("statusLabel", "visible"));
         record!("encryption", get!("encryptionLabel", "text"));
+        record!("timer", get!("disappearingCombo", "currentIndex"));
         record!("texts", call!("texts"));
         (*engine_ptr).quit();
     });
@@ -191,5 +192,11 @@ fn assert_page(steps: &[(&str, String)]) {
     assert!(
         !value("texts").contains('@'),
         "an email address is drawn on the contact page. {context}"
+    );
+    assert_eq!(
+        value("timer"),
+        "0",
+        "the contact page does not offer disappearing messages, or shows \
+         something other than Off for a chat with no timer. {context}"
     );
 }

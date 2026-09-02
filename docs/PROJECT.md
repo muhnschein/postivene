@@ -201,7 +201,14 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   followed by a reload, since the core is what knows who is in the group
   now and where it put the picture. What can be changed is the core's
   answer too: `selfInGroup` goes false on leaving and every edit is then
-  refused, so the controls are not offered.
+  refused, so the controls are not offered. Disappearing messages sit on
+  both pages: the eight durations the reference clients offer, bound
+  from the core's `ephemeralTimer` and set with one call, which tells the
+  other members itself.
+- **The conversation header keeps out of the display cutout.** A short
+  title never reached the notch; a long one, fading on the left, ran
+  under it. `ConversationHeader` reads `Screen.topCutout` and puts the
+  title in the wider span beside it, whichever side the cutout is on.
 - **No email addresses.** A reader of a chatmail app has no use for one,
   so a contact is its name, its picture and its status line everywhere a
   contact is shown. The one place an address is drawn is the profiles
@@ -237,7 +244,8 @@ On top of that: the chat list (unread badges, timestamps, avatars,
 encryption/pin/mute marks, context menu, search across chats/contacts/
 messages, archive, contact requests, multiple profiles), groups (created,
 and then renamed, given a picture, added to, removed from and left), a
-contact page beside each one-to-one chat, the conversation view (bubbles, quotes, delivery marks, day separators, reply/copy/delete/
+contact page beside each one-to-one chat, disappearing messages, the
+conversation view (bubbles, quotes, delivery marks, day separators, reply/copy/delete/
 resend, a page of history at a time, and every kind of attachment the core
 classifies: photos and
 stickers inline, GIFs animated over a still poster, a video's poster frame

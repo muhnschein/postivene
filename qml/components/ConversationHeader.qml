@@ -10,6 +10,11 @@ import Sailfish.Silica 1.0
  * an app whose whole point is that the network cannot watch. This is the
  * same header, the size and margin and highlight and right-aligned fade,
  * with its one label pinned to plain text.
+ *
+ * It also keeps out of the display cutout. A short title never reached
+ * it; a long one, fading on the left, ran straight under the notch. The
+ * label takes the wider of the two spans beside the cutout, so the text
+ * ends before the notch whichever side of the screen it is on.
  */
 Item {
     id: root
@@ -19,6 +24,22 @@ Item {
 
     /// The header was tapped. What that opens is the page's to decide.
     signal clicked()
+
+    // The notch, in portrait pixels; all zeros on a screen without one.
+    readonly property rect cutout: Screen.topCutout
+    readonly property bool hasCutout: cutout.height > 0 && cutout.width > 0
+    readonly property real leftSpan: cutout.x
+    readonly property real rightSpan: root.width - cutout.x - cutout.width
+    // Beside the cutout on its wider side, by a padding rather than the
+    // page margin: the cutout is not an edge.
+    readonly property real titleLeftMargin:
+        hasCutout && rightSpan >= leftSpan
+        ? cutout.x + cutout.width + Theme.paddingLarge
+        : Theme.horizontalPageMargin
+    readonly property real titleRightMargin:
+        hasCutout && leftSpan > rightSpan
+        ? root.width - cutout.x + Theme.paddingLarge
+        : Theme.horizontalPageMargin
 
     width: parent ? parent.width : 0
     height: Theme.itemSizeLarge
@@ -34,9 +55,9 @@ Item {
         objectName: "headerTitle"
         anchors {
             left: parent.left
-            leftMargin: Theme.horizontalPageMargin
+            leftMargin: root.titleLeftMargin
             right: parent.right
-            rightMargin: Theme.horizontalPageMargin
+            rightMargin: root.titleRightMargin
             verticalCenter: parent.verticalCenter
         }
         horizontalAlignment: Text.AlignRight

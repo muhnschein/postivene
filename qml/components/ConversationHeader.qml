@@ -13,8 +13,10 @@ import Sailfish.Silica 1.0
  *
  * It also keeps out of the display cutout. A short title never reached
  * it; a long one, fading on the left, ran straight under the notch. The
- * label takes the wider of the two spans beside the cutout, so the text
- * ends before the notch whichever side of the screen it is on.
+ * title is drawn below the cutout, by its height, which is the one thing
+ * about it that can be trusted: placing the text beside the notch needed
+ * its position, and what Screen.topCutout says about that put a long
+ * name at the left edge, truncated, on the device this was written for.
  */
 Item {
     id: root
@@ -25,24 +27,17 @@ Item {
     /// The header was tapped. What that opens is the page's to decide.
     signal clicked()
 
-    // The notch, in portrait pixels; all zeros on a screen without one.
-    readonly property rect cutout: Screen.topCutout
-    readonly property bool hasCutout: cutout.height > 0 && cutout.width > 0
-    readonly property real leftSpan: cutout.x
-    readonly property real rightSpan: root.width - cutout.x - cutout.width
-    // Beside the cutout on its wider side, by a padding rather than the
-    // page margin: the cutout is not an edge.
-    readonly property real titleLeftMargin:
-        hasCutout && rightSpan >= leftSpan
-        ? cutout.x + cutout.width + Theme.paddingLarge
-        : Theme.horizontalPageMargin
-    readonly property real titleRightMargin:
-        hasCutout && leftSpan > rightSpan
-        ? root.width - cutout.x + Theme.paddingLarge
-        : Theme.horizontalPageMargin
+    // The notch, as Silica describes it. A `var` rather than a `rect`:
+    // a screen without one, or a Silica without the property, then reads
+    // as no inset instead of as a binding error.
+    readonly property var cutout: Screen.topCutout
+    /// How far down the cutout reaches, 0 without one.
+    readonly property real cutoutInset:
+        cutout && cutout.height > 0 ? Math.max(0, cutout.y + cutout.height) : 0
 
     width: parent ? parent.width : 0
-    height: Theme.itemSizeLarge
+    // Taller by the inset, so what sits below the header moves with it.
+    height: Theme.itemSizeLarge + cutoutInset
 
     MouseArea {
         objectName: "headerTap"
@@ -55,10 +50,12 @@ Item {
         objectName: "headerTitle"
         anchors {
             left: parent.left
-            leftMargin: root.titleLeftMargin
+            leftMargin: Theme.horizontalPageMargin
             right: parent.right
-            rightMargin: root.titleRightMargin
+            rightMargin: Theme.horizontalPageMargin
+            // Centred in the part of the header below the cutout.
             verticalCenter: parent.verticalCenter
+            verticalCenterOffset: root.cutoutInset / 2
         }
         horizontalAlignment: Text.AlignRight
         color: Theme.highlightColor

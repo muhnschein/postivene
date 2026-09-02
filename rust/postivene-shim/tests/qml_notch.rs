@@ -1,9 +1,8 @@
 //! The conversation header keeps its title out of the display cutout.
 //!
 //! A short title never reached the notch; a long one, fading on the left,
-//! ran straight under it. The label takes the wider span beside the cutout,
-//! so the text ends before the notch whichever side it is on -- and on a
-//! screen without one, the margins are the page's.
+//! ran straight under it. The title is drawn below the cutout, by its
+//! height; on a screen without one, nothing moves.
 
 // Qt harness: see qml_chat_list.rs.
 #![allow(
@@ -40,19 +39,23 @@ const PROBE_QML: &str = r"
             }
             return null
         }
-        function margins() {
+        // The header's height, and where the title's centre sits below
+        // the top edge.
+        function layout() {
             var label = findIn(loader.item, 'headerTitle')
             if (!label) { return 'missing:headerTitle' }
-            return label.anchors.leftMargin + ',' + label.anchors.rightMargin
+            return loader.item.height + ',' + label.anchors.leftMargin + ','
+                + label.anchors.rightMargin + ',' + label.anchors.verticalCenterOffset
         }
-        // A notch in the middle, as on most phones: room on both sides.
+        // A notch in the middle, as on most phones.
         function notchCentred() {
             Screen.topCutout = Qt.rect(400, 0, 280, 90)
             return 'ok'
         }
-        // A hole in the top-right corner: the text has to stop before it.
+        // A hole in the top-right corner, starting a little below the
+        // edge: the inset is its bottom, not its height.
         function holeTopRight() {
-            Screen.topCutout = Qt.rect(960, 0, 90, 90)
+            Screen.topCutout = Qt.rect(960, 10, 90, 80)
             return 'ok'
         }
         function noCutout() {
@@ -104,13 +107,13 @@ fn the_header_keeps_its_title_out_of_the_cutout() {
                 QString::from(common::component_url("ConversationHeader.qml"))
             )
         );
-        record!("plain", call!("margins"));
+        record!("plain", call!("layout"));
         call!("notchCentred");
-        record!("centred", call!("margins"));
+        record!("centred", call!("layout"));
         call!("holeTopRight");
-        record!("top-right", call!("margins"));
+        record!("top-right", call!("layout"));
         call!("noCutout");
-        record!("cleared", call!("margins"));
+        record!("cleared", call!("layout"));
         (*engine_ptr).quit();
     });
 
@@ -119,7 +122,8 @@ fn the_header_keeps_its_title_out_of_the_cutout() {
     assert_margins(&steps);
 }
 
-/// The page margin without a cutout; beside the cutout with one.
+/// The plain header without a cutout; taller by the cutout's reach with
+/// one, the title centred in the part below it, margins untouched.
 fn assert_margins(steps: &[(&str, String)]) {
     let context = format!("steps: {steps:?}");
     let value = |label: &str| {
@@ -129,40 +133,46 @@ fn assert_margins(steps: &[(&str, String)]) {
             .map(|(_, value)| value.clone())
             .unwrap_or_default()
     };
-    let pair = |label: &str| -> (f64, f64) {
-        let text = value(label);
-        let mut parts = text.split(',');
-        let left = parts.next().and_then(|n| n.parse().ok()).unwrap_or(-1.0);
-        let right = parts.next().and_then(|n| n.parse().ok()).unwrap_or(-1.0);
-        (left, right)
+    // Height, left margin, right margin, vertical centre offset.
+    let layout = |label: &str| -> Vec<f64> {
+        value(label)
+            .split(',')
+            .map(|n| n.parse().unwrap_or(-1.0))
+            .collect()
     };
+    let close = |a: f64, b: f64| (a - b).abs() < 0.5;
 
     assert_eq!(value("load"), "ok", "the header did not load. {context}");
-    // The stub theme's horizontalPageMargin.
-    assert_eq!(
-        pair("plain"),
-        (24.0, 24.0),
-        "without a cutout the title does not use the page margins. {context}"
-    );
-    // Centred notch from 400 to 680: the right side is as wide, so the
-    // title sits right of the notch, clear of it by a padding.
-    let (left, right) = pair("centred");
+    // The stub theme: itemSizeLarge 120, horizontalPageMargin 24.
+    let plain = layout("plain");
     assert!(
-        left >= 680.0 && (right - 24.0).abs() < 0.5,
-        "a centred notch did not push the title's left edge past it: \
-         left {left}, right {right}. {context}"
+        close(plain[0], 120.0)
+            && close(plain[1], 24.0)
+            && close(plain[2], 24.0)
+            && close(plain[3], 0.0),
+        "without a cutout the header is not the plain one. {context}"
     );
-    // A hole at the top right from 960 to 1050: the left side is wider,
-    // so the title ends before the hole.
-    let (left, right) = pair("top-right");
+    // A notch 90 deep: the header grows by 90, the title moves down by
+    // half of that, so it is centred in what is left below the notch.
+    let centred = layout("centred");
     assert!(
-        (left - 24.0).abs() < 0.5 && right >= 1080.0 - 960.0,
-        "a top-right hole did not pull the title's right edge before it: \
-         left {left}, right {right}. {context}"
+        close(centred[0], 210.0) && close(centred[3], 45.0),
+        "a centred notch did not move the title below it: {centred:?}. {context}"
     );
-    assert_eq!(
-        pair("cleared"),
-        (24.0, 24.0),
-        "the margins did not go back once the cutout was gone. {context}"
+    assert!(
+        close(centred[1], 24.0) && close(centred[2], 24.0),
+        "a notch changed the title's side margins: {centred:?}. {context}"
+    );
+    // A hole from 10 to 90 down: the inset is where it ends, not how tall
+    // it is.
+    let hole = layout("top-right");
+    assert!(
+        close(hole[0], 210.0) && close(hole[3], 45.0),
+        "a hole below the edge is not measured to its bottom: {hole:?}. {context}"
+    );
+    let cleared = layout("cleared");
+    assert!(
+        close(cleared[0], 120.0) && close(cleared[3], 0.0),
+        "the header did not go back once the cutout was gone. {context}"
     );
 }

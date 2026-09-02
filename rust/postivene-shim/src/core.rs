@@ -228,10 +228,6 @@ pub struct DeltaChatCore {
     /// to give, so the unconfigured account is found here.
     pub cancel_ongoing: qt_method!(fn(&mut self)),
 
-    /// `check_qr` for onboarding, where there is no account id to pass
-    /// yet: resolves the profile account first.
-    pub check_invite: qt_method!(fn(&mut self, qr_content: QString)),
-
     /// The account's email transports, as a JSON array of upstream
     /// `EnteredLoginParam`.
     pub list_transports: qt_method!(fn(&mut self, account_id: u32)),
@@ -865,33 +861,6 @@ impl DeltaChatCore {
         });
     }
 
-    /// Classify a pasted invite or login link during onboarding.
-    pub fn check_invite(&mut self, qr_content: QString) {
-        let Some((rpc, runtime)) = self.connection() else {
-            self.qr_error(QString::from("not started"));
-            return;
-        };
-
-        let done = self.qr_callback();
-
-        let qr_content = qr_content.to_string();
-        runtime.spawn(async move {
-            let outcome = async {
-                let account_id = Self::profile_account(&rpc).await?;
-                let qr = rpc
-                    .call::<_, serde_json::Value>("check_qr", (account_id, qr_content))
-                    .await
-                    .map_err(|err| err.to_string())?;
-                Ok::<_, String>((account_id, qr))
-            }
-            .await;
-            match outcome {
-                Ok((account_id, qr)) => done((account_id, Ok(qr))),
-                Err(err) => done((0, Err(err))),
-            }
-        });
-    }
-
     /// List the account's email transports.
     pub fn list_transports(&mut self, account_id: u32) {
         let Some((rpc, runtime)) = self.connection() else {
@@ -919,8 +888,8 @@ impl DeltaChatCore {
         });
     }
 
-    /// The shared completion path of `check_invite` and `check_qr`, which
-    /// differ only in whether they resolve the account first.
+    /// The completion path of `check_qr`: the classification, as the
+    /// core gave it, or the error.
     fn qr_callback(&self) -> impl Fn((u32, Result<serde_json::Value, String>)) {
         let ptr: QPointer<Self> = QPointer::from(self);
         queued_callback(move |result: (u32, Result<serde_json::Value, String>)| {

@@ -3,8 +3,9 @@ import Sailfish.Silica 1.0
 
 /*
  * The first screen: no address, no password -- a new Delta Chat user has
- * neither (docs/PROJECT.md). Also the resume path: with a configured
- * account it hands straight over to the chat list.
+ * neither (docs/PROJECT.md), so the one thing to do here is add a
+ * profile. Also the resume path: with a configured account it hands
+ * straight over to the chat list.
  */
 Page {
     id: page
@@ -72,19 +73,9 @@ Page {
         Button {
             objectName: "createProfileButton"
             anchors.horizontalCenter: parent.horizontalCenter
-            text: qsTr("Create New Profile")
+            text: qsTr("Add profile")
             enabled: core.status === "ready"
-            onClicked: pageStack.push(Qt.resolvedUrl("CreateProfilePage.qml"), {})
-        }
-
-        Button {
-            objectName: "existingProfileButton"
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: qsTr("I Already Have a Profile")
-            enabled: core.status === "ready"
-            // Only the mailbox path so far; second device and backup
-            // restore need shim work (docs/PROJECT.md).
-            onClicked: pageStack.push(Qt.resolvedUrl("EmailLoginPage.qml"), {})
+            onClicked: pageStack.push(Qt.resolvedUrl("AddProfileDialog.qml"), {})
         }
     }
 

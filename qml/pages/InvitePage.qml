@@ -8,9 +8,15 @@ import Postivene 1.0
  * normally added: an address alone cannot be encrypted to
  * (docs/PROJECT.md).
  *
- * Both directions are text. Camera scanning is the same payload read
- * optically and needs a scanner on the device; until then a link pasted
- * from a message, a browser or another app does the same job.
+ * Both directions are text under the pictures: the code on this page is
+ * the invite link drawn, and a code scanned is read back into a link and
+ * followed the way a pasted one is. Pasting stays, for a link that
+ * arrived in a message or a browser.
+ *
+ * The code is an Image of a file the shim writes rather than a Canvas:
+ * a Canvas is drawn into the window's GL context, which the platform
+ * takes away from an app in the background, and it came back blank; an
+ * Image is reloaded from its file.
  */
 Page {
     id: page
@@ -27,11 +33,19 @@ Page {
         onError: {
             page.joining = false
             page.errorMessage = message
+            // Back from the scanner, if it is what asked, to where the
+            // message is.
+            if (pageStack.currentPage !== page) {
+                pageStack.pop(page)
+            }
         }
         onInvite_ready: page.myInvite = link
         onChat_ready: {
             page.joining = false
-            pageStack.replace(Qt.resolvedUrl("ConversationPage.qml"), {
+            // Above the page that opened this one: the scanner may still
+            // be on top of this page, and goes too.
+            pageStack.replaceAbove(pageStack.previousPage(page),
+                                   Qt.resolvedUrl("ConversationPage.qml"), {
                 accountId: page.accountId,
                 chatId: chat_id,
                 chatName: qsTr("Chat")
@@ -58,6 +72,27 @@ Page {
         page.errorMessage = ""
         page.joining = true
         contacts.join_by_invite(linkField.text)
+    }
+
+    // The scanner, pushed by URL and connected to, the way the pickers
+    // are: ScanPage is the only file that names a Camera. It stays up
+    // while the invite is followed, and the chat replaces both pages.
+    function scan() {
+        var scanner = pageStack.push(Qt.resolvedUrl("ScanPage.qml"))
+        if (scanner) {
+            scanner.scanned.connect(function(text) {
+                page.errorMessage = ""
+                page.joining = true
+                contacts.join_by_invite(text)
+            })
+        }
+    }
+
+    // The invite as a picture, for a phone held up to this one.
+    QrCode {
+        id: qr
+        objectName: "qr"
+        text: page.myInvite
     }
 
     SilicaFlickable {
@@ -94,6 +129,14 @@ Page {
                 onClicked: page.follow()
             }
 
+            Button {
+                objectName: "scanButton"
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: qsTr("Scan QR code")
+                enabled: !page.joining
+                onClicked: page.scan()
+            }
+
             Banner {
                 objectName: "errorBanner"
                 width: parent.width
@@ -103,6 +146,22 @@ Page {
 
             SectionHeader {
                 text: qsTr("Your invite")
+            }
+
+            // Drawn on white whatever the ambience: a code is read by
+            // contrast, and an ambience can have little. Not smoothed:
+            // the modules stay square edges rather than blur into each
+            // other.
+            Image {
+                objectName: "inviteQr"
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: Math.floor(parent.width * 0.7)
+                height: width
+                visible: qr.size > 0
+                source: qr.image
+                smooth: false
+                cache: false
+                fillMode: Image.PreserveAspectFit
             }
 
             Label {

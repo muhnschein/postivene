@@ -48,6 +48,17 @@ Page {
         anchors.fill: parent
         model: core.account_list
 
+        // Another profile is made the way the first was: the welcome
+        // page's own flow, which replaces the stack with the new
+        // profile's chat list once the core has it.
+        PullDownMenu {
+            MenuItem {
+                objectName: "addProfileMenuItem"
+                text: qsTr("Add profile")
+                onClicked: pageStack.push(Qt.resolvedUrl("AddProfileDialog.qml"), {})
+            }
+        }
+
         header: PageHeader {
             title: qsTr("Profiles")
         }

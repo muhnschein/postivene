@@ -1,4 +1,6 @@
 module QtMultimedia
 Audio 5.6 Audio.qml
+Camera 5.6 Camera.qml
+CameraFocus 5.6 CameraFocus.qml
 MediaPlayer 5.6 MediaPlayer.qml
 VideoOutput 5.6 VideoOutput.qml

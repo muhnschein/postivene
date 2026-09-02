@@ -8,15 +8,20 @@ import Sailfish.Silica 1.0
  * textFormat, so a chat named `<img src="https://tracker/p.gif">` would
  * be markup to it, and drawing the header would fetch the image -- from
  * an app whose whole point is that the network cannot watch. This is the
- * same header, the size and margin and highlight and right-aligned fade,
- * with its one label pinned to plain text.
+ * same header, laid out as PageHeader lays out its own: the title on the
+ * line the page indicator sits on, right-aligned, no wider than the room
+ * it has, in the page's own colour when the header leads somewhere and
+ * the highlight when it does not -- with its one label pinned to plain
+ * text.
  *
- * It also keeps out of the display cutout. A short title never reached
- * it; a long one, fading on the left, ran straight under the notch. The
- * title is drawn below the cutout, by its height, which is the one thing
- * about it that can be trusted: placing the text beside the notch needed
- * its position, and what Screen.topCutout says about that put a long
- * name at the left edge, truncated, on the device this was written for.
+ * On a screen with a cutout, the title is also kept to the right-hand
+ * part of the header, which is the part a right-aligned title is for.
+ * PageHeader itself does nothing about a cutout, and its titles are short
+ * enough never to reach one; a chat's name is not, and fading on the
+ * left it ran straight under the notch. Where the notch is comes from the
+ * device in a shape this tree cannot read, and two attempts at using it
+ * put the title at the left edge and then too low. What is left is what
+ * does not depend on it: a title that stays on its own side.
  */
 Item {
     id: root
@@ -24,20 +29,25 @@ Item {
     /// What the header says. Shown as written, whatever it looks like.
     property alias title: titleLabel.text
 
+    /// Whether the header leads to another page. Drawn as PageHeader
+    /// draws a header of a page that can navigate forward.
+    property bool interactive: false
+
     /// The header was tapped. What that opens is the page's to decide.
     signal clicked()
 
-    // The notch, as Silica describes it. A `var` rather than a `rect`:
-    // a screen without one, or a Silica without the property, then reads
-    // as no inset instead of as a binding error.
+    // A `var` rather than a `rect`: a screen without a cutout, or a Silica
+    // without the property, then reads as none rather than as an error.
     readonly property var cutout: Screen.topCutout
-    /// How far down the cutout reaches, 0 without one.
-    readonly property real cutoutInset:
-        cutout && cutout.height > 0 ? Math.max(0, cutout.y + cutout.height) : 0
+    readonly property bool hasCutout: !!cutout && cutout.height > 0
+    /// The room the title may take: the width less the margins, or with
+    /// a cutout the right-hand part of it.
+    readonly property real titleRoom:
+        hasCutout ? Math.floor(root.width * 0.45)
+                  : root.width - 2 * Theme.horizontalPageMargin
 
     width: parent ? parent.width : 0
-    // Taller by the inset, so what sits below the header moves with it.
-    height: Theme.itemSizeLarge + cutoutInset
+    height: Theme.itemSizeLarge
 
     MouseArea {
         objectName: "headerTap"
@@ -48,18 +58,19 @@ Item {
     Label {
         id: titleLabel
         objectName: "headerTitle"
+        // No wider than its text, and no wider than the room.
+        width: Math.min(implicitWidth, root.titleRoom)
+        // The line PageHeader puts its first line on: it measures one
+        // line of its font, and a single-line label is that tall.
+        y: Math.floor((Theme.itemSizeLarge - height) / 2)
         anchors {
-            left: parent.left
-            leftMargin: Theme.horizontalPageMargin
             right: parent.right
             rightMargin: Theme.horizontalPageMargin
-            // Centred in the part of the header below the cutout.
-            verticalCenter: parent.verticalCenter
-            verticalCenterOffset: root.cutoutInset / 2
         }
         horizontalAlignment: Text.AlignRight
-        color: Theme.highlightColor
+        color: root.interactive ? Theme.primaryColor : Theme.highlightColor
         font.pixelSize: Theme.fontSizeLarge
+        font.family: Theme.fontFamilyHeading
         truncationMode: TruncationMode.Fade
         textFormat: Text.PlainText
     }

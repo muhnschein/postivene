@@ -243,6 +243,9 @@ Page {
         id: conversationHeader
         objectName: "conversationHeader"
         title: page.chatName
+        // White once the info page is attached, as a PageHeader is on a
+        // page that can navigate forward.
+        interactive: page.canNavigateForward
         // The name goes the same way the swipe does.
         onClicked: page.openInfo()
     }

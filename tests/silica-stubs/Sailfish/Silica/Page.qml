@@ -6,6 +6,8 @@ import Sailfish.Silica 1.0
 Item {
     // PageStatus.Active: a page loaded on its own is the one on screen.
     property int status: PageStatus.Active
+    // True in Silica once a page is attached to the right.
+    property bool canNavigateForward: false
     property bool allowedOrientations
     property int orientation
     property string backNavigation

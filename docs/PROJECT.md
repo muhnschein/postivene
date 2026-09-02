@@ -205,15 +205,18 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   both pages: the eight durations the reference clients offer, bound
   from the core's `ephemeralTimer` and set with one call, which tells the
   other members itself.
-- **The conversation header keeps out of the display cutout.** A short
-  title never reached the notch; a long one, fading on the left, ran
-  under it. `ConversationHeader` reads `Screen.topCutout` and draws the
-  title below it, by the cutout's reach. Its height is the one thing
-  about the cutout to rely on: the first attempt put the title beside
-  the notch, and what the property said about the notch's position put
-  a long name at the left edge, truncated. Silica 4.4's own QML has no
-  cutout handling at all, so what 5.x does with its headers is not
-  something this tree can read.
+- **The conversation header is laid out as `PageHeader` lays out its
+  own.** The title on the line the page indicator sits on, right-aligned,
+  no wider than its text or the room it has, and in the page's own colour
+  once the header leads somewhere. Silica's `PageHeader` does nothing
+  about a display cutout -- its titles are short enough never to reach
+  one -- but a chat's name is not, and fading on the left it ran under
+  the notch. Where the notch is comes from `Screen.topCutout` in a shape
+  this tree cannot read (Silica 4.4's own QML has no cutout handling at
+  all), and two attempts at using it put the title at the left edge and
+  then too low. So with a cutout present the title is kept to the
+  right-hand part of the header, which needs nothing about the notch but
+  that there is one.
 - **No email addresses.** A reader of a chatmail app has no use for one,
   so a contact is its name, its picture and its status line everywhere a
   contact is shown. The one place an address is drawn is the profiles

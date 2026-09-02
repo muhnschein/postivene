@@ -1,8 +1,12 @@
-//! The conversation header keeps its title out of the display cutout.
+//! The conversation header is laid out as Silica's `PageHeader` lays out
+//! its own, and keeps a long title to its own side on a screen with a
+//! cutout.
 //!
-//! A short title never reached the notch; a long one, fading on the left,
-//! ran straight under it. The title is drawn below the cutout, by its
-//! height; on a screen without one, nothing moves.
+//! `PageHeader` does nothing about a cutout: its titles are short enough
+//! never to reach one. A chat's name is not, and fading on the left it ran
+//! under the notch. The one thing that does not depend on where the notch
+//! is -- which the device reports in a shape this tree cannot read -- is
+//! keeping the title to the right-hand part of the header.
 
 // Qt harness: see qml_chat_list.rs.
 #![allow(
@@ -25,8 +29,9 @@ const PROBE_QML: &str = r"
     Item {
         width: 1080
         Loader { id: loader; width: 1080 }
-        function load(url) {
-            loader.setSource(url, { title: 'a very long name that fades on the left' })
+        function load(url, title) {
+            loader.setSource('', {})
+            loader.setSource(url, { title: title })
             return loader.status === Loader.Ready ? 'ok' : 'load-failed'
         }
         function findIn(node, name) {
@@ -39,23 +44,22 @@ const PROBE_QML: &str = r"
             }
             return null
         }
-        // The header's height, and where the title's centre sits below
-        // the top edge.
+        // Header height, the title's width, its left edge, and whether it
+        // is drawn in the page's colour.
         function layout() {
             var label = findIn(loader.item, 'headerTitle')
             if (!label) { return 'missing:headerTitle' }
-            return loader.item.height + ',' + label.anchors.leftMargin + ','
-                + label.anchors.rightMargin + ',' + label.anchors.verticalCenterOffset
+            return loader.item.height + ',' + label.width + ',' + label.x + ','
+                + (label.color == Theme.primaryColor ? 'primary' : 'highlight')
         }
-        // A notch in the middle, as on most phones.
-        function notchCentred() {
-            Screen.topCutout = Qt.rect(400, 0, 280, 90)
+        function setInteractive(on) {
+            loader.item.interactive = on
             return 'ok'
         }
-        // A hole in the top-right corner, starting a little below the
-        // edge: the inset is its bottom, not its height.
-        function holeTopRight() {
-            Screen.topCutout = Qt.rect(960, 10, 90, 80)
+        // A notch: where it is does not matter to the header, only that
+        // there is one.
+        function notch() {
+            Screen.topCutout = Qt.rect(400, 0, 280, 90)
             return 'ok'
         }
         function noCutout() {
@@ -66,7 +70,7 @@ const PROBE_QML: &str = r"
 ";
 
 #[test]
-fn the_header_keeps_its_title_out_of_the_cutout() {
+fn the_header_keeps_a_long_title_to_its_own_side_of_a_cutout() {
     // SAFETY: single-threaded test binary; set before Qt starts.
     unsafe {
         std::env::set_var("QT_QPA_PLATFORM", "offscreen");
@@ -99,32 +103,37 @@ fn the_header_keeps_its_title_out_of_the_cutout() {
         };
     }
 
+    let header = common::component_url("ConversationHeader.qml");
+    let long = "a very long name that would run the whole way across the header and under a notch";
     single_shot(Duration::from_secs(1), move || unsafe {
         record!(
             "load",
-            call!(
-                "load",
-                QString::from(common::component_url("ConversationHeader.qml"))
-            )
+            call!("load", QString::from(header.clone()), QString::from(long))
         );
         record!("plain", call!("layout"));
-        call!("notchCentred");
-        record!("centred", call!("layout"));
-        call!("holeTopRight");
-        record!("top-right", call!("layout"));
+        call!("notch");
+        record!("notched", call!("layout"));
         call!("noCutout");
         record!("cleared", call!("layout"));
+        // A short title is not widened to the room it has.
+        record!(
+            "load-short",
+            call!("load", QString::from(header.clone()), QString::from("Ada"))
+        );
+        record!("short", call!("layout"));
+        call!("setInteractive", true);
+        record!("leads", call!("layout"));
         (*engine_ptr).quit();
     });
 
     engine.exec();
 
-    assert_margins(&steps);
+    assert_layout(&steps);
 }
 
-/// The plain header without a cutout; taller by the cutout's reach with
-/// one, the title centred in the part below it, margins untouched.
-fn assert_margins(steps: &[(&str, String)]) {
+/// `PageHeader`'s height and colours, the full width less margins for a
+/// long title, and no more than the right-hand part with a cutout.
+fn assert_layout(steps: &[(&str, String)]) {
     let context = format!("steps: {steps:?}");
     let value = |label: &str| {
         steps
@@ -133,46 +142,59 @@ fn assert_margins(steps: &[(&str, String)]) {
             .map(|(_, value)| value.clone())
             .unwrap_or_default()
     };
-    // Height, left margin, right margin, vertical centre offset.
-    let layout = |label: &str| -> Vec<f64> {
-        value(label)
-            .split(',')
-            .map(|n| n.parse().unwrap_or(-1.0))
-            .collect()
+    let layout = |label: &str| -> (f64, f64, f64, String) {
+        let text = value(label);
+        let mut parts = text.split(',');
+        let mut number = || parts.next().and_then(|n| n.parse().ok()).unwrap_or(-1.0);
+        let (height, width, x) = (number(), number(), number());
+        (
+            height,
+            width,
+            x,
+            parts.next().unwrap_or_default().to_string(),
+        )
     };
     let close = |a: f64, b: f64| (a - b).abs() < 0.5;
 
-    assert_eq!(value("load"), "ok", "the header did not load. {context}");
-    // The stub theme: itemSizeLarge 120, horizontalPageMargin 24.
-    let plain = layout("plain");
+    for label in ["load", "load-short"] {
+        assert_eq!(value(label), "ok", "the header did not load. {context}");
+    }
+    // The stub theme: itemSizeLarge 120, horizontalPageMargin 24, and a
+    // header that is highlight-coloured until it leads somewhere.
+    // A long title reaches well past the middle, ends at the right
+    // margin, and never crosses the left one.
+    let (height, width, x, colour) = layout("plain");
     assert!(
-        close(plain[0], 120.0)
-            && close(plain[1], 24.0)
-            && close(plain[2], 24.0)
-            && close(plain[3], 0.0),
-        "without a cutout the header is not the plain one. {context}"
+        close(height, 120.0)
+            && width > 1080.0 * 0.45
+            && x >= 24.0 - 0.5
+            && close(x + width, 1080.0 - 24.0)
+            && colour == "highlight",
+        "without a cutout a long title is not laid out as PageHeader lays \
+         one out: {height} {width} {x} {colour}. {context}"
     );
-    // A notch 90 deep: the header grows by 90, the title moves down by
-    // half of that, so it is centred in what is left below the notch.
-    let centred = layout("centred");
+    // With one, the title ends at the same right margin and starts no
+    // further left than the right 45% of the header.
+    let (height, width, x, _) = layout("notched");
     assert!(
-        close(centred[0], 210.0) && close(centred[3], 45.0),
-        "a centred notch did not move the title below it: {centred:?}. {context}"
+        close(height, 120.0) && width <= 1080.0 * 0.45 + 0.5 && x >= 1080.0 * 0.55 - 24.5,
+        "with a cutout a long title still runs across the header: \
+         {height} {width} {x}. {context}"
     );
+    let (_, width, _, _) = layout("cleared");
     assert!(
-        close(centred[1], 24.0) && close(centred[2], 24.0),
-        "a notch changed the title's side margins: {centred:?}. {context}"
+        width > 1080.0 * 0.45,
+        "the title did not get its width back once the cutout was gone. {context}"
     );
-    // A hole from 10 to 90 down: the inset is where it ends, not how tall
-    // it is.
-    let hole = layout("top-right");
+    // A short title is as wide as its text and no wider, right-aligned.
+    let (_, width, x, _) = layout("short");
     assert!(
-        close(hole[0], 210.0) && close(hole[3], 45.0),
-        "a hole below the edge is not measured to its bottom: {hole:?}. {context}"
+        width < 200.0 && close(x + width, 1080.0 - 24.0),
+        "a short title is not right-aligned at its own width: {width} {x}. {context}"
     );
-    let cleared = layout("cleared");
-    assert!(
-        close(cleared[0], 120.0) && close(cleared[3], 0.0),
-        "the header did not go back once the cutout was gone. {context}"
+    let (_, _, _, colour) = layout("leads");
+    assert_eq!(
+        colour, "primary",
+        "a header that leads somewhere is not drawn in the page's colour. {context}"
     );
 }

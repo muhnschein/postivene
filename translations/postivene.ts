@@ -289,6 +289,10 @@
         <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Scan QR code</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>DisappearingMessages</name>
@@ -474,6 +478,10 @@
         <source>Copy Invite Link</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Scan QR code</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>MessageDelegate</name>
@@ -567,6 +575,17 @@
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ScanPage</name>
+    <message>
+        <source>Scan QR code</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Point the camera at an invite or a chatmail server code</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

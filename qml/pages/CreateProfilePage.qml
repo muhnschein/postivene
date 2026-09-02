@@ -39,6 +39,19 @@ Page {
         core.check_invite(linkField.text)
     }
 
+    // A scanned code is a link that arrived through the camera: it goes
+    // into the field and is used the same way, so what happens next is
+    // the same and can be seen.
+    function scan() {
+        var scanner = pageStack.push(Qt.resolvedUrl("ScanPage.qml"))
+        if (scanner) {
+            scanner.scanned.connect(function(text) {
+                linkField.text = text
+                page.useLink()
+            })
+        }
+    }
+
     function beginCreate() {
         if (nameField.text.length === 0) {
             page.errorMessage = qsTr("Please enter a name")
@@ -153,6 +166,14 @@ Page {
                 text: qsTr("Check Link")
                 enabled: !page.checkingLink && linkField.text.length > 0
                 onClicked: page.useLink()
+            }
+
+            Button {
+                objectName: "scanButton"
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: qsTr("Scan QR code")
+                enabled: !page.checkingLink && !page.busy
+                onClicked: page.scan()
             }
 
             Label {

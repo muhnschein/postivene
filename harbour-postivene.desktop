@@ -37,9 +37,10 @@ Categories=Network;InstantMessaging;
 # recorder on Qt 5.6, so Microphone stays off until there is something to
 # use it.
 #
-# Camera belongs here too once QR scanning lands, and not before -- a
-# permission the app does not use is a sandbox hole for no benefit.
+# Camera is for the QR scanner: an invite or a chatmail server code held
+# up to the phone. ScanPage.qml is the only file that opens it, and only
+# while it is the page on screen.
 [X-Sailjail]
-Permissions=Internet;Pictures;MediaIndexing;UserDirs;Audio
+Permissions=Internet;Pictures;MediaIndexing;UserDirs;Audio;Camera
 OrganizationName=postivene
 ApplicationName=postivene

@@ -8,9 +8,10 @@ import Postivene 1.0
  * normally added: an address alone cannot be encrypted to
  * (docs/PROJECT.md).
  *
- * Both directions are text. Camera scanning is the same payload read
- * optically and needs a scanner on the device; until then a link pasted
- * from a message, a browser or another app does the same job.
+ * Both directions are text under the pictures: the code on this page is
+ * the invite link drawn, and a code scanned is read back into a link and
+ * followed the way a pasted one is. Pasting stays, for a link that
+ * arrived in a message or a browser.
  */
 Page {
     id: page
@@ -60,6 +61,26 @@ Page {
         contacts.join_by_invite(linkField.text)
     }
 
+    // The scanner, pushed by URL and connected to, the way the pickers
+    // are: ScanPage is the only file that names a Camera.
+    function scan() {
+        var scanner = pageStack.push(Qt.resolvedUrl("ScanPage.qml"))
+        if (scanner) {
+            scanner.scanned.connect(function(text) {
+                page.errorMessage = ""
+                page.joining = true
+                contacts.join_by_invite(text)
+            })
+        }
+    }
+
+    // The invite as a picture, for a phone held up to this one.
+    QrCode {
+        id: qr
+        objectName: "qr"
+        text: page.myInvite
+    }
+
     SilicaFlickable {
         anchors.fill: parent
         contentHeight: column.height
@@ -94,6 +115,14 @@ Page {
                 onClicked: page.follow()
             }
 
+            Button {
+                objectName: "scanButton"
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: qsTr("Scan QR code")
+                enabled: !page.joining
+                onClicked: page.scan()
+            }
+
             Banner {
                 objectName: "errorBanner"
                 width: parent.width
@@ -103,6 +132,44 @@ Page {
 
             SectionHeader {
                 text: qsTr("Your invite")
+            }
+
+            // Drawn on white whatever the ambience: a code is read by
+            // contrast, and an ambience can have little.
+            Canvas {
+                id: qrCanvas
+                objectName: "inviteQr"
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: Math.floor(parent.width * 0.7)
+                height: width
+                visible: qr.size > 0
+                onPaint: {
+                    var ctx = getContext("2d")
+                    ctx.fillStyle = "white"
+                    ctx.fillRect(0, 0, width, height)
+                    var n = qr.size
+                    if (n === 0) {
+                        return
+                    }
+                    // Four modules of quiet zone, as the standard asks.
+                    var quiet = 4
+                    var cell = width / (n + 2 * quiet)
+                    var rows = qr.modules.split("\n")
+                    ctx.fillStyle = "black"
+                    for (var y = 0; y < n; y++) {
+                        for (var x = 0; x < n; x++) {
+                            if (rows[y].charAt(x) === "1") {
+                                ctx.fillRect((x + quiet) * cell, (y + quiet) * cell,
+                                             Math.ceil(cell), Math.ceil(cell))
+                            }
+                        }
+                    }
+                }
+            }
+
+            Connections {
+                target: qr
+                onModules_changed: qrCanvas.requestPaint()
             }
 
             Label {

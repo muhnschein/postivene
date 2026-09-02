@@ -213,6 +213,15 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   and what a 5.x device reports in `Screen.topCutout` comes in a shape
   this tree could not read in three attempts, so the notch is left for
   another day.
+- **QR codes are text with a picture on.** The invite the core hands out
+  is drawn as a code by a `Canvas` from modules `QrCode` encodes, and a
+  code the camera sees is read back to text by `QrScanner` and handed to
+  the same path a pasted link takes -- `check_qr`, then `secure_join` or
+  `add_transport_from_qr` -- so nothing here reads a payload. Frames
+  reach the scanner as files: `grabToImage` is the one way QML on Qt 5.6
+  hands a viewfinder's pixels to anything, and a `.pgm` path makes Qt
+  write a header and bytes that need no image crate to read. Both crates
+  are pure Rust under the 1.75 floor, with the image dependency off.
 - **The server is supervised.** Its event stream ending is the app's only
   notice that the core has gone -- a phone reclaiming memory kills it and
   says nothing -- so that is where the next one is started, with a backoff
@@ -252,8 +261,9 @@ stickers inline, GIFs animated over a still poster, a video's poster frame
 from the platform thumbnailer, voice and audio played where they sit, a
 shared contact as a card, everything else named and sized), onboarding
 rebuilt on the core's current transport API, `secure_join` invites in both
-directions, encryption indicators, foreground notifications, and the
-cover.
+directions -- as links, and as QR codes drawn and scanned -- a chatmail
+server code scanned at onboarding, encryption indicators, foreground
+notifications, and the cover.
 
 Packaging is real: `mb2` builds produce `harbour-postivene-0.1.0-<release>.aarch64.rpm`,
 and `.github/workflows/rpm.yml` builds it unattended on a GitHub runner in
@@ -298,25 +308,23 @@ In order of what matters:
 
    Restarting `deltachat-rpc-server` after it dies is done: see the
    architecture note above.
-3. **Camera QR scanning**, and showing one's own invite as a QR image. The
-   link form of every payload already works, so this is polish.
-4. **Loading a translation.** The catalog is real and `ci/packaging-lint.sh`
+3. **Loading a translation.** The catalog is real and `ci/packaging-lint.sh`
    fails if it drifts from the `qsTr()` calls, but `QTranslator` is not
    bound by qmetaobject 0.2.10. That means a `cpp!` block, an `unsafe`
    exception to a workspace lint, and C++ build machinery in a second crate,
    in a build environment `BUILDING.md` already documents as fragile. Worth
    deciding deliberately rather than in passing.
-5. **Blocking** outside a request; a media grid on the group and contact
+4. **Blocking** outside a request; a media grid on the group and contact
    pages; add-as-second-device and restore-from-backup.
-6. **Message polish**: avatars on bubbles, reactions, drafts, and an unread
+5. **Message polish**: avatars on bubbles, reactions, drafts, and an unread
    divider.
-7. **Recording a voice message, and the camera.** Sending every kind of
-   attachment works; making one does not. QML has no audio recorder on
-   Qt 5.6 -- `harbour-whisperfish` wrote its own against gstreamer -- so a
-   voice note needs native code, an `unsafe` exception and the `Microphone`
-   permission. The camera is reachable from QML, but wants the `Camera`
-   permission, which is better added once with QR scanning than twice.
-8. **Running a webxdc app.** Sending one already works and the conversation
+6. **Recording a voice message, and taking a picture.** Sending every
+   kind of attachment works; making one does not. QML has no audio
+   recorder on Qt 5.6 -- `harbour-whisperfish` wrote its own against
+   gstreamer -- so a voice note needs native code, an `unsafe` exception
+   and the `Microphone` permission. The camera is already granted for the
+   QR scanner, so a picture is the smaller step.
+7. **Running a webxdc app.** Sending one already works and the conversation
    names it honestly; running it needs `Sailfish.WebView`, the `WebView`
    permission and the webxdc bridge.
 

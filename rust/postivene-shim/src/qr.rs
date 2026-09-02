@@ -115,9 +115,10 @@ pub(crate) fn decode_grey(grey: &Grey) -> Option<String> {
         .find_map(|grid| grid.decode().ok().map(|(_, content)| content))
 }
 
-/// Where a viewfinder frame is written for decoding: the app's own cache
-/// directory, which is inside the sandbox grant.
-fn frame_file() -> Result<String, String> {
+/// A file of the given name in the app's own cache directory, which is
+/// inside the sandbox grant: where a viewfinder frame goes for decoding,
+/// and where a code goes to be shown.
+fn cache_file(name: &str) -> Result<std::path::PathBuf, String> {
     let base = std::env::var("XDG_CACHE_HOME")
         .map(std::path::PathBuf::from)
         .or_else(|_| {
@@ -127,14 +128,57 @@ fn frame_file() -> Result<String, String> {
     let dir = base.join("postivene/postivene");
     std::fs::create_dir_all(&dir)
         .map_err(|err| format!("cannot create cache dir {}: {err}", dir.display()))?;
-    Ok(dir.join("qr-frame.pgm").to_string_lossy().into_owned())
+    Ok(dir.join(name))
 }
 
-/// A QR code of some text, as modules for a Canvas to draw.
+/// Pixels per module in the file a code is shown from. Enough that a
+/// phone held up to the screen sees square modules whatever the scaling.
+const MODULE_PIXELS: usize = 8;
+/// Modules of quiet zone around a shown code, as the standard asks.
+const QUIET_ZONE: usize = 4;
+
+/// A code written as a binary PGM, with its quiet zone, dark modules
+/// black on white. Qt reads PGM itself, so an `Image` shows it, and it is
+/// reloaded from the file when the window's textures are lost -- which is
+/// what happens to an app put in the background.
+pub(crate) fn write_pgm(size: usize, modules: &str, path: &std::path::Path) -> Result<(), String> {
+    let edge = (size + 2 * QUIET_ZONE) * MODULE_PIXELS;
+    let mut pixels = vec![u8::MAX; edge * edge];
+    for (row, line) in modules.lines().enumerate() {
+        for (column, module) in line.chars().enumerate() {
+            if module != '1' {
+                continue;
+            }
+            let left = (column + QUIET_ZONE) * MODULE_PIXELS;
+            for dy in 0..MODULE_PIXELS {
+                let top = ((row + QUIET_ZONE) * MODULE_PIXELS + dy) * edge;
+                pixels[top + left..top + left + MODULE_PIXELS].fill(0);
+            }
+        }
+    }
+    let mut bytes = format!("P5\n{edge} {edge}\n255\n").into_bytes();
+    bytes.extend_from_slice(&pixels);
+    std::fs::write(path, bytes).map_err(|err| format!("cannot write {}: {err}", path.display()))
+}
+
+/// A short, stable name for a text: two codes with different texts get
+/// different files, so a stale one is never shown for the other.
+fn file_stem(text: &str) -> String {
+    // FNV-1a, 64 bits: not for security, only for telling texts apart.
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for byte in text.bytes() {
+        hash ^= u64::from(byte);
+        hash = hash.wrapping_mul(0x0100_0000_01b3);
+    }
+    format!("qr-{hash:016x}")
+}
+
+/// A QR code of some text: as modules, and as a picture file for an
+/// `Image` to show.
 ///
 /// ```qml
 /// QrCode { id: qr; text: page.myInvite }
-/// Canvas { onPaint: { /* qr.size rows of qr.modules */ } }
+/// Image { source: qr.image; smooth: false; visible: qr.size > 0 }
 /// ```
 #[derive(QObject, Default)]
 pub struct QrCode {
@@ -147,6 +191,10 @@ pub struct QrCode {
     pub modules: qt_property!(QString; NOTIFY modules_changed),
     /// Modules per side, 0 when there is no code.
     pub size: qt_property!(u32; NOTIFY modules_changed),
+    /// A `file://` URL of the code drawn as a PGM in the cache directory,
+    /// with its quiet zone. Empty when there is no code, or the file
+    /// could not be written.
+    pub image: qt_property!(QString; NOTIFY modules_changed),
     /// Emitted after every re-encode.
     pub modules_changed: qt_signal!(),
 }
@@ -162,8 +210,22 @@ impl QrCode {
             encode_modules(&text).unwrap_or((0, String::new()))
         };
         self.size = u32::try_from(size).unwrap_or(0);
+        self.image = if size == 0 {
+            QString::default()
+        } else {
+            Self::write_image(&text, size, &modules)
+                .unwrap_or_default()
+                .into()
+        };
         self.modules = modules.into();
         self.modules_changed();
+    }
+
+    /// The code as a file, and its URL.
+    fn write_image(text: &str, size: usize, modules: &str) -> Result<String, String> {
+        let path = cache_file(&format!("{}.pgm", file_stem(text)))?;
+        write_pgm(size, modules, &path)?;
+        Ok(format!("file://{}", path.to_string_lossy()))
     }
 }
 
@@ -207,8 +269,9 @@ impl QrScanner {
         if let Some(path) = self.path.borrow().as_ref() {
             return path.as_str().into();
         }
-        match frame_file() {
+        match cache_file("qr-frame.pgm") {
             Ok(path) => {
+                let path = path.to_string_lossy().into_owned();
                 *self.path.borrow_mut() = Some(path.clone());
                 path.into()
             }
@@ -303,6 +366,22 @@ mod tests {
         let read = parse_pnm(&file).expect("parse what was written");
         assert_eq!((read.width, read.height), (grey.width, grey.height));
         assert_eq!(decode_grey(&read).as_deref(), Some(invite));
+    }
+
+    #[test]
+    fn the_file_written_for_showing_reads_back_as_the_text() {
+        let temp = std::env::temp_dir().join(format!("postivene-qr-file-{}", std::process::id()));
+        std::fs::create_dir_all(&temp).expect("create temp dir");
+        let text = "https://i.delta.chat/#FEDCBA9876543210&a=me%40example.org&n=Me";
+        let (size, modules) = encode_modules(text).expect("encode");
+        let path = temp.join("shown.pgm");
+        write_pgm(size, &modules, &path).expect("write");
+        let read = parse_pnm(&std::fs::read(&path).expect("read back")).expect("parse");
+        assert_eq!(read.width, (size + 2 * QUIET_ZONE) * MODULE_PIXELS);
+        assert_eq!(decode_grey(&read).as_deref(), Some(text));
+        // Different texts, different files; the same text, the same file.
+        assert_ne!(file_stem(text), file_stem("dcaccount:nine.testrun.org"));
+        assert_eq!(file_stem(text), file_stem(text));
     }
 
     #[test]

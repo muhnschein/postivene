@@ -17,6 +17,41 @@
     </message>
 </context>
 <context>
+    <name>AddProfileDialog</name>
+    <message>
+        <source>Default</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add profile</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Create</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pick a chatmail relay or enter a custom server. The server assigns the address; the encryption keys are made on this device.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Your name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Relay</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Custom server</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>See &lt;a href=&quot;https://chatmail.at/relays&quot;&gt;chatmail.at/relays&lt;/a&gt; for the full list.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>AttachmentBar</name>
     <message>
         <source>Sending %1</source>
@@ -240,61 +275,6 @@
     </message>
 </context>
 <context>
-    <name>CreateProfilePage</name>
-    <message>
-        <source>Please enter a name</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>That link is not an invite or login code</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Log in to an email account</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Use an invite or login link</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Create New Profile</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Your name</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Invite or login link</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Check Link</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Your address will be created on %1.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Agree &amp; Create Profile</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>One moment...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Cancel</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
     <name>DisappearingMessages</name>
     <message>
         <source>Off</source>
@@ -341,37 +321,6 @@
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>EmailLoginPage</name>
-    <message>
-        <source>Name, address and password are all needed</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Log In</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Your name</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Email address</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Password</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>One moment...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -553,6 +502,25 @@
     </message>
 </context>
 <context>
+    <name>ProfileSetupPage</name>
+    <message>
+        <source>Add profile</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Contacting %1...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Back</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ProfilesPage</name>
     <message>
         <source>Profiles</source>
@@ -678,11 +646,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Create New Profile</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>I Already Have a Profile</source>
+        <source>Add profile</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

@@ -12,6 +12,11 @@ import Postivene 1.0
  * the invite link drawn, and a code scanned is read back into a link and
  * followed the way a pasted one is. Pasting stays, for a link that
  * arrived in a message or a browser.
+ *
+ * The code is an Image of a file the shim writes rather than a Canvas:
+ * a Canvas is drawn into the window's GL context, which the platform
+ * takes away from an app in the background, and it came back blank; an
+ * Image is reloaded from its file.
  */
 Page {
     id: page
@@ -28,11 +33,19 @@ Page {
         onError: {
             page.joining = false
             page.errorMessage = message
+            // Back from the scanner, if it is what asked, to where the
+            // message is.
+            if (pageStack.currentPage !== page) {
+                pageStack.pop(page)
+            }
         }
         onInvite_ready: page.myInvite = link
         onChat_ready: {
             page.joining = false
-            pageStack.replace(Qt.resolvedUrl("ConversationPage.qml"), {
+            // Above the page that opened this one: the scanner may still
+            // be on top of this page, and goes too.
+            pageStack.replaceAbove(pageStack.previousPage(page),
+                                   Qt.resolvedUrl("ConversationPage.qml"), {
                 accountId: page.accountId,
                 chatId: chat_id,
                 chatName: qsTr("Chat")
@@ -62,7 +75,8 @@ Page {
     }
 
     // The scanner, pushed by URL and connected to, the way the pickers
-    // are: ScanPage is the only file that names a Camera.
+    // are: ScanPage is the only file that names a Camera. It stays up
+    // while the invite is followed, and the chat replaces both pages.
     function scan() {
         var scanner = pageStack.push(Qt.resolvedUrl("ScanPage.qml"))
         if (scanner) {
@@ -135,41 +149,19 @@ Page {
             }
 
             // Drawn on white whatever the ambience: a code is read by
-            // contrast, and an ambience can have little.
-            Canvas {
-                id: qrCanvas
+            // contrast, and an ambience can have little. Not smoothed:
+            // the modules stay square edges rather than blur into each
+            // other.
+            Image {
                 objectName: "inviteQr"
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: Math.floor(parent.width * 0.7)
                 height: width
                 visible: qr.size > 0
-                onPaint: {
-                    var ctx = getContext("2d")
-                    ctx.fillStyle = "white"
-                    ctx.fillRect(0, 0, width, height)
-                    var n = qr.size
-                    if (n === 0) {
-                        return
-                    }
-                    // Four modules of quiet zone, as the standard asks.
-                    var quiet = 4
-                    var cell = width / (n + 2 * quiet)
-                    var rows = qr.modules.split("\n")
-                    ctx.fillStyle = "black"
-                    for (var y = 0; y < n; y++) {
-                        for (var x = 0; x < n; x++) {
-                            if (rows[y].charAt(x) === "1") {
-                                ctx.fillRect((x + quiet) * cell, (y + quiet) * cell,
-                                             Math.ceil(cell), Math.ceil(cell))
-                            }
-                        }
-                    }
-                }
-            }
-
-            Connections {
-                target: qr
-                onModules_changed: qrCanvas.requestPaint()
+                source: qr.image
+                smooth: false
+                cache: false
+                fillMode: Image.PreserveAspectFit
             }
 
             Label {

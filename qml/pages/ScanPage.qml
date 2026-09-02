@@ -19,6 +19,12 @@ import Postivene 1.0
  * file. The next frame is grabbed only once the last has been decoded, so
  * a slow decode never queues frames behind it.
  *
+ * Once a code is read the page stays, with the camera off and a busy
+ * indicator on, until the caller takes it down: Silica drops any stack
+ * operation asked for while a transition is running, so a page that
+ * popped itself here would have the caller's own navigation -- opening
+ * the chat the invite led to -- land during the pop and be lost.
+ *
  * Focus is asked for three ways, because a camera left to itself gave a
  * viewfinder too soft for any code to register: continuous autofocus in
  * the video pipeline, where the platform's cameras run it; a focus search
@@ -47,7 +53,6 @@ Page {
             page.done = true
             camera.stop()
             page.scanned(text)
-            pageStack.pop()
         }
         onError: page.errorMessage = message
     }
@@ -135,6 +140,14 @@ Page {
         title: qsTr("Scan QR code")
     }
 
+    // The code was read and the caller is acting on it.
+    BusyIndicator {
+        objectName: "acting"
+        anchors.centerIn: parent
+        running: page.done
+        size: BusyIndicatorSize.Large
+    }
+
     Label {
         objectName: "hint"
         anchors {
@@ -146,6 +159,7 @@ Page {
         horizontalAlignment: Text.AlignHCenter
         wrapMode: Text.Wrap
         color: Theme.secondaryHighlightColor
+        visible: !page.done
         text: qsTr("Point the camera at an invite or a chatmail server code")
     }
 

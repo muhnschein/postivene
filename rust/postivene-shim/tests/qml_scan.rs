@@ -1,5 +1,6 @@
 //! Scanning a QR code: the page runs the camera only while it is on
-//! screen, and a frame with a code in it comes back as the code's text.
+//! screen, a frame with a code in it comes back as the code's text, and
+//! the page then stays for the caller to take down.
 //!
 //! The frame is made here rather than by a camera: the page's own `QrCode`
 //! encodes an invite, the test draws those modules into the PGM Qt would
@@ -194,6 +195,7 @@ fn a_code_held_up_to_the_page_comes_back_as_its_text() {
         record!("grabbing-active", get!("grabber", "running"));
         // Focus is asked for while nothing has been read.
         record!("focusing-active", get!("refocus", "running"));
+        record!("acting-before", get!("acting", "running"));
         // The viewfinder timer's own call, with the frame made above.
         record!(
             "decode",
@@ -210,6 +212,7 @@ fn a_code_held_up_to_the_page_comes_back_as_its_text() {
         record!("camera-after", get!("camera", "running"));
         record!("grabbing-after", get!("grabber", "running"));
         record!("focusing-after", get!("refocus", "running"));
+        record!("acting-after", get!("acting", "running"));
         // The first search ran as soon as the page came on screen, on the
         // event loop turn after it did.
         record!("searches", get!("camera", "searches"));
@@ -223,7 +226,7 @@ fn a_code_held_up_to_the_page_comes_back_as_its_text() {
 }
 
 /// The camera follows the page's status, the frame decodes to the invite,
-/// and the page hands it on and goes.
+/// and the page hands it on and waits.
 fn assert_scan(steps: &[(&str, String)]) {
     let context = format!("steps: {steps:?}");
     let value = |label: &str| {
@@ -293,8 +296,20 @@ fn assert_scan(steps: &[(&str, String)]) {
         "focus keeps being asked for after a code was read. {context}"
     );
     assert_eq!(
+        value("acting-before"),
+        "false",
+        "the page says it is acting on a code before one was read. {context}"
+    );
+    assert_eq!(
+        value("acting-after"),
+        "true",
+        "the page does not show that the code is being acted on. {context}"
+    );
+    // Not the page's to do: Silica drops a stack operation asked for
+    // during a transition, and the caller's is the one that matters.
+    assert_eq!(
         value("navigation"),
-        "pop|",
-        "the page did not go once the code was read. {context}"
+        "",
+        "the page took itself down instead of leaving that to the caller. {context}"
     );
 }

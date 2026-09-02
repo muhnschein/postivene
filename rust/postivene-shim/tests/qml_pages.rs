@@ -64,7 +64,7 @@ enum TruncationMode {
 #[derive(QObject, Default)]
 struct PageStackProbe {
     base: qt_base_class!(trait QObject),
-    /// `push:CreateProfilePage.qml|replaceAbove:ChatListPage.qml|...`
+    /// `push:AddProfileDialog.qml|replaceAbove:ChatListPage.qml|...`
     log: qt_property!(QString; NOTIFY log_changed),
     log_changed: qt_signal!(),
     /// The stack as it now stands, bottom first, comma separated.
@@ -95,7 +95,13 @@ impl PageStackProbe {
         // `QVariantMap` in qttypes 0.2 can be queried but not iterated, so
         // these are the keys the pages pass.
         let mut rendered = Vec::new();
-        for key in ["accountId", "chatId", "chatName"] {
+        for key in [
+            "accountId",
+            "chatId",
+            "chatName",
+            "displayName",
+            "providerQr",
+        ] {
             let value = properties.value(QString::from(key), QVariant::default());
             let text = i32::from_qvariant(value.clone())
                 .map(|number| number.to_string())
@@ -161,6 +167,19 @@ const PROBE_QML: &str = r"
             loader.source = url
             return loader.status === Loader.Ready ? 'ok' : 'load-failed'
         }
+        // With initial properties, as JSON: what a dialog hands its
+        // accept destination.
+        function loadWith(url, json) {
+            loader.setSource(url, JSON.parse(json))
+            return loader.status === Loader.Ready ? 'ok' : 'load-failed'
+        }
+        // Silica accepts a dialog on a tap of its header or a swipe;
+        // the stub's accept() is the same thing.
+        function accept() {
+            loader.item.accept()
+            return 'ok'
+        }
+        function stackProperties() { return pageStack.last_properties }
         function findIn(node, name) {
             if (!node) { return null }
             if (node.objectName === name) { return node }
@@ -186,6 +205,13 @@ const PROBE_QML: &str = r"
             var item = findIn(loader.item, name)
             if (!item) { return 'missing:' + name }
             item.text = value
+            return 'ok'
+        }
+        // What Silica's ComboBox does on a tap of one of its items.
+        function pick(name, index) {
+            var item = findIn(loader.item, name)
+            if (!item) { return 'missing:' + name }
+            item.currentIndex = parseInt(index)
             return 'ok'
         }
         function get(name, property) {
@@ -312,47 +338,54 @@ fn onboarding_pages_drive_the_core_and_navigate() {
         record(&s, "welcome-click", call!("click", "createProfileButton"));
     });
 
+    // The dialog: nothing to accept until there is a name; the first
+    // relay unless another is picked or one is typed.
     let s = steps.clone();
     single_shot(Duration::from_secs(3), move || {
         record(
             &s,
-            "create-load",
-            call!("load", page_url("CreateProfilePage.qml")),
+            "dialog-load",
+            call!("load", page_url("AddProfileDialog.qml")),
         );
-        record(&s, "create-provider", call!("pageProperty", "providerQr"));
-        record(&s, "create-name", call!("setText", "nameField", "Ada"));
+        record(&s, "dialog-empty", call!("pageProperty", "canAccept"));
+        record(&s, "dialog-provider", call!("pageProperty", "providerQr"));
+        record(&s, "dialog-name", call!("setText", "nameField", " Ada "));
+        record(&s, "dialog-named", call!("pageProperty", "canAccept"));
+        record(&s, "dialog-pick", call!("pick", "relayCombo", "1"));
+        record(&s, "dialog-picked", call!("pageProperty", "providerQr"));
+        record(
+            &s,
+            "dialog-custom",
+            call!("setText", "customField", " chat.example.org "),
+        );
+        record(&s, "dialog-typed", call!("pageProperty", "providerQr"));
+        record(&s, "dialog-list-off", call!("get", "relayCombo", "enabled"));
+        record(&s, "dialog-uncustom", call!("setText", "customField", ""));
+        record(&s, "dialog-unpick", call!("pick", "relayCombo", "0"));
+        record(&s, "dialog-accept", call!("accept"));
+        record(&s, "dialog-handed", call!("stackProperties"));
     });
 
+    // The setup page, with what the dialog hands it: the core is asked
+    // on arrival, and the progress reaches the page.
     let s = steps.clone();
     single_shot(Duration::from_secs(4), move || {
-        record(&s, "create-click", call!("click", "createButton"));
+        record(
+            &s,
+            "setup-load",
+            call!(
+                "loadWith",
+                page_url("ProfileSetupPage.qml"),
+                r#"{"displayName":"Ada","providerQr":"dcaccount:nine.testrun.org"}"#
+            ),
+        );
     });
 
     let s = steps.clone();
     single_shot(Duration::from_secs(6), move || {
-        record(&s, "create-permille", call!("pageProperty", "permille"));
-        record(&s, "create-error", call!("pageProperty", "errorMessage"));
-        record(
-            &s,
-            "email-load",
-            call!("load", page_url("EmailLoginPage.qml")),
-        );
-    });
-
-    let s = steps.clone();
-    single_shot(Duration::from_secs(7), move || {
-        // The page must refuse locally rather than call the core.
-        record(&s, "email-click-empty", call!("click", "loginButton"));
-    });
-
-    let s = steps.clone();
-    single_shot(Duration::from_secs(8), move || {
-        record(&s, "email-error", call!("pageProperty", "errorMessage"));
-        record(
-            &s,
-            "email-error-shown",
-            call!("get", "errorLabel", "visible"),
-        );
+        record(&s, "setup-permille", call!("pageProperty", "permille"));
+        record(&s, "setup-error", call!("pageProperty", "errorMessage"));
+        record(&s, "setup-busy", call!("pageProperty", "busy"));
     });
 
     single_shot(Duration::from_secs(9), move || unsafe {
@@ -368,14 +401,14 @@ fn onboarding_pages_drive_the_core_and_navigate() {
 
     assert_pages_loaded(&steps, &context);
     assert_welcome_and_navigation(&steps, &navigation, &properties, &context);
+    assert_dialog(&steps, &context);
     assert_profile_creation(&steps, &context);
-    assert_email_validation(&steps, &context);
     assert_wire_calls(&journal);
 }
 
 /// Every page file must instantiate; nothing below means anything if not.
 fn assert_pages_loaded(steps: &[(String, String)], context: &str) {
-    for step in ["welcome-load", "create-load", "email-load"] {
+    for step in ["welcome-load", "dialog-load", "setup-load"] {
         assert_eq!(value_of(steps, step), "ok", "{step} failed. {context}");
     }
 }
@@ -395,8 +428,8 @@ fn assert_welcome_and_navigation(
     );
     assert_eq!(value_of(steps, "welcome-click"), "ok", "{context}");
     assert!(
-        navigation.contains("push:CreateProfilePage.qml"),
-        "Create New Profile did not open the profile page. {context}"
+        navigation.contains("push:AddProfileDialog.qml"),
+        "Add profile did not open the dialog. {context}"
     );
     assert!(
         navigation.contains("replaceAbove:ChatListPage.qml"),
@@ -408,35 +441,73 @@ fn assert_welcome_and_navigation(
     );
 }
 
-/// The provider comes from the shim, and progress reaches the page.
-fn assert_profile_creation(steps: &[(String, String)], context: &str) {
+/// The dialog: no accepting without a name, the first relay by default,
+/// a picked or typed one otherwise, and what was chosen is what the
+/// setup page is handed.
+fn assert_dialog(steps: &[(String, String)], context: &str) {
+    for step in [
+        "dialog-name",
+        "dialog-pick",
+        "dialog-custom",
+        "dialog-uncustom",
+        "dialog-unpick",
+        "dialog-accept",
+    ] {
+        assert_eq!(value_of(steps, step), "ok", "{step} failed. {context}");
+    }
     assert_eq!(
-        value_of(steps, "create-provider"),
-        "dcaccount:nine.testrun.org",
-        "{context}"
+        value_of(steps, "dialog-empty"),
+        "false",
+        "the dialog can be accepted without a name. {context}"
     );
     assert_eq!(
-        value_of(steps, "create-permille"),
+        value_of(steps, "dialog-provider"),
+        "dcaccount:nine.testrun.org",
+        "the default relay is not the first on the list. {context}"
+    );
+    assert_eq!(
+        value_of(steps, "dialog-named"),
+        "true",
+        "a name does not make the dialog acceptable. {context}"
+    );
+    assert_eq!(
+        value_of(steps, "dialog-picked"),
+        "dcaccount:mehl.cloud",
+        "picking the second relay did not change the payload. {context}"
+    );
+    assert_eq!(
+        value_of(steps, "dialog-typed"),
+        "dcaccount:chat.example.org",
+        "a typed server does not take over from the list, trimmed. {context}"
+    );
+    assert_eq!(
+        value_of(steps, "dialog-list-off"),
+        "false",
+        "the list is still offered while a server is typed. {context}"
+    );
+    assert_eq!(
+        value_of(steps, "dialog-handed"),
+        "displayName=Ada,providerQr=dcaccount:nine.testrun.org",
+        "the setup page was not handed the trimmed name and the relay. {context}"
+    );
+}
+
+/// The setup page asks the core on arrival, and progress reaches it.
+fn assert_profile_creation(steps: &[(String, String)], context: &str) {
+    assert_eq!(
+        value_of(steps, "setup-permille"),
         "1000",
         "ConfigureProgress never reached the page. {context}"
     );
     assert_eq!(
-        value_of(steps, "create-error"),
+        value_of(steps, "setup-error"),
         "",
         "a successful profile left an error on the page. {context}"
     );
-}
-
-/// An empty login form: a visible message, no RPC.
-fn assert_email_validation(steps: &[(String, String)], context: &str) {
-    assert!(
-        !value_of(steps, "email-error").is_empty(),
-        "submitting an empty login form reported nothing. {context}"
-    );
     assert_eq!(
-        value_of(steps, "email-error-shown"),
-        "true",
-        "the error message is set but not shown. {context}"
+        value_of(steps, "setup-busy"),
+        "false",
+        "the page is still busy after the core answered. {context}"
     );
 }
 
@@ -455,9 +526,15 @@ fn assert_wire_calls(journal: &std::path::Path) {
         !method_names.contains(&"configure"),
         "the pages called the deprecated `configure`: {method_names:?}"
     );
-    assert!(
-        !method_names.contains(&"add_or_update_transport"),
-        "the empty login form was sent to the core anyway: {method_names:?}"
+    let transport = calls
+        .iter()
+        .find(|call| call.get("method").and_then(Value::as_str) == Some("add_transport_from_qr"));
+    assert_eq!(
+        transport
+            .and_then(|call| call.pointer("/params/1"))
+            .and_then(Value::as_str),
+        Some("dcaccount:nine.testrun.org"),
+        "the relay the dialog chose did not reach the core"
     );
     let display_name = calls.iter().find(|call| {
         call.get("method").and_then(Value::as_str) == Some("set_config")

@@ -29,6 +29,9 @@ mod common;
 
 /// Silica's `pageStack`, recorded rather than performed. A context property,
 /// as in the app.
+///
+/// Method names are camelCase because they stand in for Silica's own API.
+#[allow(non_snake_case)]
 #[derive(QObject, Default)]
 struct PageStackProbe {
     base: qt_base_class!(trait QObject),
@@ -40,9 +43,13 @@ struct PageStackProbe {
 
     push: qt_method!(fn(&mut self, page: QString, properties: QVariantMap)),
     replace: qt_method!(fn(&mut self, page: QString, properties: QVariantMap)),
+    replaceAbove:
+        qt_method!(fn(&mut self, target: QVariant, page: QString, properties: QVariantMap)),
+    previousPage: qt_method!(fn(&mut self, page: QVariant) -> QVariant),
     pop: qt_method!(fn(&mut self)),
 }
 
+#[allow(non_snake_case)]
 impl PageStackProbe {
     fn record(&mut self, action: &str, page: &QString, properties: &QVariantMap) {
         let page = page.to_string();
@@ -63,6 +70,17 @@ impl PageStackProbe {
 
     fn replace(&mut self, page: QString, properties: QVariantMap) {
         self.record("replace", &page, &properties);
+    }
+
+    fn replaceAbove(&mut self, _target: QVariant, page: QString, properties: QVariantMap) {
+        self.record("replaceAbove", &page, &properties);
+    }
+
+    /// The page below, which this record does not model. `&mut self` is
+    /// what `qt_method!` dispatches to.
+    #[allow(clippy::unused_self)]
+    fn previousPage(&mut self, _page: QVariant) -> QVariant {
+        QVariant::default()
     }
 
     fn pop(&mut self) {
@@ -231,10 +249,12 @@ fn assert_outcome(steps: &[(&str, String)], navigation: &str, chat_id: u32, jour
         );
     }
 
-    // Both routes end in a conversation, with a chat the core made.
-    assert_eq!(
-        navigation.matches("replace:ConversationPage.qml").count(),
-        2,
+    // Both routes end in a conversation, with a chat the core made: a
+    // tapped contact replaces the picker, and a followed invite replaces
+    // the invite page and whatever it has pushed above itself.
+    assert!(
+        navigation.contains("replace:ConversationPage.qml")
+            && navigation.contains("replaceAbove:ConversationPage.qml"),
         "each of tapping a contact and following an invite should open a \
          chat. {context}"
     );

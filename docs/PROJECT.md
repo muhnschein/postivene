@@ -213,15 +213,34 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   and what a 5.x device reports in `Screen.topCutout` comes in a shape
   this tree could not read in three attempts, so the notch is left for
   another day.
+- **Adding a profile is a dialog over a relay list.** A name and a
+  chatmail relay are all a profile needs, so `AddProfileDialog` asks for
+  exactly those, the way Silica asks a question: a `ComboBox` of public
+  relays (the curated list in parla, github.com/trufae/parla, copied with
+  the first as default) and a field for a custom one that takes over
+  while it is filled. Accepting goes to `ProfileSetupPage`, which asks
+  the core and shows the progress; cancel and failure both go back to
+  the dialog with what was typed. The core takes `dcaccount:` with a bare
+  domain, so the payload is built here without a URL. Logging in to an
+  existing mailbox is gone with the page that offered it: most Delta Chat
+  users never type an IMAP password, and the shim method stays for the
+  day a settings page wants it.
 - **QR codes are text with a picture on.** The invite the core hands out
-  is drawn as a code by a `Canvas` from modules `QrCode` encodes, and a
-  code the camera sees is read back to text by `QrScanner` and handed to
-  the same path a pasted link takes -- `check_qr`, then `secure_join` or
-  `add_transport_from_qr` -- so nothing here reads a payload. Frames
-  reach the scanner as files: `grabToImage` is the one way QML on Qt 5.6
-  hands a viewfinder's pixels to anything, and a `.pgm` path makes Qt
-  write a header and bytes that need no image crate to read. Both crates
-  are pure Rust under the 1.75 floor, with the image dependency off.
+  is drawn as a code by `QrCode`, and a code the camera sees is read back
+  to text by `QrScanner` and handed to the same path a pasted link takes
+  -- `check_qr`, then `secure_join` or `add_transport_from_qr` -- so
+  nothing here reads a payload. Both pictures are files: `grabToImage` is
+  the one way QML on Qt 5.6 hands a viewfinder's pixels to anything, and
+  a `.pgm` path makes Qt write a header and bytes that need no image
+  crate to read; the code shown is a PGM the shim writes to the cache
+  directory for an `Image`, because a `Canvas` is drawn into the window's
+  GL context, which the platform takes from an app in the background, and
+  it came back blank. Both crates are pure Rust under the 1.75 floor,
+  with the image dependency off. The scanner page does not pop itself
+  once it has read a code: Silica drops any stack operation asked for
+  while a transition runs, so the caller's own navigation -- the chat the
+  invite led to -- landed during the pop and was lost. It waits, and the
+  chat replaces it and the page that pushed it together.
   Focus is the page's job, not the platform's: Sailfish has no scanning
   API for third parties (the stock camera reads codes on its own, behind
   no interface), and a `Camera` left to itself gave a viewfinder too soft
@@ -265,11 +284,11 @@ resend, a page of history at a time, and every kind of attachment the core
 classifies: photos and
 stickers inline, GIFs animated over a still poster, a video's poster frame
 from the platform thumbnailer, voice and audio played where they sit, a
-shared contact as a card, everything else named and sized), onboarding
-rebuilt on the core's current transport API, `secure_join` invites in both
-directions -- as links, and as QR codes drawn and scanned -- a chatmail
-server code scanned at onboarding, encryption indicators, foreground
-notifications, and the cover.
+shared contact as a card, everything else named and sized), adding a
+profile on a chosen chatmail relay through the core's current transport
+API, `secure_join` invites in both directions -- as links, and as QR
+codes drawn and scanned, into the chat -- encryption indicators,
+foreground notifications, and the cover.
 
 Packaging is real: `mb2` builds produce `harbour-postivene-0.1.0-<release>.aarch64.rpm`,
 and `.github/workflows/rpm.yml` builds it unattended on a GitHub runner in
@@ -321,7 +340,10 @@ In order of what matters:
    in a build environment `BUILDING.md` already documents as fragile. Worth
    deciding deliberately rather than in passing.
 4. **Blocking** outside a request; a media grid on the group and contact
-   pages; add-as-second-device and restore-from-backup.
+   pages; add-as-second-device and restore-from-backup, which are now the
+   only ways an existing profile could arrive, the mailbox login page
+   having gone; parla's "discover relays from contacts" on the add-profile
+   dialog.
 5. **Message polish**: avatars on bubbles, reactions, drafts, and an unread
    divider.
 6. **Recording a voice message, and taking a picture.** Sending every

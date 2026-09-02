@@ -55,7 +55,7 @@ Page {
             MenuItem {
                 objectName: "addProfileMenuItem"
                 text: qsTr("Add profile")
-                onClicked: pageStack.push(Qt.resolvedUrl("CreateProfilePage.qml"), {})
+                onClicked: pageStack.push(Qt.resolvedUrl("AddProfileDialog.qml"), {})
             }
         }
 

@@ -269,8 +269,8 @@ fn switching_profile_leaves_one_chat_list_on_the_stack() {
         "the pulley offers no way to add a profile. {context}"
     );
     assert!(
-        value("added").ends_with(",CreateProfilePage.qml"),
-        "adding a profile did not open the create-profile page on top: \
+        value("added").ends_with(",AddProfileDialog.qml"),
+        "adding a profile did not open the add-profile dialog on top: \
          {}. {context}",
         value("added")
     );

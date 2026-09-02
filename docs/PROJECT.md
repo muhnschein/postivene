@@ -216,12 +216,17 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
 - **Adding a profile is a dialog over a relay list.** A name and a
   chatmail relay are all a profile needs, so `AddProfileDialog` asks for
   exactly those, the way Silica asks a question: a `ComboBox` of public
-  relays (the curated list in parla, github.com/trufae/parla, copied with
-  the first as default) and a field for a custom one that takes over
-  while it is filled. Accepting goes to `ProfileSetupPage`, which asks
-  the core and shows the progress; cancel and failure both go back to
-  the dialog with what was typed. The core takes `dcaccount:` with a bare
-  domain, so the payload is built here without a URL. Logging in to an
+  relays (the curated list in parla, github.com/trufae/parla, one picked
+  at random each time so profiles spread over it) and a field for a
+  custom one that takes over while it is filled. Accepting goes to
+  `ProfileSetupPage`, which asks the core and shows the progress; cancel
+  and failure both go back to the dialog with what was typed. Silica
+  makes a dialog's accept destination the moment the dialog is on screen,
+  so it can be peeked at, so the setup page starts nothing on creation:
+  the dialog fills it in through `acceptDestinationInstance` on accept,
+  and it asks the core once it is the page on screen. The core takes
+  `dcaccount:` with a bare domain, so the payload is built here without
+  a URL. Logging in to an
   existing mailbox is gone with the page that offered it: most Delta Chat
   users never type an IMAP password, and the shim method stays for the
   day a settings page wants it.

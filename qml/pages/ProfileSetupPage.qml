@@ -8,6 +8,11 @@ import "../components"
  * progress meanwhile and lands in the chat list when it is done. Cancel
  * and a failure both go back to the dialog, which still has what was
  * typed.
+ *
+ * Silica makes a dialog's accept destination the moment the dialog comes
+ * on screen, so that it can be peeked at, and the dialog fills the name
+ * and relay in on accept. So nothing happens here on creation: the work
+ * starts when the page is the one on screen, which is after both.
  */
 Page {
     id: page
@@ -15,8 +20,11 @@ Page {
     property string displayName
     property string providerQr
 
-    // True from arrival until the core answers.
-    property bool busy: true
+    // True while the core is working.
+    property bool busy: false
+    // Set once the core has been asked, so a second activation -- coming
+    // back from a page pushed on top -- does not ask again.
+    property bool started: false
     property int permille: 0
     property string errorMessage: ""
 
@@ -25,7 +33,28 @@ Page {
     // list, leaving a profile made and nothing shown for it.
     backNavigation: !busy
 
-    Component.onCompleted: core.create_profile(displayName, providerQr)
+    function begin() {
+        if (page.started) {
+            return
+        }
+        page.started = true
+        page.busy = true
+        page.permille = 0
+        core.create_profile(displayName, providerQr)
+    }
+
+    onStatusChanged: {
+        if (page.status === PageStatus.Active) {
+            page.begin()
+        }
+    }
+    // Pushed straight to the top, the page is active before the handler
+    // above exists.
+    Component.onCompleted: {
+        if (page.status === PageStatus.Active) {
+            page.begin()
+        }
+    }
 
     // Qt 5.6 handler syntax; see WelcomePage.qml.
     Connections {

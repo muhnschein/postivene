@@ -19,10 +19,6 @@
 <context>
     <name>AddProfileDialog</name>
     <message>
-        <source>Default</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Add profile</source>
         <translation type="unfinished"></translation>
     </message>

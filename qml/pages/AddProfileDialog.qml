@@ -11,8 +11,9 @@ import Sailfish.Silica 1.0
  * ProfileSetupPage, which does the work and shows the progress. The relay
  * list and the shape of the page follow parla's account dialog
  * (github.com/trufae/parla), whose curated list of public relays is
- * copied here; the first entry is the default. Anyone can run a relay,
- * so a custom one can be typed, and takes over from the list while it is.
+ * copied here; one of them is picked at random each time. Anyone can run
+ * a relay, so a custom one can be typed, and takes over from the list
+ * while it is.
  */
 Dialog {
     id: dialog
@@ -28,7 +29,7 @@ Dialog {
 
     // From chatmail.at/relays, as parla curates it.
     readonly property var relays: [
-        { domain: "nine.testrun.org", location: qsTr("Default") },
+        { domain: "nine.testrun.org", location: "Germany" },
         { domain: "mehl.cloud", location: "German" },
         { domain: "mailchat.pl", location: "Poland" },
         { domain: "chatmail.woodpeckersnest.space", location: "Italy" },
@@ -58,14 +59,19 @@ Dialog {
 
     canAccept: nameField.text.trim().length > 0 && domain.length > 0
 
-    // The setup page does the work, with what was typed here.
+    // The setup page does the work, with what was typed here. Silica
+    // makes that page as soon as this one is on screen, so what was
+    // typed is handed over on accept rather than at its making.
     acceptDestination: Qt.resolvedUrl("ProfileSetupPage.qml")
-    // In parentheses: without them a binding that starts with a brace is
-    // a block of statements, not an object.
-    acceptDestinationProperties: ({
-        "displayName": nameField.text.trim(),
-        "providerQr": dialog.providerQr
-    })
+    onAccepted: {
+        dialog.acceptDestinationInstance.displayName = nameField.text.trim()
+        dialog.acceptDestinationInstance.providerQr = dialog.providerQr
+    }
+
+    // Any relay, each time: no one of them is the default, so the
+    // profiles made here spread over the list rather than all landing on
+    // its first entry.
+    Component.onCompleted: relayCombo.currentIndex = Math.floor(Math.random() * relays.length)
 
     SilicaFlickable {
         anchors.fill: parent

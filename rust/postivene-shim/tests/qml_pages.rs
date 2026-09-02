@@ -173,13 +173,23 @@ const PROBE_QML: &str = r"
             loader.setSource(url, JSON.parse(json))
             return loader.status === Loader.Ready ? 'ok' : 'load-failed'
         }
+        // What Silica makes of a dialog's accept destination as soon as
+        // the dialog is on screen, for the dialog to fill in on accept.
+        QtObject {
+            id: destination
+            property string displayName
+            property string providerQr
+        }
         // Silica accepts a dialog on a tap of its header or a swipe;
         // the stub's accept() is the same thing.
         function accept() {
+            loader.item.acceptDestinationInstance = destination
             loader.item.accept()
             return 'ok'
         }
-        function stackProperties() { return pageStack.last_properties }
+        function handed() { return destination.displayName + ',' + destination.providerQr }
+        // What Silica does when a page becomes the one on screen.
+        function activate() { loader.item.status = 2; return 'ok' }
         function findIn(node, name) {
             if (!node) { return null }
             if (node.objectName === name) { return node }
@@ -348,6 +358,11 @@ fn onboarding_pages_drive_the_core_and_navigate() {
             call!("load", page_url("AddProfileDialog.qml")),
         );
         record(&s, "dialog-empty", call!("pageProperty", "canAccept"));
+        record(
+            &s,
+            "dialog-index",
+            call!("get", "relayCombo", "currentIndex"),
+        );
         record(&s, "dialog-provider", call!("pageProperty", "providerQr"));
         record(&s, "dialog-name", call!("setText", "nameField", " Ada "));
         record(&s, "dialog-named", call!("pageProperty", "canAccept"));
@@ -363,11 +378,12 @@ fn onboarding_pages_drive_the_core_and_navigate() {
         record(&s, "dialog-uncustom", call!("setText", "customField", ""));
         record(&s, "dialog-unpick", call!("pick", "relayCombo", "0"));
         record(&s, "dialog-accept", call!("accept"));
-        record(&s, "dialog-handed", call!("stackProperties"));
+        record(&s, "dialog-handed", call!("handed"));
     });
 
-    // The setup page, with what the dialog hands it: the core is asked
-    // on arrival, and the progress reaches the page.
+    // The setup page, made before it is on screen the way Silica makes
+    // a dialog's destination, with what the dialog hands it: nothing is
+    // asked of the core until the page is the one on screen.
     let s = steps.clone();
     single_shot(Duration::from_secs(4), move || {
         record(
@@ -376,19 +392,29 @@ fn onboarding_pages_drive_the_core_and_navigate() {
             call!(
                 "loadWith",
                 page_url("ProfileSetupPage.qml"),
-                r#"{"displayName":"Ada","providerQr":"dcaccount:nine.testrun.org"}"#
+                r#"{"displayName":"Ada","providerQr":"dcaccount:nine.testrun.org","status":0}"#
             ),
         );
     });
 
     let s = steps.clone();
-    single_shot(Duration::from_secs(6), move || {
+    let journal_early = journal.clone();
+    single_shot(Duration::from_secs(5), move || {
+        let asked_early = common::records(&journal_early).iter().any(|call| {
+            call.get("method").and_then(Value::as_str) == Some("add_transport_from_qr")
+        });
+        record(&s, "setup-early", QString::from(asked_early.to_string()));
+        record(&s, "setup-activate", call!("activate"));
+    });
+
+    let s = steps.clone();
+    single_shot(Duration::from_secs(7), move || {
         record(&s, "setup-permille", call!("pageProperty", "permille"));
         record(&s, "setup-error", call!("pageProperty", "errorMessage"));
         record(&s, "setup-busy", call!("pageProperty", "busy"));
     });
 
-    single_shot(Duration::from_secs(9), move || unsafe {
+    single_shot(Duration::from_secs(10), move || unsafe {
         (*engine_ptr).quit();
     });
 
@@ -460,10 +486,18 @@ fn assert_dialog(steps: &[(String, String)], context: &str) {
         "false",
         "the dialog can be accepted without a name. {context}"
     );
-    assert_eq!(
-        value_of(steps, "dialog-provider"),
-        "dcaccount:nine.testrun.org",
-        "the default relay is not the first on the list. {context}"
+    // One of the list, at random: not the first every time.
+    let index: usize = value_of(steps, "dialog-index")
+        .parse()
+        .unwrap_or(usize::MAX);
+    assert!(
+        index < 26,
+        "the relay picked on arrival is not one of the list. {context}"
+    );
+    let provider = value_of(steps, "dialog-provider");
+    assert!(
+        provider.starts_with("dcaccount:") && provider.contains('.'),
+        "the relay picked on arrival is not a dcaccount: payload with a domain. {context}"
     );
     assert_eq!(
         value_of(steps, "dialog-named"),
@@ -487,13 +521,21 @@ fn assert_dialog(steps: &[(String, String)], context: &str) {
     );
     assert_eq!(
         value_of(steps, "dialog-handed"),
-        "displayName=Ada,providerQr=dcaccount:nine.testrun.org",
+        "Ada,dcaccount:nine.testrun.org",
         "the setup page was not handed the trimmed name and the relay. {context}"
     );
 }
 
-/// The setup page asks the core on arrival, and progress reaches it.
+/// The setup page asks the core once it is on screen, not when it is
+/// made, and progress reaches it.
 fn assert_profile_creation(steps: &[(String, String)], context: &str) {
+    assert_eq!(
+        value_of(steps, "setup-early"),
+        "false",
+        "the setup page asked the core before it was on screen, which is \
+         when Silica makes it, with nothing filled in yet. {context}"
+    );
+    assert_eq!(value_of(steps, "setup-activate"), "ok", "{context}");
     assert_eq!(
         value_of(steps, "setup-permille"),
         "1000",

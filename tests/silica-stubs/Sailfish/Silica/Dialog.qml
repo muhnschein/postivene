@@ -1,14 +1,15 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
 
-// A page that can be accepted. Silica accepts on the header's tap or a
-// forward swipe and then goes to `acceptDestination` with
-// `acceptDestinationProperties`; here the harness calls `accept()`, and
-// the push is recorded by the injected `pageStack` like any other.
+// A page that can be accepted. Silica makes `acceptDestination` as soon
+// as the dialog is on screen and exposes it as `acceptDestinationInstance`
+// for `onAccepted` to fill in; accepting then goes to it. Here the harness
+// sets the instance to something of its own and calls `accept()`, and the
+// push is recorded by the injected `pageStack` like any other.
 Page {
     property bool canAccept: true
     property var acceptDestination
-    property var acceptDestinationProperties
+    property var acceptDestinationInstance
     signal accepted()
     signal rejected()
     function accept() {
@@ -17,7 +18,7 @@ Page {
         }
         accepted()
         if (acceptDestination) {
-            pageStack.push(acceptDestination, acceptDestinationProperties || {})
+            pageStack.push(acceptDestination, {})
         }
     }
     function reject() { rejected() }

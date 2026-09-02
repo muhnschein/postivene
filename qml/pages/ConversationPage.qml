@@ -242,6 +242,24 @@ Page {
         id: conversationHeader
         objectName: "conversationHeader"
         title: page.chatName
+        // The name is the way to the group behind it, as in every other
+        // messenger. A one-to-one chat has no page yet.
+        onClicked: if (messages.is_group) page.openGroup()
+    }
+
+    // The group page renames the chat this page is named for, and says
+    // so, so the header does not go on showing the old name.
+    function openGroup() {
+        var info = pageStack.push(Qt.resolvedUrl("GroupPage.qml"), {
+            accountId: page.accountId,
+            chatId: page.chatId,
+            chatName: page.chatName
+        })
+        if (info) {
+            info.renamed.connect(function(name) {
+                page.chatName = name
+            })
+        }
     }
 
     ConversationList {

@@ -17,8 +17,17 @@ Item {
     /// What the header says. Shown as written, whatever it looks like.
     property alias title: titleLabel.text
 
+    /// The header was tapped. What that opens is the page's to decide.
+    signal clicked()
+
     width: parent ? parent.width : 0
     height: Theme.itemSizeLarge
+
+    MouseArea {
+        objectName: "headerTap"
+        anchors.fill: parent
+        onClicked: root.clicked()
+    }
 
     Label {
         id: titleLabel

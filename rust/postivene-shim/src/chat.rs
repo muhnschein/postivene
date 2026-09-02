@@ -1257,7 +1257,7 @@ fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
 /// `selectedContent` and anything that has been through a `url` property
 /// arrive as `file://` URLs with the awkward characters percent-encoded.
 /// Both reach `send_file`, and the core takes a path.
-fn local_path(raw: &str) -> String {
+pub(crate) fn local_path(raw: &str) -> String {
     let path = raw.strip_prefix("file://").unwrap_or(raw);
     if !path.contains('%') {
         return path.to_string();

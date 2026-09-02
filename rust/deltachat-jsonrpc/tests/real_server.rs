@@ -406,6 +406,99 @@ async fn offline_round_trip_against_real_core() {
         group_items[&group_chat_id]
     );
 
+    // A group after it is made, as GroupInfo reads it. The members are
+    // ids, and the contacts behind them come from a second call keyed by
+    // id -- as strings, JSON having no other kind of key.
+    let full: Value = client
+        .call("get_full_chat_by_id", (account_id, group_chat_id))
+        .await
+        .expect("get_full_chat_by_id");
+    assert_eq!(
+        full.get("chatType").and_then(Value::as_str),
+        Some("Group"),
+        "unexpected chat shape: {full:?}"
+    );
+    let member_ids: Vec<u32> =
+        serde_json::from_value(full["contactIds"].clone()).expect("contactIds is a list of ids");
+    assert_eq!(
+        member_ids,
+        vec![1],
+        "a fresh group holds only the account itself (DC_CONTACT_ID_SELF): {full:?}"
+    );
+    for field in ["name", "profileImage", "color", "selfInGroup", "canSend"] {
+        assert!(
+            full.get(field).is_some(),
+            "the chat lost the {field} field: {full:?}"
+        );
+    }
+    assert_eq!(
+        full.get("selfInGroup").and_then(Value::as_bool),
+        Some(true),
+        "the account is not in the group it just made: {full:?}"
+    );
+    let members: std::collections::HashMap<u32, Value> = client
+        .call("get_contacts_by_ids", (account_id, member_ids))
+        .await
+        .expect("get_contacts_by_ids");
+    let me = &members[&1];
+    assert!(
+        me.get("displayName").is_some() && me.get("address").is_some(),
+        "the account's own contact is not shaped like a contact: {me:?}"
+    );
+    // The three edits, each its own call. An address contact cannot be
+    // added to an encrypted group, which is why the shim reports a
+    // refused member rather than failing the whole add.
+    client
+        .call::<_, ()>(
+            "set_chat_name",
+            (account_id, group_chat_id, "Renamed Group"),
+        )
+        .await
+        .expect("set_chat_name");
+    let renamed: Value = client
+        .call("get_full_chat_by_id", (account_id, group_chat_id))
+        .await
+        .expect("get_full_chat_by_id after rename");
+    assert_eq!(
+        renamed.get("name").and_then(Value::as_str),
+        Some("Renamed Group"),
+        "the rename did not take: {renamed:?}"
+    );
+    assert!(
+        client
+            .call::<_, ()>("set_chat_name", (account_id, group_chat_id, ""))
+            .await
+            .is_err(),
+        "the core accepted an empty group name"
+    );
+    assert!(
+        client
+            .call::<_, ()>(
+                "add_contact_to_chat",
+                (account_id, group_chat_id, contact_id)
+            )
+            .await
+            .is_err(),
+        "an address contact went into an encrypted group; the shim's \
+         refused-member reporting is built on this being refused"
+    );
+    // Removing someone who is not in the group is not an error, and null
+    // is how a picture is cleared -- of a group that never had one too.
+    client
+        .call::<_, ()>(
+            "remove_contact_from_chat",
+            (account_id, group_chat_id, contact_id),
+        )
+        .await
+        .expect("remove_contact_from_chat of a non-member");
+    client
+        .call::<_, ()>(
+            "set_chat_profile_image",
+            (account_id, group_chat_id, Option::<String>::None),
+        )
+        .await
+        .expect("set_chat_profile_image with null");
+
     // Clearing the unread badge, as DeltaChatCore::open_chat does after
     // fetching messages. Pins the method name/params against the real
     // core (its MsgsNoticed side effect only fires when something was

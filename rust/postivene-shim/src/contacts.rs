@@ -307,6 +307,10 @@ impl ContactList {
     }
 }
 
+/// `DC_CONTACT_ID_SELF`: the account's own contact. Never listed by
+/// `get_contacts`, but a member of every group the account is in.
+pub(crate) const SELF_CONTACT_ID: u32 = 1;
+
 /// One row from the core's contact object.
 pub(crate) fn contact_row(contact: &serde_json::Value) -> ContactItem {
     let address = json::str_at(contact, "address");
@@ -314,12 +318,14 @@ pub(crate) fn contact_row(contact: &serde_json::Value) -> ContactItem {
         "" => address,
         name => name,
     };
+    let contact_id = json::u32_at(contact, "id");
     ContactItem {
-        contact_id: json::u32_at(contact, "id"),
+        contact_id,
         display_name: display_name.into(),
         address: address.into(),
         is_verified: json::flag(contact, "isVerified"),
         is_key_contact: json::flag(contact, "isKeyContact"),
+        is_self: contact_id == SELF_CONTACT_ID,
         // `color` is pinned by the integration test, which checks it on a
         // message's sender -- the same shape as a contact. The picture key
         // is not pinned, so a rename upstream shows up as a contact

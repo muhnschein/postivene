@@ -18,6 +18,9 @@ use serde_json::{json, Value};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::sync::Mutex;
 
+/// `DC_CONTACT_ID_SELF`: the account's own contact.
+const SELF: u32 = 1;
+
 /// One account, as `get_all_accounts` reports it.
 struct Account {
     id: u32,
@@ -39,8 +42,18 @@ struct State {
     /// Contact id -> address. Seeded with two known contacts.
     contacts: std::collections::BTreeMap<u32, String>,
     next_chat_id: u32,
-    /// Members added to each created group.
+    /// Members of each group, by chat. A chat with an entry here is a
+    /// group; the seeded one has the account itself in it, as the real
+    /// core lists it.
     group_members: std::collections::BTreeMap<u32, Vec<u32>>,
+    /// Group names given after creation, by chat.
+    group_names: std::collections::BTreeMap<u32, String>,
+    /// Group pictures, by chat. The real core keeps the path of its own
+    /// copy; this keeps the path it was given.
+    group_images: std::collections::BTreeMap<u32, String>,
+    /// Groups this account has left. The real core refuses every change
+    /// to one of these.
+    left_groups: std::collections::BTreeSet<u32>,
     /// Config values per account, so a set can be read back.
     config: std::collections::BTreeMap<(u32, String), String>,
     /// The unsent text each chat is holding. The core keeps drafts, so a
@@ -100,8 +113,51 @@ impl State {
             self.next_message_id = long.unwrap_or(0).max(100);
             self.contacts.insert(10, "ada@example.org".to_string());
             self.contacts.insert(11, "grace@example.org".to_string());
+            // Chat 2 is the group: the account itself and one contact, so
+            // a test can add the other and remove this one.
+            self.group_members.insert(2, vec![SELF, 10]);
             self.next_chat_id = 500;
         }
+    }
+
+    /// Whether a chat is a group: the created ones, and the seeded one.
+    fn is_group(&self, chat: u32) -> bool {
+        self.group_members.contains_key(&chat)
+    }
+
+    /// A chat's name: what it was renamed to, else the seeded one.
+    fn chat_name(&self, chat: u32) -> String {
+        self.group_names
+            .get(&chat)
+            .cloned()
+            .unwrap_or_else(|| format!("chat {chat}"))
+    }
+
+    /// One contact, shaped as `get_contacts` shapes them. The account's
+    /// own contact is not in the list but can be asked for by id, which
+    /// is how a group's members come back.
+    fn contact_object(&self, contact: u32) -> Option<Value> {
+        let address = if contact == SELF {
+            "me@example.org"
+        } else {
+            self.contacts.get(&contact)?
+        };
+        Some(json!({
+            "id": contact,
+            "address": address,
+            "displayName": address.split('@').next().unwrap_or(address),
+            "isVerified": false,
+            "isKeyContact": true,
+        }))
+    }
+
+    /// Announce a change to a chat's name, picture or members, as the real
+    /// core does after each of those calls.
+    fn chat_modified(&mut self, account_id: u32, chat: u32) {
+        self.events.push_back(json!({
+            "contextId": account_id,
+            "event": {"kind": "ChatModified", "chatId": chat},
+        }));
     }
 
     /// Which chat a message is in. The real core carries this on the
@@ -463,6 +519,7 @@ async fn main() {
                     ok(&id, &json!(chat))
                 }
                 "add_contact_to_chat" => {
+                    let account = account_id();
                     let mut state = state.lock().await;
                     let chat = positional(1)
                         .as_u64()
@@ -472,7 +529,151 @@ async fn main() {
                         .as_u64()
                         .and_then(|value| u32::try_from(value).ok())
                         .unwrap_or_default();
-                    state.group_members.entry(chat).or_default().push(contact);
+                    let members = state.group_members.entry(chat).or_default();
+                    if !members.contains(&contact) {
+                        members.push(contact);
+                    }
+                    state.chat_modified(account, chat);
+                    ok(&id, &Value::Null)
+                }
+                // A group after it is made, as GroupInfo reads it. Members
+                // are ids; the contacts behind them come from
+                // `get_contacts_by_ids`, keyed by id as strings.
+                "get_full_chat_by_id" => {
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    let is_group = state.is_group(chat);
+                    let left = state.left_groups.contains(&chat);
+                    let members = if is_group {
+                        state.group_members.get(&chat).cloned().unwrap_or_default()
+                    } else {
+                        vec![10]
+                    };
+                    ok(
+                        &id,
+                        &json!({
+                            "id": chat,
+                            "chatType": if is_group { "Group" } else { "Single" },
+                            "name": state.chat_name(chat),
+                            "profileImage": state.group_images.get(&chat),
+                            "color": "#0071c7",
+                            "contactIds": members,
+                            // Both false once the account has left, as the
+                            // real core answers; a one-to-one chat is not
+                            // a group the account is "in" at all.
+                            "selfInGroup": is_group && !left,
+                            "canSend": !left,
+                        }),
+                    )
+                }
+                "get_contacts_by_ids" => {
+                    let ids: Vec<u32> = positional(1)
+                        .as_array()
+                        .map(|array| {
+                            array
+                                .iter()
+                                .filter_map(Value::as_u64)
+                                .filter_map(|value| u32::try_from(value).ok())
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    let mut found = serde_json::Map::new();
+                    for contact in ids {
+                        if let Some(object) = state.contact_object(contact) {
+                            found.insert(contact.to_string(), object);
+                        }
+                    }
+                    ok(&id, &Value::Object(found))
+                }
+                "set_chat_name" => {
+                    let account = account_id();
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let name = positional(2).as_str().unwrap_or_default().to_string();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    // The real core's two refusals, in its words: an empty
+                    // name, and a chat that is not a group it is in.
+                    if name.is_empty() {
+                        err(&id, "Invalid name")
+                    } else if !state.is_group(chat) || state.left_groups.contains(&chat) {
+                        err(&id, "Failed to set name")
+                    } else {
+                        state.group_names.insert(chat, name);
+                        state.chat_modified(account, chat);
+                        ok(&id, &Value::Null)
+                    }
+                }
+                "set_chat_profile_image" => {
+                    let account = account_id();
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    // Null clears, as the real core does.
+                    let path = positional(2);
+                    match path.as_str() {
+                        Some(path) if should_fail(path) => err(&id, "Copying new blobfile failed"),
+                        given => {
+                            match given {
+                                Some(path) => {
+                                    state.group_images.insert(chat, path.to_string());
+                                }
+                                None => {
+                                    state.group_images.remove(&chat);
+                                }
+                            }
+                            state.chat_modified(account, chat);
+                            ok(&id, &Value::Null)
+                        }
+                    }
+                }
+                "remove_contact_from_chat" => {
+                    let account = account_id();
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let contact = positional(2)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    // Removing someone who is not in the group is not an
+                    // error to the real core either.
+                    if let Some(members) = state.group_members.get_mut(&chat) {
+                        members.retain(|member| *member != contact);
+                    }
+                    if contact == SELF {
+                        state.left_groups.insert(chat);
+                    }
+                    state.chat_modified(account, chat);
+                    ok(&id, &Value::Null)
+                }
+                "leave_group" => {
+                    let account = account_id();
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    if let Some(members) = state.group_members.get_mut(&chat) {
+                        members.retain(|member| *member != SELF);
+                    }
+                    state.left_groups.insert(chat);
+                    state.chat_modified(account, chat);
                     ok(&id, &Value::Null)
                 }
                 "check_qr" => {
@@ -531,14 +732,19 @@ async fn main() {
                     ok(&id, &Value::Null)
                 }
                 "get_basic_chat_info" => {
-                    let chat = positional(1).as_u64().unwrap_or_default();
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
                     // Chat 2 is the group, so a test has both kinds.
                     ok(
                         &id,
                         &json!({
                             "id": chat,
-                            "chatType": if chat == 2 { "Group" } else { "Single" },
-                            "name": format!("chat {chat}"),
+                            "chatType": if state.is_group(chat) { "Group" } else { "Single" },
+                            "name": state.chat_name(chat),
                         }),
                     )
                 }

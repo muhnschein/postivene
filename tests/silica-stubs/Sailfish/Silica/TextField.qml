@@ -10,6 +10,7 @@ Item {
     property string description
     property int inputMethodHints
     property bool errorHighlight: false
+    property bool readOnly: false
     property bool focus_: false
     signal clicked()
     implicitWidth: 400

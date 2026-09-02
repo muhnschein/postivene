@@ -189,6 +189,30 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   exported from the address book is neither, and is not someone Delta Chat
   could open a chat with anyway -- so those land on the file row, which
   marks them as cards rather than as anonymous blobs.
+- **What a chat is sits to the right of it.** Swiping left from a
+  conversation reaches the group behind it -- picture, name, members --
+  or, from a one-to-one chat, the contact: picture, name, the line they
+  wrote about themselves, and whether the connection is checked and
+  encrypted. Attached rather than pushed, so the page indicator says it is
+  there; the header tap goes the same way. One `ChatInfo` serves both: it
+  reads `get_full_chat_by_id`, which names the members by id, so the
+  contacts come from `get_contacts_by_ids`, keyed by id as strings, and a
+  one-to-one chat simply has one. Every group edit is one core call
+  followed by a reload, since the core is what knows who is in the group
+  now and where it put the picture. What can be changed is the core's
+  answer too: `selfInGroup` goes false on leaving and every edit is then
+  refused, so the controls are not offered. Disappearing messages sit on
+  both pages: the eight durations the reference clients offer, bound
+  from the core's `ephemeralTimer` and set with one call, which tells the
+  other members itself.
+- **The conversation header is laid out as `PageHeader` lays out its
+  own.** The title on the line the page indicator sits on, right-aligned,
+  no wider than its text or the page less its margins, and in the page's
+  own colour once the header leads somewhere. A long name can still run
+  under a display cutout: Silica 4.4's own QML does nothing about one,
+  and what a 5.x device reports in `Screen.topCutout` comes in a shape
+  this tree could not read in three attempts, so the notch is left for
+  another day.
 - **The server is supervised.** Its event stream ending is the app's only
   notice that the core has gone -- a phone reclaiming memory kills it and
   says nothing -- so that is where the next one is started, with a backoff
@@ -218,8 +242,10 @@ the real binary offline.
 
 On top of that: the chat list (unread badges, timestamps, avatars,
 encryption/pin/mute marks, context menu, search across chats/contacts/
-messages, archive, contact requests, multiple profiles), the conversation
-view (bubbles, quotes, delivery marks, day separators, reply/copy/delete/
+messages, archive, contact requests, multiple profiles), groups (created,
+and then renamed, given a picture, added to, removed from and left), a
+contact page beside each one-to-one chat, disappearing messages, the
+conversation view (bubbles, quotes, delivery marks, day separators, reply/copy/delete/
 resend, a page of history at a time, and every kind of attachment the core
 classifies: photos and
 stickers inline, GIFs animated over a still poster, a video's poster frame
@@ -280,8 +306,8 @@ In order of what matters:
    exception to a workspace lint, and C++ build machinery in a second crate,
    in a build environment `BUILDING.md` already documents as fragile. Worth
    deciding deliberately rather than in passing.
-5. **Group member management, contact profile pages, blocking** outside a
-   request; add-as-second-device and restore-from-backup.
+5. **Blocking** outside a request; a media grid on the group and contact
+   pages; add-as-second-device and restore-from-backup.
 6. **Message polish**: avatars on bubbles, reactions, drafts, and an unread
    divider.
 7. **Recording a voice message, and the camera.** Sending every kind of

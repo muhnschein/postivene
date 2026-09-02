@@ -4,17 +4,21 @@ import "../components"
 import Postivene 1.0
 
 /*
- * Name a group and pick its members. Groups are created encrypted, which is
- * what the reference client's "New Group" does.
+ * Pick who to add to a group that already exists. The same picker as
+ * naming a new group, less the name: everyone already in is greyed, and
+ * so is anyone the core would refuse.
+ *
+ * The group is the page that opened this one's, handed in rather than
+ * loaded again, and the adding is done on it -- so what it shows is
+ * updated by the same reload that answers every other change to it.
  */
 Page {
     id: page
 
     property int accountId
+    /// The ChatInfo being added to.
+    property var chat
     property string errorMessage: ""
-    // True from tapping create until the core answers, so a second tap
-    // cannot make a second group.
-    property bool creating: false
     // Contact ids the user has ticked.
     property var members: []
 
@@ -22,18 +26,7 @@ Page {
         id: contacts
         objectName: "contacts"
         account_id: page.accountId
-        onError: {
-            page.creating = false
-            page.errorMessage = message
-        }
-        onChat_ready: {
-            page.creating = false
-            pageStack.replace(Qt.resolvedUrl("ConversationPage.qml"), {
-                accountId: page.accountId,
-                chatId: chat_id,
-                chatName: nameField.text
-            })
-        }
+        onError: page.errorMessage = message
     }
 
     function toggle(contactId) {
@@ -52,7 +45,7 @@ Page {
         page.members = next
     }
 
-    function isMember(contactId) {
+    function isPicked(contactId) {
         for (var i = 0; i < page.members.length; i++) {
             if (page.members[i] === contactId) {
                 return true
@@ -61,14 +54,11 @@ Page {
         return false
     }
 
-    function createGroup() {
-        if (nameField.text.length === 0) {
-            page.errorMessage = qsTr("Please name the group")
-            return
-        }
-        page.errorMessage = ""
-        page.creating = true
-        contacts.create_group(nameField.text, page.members)
+    // Straight back to the group: the core answers on the group's own
+    // signals, and the page that owns it is the one showing them.
+    function addPicked() {
+        page.chat.add_members(page.members)
+        pageStack.pop()
     }
 
     Connections {
@@ -81,19 +71,8 @@ Page {
         }
     }
 
-    // Outside the list for the reason ChatListPage documents: a field in
-    // a view's `header` lives inside the flickable and its id does not
-    // resolve from the page. Here that was not merely a dead search --
-    // `nameField.text` is what names the group and what enables the
-    // Create button, so both were reading an undefined name.
-    // One flickable for the whole page, owning the pulley.
-    //
-    // A PullDownMenu draws at the top of the flickable that owns
-    // it, and the list starts below the search field -- so a pulley
-    // on the list opened below the field, or inside it. It does not
-    // scroll: the field has to stay out of a view whose contents
-    // change on every keystroke, which is what took the keyboard
-    // away mid-search.
+    // One flickable for the whole page, owning the pulley; see
+    // NewGroupPage.
     SilicaFlickable {
         id: pulleyHost
         anchors.fill: parent
@@ -102,10 +81,10 @@ Page {
 
         PullDownMenu {
             MenuItem {
-                objectName: "createButton"
-                text: qsTr("Create Group")
-                enabled: !page.creating && nameField.text.length > 0
-                onClicked: page.createGroup()
+                objectName: "addButton"
+                text: qsTr("Add to group")
+                enabled: page.members.length > 0
+                onClicked: page.addPicked()
             }
         }
 
@@ -118,15 +97,7 @@ Page {
             }
 
             PageHeader {
-                title: qsTr("New group")
-            }
-
-            TextField {
-                id: nameField
-                objectName: "nameField"
-                width: parent.width
-                label: qsTr("Group name")
-                placeholderText: label
+                title: qsTr("Add members")
             }
 
             Banner {
@@ -148,12 +119,14 @@ Page {
             model: contacts.rows
 
             delegate: ListItem {
-                objectName: "memberRow"
+                objectName: "memberRow" + model.contact_id
                 contentHeight: body.height
-                // A group here is encrypted, and the core takes only
-                // key-contacts into one -- picking anyone else builds a group
-                // they cannot be added to, which fails halfway through.
-                enabled: model.is_key_contact
+                // Greyed where there is nothing to do: already in, or an
+                // address contact the core will not take into an
+                // encrypted group.
+                readonly property bool addable:
+                    model.is_key_contact && !page.chat.is_member(model.contact_id)
+                enabled: addable
 
                 ContactRow {
                     id: body
@@ -163,13 +136,9 @@ Page {
                     picturePath: model.avatar_path
                     isKeyContact: model.is_key_contact
                     isVerified: model.is_verified
-                    // Greyed where the core would refuse them, highlighted
-                    // where they are already in.
-                    opacity: model.is_key_contact ? 1.0 : 0.4
+                    opacity: addable ? 1.0 : 0.4
                 }
 
-                // The tick sits on the avatar rather than in the name, so the
-                // row reads the same as every other contact row.
                 Label {
                     objectName: "memberMark"
                     anchors {
@@ -177,18 +146,18 @@ Page {
                         rightMargin: Theme.horizontalPageMargin
                         verticalCenter: body.verticalCenter
                     }
-                    visible: page.isMember(model.contact_id)
+                    visible: page.isPicked(model.contact_id)
                     text: "✓"
                     color: Theme.highlightColor
                     font.pixelSize: Theme.fontSizeLarge
                 }
 
-                onClicked: if (model.is_key_contact) page.toggle(model.contact_id)
+                onClicked: if (addable) page.toggle(model.contact_id)
             }
 
             ViewPlaceholder {
                 enabled: contacts.count === 0
-                text: qsTr("No contacts to add yet")
+                text: qsTr("No contacts to add")
             }
         }
     }

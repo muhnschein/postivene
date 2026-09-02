@@ -14,13 +14,20 @@ Item {
 
     property string displayName
     property string address
+    /// Whether to draw the address under the name. Off by default: an
+    /// address means nothing to a reader of a chatmail app, and the one
+    /// place it is worth showing is the profiles page, where it is the
+    /// reader's own and tells two accounts apart.
+    property bool showAddress: false
     property string ownColor
     property string picturePath
     /// An address contact cannot be written to encrypted.
     property bool isKeyContact: true
     property bool isVerified: false
 
-    height: Math.max(avatar.height, addressLabel.y + addressLabel.height)
+    height: Math.max(avatar.height,
+                     (root.showAddress ? addressLabel.y + addressLabel.height
+                                       : nameLabel.y + nameLabel.height))
             + 2 * Theme.paddingMedium
 
     Avatar {
@@ -37,7 +44,9 @@ Item {
         id: nameLabel
         objectName: "contactName"
         x: avatar.x + avatar.width + Theme.paddingMedium
-        y: Theme.paddingMedium
+        // Centred on the avatar when it is the only line.
+        y: root.showAddress ? Theme.paddingMedium
+                            : avatar.y + (avatar.height - height) / 2
         width: root.width - x - Theme.horizontalPageMargin
         truncationMode: TruncationMode.Fade
         textFormat: Text.PlainText
@@ -50,6 +59,7 @@ Item {
     Label {
         id: addressLabel
         objectName: "contactAddress"
+        visible: root.showAddress
         x: nameLabel.x
         y: nameLabel.y + nameLabel.height
         width: nameLabel.width

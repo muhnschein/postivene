@@ -2,6 +2,21 @@
 <!DOCTYPE TS>
 <TS version="2.1">
 <context>
+    <name>AddMembersPage</name>
+    <message>
+        <source>Add to group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No contacts to add</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>AttachmentBar</name>
     <message>
         <source>Sending %1</source>
@@ -140,6 +155,29 @@
     </message>
 </context>
 <context>
+    <name>ContactPage</name>
+    <message>
+        <source>Contact</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Verified: end-to-end encrypted, and checked in person</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>End-to-end encrypted</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Not encrypted: a plain email contact</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Saved</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ConversationList</name>
     <message>
         <source>Reply</source>
@@ -253,6 +291,56 @@
     </message>
 </context>
 <context>
+    <name>DisappearingMessages</name>
+    <message>
+        <source>Off</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After 1 minute</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After 5 minutes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After 30 minutes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After 5 weeks</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disappearing messages</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <source>After %n second(s)</source>
+        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>EmailLoginPage</name>
     <message>
         <source>Name, address and password are all needed</source>
@@ -303,6 +391,52 @@
     </message>
     <message>
         <source>%1 days</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>GroupPage</name>
+    <message>
+        <source>Saved</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Leave group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Leaving group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove picture</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Group name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are.</extracomment>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Removing</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

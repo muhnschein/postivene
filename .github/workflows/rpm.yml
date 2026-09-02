@@ -43,21 +43,40 @@ jobs:
       ARCH: ${{ inputs.arch || 'aarch64' }}
       SFOS: ${{ inputs.sfos_version || '5.2.0.15' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       # Bundled beside the app; checksum-pinned by the script itself.
       - name: Fetch deltachat-rpc-server
         run: ./scripts/fetch-rpc-server.sh
 
+      # By digest, not tag. The SDK image is a third party's, it is run
+      # privileged below with the checkout mounted read-write, and a tag
+      # can be repointed at any content by whoever owns it. To add an SDK
+      # version: pull the tag once, read the digest with
+      # `docker inspect --format '{{index .RepoDigests 0}}'`, add a line.
+      #
+      # The version is also checked for shape first: it is free text from
+      # the dispatch form and is spliced into the artifact name below.
+      - name: Resolve the SDK image
+        run: |
+          [[ $SFOS =~ ^[0-9]+(\.[0-9]+){3}$ ]] || {
+            echo "::error::sfos_version '$SFOS' is not a dotted version"; exit 1; }
+          case "$SFOS" in
+            5.2.0.15) digest=sha256:e7c4379393b17ee63d7f7443ce9930c315a61fdb2e732016346ccbe8c934435e ;;
+            *) echo "::error::no pinned digest for coderus/sailfishos-platform-sdk:$SFOS; add one to rpm.yml"
+               exit 1 ;;
+          esac
+          echo "IMAGE=coderus/sailfishos-platform-sdk@$digest" >> "$GITHUB_ENV"
+
       - name: Pull the Sailfish SDK
-        run: docker pull coderus/sailfishos-platform-sdk:$SFOS
+        run: docker pull "$IMAGE"
 
       # The image ships one target per architecture, named by the SDK's own
       # convention. Asked for rather than assumed, so a version whose naming
       # differs fails here with the list rather than deep inside rpmbuild.
       - name: Resolve the build target
         run: |
-          targets=$(docker run --rm coderus/sailfishos-platform-sdk:$SFOS \
+          targets=$(docker run --rm "$IMAGE" \
               sb2-config -l 2>/dev/null || true)
           echo "available targets:"; echo "$targets"
           target=$(echo "$targets" | grep -- "-$ARCH\$" | tail -1)
@@ -96,10 +115,9 @@ jobs:
 
       - name: Hand the checkout to the SDK's build user
         run: |
-          img=coderus/sailfishos-platform-sdk:$SFOS
-          uid=$(docker run --rm "$img" id -u)
-          gid=$(docker run --rm "$img" id -g)
-          home=$(docker run --rm "$img" sh -c 'echo $HOME')
+          uid=$(docker run --rm "$IMAGE" id -u)
+          gid=$(docker run --rm "$IMAGE" id -g)
+          home=$(docker run --rm "$IMAGE" sh -c 'echo $HOME')
           echo "SDK builds as uid=$uid gid=$gid, HOME=$home"
           echo "BUILDDIR=$home/harbour-postivene" >> "$GITHUB_ENV"
           sudo chown -R "$uid:$gid" "$PWD"
@@ -141,7 +159,7 @@ jobs:
         run: |
           mkdir -p /tmp/rustlib
           docker run --rm --user root -v /tmp/rustlib:/out \
-            coderus/sailfishos-platform-sdk:$SFOS \
+            "$IMAGE" \
             bash -c '
               host=i686-unknown-linux-gnu
               src=$(ls -d /srv/mer/toolings/*/usr/lib/rustlib/$host \
@@ -152,25 +170,33 @@ jobs:
               cp -a "$src" /out/'
           ls -d /tmp/rustlib/i686-unknown-linux-gnu
 
+      # `--privileged` is what the SDK image's own instructions run it
+      # with; whether sb2 needs all of it has not been tried. TARGET goes
+      # in as an environment variable and the script is single-quoted, so
+      # nothing the image printed above is spliced into shell text.
       - name: Build the RPM
         run: |
           docker run --rm --privileged \
+            -e TARGET \
             -v "$PWD:$BUILDDIR" -w "$BUILDDIR" \
             -v /tmp/rustlib/i686-unknown-linux-gnu:/usr/lib/rustlib/i686-unknown-linux-gnu:ro \
-            coderus/sailfishos-platform-sdk:$SFOS \
-            /bin/bash -c "set -e
-              mb2 -t '$TARGET' -X build-init
-              mb2 -t '$TARGET' -X build-requires || true
+            "$IMAGE" \
+            /bin/bash -c 'set -e
+              mb2 -t "$TARGET" -X build-init
+              mb2 -t "$TARGET" -X build-requires ||
+                echo "::warning::mb2 build-requires failed; the build may stop on a missing BuildRequires"
 
-              echo '--- rustlib available ---'
+              echo "--- rustlib available ---"
               ls -d /usr/lib/rustlib/* /srv/mer/toolings/*/usr/lib/rustlib/* \
                     /srv/mer/targets/*/usr/lib/rustlib/* 2>/dev/null || true
 
-              mb2 -t '$TARGET' -X build --no-check"
+              mb2 -t "$TARGET" -X build --no-check'
 
+      # `|| true` on both: the step runs under `bash -e`, and a missing
+      # .mb2 would end it before the logs were shown.
       - name: Show mb2's state
         if: failure()
-        run: ls -la .mb2 2>/dev/null; tail -60 .mb2/*.log 2>/dev/null || true
+        run: ls -la .mb2 2>/dev/null || true; tail -60 .mb2/*.log 2>/dev/null || true
 
       # Back to the runner, or the upload cannot read what was built.
       - name: Take the tree back
@@ -182,7 +208,7 @@ jobs:
           find RPMS -name '*.rpm' -print -exec rpm -qip {} \; 2>/dev/null || \
             find . -name '*.rpm' -print
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: harbour-postivene-${{ env.ARCH }}-sfos${{ env.SFOS }}-${{ env.SHORT_SHA }}
           path: |

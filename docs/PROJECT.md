@@ -229,7 +229,7 @@ rebuilt on the core's current transport API, `secure_join` invites in both
 directions, encryption indicators, foreground notifications, and the
 cover.
 
-Packaging is real: `mb2` builds produce `harbour-postivene-0.1.0-1.aarch64.rpm`,
+Packaging is real: `mb2` builds produce `harbour-postivene-0.1.0-<release>.aarch64.rpm`,
 and `.github/workflows/rpm.yml` builds it unattended on a GitHub runner in
 about six minutes.
 

@@ -132,9 +132,17 @@ impl RpcClient {
         let reader_pending = pending.clone();
         let reader_task = tokio::spawn(async move {
             let mut lines = BufReader::new(stdout).lines();
-            // Ends on end-of-stdout or an unreadable line: the server is
-            // gone either way.
-            while let Ok(Some(line)) = lines.next_line().await {
+            // Ends on end-of-stdout or a failed read: the server is gone
+            // either way. A line that is not UTF-8 is neither -- it is one
+            // answer nobody can read, and the call it answered times out
+            // -- so the stream carries on past it rather than reporting a
+            // live server as closed.
+            loop {
+                let line = match lines.next_line().await {
+                    Ok(Some(line)) => line,
+                    Err(err) if err.kind() == std::io::ErrorKind::InvalidData => continue,
+                    Ok(None) | Err(_) => break,
+                };
                 if line.trim().is_empty() {
                     continue;
                 }

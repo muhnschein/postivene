@@ -18,29 +18,6 @@
     </message>
 </context>
 <context>
-    <name>ChatListDelegate</name>
-    <message>
-        <source>now</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>%1 min</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>%1 h</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>1 day</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>%1 days</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Restart Postivene.</source>
@@ -307,6 +284,29 @@
     </message>
 </context>
 <context>
+    <name>Format</name>
+    <message>
+        <source>now</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 min</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 h</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>1 day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 days</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>InvitePage</name>
     <message>
         <source>Chat</source>
@@ -433,29 +433,6 @@
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>SearchResultRow</name>
-    <message>
-        <source>now</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>%1 min</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>%1 h</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>1 day</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>%1 days</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

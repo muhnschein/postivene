@@ -15,6 +15,7 @@ use qmetaobject::*;
 use crate::chatlist::chat_items;
 use crate::contacts::contact_row;
 use crate::core::connection;
+use crate::json;
 use crate::models::{SearchItem, SearchListModel};
 
 /// How many message hits become rows.
@@ -361,7 +362,7 @@ async fn matching_messages(
             let message = messages.get(&message_id)?;
             // A message the core could not load comes back as
             // `{kind: "loadingError"}`; skip it rather than show a blank.
-            if message.get("kind").and_then(serde_json::Value::as_str) == Some("loadingError") {
+            if json::str_at(message, "kind") == "loadingError" {
                 return None;
             }
             let chat_id = chat_of(Some(message)).unwrap_or(0);
@@ -372,15 +373,8 @@ async fn matching_messages(
                 contact_id: 0,
                 message_id,
                 title: chat.map(|chat| chat.name.clone()).unwrap_or_default(),
-                subtitle: message
-                    .get("text")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or_default()
-                    .into(),
-                timestamp: message
-                    .get("timestamp")
-                    .and_then(serde_json::Value::as_i64)
-                    .unwrap_or(0),
+                subtitle: json::text(message, "text"),
+                timestamp: json::i64_at(message, "timestamp"),
                 color: chat.map(|chat| chat.color.clone()).unwrap_or_default(),
                 avatar_path: chat
                     .map(|chat| chat.avatar_path.clone())
@@ -393,9 +387,5 @@ async fn matching_messages(
 
 /// The chat a message object says it is in.
 fn chat_of(message: Option<&serde_json::Value>) -> Option<u32> {
-    message?
-        .get("chatId")
-        .and_then(serde_json::Value::as_u64)
-        .and_then(|id| u32::try_from(id).ok())
-        .filter(|id| *id != 0)
+    json::u32_opt(message?, "chatId").filter(|id| *id != 0)
 }

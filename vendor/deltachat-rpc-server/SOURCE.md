@@ -33,8 +33,10 @@ vendor/deltachat-rpc-server/
   x86_64/deltachat-rpc-server    sha256 dcc37af7b7e95aae714c2366ff9f6d5c64170d0a7bb72cd7e3926a1a46e7e750
 ```
 
-Directory names follow Sailfish's `%{_arch}` values, which is what
-`rpm/harbour-postivene.spec` keys its `%install` step on. Binaries are not
+Directory names are Sailfish's architecture names (`%{_target_cpu}` in
+rpm's terms -- not `%{_arch}`, which canonicalises every armv7h* to
+`arm`), which is what `rpm/harbour-postivene.spec` keys its `%install`
+step on. Binaries are not
 committed to git (see `.gitignore`); run the fetch script to populate.
 
 ## Verified so far / still open

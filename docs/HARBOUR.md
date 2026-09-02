@@ -168,6 +168,13 @@ which would export every symbol in the binary.
 line each with a reason. Nothing belongs there that can be fixed: every
 entry is a submission blocker.
 
+A line is `<check id> <subject glob> <message glob>`. The source check
+matches its findings on the id and the subject; the RPM check matches the
+real validator's subject *and* message, so a waiver excuses one known
+error about a path and never every error the validator might raise about
+it -- a setuid bit or a dynamic link on the bundled server would still
+fail.
+
 A waiver that stops matching anything fails the check, so the file cannot
 outlive what it excuses. Its entries cover the one blocker below --
 removing the QtWidgets waiver is what the fix above had to do to land.

@@ -125,7 +125,7 @@ fn delegates_bind_only_roles_their_models_have() {
     }
 
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let cases: [(&str, Vec<String>); 5] = [
+    let cases: [(&str, Vec<String>); 7] = [
         (
             "qml/components/ConversationList.qml",
             names_of::<postivene_shim::MessageListItem>(),
@@ -133,6 +133,14 @@ fn delegates_bind_only_roles_their_models_have() {
         (
             "qml/pages/ChatListPage.qml",
             names_of::<postivene_shim::ChatListItem>(),
+        ),
+        (
+            "qml/pages/ChatPickerPage.qml",
+            names_of::<postivene_shim::ChatListItem>(),
+        ),
+        (
+            "qml/pages/ProfilesPage.qml",
+            names_of::<postivene_shim::AccountItem>(),
         ),
         (
             "qml/pages/NewChatPage.qml",
@@ -290,11 +298,17 @@ fn the_conversation_page_uses_the_pieces_that_are_tested() {
 /// row is drawn, from an app whose whole point is that the network cannot
 /// watch. It also mismeasures: the hidden copies that size a bubble would
 /// measure the rendered width, not the literal one.
+///
+/// Silica's `PageHeader`, `SectionHeader` and `ViewPlaceholder` draw their
+/// text in labels of their own with no `textFormat` to set, so a remote
+/// string reaching one of those is an offender outright: the conversation
+/// page's header carried the chat's name that way, and this check only
+/// looked at `Label` and `Text`. `ConversationHeader` is the replacement.
 #[test]
 fn text_from_the_other_end_is_pinned_to_plain() {
     // Bindings the core fills in from a message, a contact or a chat.
     // Anything reading one of these is showing remote input.
-    const REMOTE: [&str; 14] = [
+    const REMOTE: [&str; 24] = [
         "model.",
         "root.messageText",
         "root.quoteText",
@@ -308,6 +322,16 @@ fn text_from_the_other_end_is_pinned_to_plain() {
         "root.author",
         "root.body",
         "root.text",
+        "root.title",
+        "root.subtitle",
+        "root.displayName",
+        "root.address",
+        "root.initial",
+        "root.vcardName",
+        "root.vcardAddr",
+        "root.genericText",
+        "page.chatName",
+        "page.fileName",
         "page.myInvite",
     ];
 
@@ -331,13 +355,20 @@ fn text_from_the_other_end_is_pinned_to_plain() {
         let lines: Vec<&str> = text.lines().collect();
         for (number, line) in lines.iter().enumerate() {
             let trimmed = line.trim_start();
-            if !trimmed.starts_with("text:") {
+            let is_text = trimmed.starts_with("text:");
+            let is_title = trimmed.starts_with("title:");
+            if !is_text && !is_title {
                 continue;
             }
             // Only the things that render text themselves. A MenuItem's
             // label is a translated literal, whatever it switches on.
             let element = element_of(&lines, number);
-            if element != "Label" && element != "Text" {
+            let renders = (element == "Label" || element == "Text") && is_text;
+            let unpinnable = matches!(
+                element.as_str(),
+                "PageHeader" | "SectionHeader" | "ViewPlaceholder"
+            );
+            if !renders && !unpinnable {
                 continue;
             }
             // The binding runs on while its lines stay further indented
@@ -355,6 +386,15 @@ fn text_from_the_other_end_is_pinned_to_plain() {
             if !REMOTE.iter().any(|name| value.contains(name)) {
                 continue;
             }
+            if unpinnable {
+                offenders.push(format!(
+                    "{}:{}: {trimmed} ({element} cannot be told this is plain text; \
+                     draw it in a Label of your own, as ConversationHeader does)",
+                    file.display(),
+                    number + 1
+                ));
+                continue;
+            }
             // `textFormat` sits in the same element block, which starts at
             // the `{` found above.
             let start = number.saturating_sub(16);
@@ -369,6 +409,69 @@ fn text_from_the_other_end_is_pinned_to_plain() {
         offenders.is_empty(),
         "these show text the other end chose without saying it is plain, so \
          Qt decides for itself whether it is markup:\n  {}",
+        offenders.join("\n  ")
+    );
+}
+
+/// A path the other end named becomes a URL one segment at a time.
+///
+/// `encodeURI` leaves `#` and `?` alone -- to it they are URL syntax --
+/// so an attachment called `a#b.png` made a URL whose path stopped at the
+/// `a`, and the file never loaded. It also contradicted the comment above
+/// it, which said it handled exactly that. `encodeURIComponent` on each
+/// segment between the slashes encodes everything that is not a slash.
+#[test]
+fn file_urls_are_encoded_per_segment() {
+    let mut offenders = Vec::new();
+    for file in qml_files() {
+        let code = code_only(&fs::read_to_string(&file).expect("read qml"));
+        for (number, line) in code.lines().enumerate() {
+            if line.contains("encodeURI(") {
+                offenders.push(format!("{}:{}", file.display(), number + 1));
+            }
+        }
+    }
+    assert!(
+        offenders.is_empty(),
+        "encodeURI() keeps '#' and '?' as URL syntax, so a file named with \
+         either points at a different URL. Build the path with \
+         path.split('/').map(encodeURIComponent).join('/') instead, as \
+         AttachmentPreview.qml does:\n  {}",
+        offenders.join("\n  ")
+    );
+}
+
+/// Only the four picker pages name a `Sailfish.Pickers` type.
+///
+/// Those types resolve when the file that names them is loaded, so a type
+/// that is not there on some future release takes that whole file down
+/// with it. Kept to files that exist for nothing else -- pushed by URL and
+/// connected to -- the cost is one button; in a page it is the page.
+/// `SettingsPage` had its own `ImagePickerPage` for the profile picture,
+/// and with it its own unguarded copy of the pick handler.
+#[test]
+fn only_the_picker_pages_import_sailfish_pickers() {
+    let mut offenders = Vec::new();
+    for file in qml_files() {
+        let name = file
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        let code = code_only(&fs::read_to_string(&file).expect("read qml"));
+        let imports_pickers = code
+            .lines()
+            .any(|line| line.trim_start().starts_with("import Sailfish.Pickers"));
+        let is_picker_page = name.starts_with("Attach") && name.ends_with("Page.qml");
+        if imports_pickers && !is_picker_page {
+            offenders.push(file.display().to_string());
+        }
+    }
+    assert!(
+        offenders.is_empty(),
+        "these import Sailfish.Pickers outside the Attach*Page.qml files, so \
+         a picker type that is missing takes the whole page down rather than \
+         one button; push the picker page by URL and connect to its `picked` \
+         signal, as SettingsPage.pickPicture does:\n  {}",
         offenders.join("\n  ")
     );
 }
@@ -571,7 +674,7 @@ fn qml_reads_no_name_that_is_not_there() {
         "core",
         "pageStack",
         // ContentPickerPage hands its answer to the handler under this
-        // name; see SettingsPage.
+        // name; see AttachPhotoPage.
         "selectedContentProperties",
     ];
 

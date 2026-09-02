@@ -5,7 +5,7 @@ import "../components"
 /*
  * An existing mailbox as this profile's transport. One level in, where the
  * reference client keeps it: most Delta Chat users never type an IMAP
- * password (docs/ONBOARDING.md). Everything but address and password
+ * password (docs/PROJECT.md). Everything but address and password
  * autoconfigures.
  */
 Page {

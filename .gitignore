@@ -28,7 +28,7 @@ build-*/
 # (`sfdk build -- --with vendor`) and for builds inside the SDK chroot,
 # where scratchbox2 has no reliable network path to crates.io. All of it is
 # regenerated from rust/Cargo.lock by scripts/vendor-crates.sh -- see
-# docs/MILESTONES.md milestone 6 and docs/SDK-BUILD.md.
+# "Building without network access" in docs/BUILDING.md.
 /rpm/vendor.tar.xz
 /rpm/vendor.toml
 /rust/vendor/

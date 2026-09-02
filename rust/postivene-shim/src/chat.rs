@@ -12,6 +12,7 @@ use deltachat_jsonrpc::RpcClient;
 use qmetaobject::*;
 
 use crate::core::connection;
+use crate::json;
 use crate::models::{MessageListItem, MessageListModel};
 
 /// `DC_STATE_IN_FRESH` and `DC_STATE_IN_NOTICED`: an incoming message the
@@ -320,13 +321,7 @@ impl ChatMessages {
                 .call("get_draft", (account_id, chat_id))
                 .await
                 .unwrap_or(serde_json::Value::Null);
-            done(
-                draft
-                    .get("text")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or_default()
-                    .to_string(),
-            );
+            done(json::str_at(&draft, "text").to_string());
         });
     }
 
@@ -590,13 +585,10 @@ impl ChatMessages {
         let kind = kind.to_string();
         let payload: serde_json::Value =
             serde_json::from_str(&payload_json.to_string()).unwrap_or_default();
-        let event_chat = payload
-            .get("chatId")
-            .and_then(serde_json::Value::as_u64)
-            .unwrap_or(0);
+        let event_chat = json::u32_at(&payload, "chatId");
         // MsgsChanged carries chatId 0 for "several chats", and an
         // overflow carries none at all.
-        if event_chat != 0 && event_chat != u64::from(self.chat_id) {
+        if event_chat != 0 && event_chat != self.chat_id {
             return;
         }
 
@@ -609,11 +601,7 @@ impl ChatMessages {
             "EventChannelOverflow" => self.reload(),
             // Delivery state only: refresh the one row it names.
             "MsgDelivered" | "MsgRead" | "MsgFailed" => {
-                if let Some(message_id) = payload
-                    .get("msgId")
-                    .and_then(serde_json::Value::as_u64)
-                    .and_then(|id| u32::try_from(id).ok())
-                {
+                if let Some(message_id) = json::u32_opt(&payload, "msgId") {
                     self.refresh_one(message_id);
                 }
             }
@@ -896,13 +884,6 @@ impl ChatMessages {
         self.act("resend_messages", message_id);
     }
 
-    /// Call `method` with `(account, [message])`, then re-read that row.
-    ///
-    /// A deletion changes the id list, so the event it raises reloads the
-    /// model on its own. A resend does not: the list is the same, the sync
-    /// fetches only ids it is missing, and the row keeps the failed state
-    /// it had -- mark and "Send again" and all -- until something else
-    /// refetches it.
     /// Send a copy of one message into another chat.
     ///
     /// Not routed through the shared `act` helper: that calls
@@ -936,6 +917,13 @@ impl ChatMessages {
         });
     }
 
+    /// Call `method` with `(account, [message])`, then re-read that row.
+    ///
+    /// A deletion changes the id list, so the event it raises reloads the
+    /// model on its own. A resend does not: the list is the same, the sync
+    /// fetches only ids it is missing, and the row keeps the failed state
+    /// it had -- mark and "Send again" and all -- until something else
+    /// refetches it.
     fn act(&mut self, method: &'static str, message_id: u32) {
         let account_id = self.account_id;
         if account_id == 0 || message_id == 0 {
@@ -990,6 +978,11 @@ impl ChatMessages {
             return;
         }
         let (account_id, chat_id) = (self.account_id, self.chat_id);
+        // Nothing to send to yet: the same guard every other call makes,
+        // rather than a round trip to the core for its error.
+        if account_id == 0 || chat_id == 0 {
+            return;
+        }
         let quoted = self.quoted_message_id;
         let Some((rpc, runtime)) = connection() else {
             self.error(QString::from("not started"));
@@ -1088,21 +1081,18 @@ pub(crate) async fn message_entries(
     // each day's first message, so every message after it is under that day.
     let mut day_number = 0;
     for item in &items {
-        match item.get("kind").and_then(serde_json::Value::as_str) {
-            Some("dayMarker") => {
+        match json::str_at(item, "kind") {
+            "dayMarker" => {
                 if let Some(timestamp) = item.get("timestamp").and_then(serde_json::Value::as_i64) {
                     day_number = local_day_number(timestamp);
                 }
             }
-            Some("message") => {
+            "message" => {
                 // `rename_all` sits at the enum level upstream, renaming
                 // variants but not fields: this really is snake_case on the
                 // wire. `msgId` accepted in case that changes.
-                if let Some(message_id) = item
-                    .get("msg_id")
-                    .or_else(|| item.get("msgId"))
-                    .and_then(serde_json::Value::as_u64)
-                    .and_then(|id| u32::try_from(id).ok())
+                if let Some(message_id) =
+                    json::u32_opt(item, "msg_id").or_else(|| json::u32_opt(item, "msgId"))
                 {
                     entries.push(Entry {
                         message_id,
@@ -1136,7 +1126,7 @@ pub(crate) async fn fetch_messages(
             let message = loaded.get(id)?;
             // A message the core could not load comes back as
             // `{kind: "loadingError"}`; skip it rather than render a blank.
-            if message.get("kind").and_then(serde_json::Value::as_str) == Some("loadingError") {
+            if json::str_at(message, "kind") == "loadingError" {
                 return None;
             }
             Some(row_from(*id, message))
@@ -1168,19 +1158,7 @@ pub(crate) async fn chat_is_group(rpc: &RpcClient, account_id: u32, chat_id: u32
         Ok(info) => info,
         Err(_) => return false,
     };
-    !matches!(
-        info.get("chatType").and_then(serde_json::Value::as_str),
-        Some("Single") | None
-    )
-}
-
-/// Read a string field, empty when absent or null.
-fn text_at(message: &serde_json::Value, pointer: &str) -> QString {
-    message
-        .pointer(pointer)
-        .and_then(serde_json::Value::as_str)
-        .unwrap_or_default()
-        .into()
+    !matches!(json::str_at(&info, "chatType"), "Single" | "")
 }
 
 /// Days since the Unix epoch on which this instant fell, in the viewer's
@@ -1224,58 +1202,39 @@ fn placeholder(entry: Entry) -> MessageListItem {
 }
 
 fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
-    let timestamp = message
-        .get("timestamp")
-        .and_then(serde_json::Value::as_i64)
-        .unwrap_or(0);
-    let sender_name = match message
-        .get("overrideSenderName")
-        .and_then(serde_json::Value::as_str)
-    {
-        Some(name) if !name.is_empty() => name.into(),
-        _ => text_at(message, "/sender/displayName"),
+    let timestamp = json::i64_at(message, "timestamp");
+    let sender_name = match json::str_at(message, "overrideSenderName") {
+        "" => json::text(message, "/sender/displayName"),
+        name => name.into(),
     };
     MessageListItem {
         message_id,
         loaded: true,
-        text: text_at(message, "/text"),
+        text: json::text(message, "/text"),
         // Contact id 1 is the well-known DC_CONTACT_ID_SELF.
-        is_outgoing: message.get("fromId").and_then(serde_json::Value::as_u64) == Some(1),
+        is_outgoing: json::u32_opt(message, "fromId") == Some(1),
         timestamp,
         day_number: local_day_number(timestamp),
-        show_padlock: message
-            .get("showPadlock")
-            .and_then(serde_json::Value::as_bool)
-            .unwrap_or(false),
-        state: message
-            .get("state")
-            .and_then(serde_json::Value::as_u64)
-            .and_then(|value| u32::try_from(value).ok())
-            .unwrap_or(0),
+        show_padlock: json::flag(message, "showPadlock"),
+        state: json::u32_at(message, "state"),
         sender_name,
-        sender_color: text_at(message, "/sender/color"),
-        is_info: message
-            .get("isInfo")
-            .and_then(serde_json::Value::as_bool)
-            .unwrap_or(false),
-        // `unwrap_or(false)` covers the abbreviated object the fake core
-        // returns from misc_send_msg; a message composed here is never a
-        // forward anyway. Real forwards arrive through get_messages,
+        sender_color: json::text(message, "/sender/color"),
+        is_info: json::flag(message, "isInfo"),
+        // Absent in the abbreviated object the fake core returns from
+        // misc_send_msg, and false is right there: a message composed here
+        // is never a forward. Real forwards arrive through get_messages,
         // which returns the full shape.
-        is_forwarded: message
-            .get("isForwarded")
-            .and_then(serde_json::Value::as_bool)
-            .unwrap_or(false),
-        quote_text: text_at(message, "/quote/text"),
-        quote_author: text_at(message, "/quote/authorDisplayName"),
-        file_path: text_at(message, "/file"),
-        file_name: text_at(message, "/fileName"),
-        view_type: text_at(message, "/viewType"),
+        is_forwarded: json::flag(message, "isForwarded"),
+        quote_text: json::text(message, "/quote/text"),
+        quote_author: json::text(message, "/quote/authorDisplayName"),
+        file_path: json::text(message, "/file"),
+        file_name: json::text(message, "/fileName"),
+        view_type: json::text(message, "/viewType"),
         // Often 0 even for a picture: the core probes PNG and JPEG but
         // returned 0x0 for a valid GIF, so nothing may divide by these.
-        image_width: int_field(message, "dimensionsWidth"),
-        image_height: int_field(message, "dimensionsHeight"),
-        file_mime: text_at(message, "/fileMime"),
+        image_width: json::i32_at(message, "dimensionsWidth"),
+        image_height: json::i32_at(message, "dimensionsHeight"),
+        file_mime: json::text(message, "/fileMime"),
         file_bytes: message
             .get("fileBytes")
             .and_then(serde_json::Value::as_u64)
@@ -1286,21 +1245,10 @@ fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
                 // attachment anywhere near either bound.
                 f64::from(u32::try_from(bytes).unwrap_or(u32::MAX))
             }),
-        vcard_name: text_at(message, "/vcardContact/displayName"),
-        vcard_addr: text_at(message, "/vcardContact/addr"),
-        vcard_color: text_at(message, "/vcardContact/color"),
+        vcard_name: json::text(message, "/vcardContact/displayName"),
+        vcard_addr: json::text(message, "/vcardContact/addr"),
+        vcard_color: json::text(message, "/vcardContact/color"),
     }
-}
-
-/// A whole number from the message, 0 when the core has none. Pixel
-/// dimensions and the duration all arrive this way, and all are absent
-/// often enough that the absence is the normal case.
-fn int_field(message: &serde_json::Value, field: &str) -> i32 {
-    message
-        .get(field)
-        .and_then(serde_json::Value::as_i64)
-        .and_then(|value| i32::try_from(value).ok())
-        .unwrap_or(0)
 }
 
 /// The local path a picker handed back.

@@ -53,13 +53,21 @@ first time, and `deny` wants the advisory database.
    that component out with bindings rather than a `Column`: a positioner
    sizes itself in a polish pass, which never runs without a window, so its
    geometry reads as zero.
-5. **Static QML dialect tests** for Qt 5.6 rules that host Qt 5.15 accepts
-   silently.
+5. **Static QML tests** (`tests/qml_syntax.rs`) for what no host-Qt run
+   can see: Qt 5.6 rules that Qt 5.15 accepts silently, and the rules the
+   tree holds itself to -- every string the other end chose is drawn as
+   plain text (Silica's own headers cannot be, so `ConversationHeader`
+   exists), file URLs are encoded a segment at a time, only the picker
+   pages import `Sailfish.Pickers`, and every `model.<role>` a delegate
+   binds is one its model has.
 6. **Real-core integration** (`real_server`, `real_core`), gated on
    `DELTACHAT_RPC_SERVER`, offline. `real_core.rs` distinguishes a request
    the real core could not decode from one it could not deliver.
-7. **Packaging checks**: spec parses, desktop entry validates, shell scripts
-   clean.
+7. **Packaging checks** (`ci/packaging-lint.sh`): spec parses, desktop
+   entry validates, shell scripts clean, translation catalog current,
+   every `docs/*.md` a comment points at exists. Locally a missing tool is
+   a SKIP; CI sets `PACKAGING_LINT_STRICT=1` so it is a failure there, as
+   `HARBOUR_CHECK_STRICT=1` already does for the Harbour check.
 
 Aspiration, tracked not gated: test volume exceeds source volume.
 
@@ -170,8 +178,10 @@ scripts/vendor-crates.sh
 sfdk build -- --with vendor
 ```
 
-with `.cargo/config.toml` at the repo root pointing cargo at
-`rust/vendor` via `[source.crates-io] replace-with = "vendored-sources"`.
+with the `[source.crates-io] replace-with = "vendored-sources"` stanza
+`cargo vendor` prints installed as `rust/.cargo/config.toml` -- beside the
+workspace, where `%build` now runs cargo from, since cargo finds its
+config by working directory and not by manifest.
 Add `-n` (`--no-pull-build-requires`) and rpmbuild's `--nodeps` to `mb2` to
 skip BuildRequires resolution.
 

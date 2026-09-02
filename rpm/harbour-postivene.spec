@@ -21,10 +21,6 @@
 # and every Requires are constrained by them, and ci/harbour-check.sh
 # fails a build that breaks one. docs/HARBOUR.md is the map, including the
 # two rules this package still breaks.
-#
-# NOT YET DONE, tracked in docs/PROJECT.md:
-#   - an actual `sfdk build` / OBS build of this spec (no Sailfish SDK has
-#     been available in any environment this repo was developed in)
 
 %bcond_with vendor
 
@@ -73,6 +69,14 @@ Source2:    vendor.toml
 # only a QML-only app is launched through, and requiring it without using
 # it is an error of its own.
 Requires:   sailfishsilica-qt5
+# One package per QML module the UI imports beyond Silica: QtMultimedia,
+# QtGraphicalEffects, Nemo.Thumbnailer, Nemo.Notifications. All on
+# Harbour's allowed list, and all on every device image -- but a package
+# that relies on a module and does not say so depends on it by luck.
+Requires:   qt5-qtdeclarative-import-multimedia
+Requires:   qt5-qtgraphicaleffects
+Requires:   nemo-qml-plugin-notifications-qt5
+Requires:   nemo-qml-plugin-thumbnailer-qt5
 
 # Harbour allows no Provides: at all, and rpm generates one from any shared
 # library it finds in the package. Neither of the app's private directories
@@ -149,8 +153,7 @@ cargo --version
 # see docs/BUILDING.md. Under sb2 the accelerated rustc would otherwise
 # emit host (x86) code, so tell it the real target explicitly -- same
 # mechanism Whisperfish's spec uses (see the xulrunner-qt5.spec comment it
-# cites). Unverified against a real SDK build so far; expect to iterate
-# here once one is available.
+# cites).
 export SB2_RUST_TARGET_TRIPLE=%{rusttarget}
 
 # qttypes' build script shells out to `qmake -query` by default, but rust
@@ -185,6 +188,15 @@ fi
 # emit, and cargo still writes the result to target/<triple>/release --
 # the same convention upstream Sailfish Rust apps rely on (Whisperfish's
 # spec likewise passes no --target).
+#
+# From inside rust/, not the source root. cargo reads .cargo/config.toml
+# from the directory it runs in and that directory's parents, never from
+# beside the manifest it is pointed at -- and the vendored-sources stanza
+# %%prep installs lives at rust/.cargo/config.toml. Run from the root that
+# stanza was never read, and an --offline build failed on the first crate.
+# target/ is the workspace's either way, so %%install's paths are the same.
+(
+cd rust
 cargo build \
     ${SBOX_SESSION_DIR:+-j1} \
     --release \
@@ -192,8 +204,9 @@ cargo build \
 %if %{with vendor}
     --offline \
 %endif
-    --manifest-path rust/Cargo.toml \
+    --manifest-path Cargo.toml \
     --package postivene-app
+)
 
 %install
 rm -rf %{buildroot}
@@ -206,7 +219,9 @@ install -Dm 755 "$builddir/%{name}" \
 # QML UI, installed under our own app-private data dir (not /usr/bin) so
 # postivene-app's qml_dir() lookup (POSTIVENE_QML_DIR env var, then this
 # path, then a source-tree-relative fallback for local dev) finds it.
-(cd qml && find . -type f -exec \
+# Only what the engine reads. A stray editor backup or .orig under qml/
+# would otherwise ship, and Harbour would then have an opinion about it.
+(cd qml && find . -type f \( -name '*.qml' -o -name '*.js' -o -name qmldir \) -exec \
     install -Dm 644 "{}" "%{buildroot}%{appdatadir}/qml/{}" \; )
 
 # Bundled deltachat-rpc-server: see vendor/deltachat-rpc-server/ and

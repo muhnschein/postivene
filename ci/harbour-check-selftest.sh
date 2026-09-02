@@ -184,6 +184,24 @@ validate_rpm fail "a binary that links QtWidgets again" \
 ERROR|/usr/bin/harbour-postivene|Cannot link to shared library: libQt5Widgets.so.5
 !END!FAIL!x
 '
+# The waiver names the path and the two errors it accepts about it; any
+# other error about the same path is news, and a waiver that matched on
+# the path alone would have swallowed it.
+validate_rpm fail "a waived path with an error the waiver does not name" \
+'!BEGIN!x
+ERROR|/usr/libexec/harbour-postivene/deltachat-rpc-server|setuid, setgid or sticky bit set
+!END!FAIL!x
+'
+validate_rpm fail "a waived path that has become a dynamic binary" \
+'!BEGIN!x
+ERROR|/usr/libexec/harbour-postivene/deltachat-rpc-server|Cannot link to shared library: libc.so.6
+!END!FAIL!x
+'
+validate_rpm fail "a waived message about a path the waiver does not name" \
+'!BEGIN!x
+ERROR|/usr/share/harbour-postivene/qml/postivene.qml|File must not be executable (current permissions: 755)
+!END!FAIL!x
+'
 validate_rpm fail "an RPM installing somewhere new" \
 '!BEGIN!x
 ERROR|/etc/harbour-postivene.conf|Installation not allowed in this location

@@ -41,27 +41,41 @@ esac
 if [ -n "$rpm" ]; then
     [ -f "$rpm" ] || { echo "harbour-rpm: FAIL no such RPM: $rpm" >&2; exit 1; }
     if [ ! -x "$validator/rpmvalidation.sh" ]; then
-        git clone --depth 1 \
-            https://github.com/sailfishos/sdk-harbour-rpmvalidator.git \
-            "$validator" >&2 || {
-            echo "harbour-rpm: FAIL could not fetch the validator" >&2
+        # The commit ci/harbour/UPSTREAM names, so the rules vendored here
+        # and the code that reads them are the same Harbour -- and so CI
+        # is not executing whatever that repository's HEAD is today.
+        # scripts/update-harbour-rules.sh moves both together.
+        commit=$(sed -n 's/^at commit \([0-9a-f]\{40\}\).*/\1/p' \
+            "$root/ci/harbour/UPSTREAM" | head -1)
+        if [ -z "$commit" ]; then
+            echo "harbour-rpm: FAIL ci/harbour/UPSTREAM names no commit to pin the validator to" >&2
             exit 1
-        }
+        fi
+        if ! { git init -q "$validator" &&
+               git -C "$validator" fetch -q --depth 1 \
+                   https://github.com/sailfishos/sdk-harbour-rpmvalidator.git "$commit" &&
+               git -C "$validator" checkout -q FETCH_HEAD; } >&2; then
+            echo "harbour-rpm: FAIL could not fetch the validator at $commit" >&2
+            exit 1
+        fi
     fi
 
     # The vendored rules and the validator's own must be the same Harbour,
-    # or the two checks disagree about what is allowed.
+    # or the two checks disagree about what is allowed. Same commit, so a
+    # difference is a vendored file edited by hand.
     for conf in "$root"/ci/harbour/*.conf; do
         name=$(basename "$conf")
         [ "$name" = waivers.conf ] && continue
         [ -f "$validator/$name" ] || continue
         if ! diff -q "$conf" "$validator/$name" >/dev/null; then
-            echo "harbour-rpm: ci/harbour/$name is behind upstream;" \
-                 "run scripts/update-harbour-rules.sh"
+            echo "harbour-rpm: FAIL ci/harbour/$name is not the validator's own;" \
+                 "run scripts/update-harbour-rules.sh" >&2
+            exit 1
         fi
     done
 
     log=$(mktemp)
+    trap 'rm -f "$log"' EXIT
     # BATCHERBATCHERBATCHER makes it emit `KIND|subject|message` without
     # colour. It exits non-zero for warnings too, so the markers decide,
     # not the status.
@@ -77,23 +91,22 @@ if ! grep -q '^!END!' "$log"; then
     exit 1
 fi
 
-# An error is waived when a waiver's subject matches the validator's
-# subject field, or appears anywhere in the line. Both forms are needed:
-# a layout error names the offending path as its subject, while a linking
-# error names the *binary* and puts the library in the message.
+# An error is waived when one waiver's subject pattern matches the
+# validator's subject field *and* its message pattern matches the message.
+# Both, deliberately. The subject alone waived every error the validator
+# could ever raise about the bundled server -- a setuid bit, an RPATH, a
+# dynamic link if it ever stopped being static -- when only the errors the
+# file names are known and accepted. The patterns are bash globs, as
+# upstream's own allow-list matching is.
 waived_line() {
-    local line=$1 subject=$2 entry pat
+    local subject=$1 message=$2 entry wid wsubject wmessage
     [ -f "$waivers" ] || return 1
     while IFS= read -r entry; do
         entry=${entry%%#*}
-        # shellcheck disable=SC2086 # deliberate: id then pattern.
-        set -- $entry
-        [ $# -ge 2 ] || continue
-        pat=$2
-        # shellcheck disable=SC2053
-        [[ $subject == $pat ]] && return 0
-        # shellcheck disable=SC2053
-        [[ $line == *$pat* ]] && return 0
+        read -r wid wsubject wmessage <<< "$entry"
+        { [ -n "${wid:-}" ] && [ -n "${wsubject:-}" ] && [ -n "${wmessage:-}" ]; } || continue
+        # shellcheck disable=SC2053 # unquoted on purpose: they are globs.
+        [[ $subject == $wsubject ]] && [[ $message == $wmessage ]] && return 0
     done < "$waivers"
     return 1
 }
@@ -103,7 +116,7 @@ waived=0
 while IFS= read -r line; do
     subject=$(cut -d'|' -f2 <<< "$line")
     message=$(cut -d'|' -f3- <<< "$line")
-    if waived_line "$line" "$subject"; then
+    if waived_line "$subject" "$message"; then
         echo "harbour-rpm: WAIVED $subject -- $message"
         waived=$((waived + 1))
     else

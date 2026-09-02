@@ -1,4 +1,5 @@
-The .conf files in this directory are copied verbatim from
+The .conf files in this directory, waivers.conf excepted, are copied
+verbatim from
 
     https://github.com/sailfishos/sdk-harbour-rpmvalidator.git
 

@@ -360,9 +360,13 @@ else
             fail 1.8.3 "$req" "dependency is deprecated and will stop being accepted"
             continue
         fi
+        if contained_in "$req" "$rules/dropped_libraries.conf" "$rules/dropped_requires.conf"; then
+            fail 1.8.3 "$req" "dependency was dropped from the platform and is no longer accepted"
+            continue
+        fi
         fail 1.8.3 "$req" "dependency is not on Harbour's allowed list"
     done <<< "$requires"
-    note "[1.8.3/1.8.4] Requires: checked against ci/harbour/allowed_*.conf"
+    note "[1.8.3/1.8.4] Requires: checked against ci/harbour/{allowed,deprecated,dropped}_*.conf"
 
     for scriptlet in pre post preun postun pretrans posttrans verifyscript triggerin triggerun triggerpostun filetriggerin; do
         if grep -qE "^%$scriptlet\b" <<< "$expanded"; then
@@ -402,6 +406,14 @@ while IFS= read -r qml; do
                     "QML import is deprecated and will stop being accepted ($relative)"
                 continue
             fi
+            # Named as dropped rather than caught by the blocked-prefix
+            # patterns below, which happened to cover the one entry so
+            # far and would say "not at this version" about it.
+            if contained_in "$import" "$rules/dropped_qmlimports.conf"; then
+                fail 1.6.4 "$import" \
+                    "QML import was dropped from the platform and is no longer accepted ($relative)"
+                continue
+            fi
 
             case "$import" in
                 [\"\']*)
@@ -420,8 +432,17 @@ while IFS= read -r qml; do
                             # The source qml/ tree installs as
                             # /usr/share/<NAME>/qml, so staying inside it
                             # is what keeps the import inside the package.
-                            target=$(cd "$(dirname "$qml")" 2>/dev/null &&
-                                cd "$path" 2>/dev/null && pwd)
+                            # A script import names a file rather than a
+                            # directory; it is the file's directory that
+                            # has to be inside the tree.
+                            if [[ $path == *.js ]]; then
+                                target=$(cd "$(dirname "$qml")" 2>/dev/null &&
+                                    [ -f "$path" ] &&
+                                    cd "$(dirname "$path")" 2>/dev/null && pwd)
+                            else
+                                target=$(cd "$(dirname "$qml")" 2>/dev/null &&
+                                    cd "$path" 2>/dev/null && pwd)
+                            fi
                             if [ -z "$target" ]; then
                                 fail 1.6.6 "$import" \
                                     "relative import does not resolve to a directory ($relative)"
@@ -705,6 +726,10 @@ else
                 fail 1.6.1 "$lib" "linked library is deprecated"
                 continue
             fi
+            if contained_in "$lib" "$rules/dropped_libraries.conf"; then
+                fail 1.6.1 "$lib" "linked library was dropped from the platform"
+                continue
+            fi
             fail 1.6.1 "$lib" \
                 "cannot link to this shared library; it is not on Harbour's allowed list and the package does not ship it"
         done < <(objdump -x "$binary" 2>/dev/null |
@@ -717,7 +742,7 @@ fi
 # 2.1 Hardcoded home directories
 #
 hits=$(grep -rn --include='*.rs' --include='*.qml' --include='*.js' \
-    -E '/home/(nemo|defaultuser)' "$root/rust" "$root/qml" 2>/dev/null |
+    --exclude-dir=target -E '/home/(nemo|defaultuser)' "$root/rust" "$root/qml" 2>/dev/null |
     grep -v '/target/' || true)
 if [ -n "$hits" ]; then
     while IFS= read -r hit; do
@@ -735,7 +760,8 @@ fi
 # exact, and the broad version of this question is answered by §10's
 # on-device run, not by grep.
 writes='create_dir_all|create_dir|File::create|fs::write|fs::copy|fs::rename|remove_file|remove_dir|OpenOptions'
-if hits=$(grep -rnE "\"(/usr/(share|bin|libexec)/$name)" --include='*.rs' "$root/rust" |
+if hits=$(grep -rnE "\"(/usr/(share|bin|libexec)/$name)" --include='*.rs' \
+        --exclude-dir=target "$root/rust" |
     grep -E "$writes"); then
     while IFS= read -r hit; do
         fail 2.6 "${hit%%:*}" \

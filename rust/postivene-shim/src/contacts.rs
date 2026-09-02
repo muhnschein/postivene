@@ -8,6 +8,7 @@ use std::cell::RefCell;
 use qmetaobject::*;
 
 use crate::core::connection;
+use crate::json;
 use crate::models::{ContactItem, ContactListModel};
 
 /// Known, unblocked contacts, and the calls that turn one into a chat.
@@ -56,7 +57,7 @@ pub struct ContactList {
     /// Follow an invite -- a scanned QR payload or a pasted
     /// `https://i.delta.chat/...` link -- and open the chat it leads to.
     /// This is how a Delta Chat contact is normally added: an address alone
-    /// cannot be encrypted to (docs/ONBOARDING.md). Answers on `chat_ready`.
+    /// cannot be encrypted to (docs/PROJECT.md). Answers on `chat_ready`.
     pub join_by_invite: qt_method!(fn(&mut self, qr_content: QString)),
 
     /// Fetch this account's own invite, the one to hand out. Answers on
@@ -241,15 +242,12 @@ impl ContactList {
             let result = async {
                 // Ask the core what the payload is before acting on it: it
                 // knows the formats, and guessing at them here would be the
-                // protocol work docs/SCOPE.md rules out.
+                // protocol work docs/PROJECT.md rules out.
                 let qr: serde_json::Value = rpc
                     .call("check_qr", (account_id, qr_content.clone()))
                     .await
                     .map_err(|err| err.to_string())?;
-                let kind = qr
-                    .get("kind")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or_default();
+                let kind = json::str_at(&qr, "kind");
                 if !matches!(kind, "askVerifyContact" | "askVerifyGroup") {
                     return Err(format!(
                         "that link is not a contact or group invite ({kind})"
@@ -311,44 +309,22 @@ impl ContactList {
 
 /// One row from the core's contact object.
 pub(crate) fn contact_row(contact: &serde_json::Value) -> ContactItem {
-    let address = contact
-        .get("address")
-        .and_then(serde_json::Value::as_str)
-        .unwrap_or_default();
-    let display_name = contact
-        .get("displayName")
-        .and_then(serde_json::Value::as_str)
-        .filter(|name| !name.is_empty())
-        .unwrap_or(address);
+    let address = json::str_at(contact, "address");
+    let display_name = match json::str_at(contact, "displayName") {
+        "" => address,
+        name => name,
+    };
     ContactItem {
-        contact_id: contact
-            .get("id")
-            .and_then(serde_json::Value::as_u64)
-            .and_then(|id| u32::try_from(id).ok())
-            .unwrap_or(0),
+        contact_id: json::u32_at(contact, "id"),
         display_name: display_name.into(),
         address: address.into(),
-        is_verified: contact
-            .get("isVerified")
-            .and_then(serde_json::Value::as_bool)
-            .unwrap_or(false),
-        is_key_contact: contact
-            .get("isKeyContact")
-            .and_then(serde_json::Value::as_bool)
-            .unwrap_or(false),
+        is_verified: json::flag(contact, "isVerified"),
+        is_key_contact: json::flag(contact, "isKeyContact"),
         // `color` is pinned by the integration test, which checks it on a
         // message's sender -- the same shape as a contact. The picture key
         // is not pinned, so a rename upstream shows up as a contact
         // falling back to its initial rather than as a failure.
-        color: contact
-            .get("color")
-            .and_then(serde_json::Value::as_str)
-            .unwrap_or_default()
-            .into(),
-        avatar_path: contact
-            .get("profileImage")
-            .and_then(serde_json::Value::as_str)
-            .unwrap_or_default()
-            .into(),
+        color: json::text(contact, "color"),
+        avatar_path: json::text(contact, "profileImage"),
     }
 }

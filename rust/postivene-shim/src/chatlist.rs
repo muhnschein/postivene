@@ -13,6 +13,7 @@ use qmetaobject::*;
 use serde_json::json;
 
 use crate::core::connection;
+use crate::json;
 use crate::models::{ChatListItem, ChatListModel};
 
 /// One account's chats, most recent first.
@@ -191,11 +192,7 @@ impl ChatList {
             self.refresh(Refresh::All);
             return;
         }
-        let chat_id = payload
-            .get("chatId")
-            .and_then(serde_json::Value::as_u64)
-            .and_then(|id| u32::try_from(id).ok())
-            .filter(|id| *id != 0);
+        let chat_id = json::u32_opt(&payload, "chatId").filter(|id| *id != 0);
         let scope = chat_id.map_or(Refresh::All, Refresh::One);
         // Worth telling anyone listening about, but only a genuinely new
         // message: MsgsChanged and friends fire for messages we sent, for
@@ -582,61 +579,28 @@ pub(crate) async fn chat_items(
         .map_err(|err| err.to_string())?;
     Ok(items
         .into_iter()
-        .filter(|(_, item)| {
-            item.get("kind").and_then(serde_json::Value::as_str) == Some("ChatListItem")
-        })
+        .filter(|(_, item)| json::str_at(item, "kind") == "ChatListItem")
         .map(|(chat_id, item)| {
             (
                 chat_id,
                 ChatListItem {
                     chat_id,
-                    name: item
-                        .get("name")
-                        .and_then(serde_json::Value::as_str)
-                        .unwrap_or_default()
-                        .into(),
-                    preview: text_at(&item, "summaryText2"),
-                    preview_sender: text_at(&item, "summaryText1"),
-                    unread_count: number_at(&item, "freshMessageCounter"),
+                    name: json::text(&item, "name"),
+                    preview: json::text(&item, "summaryText2"),
+                    preview_sender: json::text(&item, "summaryText1"),
+                    unread_count: json::u32_at(&item, "freshMessageCounter"),
                     // The core counts in milliseconds here and in seconds
                     // on a message; the UI wants one unit.
-                    last_updated: item
-                        .get("lastUpdated")
-                        .and_then(serde_json::Value::as_i64)
-                        .unwrap_or(0)
-                        / 1000,
-                    summary_state: number_at(&item, "summaryStatus"),
-                    is_encrypted: flag_at(&item, "isEncrypted"),
-                    is_pinned: flag_at(&item, "isPinned"),
-                    is_muted: flag_at(&item, "isMuted"),
-                    is_contact_request: flag_at(&item, "isContactRequest"),
-                    color: text_at(&item, "color"),
-                    avatar_path: text_at(&item, "avatarPath"),
+                    last_updated: json::i64_at(&item, "lastUpdated") / 1000,
+                    summary_state: json::u32_at(&item, "summaryStatus"),
+                    is_encrypted: json::flag(&item, "isEncrypted"),
+                    is_pinned: json::flag(&item, "isPinned"),
+                    is_muted: json::flag(&item, "isMuted"),
+                    is_contact_request: json::flag(&item, "isContactRequest"),
+                    color: json::text(&item, "color"),
+                    avatar_path: json::text(&item, "avatarPath"),
                 },
             )
         })
         .collect())
-}
-
-/// A string field, empty when absent or null.
-fn text_at(item: &serde_json::Value, field: &str) -> QString {
-    item.get(field)
-        .and_then(serde_json::Value::as_str)
-        .unwrap_or_default()
-        .into()
-}
-
-/// A counter, 0 when absent.
-fn number_at(item: &serde_json::Value, field: &str) -> u32 {
-    item.get(field)
-        .and_then(serde_json::Value::as_u64)
-        .and_then(|value| u32::try_from(value).ok())
-        .unwrap_or(0)
-}
-
-/// A flag, false when absent.
-fn flag_at(item: &serde_json::Value, field: &str) -> bool {
-    item.get(field)
-        .and_then(serde_json::Value::as_bool)
-        .unwrap_or(false)
 }

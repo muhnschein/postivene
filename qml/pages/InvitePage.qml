@@ -6,7 +6,7 @@ import Postivene 1.0
 /*
  * Connect with someone by invite, which is how Delta Chat contacts are
  * normally added: an address alone cannot be encrypted to
- * (docs/ONBOARDING.md).
+ * (docs/PROJECT.md).
  *
  * Both directions are text. Camera scanning is the same payload read
  * optically and needs a scanner on the device; until then a link pasted

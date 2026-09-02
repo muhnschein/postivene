@@ -84,6 +84,7 @@ Page {
             page.storeDraft()
         } else if (page.status === PageStatus.Active) {
             listView.restorePlace()
+            page.attachInfo()
         }
     }
 
@@ -242,24 +243,46 @@ Page {
         id: conversationHeader
         objectName: "conversationHeader"
         title: page.chatName
-        // The name is the way to the group behind it, as in every other
-        // messenger. A one-to-one chat has no page yet.
-        onClicked: if (messages.is_group) page.openGroup()
+        // The name goes the same way the swipe does.
+        onClicked: page.openInfo()
     }
 
-    // The group page renames the chat this page is named for, and says
-    // so, so the header does not go on showing the old name.
-    function openGroup() {
-        var info = pageStack.push(Qt.resolvedUrl("GroupPage.qml"), {
-            accountId: page.accountId,
-            chatId: page.chatId,
-            chatName: page.chatName
-        })
-        if (info) {
+    // What this chat is -- the group, or the contact -- sits to the right,
+    // attached rather than pushed: the page indicator says it is there,
+    // and a swipe reaches it. Which page depends on the kind of chat, so
+    // it waits for the load; and it is attached again on every return,
+    // since a page pushed over this one takes the attached one with it.
+    function attachInfo() {
+        if (!messages.loaded || page.status !== PageStatus.Active) {
+            return
+        }
+        if (pageStack.nextPage(page)) {
+            return
+        }
+        var info = pageStack.pushAttached(
+            Qt.resolvedUrl(messages.is_group ? "GroupPage.qml" : "ContactPage.qml"), {
+                accountId: page.accountId,
+                chatId: page.chatId,
+                chatName: page.chatName
+            })
+        // The group page renames the chat this page is named for, and
+        // says so, so the header does not go on showing the old name.
+        if (info && messages.is_group) {
             info.renamed.connect(function(name) {
                 page.chatName = name
             })
         }
+    }
+
+    function openInfo() {
+        if (pageStack.nextPage(page)) {
+            pageStack.navigateForward()
+        }
+    }
+
+    Connections {
+        target: messages
+        onLoaded_changed: page.attachInfo()
     }
 
     ConversationList {

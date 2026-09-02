@@ -1,10 +1,10 @@
-//! One group after it has been made: its name, its picture and its members.
+//! What a chat is: its name, its picture and who is in it.
 //!
-//! Creating a group was the only thing the app could do to one. It could
-//! be named and peopled once and then never touched -- `add_contact_to_chat`
-//! existed and was reachable from nowhere but `create_group`. This is the
-//! rest of it, read from the core and written back to it, so the page that
-//! shows a group can also change it.
+//! One model for both kinds of chat. A group's name, picture and members can
+//! be changed here -- creating one used to be the only thing the app could
+//! do to it, and `add_contact_to_chat` was reachable from nowhere but
+//! `create_group`. A one-to-one chat has one member, the contact, and the
+//! same model reads them so the contact page needs nothing of its own.
 
 use std::cell::RefCell;
 
@@ -36,14 +36,14 @@ enum Outcome {
 /// A chat's name, picture and members, and the calls that change them.
 ///
 /// ```qml
-/// GroupInfo { id: group; account_id: page.accountId; chat_id: page.chatId }
-/// Repeater { model: group.members }
+/// ChatInfo { id: chat; account_id: page.accountId; chat_id: page.chatId }
+/// Repeater { model: chat.members }
 /// ```
 #[derive(QObject, Default)]
 // `is_group`, `can_edit` and `loaded` are three facts QML binds to on its
 // own; see `ChatMessages`.
 #[allow(clippy::struct_excessive_bools)]
-pub struct GroupInfo {
+pub struct ChatInfo {
     base: qt_base_class!(trait QObject),
 
     /// Which account the chat belongs to. Setting it reloads.
@@ -71,7 +71,8 @@ pub struct GroupInfo {
     /// Emitted after every load.
     pub loaded_changed: qt_signal!(),
 
-    /// The members, in the core's order, for a `Repeater`'s `model`.
+    /// The members, in the core's order, for a `Repeater`'s `model`. A
+    /// one-to-one chat has one: the contact.
     pub members: qt_property!(RefCell<ContactListModel>; CONST),
     /// How many members there are.
     pub member_count: qt_property!(u32; READ member_count NOTIFY loaded_changed),
@@ -112,7 +113,7 @@ pub struct GroupInfo {
     generation: u64,
 }
 
-impl GroupInfo {
+impl ChatInfo {
     /// How many members there are.
     pub fn member_count(&self) -> u32 {
         u32::try_from(self.members.borrow().iter().count()).unwrap_or(u32::MAX)

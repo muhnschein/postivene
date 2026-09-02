@@ -406,7 +406,7 @@ async fn offline_round_trip_against_real_core() {
         group_items[&group_chat_id]
     );
 
-    // A group after it is made, as GroupInfo reads it. The members are
+    // A group after it is made, as ChatInfo reads it. The members are
     // ids, and the contacts behind them come from a second call keyed by
     // id -- as strings, JSON having no other kind of key.
     let full: Value = client

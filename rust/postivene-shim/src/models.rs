@@ -147,6 +147,9 @@ pub struct ContactItem {
     pub is_key_contact: bool,
     /// This account's own contact, which a group lists among its members.
     pub is_self: bool,
+    /// The line the contact wrote about themselves, empty when they have
+    /// not.
+    pub status: QString,
     /// The core's per-contact colour, `#rrggbb`, for the avatar.
     pub color: QString,
     /// Path to the contact's picture, empty when they have none.

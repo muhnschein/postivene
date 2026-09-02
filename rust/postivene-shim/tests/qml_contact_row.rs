@@ -108,6 +108,18 @@ fn a_contact_row_marks_who_can_be_written_to_encrypted() {
             "key-name",
             call!("get", QString::from("contactName"), QString::from("text"))
         );
+        // Addresses mean nothing to a reader of a chatmail app, so a row
+        // shows one only where asked to -- the profiles page, where it
+        // is the reader's own.
+        record!(
+            "address-hidden",
+            call!(
+                "get",
+                QString::from("contactAddress"),
+                QString::from("visible")
+            )
+        );
+        call!("set", QString::from("showAddress"), true);
         record!(
             "address",
             call!(
@@ -167,9 +179,14 @@ fn assert_outcome(steps: &[(&str, String)]) {
         "a contact that can be encrypted to is wearing a mark. {context}"
     );
     assert_eq!(
+        value("address-hidden"),
+        "false",
+        "the row shows the address without being asked to. {context}"
+    );
+    assert_eq!(
         value("address"),
         "ada@example.org",
-        "the row does not show the address. {context}"
+        "the row does not show the address where it is asked to. {context}"
     );
     assert_eq!(
         value("initial"),

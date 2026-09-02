@@ -135,7 +135,6 @@ Page {
                     id: body
                     width: parent.width
                     displayName: model.display_name
-                    address: model.address
                     ownColor: model.color
                     picturePath: model.avatar_path
                     isKeyContact: model.is_key_contact

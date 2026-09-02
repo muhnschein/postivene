@@ -5,8 +5,9 @@ import Postivene 1.0
 
 /*
  * A group after it has been made: its picture, its name, and who is in it.
+ * Reached by swiping left from the conversation, or tapping its header.
  *
- * All of it is the core's, so this page owns a GroupInfo over
+ * All of it is the core's, so this page owns a ChatInfo over
  * get_full_chat_by_id rather than a record of its own, and every change
  * goes to the core the moment it is made -- the name a pause after typing
  * stops and again on the way out, as the settings page does, and
@@ -27,9 +28,9 @@ Page {
     /// The group was given a new name here.
     signal renamed(string name)
 
-    GroupInfo {
-        id: group
-        objectName: "group"
+    ChatInfo {
+        id: chat
+        objectName: "chat"
         account_id: page.accountId
         chat_id: page.chatId
         onError: page.errorMessage = message
@@ -37,11 +38,11 @@ Page {
         // typing: every change reloads, and that would reach in and reset
         // the cursor.
         onLoaded_changed: {
-            if (group.loaded && !page.edited) {
+            if (chat.loaded && !page.edited) {
                 // Assigning to the field fires onTextChanged, which is the
                 // same signal the reader typing produces.
                 page.filling = true
-                nameField.text = group.name
+                nameField.text = chat.name
                 page.filling = false
             }
         }
@@ -59,11 +60,11 @@ Page {
         target: core
         // Renaming and joining reach here from other devices too; the
         // model ignores what is not this chat's.
-        onCore_event: group.handle_event(context_id, kind, payload_json)
+        onCore_event: chat.handle_event(context_id, kind, payload_json)
         // A model created before the core is up has nothing to load from.
         onStatus_changed: {
             if (core.status === "ready") {
-                group.reload()
+                chat.reload()
             }
         }
     }
@@ -84,15 +85,15 @@ Page {
     }
 
     function applyEdits() {
-        if (!group.loaded || !page.edited) {
+        if (!chat.loaded || !page.edited) {
             return
         }
         page.edited = false
-        group.rename(nameField.text)
+        chat.rename(nameField.text)
     }
 
     function noteEdit() {
-        if (group.loaded && !page.filling) {
+        if (chat.loaded && !page.filling) {
             page.edited = true
             autosave.restart()
         }
@@ -116,7 +117,7 @@ Page {
             picker.picked.connect(function(path) {
                 // The core copies the file into its own blob directory,
                 // so the picked one may go away afterwards.
-                group.set_picture(path)
+                chat.set_picture(path)
             })
         }
     }
@@ -124,7 +125,7 @@ Page {
     function addMembers() {
         pageStack.push(Qt.resolvedUrl("AddMembersPage.qml"), {
             accountId: page.accountId,
-            group: group
+            chat: chat
         })
     }
 
@@ -135,17 +136,17 @@ Page {
         PullDownMenu {
             MenuItem {
                 objectName: "leaveButton"
-                visible: group.can_edit
+                visible: chat.can_edit
                 text: qsTr("Leave group")
                 // Counted down rather than done: there is no way back in
                 // without someone else adding you.
                 onClicked: remorse.execute(qsTr("Leaving group"), function() {
-                    group.leave()
+                    chat.leave()
                 })
             }
             MenuItem {
                 objectName: "addMembersButton"
-                visible: group.can_edit
+                visible: chat.can_edit
                 text: qsTr("Add members")
                 onClicked: page.addMembers()
             }
@@ -171,15 +172,15 @@ Page {
                     objectName: "groupAvatar"
                     anchors.centerIn: parent
                     width: 2 * Theme.itemSizeExtraLarge
-                    initial: group.loaded ? group.name : page.chatName
-                    ownColor: group.color
-                    picturePath: group.avatar_path
+                    initial: chat.loaded ? chat.name : page.chatName
+                    ownColor: chat.color
+                    picturePath: chat.avatar_path
                 }
 
                 Rectangle {
                     id: editBadge
                     objectName: "editBadge"
-                    visible: group.can_edit
+                    visible: chat.can_edit
                     anchors {
                         right: bigAvatar.right
                         bottom: bigAvatar.bottom
@@ -198,7 +199,7 @@ Page {
                 MouseArea {
                     objectName: "pictureTap"
                     anchors.fill: bigAvatar
-                    enabled: group.can_edit
+                    enabled: chat.can_edit
                     onClicked: page.pickPicture()
                 }
             }
@@ -209,9 +210,9 @@ Page {
             Button {
                 objectName: "removePicture"
                 anchors.horizontalCenter: parent.horizontalCenter
-                visible: group.can_edit && group.avatar_path.length > 0
+                visible: chat.can_edit && chat.avatar_path.length > 0
                 text: qsTr("Remove picture")
-                onClicked: group.clear_picture()
+                onClicked: chat.clear_picture()
             }
 
             // The name is whatever the group's members chose, but a field
@@ -223,20 +224,20 @@ Page {
                 width: parent.width
                 label: qsTr("Group name")
                 placeholderText: label
-                readOnly: !group.can_edit
+                readOnly: !chat.can_edit
                 onTextChanged: page.noteEdit()
             }
 
             SectionHeader {
                 objectName: "membersHeader"
                 //: Heading over the member list. %n is how many there are.
-                text: qsTr("%n member(s)", "", group.member_count)
+                text: qsTr("%n member(s)", "", chat.member_count)
             }
 
             // A Repeater in the column rather than a list of its own: the
             // page scrolls as one thing, and a group is short enough.
             Repeater {
-                model: group.members
+                model: chat.members
 
                 delegate: ListItem {
                     id: memberRow
@@ -251,7 +252,7 @@ Page {
                     menu: ContextMenu {
                         MenuItem {
                             objectName: "removeItem"
-                            visible: group.can_edit && !model.is_self
+                            visible: chat.can_edit && !model.is_self
                             text: qsTr("Remove from group")
                             // The id is taken now, not read inside the
                             // callback: the reload that follows rebuilds
@@ -261,7 +262,7 @@ Page {
                                 var leaving = model.contact_id
                                 memberRow.remorseAction(qsTr("Removing"),
                                                         function() {
-                                                            group.remove_member(leaving)
+                                                            chat.remove_member(leaving)
                                                         })
                             }
                         }
@@ -271,8 +272,7 @@ Page {
                         id: body
                         width: parent.width
                         displayName: model.display_name
-                        address: model.address
-                        ownColor: model.color
+                            ownColor: model.color
                         picturePath: model.avatar_path
                         isKeyContact: model.is_key_contact
                         isVerified: model.is_verified

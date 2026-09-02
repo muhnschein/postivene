@@ -135,7 +135,8 @@ impl State {
 
     /// One contact, shaped as `get_contacts` shapes them. The account's
     /// own contact is not in the list but can be asked for by id, which
-    /// is how a group's members come back.
+    /// is how a chat's members come back. Ada has written a line about
+    /// herself, so a contact page has one to show.
     fn contact_object(&self, contact: u32) -> Option<Value> {
         let address = if contact == SELF {
             "me@example.org"
@@ -146,8 +147,10 @@ impl State {
             "id": contact,
             "address": address,
             "displayName": address.split('@').next().unwrap_or(address),
-            "isVerified": false,
+            "isVerified": contact == 10,
             "isKeyContact": true,
+            "status": if contact == 10 { "Poet and mathematician" } else { "" },
+            "color": "#00875a",
         }))
     }
 
@@ -536,7 +539,7 @@ async fn main() {
                     state.chat_modified(account, chat);
                     ok(&id, &Value::Null)
                 }
-                // A group after it is made, as GroupInfo reads it. Members
+                // A chat as ChatInfo reads it. Members
                 // are ids; the contacts behind them come from
                 // `get_contacts_by_ids`, keyed by id as strings.
                 "get_full_chat_by_id" => {

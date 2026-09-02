@@ -1,5 +1,5 @@
 //! A group after it has been made: renamed, given a picture, added to,
-//! removed from, and left.
+//! removed from, and left -- and a one-to-one chat read the same way.
 //!
 //! Until this existed a group could be created and then never touched:
 //! `add_contact_to_chat` was reachable only from `create_group`. Each call
@@ -34,7 +34,7 @@ const PROBE_QML: &str = r"
     Item {
         property string log: ''
         property int step: 0
-        GroupInfo {
+        ChatInfo {
             id: group
             account_id: 1
             chat_id: 2

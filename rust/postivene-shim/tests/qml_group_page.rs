@@ -130,7 +130,7 @@ fn the_group_page_shows_the_group_and_renames_it() {
     });
 
     single_shot(Duration::from_secs(3), move || unsafe {
-        record!("loaded", get!("group", "loaded"));
+        record!("loaded", get!("chat", "loaded"));
         record!("name", get!("groupNameField", "text"));
         record!("editable", get!("groupNameField", "readOnly"));
         record!("members", get!("membersHeader", "text"));
@@ -161,7 +161,7 @@ fn the_group_page_shows_the_group_and_renames_it() {
     });
 
     single_shot(Duration::from_secs(7), move || unsafe {
-        record!("single-loaded", get!("group", "loaded"));
+        record!("single-loaded", get!("chat", "loaded"));
         record!("single-readonly", get!("groupNameField", "readOnly"));
         record!("single-add", get!("addMembersButton", "visible"));
         record!("single-leave", get!("leaveButton", "visible"));

@@ -326,6 +326,7 @@ pub(crate) fn contact_row(contact: &serde_json::Value) -> ContactItem {
         is_verified: json::flag(contact, "isVerified"),
         is_key_contact: json::flag(contact, "isKeyContact"),
         is_self: contact_id == SELF_CONTACT_ID,
+        status: json::text(contact, "status"),
         // `color` is pinned by the integration test, which checks it on a
         // message's sender -- the same shape as a contact. The picture key
         // is not pinned, so a rename upstream shows up as a contact

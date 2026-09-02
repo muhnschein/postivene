@@ -60,7 +60,7 @@ const PROBE_QML: &str = r"
     import QtQuick 2.0
     import Postivene 1.0
     Item {
-        GroupInfo {
+        ChatInfo {
             id: group
             account_id: 1
             chat_id: 2
@@ -73,7 +73,7 @@ const PROBE_QML: &str = r"
         }
         Loader { id: loader }
         function load(url) {
-            loader.setSource(url, { accountId: 1, group: group })
+            loader.setSource(url, { accountId: 1, chat: group })
             return loader.status === Loader.Ready ? 'ok' : 'load-failed'
         }
         function findIn(node, name) {

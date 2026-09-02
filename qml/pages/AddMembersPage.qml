@@ -16,8 +16,8 @@ Page {
     id: page
 
     property int accountId
-    /// The GroupInfo being added to.
-    property var group
+    /// The ChatInfo being added to.
+    property var chat
     property string errorMessage: ""
     // Contact ids the user has ticked.
     property var members: []
@@ -57,7 +57,7 @@ Page {
     // Straight back to the group: the core answers on the group's own
     // signals, and the page that owns it is the one showing them.
     function addPicked() {
-        page.group.add_members(page.members)
+        page.chat.add_members(page.members)
         pageStack.pop()
     }
 
@@ -125,14 +125,13 @@ Page {
                 // address contact the core will not take into an
                 // encrypted group.
                 readonly property bool addable:
-                    model.is_key_contact && !page.group.is_member(model.contact_id)
+                    model.is_key_contact && !page.chat.is_member(model.contact_id)
                 enabled: addable
 
                 ContactRow {
                     id: body
                     width: parent.width
                     displayName: model.display_name
-                    address: model.address
                     ownColor: model.color
                     picturePath: model.avatar_path
                     isKeyContact: model.is_key_contact

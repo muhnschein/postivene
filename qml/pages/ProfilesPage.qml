@@ -85,6 +85,8 @@ Page {
                 displayName: model.display_name.length > 0
                              ? model.display_name : model.addr
                 address: model.addr
+                // The reader's own, and what tells two profiles apart.
+                showAddress: true
                 isKeyContact: true
             }
 

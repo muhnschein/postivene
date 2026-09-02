@@ -189,16 +189,23 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   exported from the address book is neither, and is not someone Delta Chat
   could open a chat with anyway -- so those land on the file row, which
   marks them as cards rather than as anonymous blobs.
-- **A group is changed where it is shown.** Tapping a conversation's
-  header opens the group behind it: picture, name, members. `GroupInfo`
-  reads all of it from `get_full_chat_by_id` -- which names the members by
-  id, so the contacts come from `get_contacts_by_ids`, keyed by id as
-  strings -- and every edit is one core call followed by a reload, since
-  the core is what knows who is in the group now and where it put the
-  picture. The name goes on a pause and again on the way out, as the
-  profile does. What can be changed is the core's answer too: `selfInGroup`
-  goes false on leaving and every edit is then refused, so the controls
-  are not offered.
+- **What a chat is sits to the right of it.** Swiping left from a
+  conversation reaches the group behind it -- picture, name, members --
+  or, from a one-to-one chat, the contact: picture, name, the line they
+  wrote about themselves, and whether the connection is checked and
+  encrypted. Attached rather than pushed, so the page indicator says it is
+  there; the header tap goes the same way. One `ChatInfo` serves both: it
+  reads `get_full_chat_by_id`, which names the members by id, so the
+  contacts come from `get_contacts_by_ids`, keyed by id as strings, and a
+  one-to-one chat simply has one. Every group edit is one core call
+  followed by a reload, since the core is what knows who is in the group
+  now and where it put the picture. What can be changed is the core's
+  answer too: `selfInGroup` goes false on leaving and every edit is then
+  refused, so the controls are not offered.
+- **No email addresses.** A reader of a chatmail app has no use for one,
+  so a contact is its name, its picture and its status line everywhere a
+  contact is shown. The one place an address is drawn is the profiles
+  page, where it is the reader's own and tells two accounts apart.
 - **The server is supervised.** Its event stream ending is the app's only
   notice that the core has gone -- a phone reclaiming memory kills it and
   says nothing -- so that is where the next one is started, with a backoff
@@ -229,8 +236,8 @@ the real binary offline.
 On top of that: the chat list (unread badges, timestamps, avatars,
 encryption/pin/mute marks, context menu, search across chats/contacts/
 messages, archive, contact requests, multiple profiles), groups (created,
-and then renamed, given a picture, added to, removed from and left), the
-conversation view (bubbles, quotes, delivery marks, day separators, reply/copy/delete/
+and then renamed, given a picture, added to, removed from and left), a
+contact page beside each one-to-one chat, the conversation view (bubbles, quotes, delivery marks, day separators, reply/copy/delete/
 resend, a page of history at a time, and every kind of attachment the core
 classifies: photos and
 stickers inline, GIFs animated over a still poster, a video's poster frame
@@ -291,8 +298,8 @@ In order of what matters:
    exception to a workspace lint, and C++ build machinery in a second crate,
    in a build environment `BUILDING.md` already documents as fragile. Worth
    deciding deliberately rather than in passing.
-5. **Contact profile pages, blocking** outside a request;
-   add-as-second-device and restore-from-backup.
+5. **Blocking** outside a request; a media grid on the group and contact
+   pages; add-as-second-device and restore-from-backup.
 6. **Message polish**: avatars on bubbles, reactions, drafts, and an unread
    divider.
 7. **Recording a voice message, and the camera.** Sending every kind of

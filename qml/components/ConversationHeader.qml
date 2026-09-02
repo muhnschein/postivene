@@ -13,15 +13,6 @@ import Sailfish.Silica 1.0
  * it has, in the page's own colour when the header leads somewhere and
  * the highlight when it does not -- with its one label pinned to plain
  * text.
- *
- * On a screen with a cutout, the title is also kept to the right-hand
- * part of the header, which is the part a right-aligned title is for.
- * PageHeader itself does nothing about a cutout, and its titles are short
- * enough never to reach one; a chat's name is not, and fading on the
- * left it ran straight under the notch. Where the notch is comes from the
- * device in a shape this tree cannot read, and two attempts at using it
- * put the title at the left edge and then too low. What is left is what
- * does not depend on it: a title that stays on its own side.
  */
 Item {
     id: root
@@ -36,16 +27,6 @@ Item {
     /// The header was tapped. What that opens is the page's to decide.
     signal clicked()
 
-    // A `var` rather than a `rect`: a screen without a cutout, or a Silica
-    // without the property, then reads as none rather than as an error.
-    readonly property var cutout: Screen.topCutout
-    readonly property bool hasCutout: !!cutout && cutout.height > 0
-    /// The room the title may take: the width less the margins, or with
-    /// a cutout the right-hand part of it.
-    readonly property real titleRoom:
-        hasCutout ? Math.floor(root.width * 0.45)
-                  : root.width - 2 * Theme.horizontalPageMargin
-
     width: parent ? parent.width : 0
     height: Theme.itemSizeLarge
 
@@ -58,8 +39,9 @@ Item {
     Label {
         id: titleLabel
         objectName: "headerTitle"
-        // No wider than its text, and no wider than the room.
-        width: Math.min(implicitWidth, root.titleRoom)
+        // No wider than its text, and no wider than the page less its
+        // margins.
+        width: Math.min(implicitWidth, root.width - 2 * Theme.horizontalPageMargin)
         // The line PageHeader puts its first line on: it measures one
         // line of its font, and a single-line label is that tall.
         y: Math.floor((Theme.itemSizeLarge - height) / 2)

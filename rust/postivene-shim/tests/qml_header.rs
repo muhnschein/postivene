@@ -1,12 +1,9 @@
 //! The conversation header is laid out as Silica's `PageHeader` lays out
-//! its own, and keeps a long title to its own side on a screen with a
-//! cutout.
+//! its own.
 //!
-//! `PageHeader` does nothing about a cutout: its titles are short enough
-//! never to reach one. A chat's name is not, and fading on the left it ran
-//! under the notch. The one thing that does not depend on where the notch
-//! is -- which the device reports in a shape this tree cannot read -- is
-//! keeping the title to the right-hand part of the header.
+//! The title on the line the page indicator sits on, right-aligned, as
+//! wide as its text and no wider than the page less its margins, and in
+//! the page's own colour once the header leads somewhere.
 
 // Qt harness: see qml_chat_list.rs.
 #![allow(
@@ -56,21 +53,11 @@ const PROBE_QML: &str = r"
             loader.item.interactive = on
             return 'ok'
         }
-        // A notch: where it is does not matter to the header, only that
-        // there is one.
-        function notch() {
-            Screen.topCutout = Qt.rect(400, 0, 280, 90)
-            return 'ok'
-        }
-        function noCutout() {
-            Screen.topCutout = Qt.rect(0, 0, 0, 0)
-            return 'ok'
-        }
     }
 ";
 
 #[test]
-fn the_header_keeps_a_long_title_to_its_own_side_of_a_cutout() {
+fn the_header_is_laid_out_as_a_page_header() {
     // SAFETY: single-threaded test binary; set before Qt starts.
     unsafe {
         std::env::set_var("QT_QPA_PLATFORM", "offscreen");
@@ -104,17 +91,13 @@ fn the_header_keeps_a_long_title_to_its_own_side_of_a_cutout() {
     }
 
     let header = common::component_url("ConversationHeader.qml");
-    let long = "a very long name that would run the whole way across the header and under a notch";
+    let long = "a very long name that would run the whole way across the header and further";
     single_shot(Duration::from_secs(1), move || unsafe {
         record!(
             "load",
             call!("load", QString::from(header.clone()), QString::from(long))
         );
-        record!("plain", call!("layout"));
-        call!("notch");
-        record!("notched", call!("layout"));
-        call!("noCutout");
-        record!("cleared", call!("layout"));
+        record!("long", call!("layout"));
         // A short title is not widened to the room it has.
         record!(
             "load-short",
@@ -131,8 +114,8 @@ fn the_header_keeps_a_long_title_to_its_own_side_of_a_cutout() {
     assert_layout(&steps);
 }
 
-/// `PageHeader`'s height and colours, the full width less margins for a
-/// long title, and no more than the right-hand part with a cutout.
+/// `PageHeader`'s height and colours, the page less its margins for a
+/// long title, and a short one at its own width.
 fn assert_layout(steps: &[(&str, String)]) {
     let context = format!("steps: {steps:?}");
     let value = |label: &str| {
@@ -160,31 +143,18 @@ fn assert_layout(steps: &[(&str, String)]) {
         assert_eq!(value(label), "ok", "the header did not load. {context}");
     }
     // The stub theme: itemSizeLarge 120, horizontalPageMargin 24, and a
-    // header that is highlight-coloured until it leads somewhere.
-    // A long title reaches well past the middle, ends at the right
-    // margin, and never crosses the left one.
-    let (height, width, x, colour) = layout("plain");
+    // header that is highlight-coloured until it leads somewhere. A long
+    // title reaches well past the middle, ends at the right margin, and
+    // never crosses the left one.
+    let (height, width, x, colour) = layout("long");
     assert!(
         close(height, 120.0)
-            && width > 1080.0 * 0.45
+            && width > 540.0
             && x >= 24.0 - 0.5
             && close(x + width, 1080.0 - 24.0)
             && colour == "highlight",
-        "without a cutout a long title is not laid out as PageHeader lays \
-         one out: {height} {width} {x} {colour}. {context}"
-    );
-    // With one, the title ends at the same right margin and starts no
-    // further left than the right 45% of the header.
-    let (height, width, x, _) = layout("notched");
-    assert!(
-        close(height, 120.0) && width <= 1080.0 * 0.45 + 0.5 && x >= 1080.0 * 0.55 - 24.5,
-        "with a cutout a long title still runs across the header: \
-         {height} {width} {x}. {context}"
-    );
-    let (_, width, _, _) = layout("cleared");
-    assert!(
-        width > 1080.0 * 0.45,
-        "the title did not get its width back once the cutout was gone. {context}"
+        "a long title is not laid out as PageHeader lays one out: \
+         {height} {width} {x} {colour}. {context}"
     );
     // A short title is as wide as its text and no wider, right-aligned.
     let (_, width, x, _) = layout("short");

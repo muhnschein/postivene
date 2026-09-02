@@ -207,20 +207,12 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   other members itself.
 - **The conversation header is laid out as `PageHeader` lays out its
   own.** The title on the line the page indicator sits on, right-aligned,
-  no wider than its text or the room it has, and in the page's own colour
-  once the header leads somewhere. Silica's `PageHeader` does nothing
-  about a display cutout -- its titles are short enough never to reach
-  one -- but a chat's name is not, and fading on the left it ran under
-  the notch. Where the notch is comes from `Screen.topCutout` in a shape
-  this tree cannot read (Silica 4.4's own QML has no cutout handling at
-  all), and two attempts at using it put the title at the left edge and
-  then too low. So with a cutout present the title is kept to the
-  right-hand part of the header, which needs nothing about the notch but
-  that there is one.
-- **No email addresses.** A reader of a chatmail app has no use for one,
-  so a contact is its name, its picture and its status line everywhere a
-  contact is shown. The one place an address is drawn is the profiles
-  page, where it is the reader's own and tells two accounts apart.
+  no wider than its text or the page less its margins, and in the page's
+  own colour once the header leads somewhere. A long name can still run
+  under a display cutout: Silica 4.4's own QML does nothing about one,
+  and what a 5.x device reports in `Screen.topCutout` comes in a shape
+  this tree could not read in three attempts, so the notch is left for
+  another day.
 - **The server is supervised.** Its event stream ending is the app's only
   notice that the core has gone -- a phone reclaiming memory kills it and
   says nothing -- so that is where the next one is started, with a backoff

@@ -35,3 +35,4 @@ singleton Theme 1.0 Theme.qml
 singleton Clipboard 1.0 Clipboard.qml
 TruncationMode 1.0 TruncationMode.qml
 PageStatus 1.0 PageStatus.qml
+singleton StandardPaths 1.0 StandardPaths.qml

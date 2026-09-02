@@ -1,0 +1,13 @@
+{
+    "entries": [
+        {
+            "path": "applications/harbour-postivene.desktop",
+            "title": "Postivene",
+            "type": "page",
+            "icon": "/usr/share/icons/hicolor/86x86/apps/harbour-postivene.png",
+            "params": {
+                "source": "/usr/share/harbour-postivene/qml/settings/GeneralSettingsPage.qml"
+            }
+        }
+    ]
+}

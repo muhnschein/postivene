@@ -12,8 +12,9 @@
 //!
 //! What a headless run can check is the wiring: which kind gets which page,
 //! that a picture page draws a picture and has somewhere to pan to once it
-//! is zoomed, and that the video page's seek bar follows the player without
-//! fighting the reader for it.
+//! is zoomed, that the video page's seek bar follows the player without
+//! fighting the reader for it, and that Save to device puts a copy where
+//! the platform says pictures go.
 
 // Qt harness: see qml_chat_list.rs.
 #![allow(
@@ -74,6 +75,15 @@ const PROBE_QML: &str = r"
     import Sailfish.Silica 1.0
     Item {
         Loader { id: loader }
+        // Where the platform says pictures go, pointed at a directory of
+        // this test's own.
+        function setPictures(folder) { StandardPaths.pictures = folder; return 'ok' }
+        function click(name) {
+            var item = findIn(loader.item, name)
+            if (!item) { return 'missing:' + name }
+            item.clicked()
+            return 'ok'
+        }
         function load(url, properties) {
             loader.setSource('', {})
             loader.setSource(url, properties)
@@ -222,6 +232,8 @@ fn pictures_and_video_open_here_and_everything_else_goes_to_the_system() {
             call!("load", QString::from(picture_page.clone()), properties),
         ));
     });
+    let pictures = temp.join("Pictures");
+    let pictures_for_probe = pictures.to_string_lossy().into_owned();
     single_shot(Duration::from_secs(4), move || unsafe {
         (*steps_ptr).push((
             "picture-shown",
@@ -229,6 +241,17 @@ fn pictures_and_video_open_here_and_everything_else_goes_to_the_system() {
                 "flagOf",
                 QString::from("fullPicture"),
                 QString::from("visible")
+            ),
+        ));
+        // A copy for the gallery, into the folder the platform names.
+        call!("setPictures", QString::from(pictures_for_probe.clone()));
+        (*steps_ptr).push(("save", call!("click", QString::from("saveToDevice"))));
+        (*steps_ptr).push((
+            "saved-notice",
+            call!(
+                "flagOf",
+                QString::from("noticeLabel"),
+                QString::from("text")
             ),
         ));
         (*steps_ptr).push((
@@ -352,6 +375,16 @@ fn pictures_and_video_open_here_and_everything_else_goes_to_the_system() {
 
     let navigation = stack_box.pinned().borrow().log.to_string();
     assert_outcome(&steps, &navigation);
+
+    let copy = pictures.join("dot.png");
+    assert_eq!(
+        std::fs::read(&copy).ok().as_deref(),
+        Some(ONE_PIXEL_PNG),
+        "Save to device did not put a copy of the picture in the Pictures \
+         folder: {}",
+        copy.display()
+    );
+    let _ = std::fs::remove_dir_all(&temp);
 }
 
 /// What the run has to show for itself, out of the test body.
@@ -391,6 +424,12 @@ fn assert_outcome(steps: &[(&str, String)], navigation: &str) {
         value("picture-shown"),
         "true",
         "the picture page shows no picture. {context}"
+    );
+    assert_eq!(value("save"), "ok", "no Save to device entry. {context}");
+    assert_eq!(
+        value("saved-notice"),
+        "Saved to Pictures",
+        "saving did not say where the copy went. {context}"
     );
     assert_eq!(
         value("animation-shown"),

@@ -4,14 +4,14 @@ import "../components"
 import Postivene 1.0
 
 /*
- * Connect with someone by invite, which is how Delta Chat contacts are
- * normally added: an address alone cannot be encrypted to
- * (docs/PROJECT.md).
+ * This profile's invite, which is how anyone gets in touch with it: an
+ * address alone cannot be encrypted to (docs/PROJECT.md), and a chatmail
+ * address is nothing anybody types.
  *
- * Both directions are text under the pictures: the code on this page is
- * the invite link drawn, and a code scanned is read back into a link and
- * followed the way a pasted one is. Pasting stays, for a link that
- * arrived in a message or a browser.
+ * The code is the invite link drawn, for a phone held up to this one;
+ * the link itself is there to copy into anything else. Someone else's
+ * code is read by the scanner, which the pull-down reaches, and that
+ * page is also where a link can be typed -- so nothing is pasted here.
  *
  * The code is an Image of a file the shim writes rather than a Canvas:
  * a Canvas is drawn into the window's GL context, which the platform
@@ -65,15 +65,6 @@ Page {
         }
     }
 
-    function follow() {
-        if (linkField.text.length === 0) {
-            return
-        }
-        page.errorMessage = ""
-        page.joining = true
-        contacts.join_by_invite(linkField.text)
-    }
-
     // The scanner, pushed by URL and connected to, the way the pickers
     // are: ScanPage is the only file that names a Camera. It stays up
     // while the invite is followed, and the chat replaces both pages.
@@ -97,7 +88,16 @@ Page {
 
     SilicaFlickable {
         anchors.fill: parent
-        contentHeight: column.height
+        contentHeight: column.height + Theme.paddingLarge
+
+        PullDownMenu {
+            MenuItem {
+                objectName: "scanButton"
+                text: qsTr("Scan QR code")
+                enabled: !page.joining
+                onClicked: page.scan()
+            }
+        }
 
         Column {
             id: column
@@ -108,44 +108,14 @@ Page {
                 title: qsTr("Invite")
             }
 
-            SectionHeader {
-                text: qsTr("Follow an invite")
-            }
-
-            TextField {
-                id: linkField
-                objectName: "linkField"
-                width: parent.width
-                label: qsTr("Invite link")
-                placeholderText: "https://i.delta.chat/..."
-                inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
-            }
-
-            Button {
-                objectName: "followButton"
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("Connect")
-                enabled: !page.joining && linkField.text.length > 0
-                onClicked: page.follow()
-            }
-
-            Button {
-                objectName: "scanButton"
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("Scan QR code")
-                enabled: !page.joining
-                onClicked: page.scan()
-            }
-
-            Banner {
-                objectName: "errorBanner"
-                width: parent.width
-                text: page.errorMessage
-                onDismissed: page.errorMessage = ""
-            }
-
-            SectionHeader {
-                text: qsTr("Your invite")
+            Label {
+                objectName: "intro"
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                wrapMode: Text.Wrap
+                font.pixelSize: Theme.fontSizeSmall
+                color: Theme.secondaryHighlightColor
+                text: qsTr("Let someone scan this code, or send them the link. To add someone from their code, pull down.")
             }
 
             // Drawn on white whatever the ambience: a code is read by
@@ -182,6 +152,13 @@ Page {
                 text: qsTr("Copy Invite Link")
                 enabled: page.myInvite.length > 0
                 onClicked: Clipboard.text = page.myInvite
+            }
+
+            Banner {
+                objectName: "errorBanner"
+                width: parent.width
+                text: page.errorMessage
+                onDismissed: page.errorMessage = ""
             }
         }
     }

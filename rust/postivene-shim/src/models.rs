@@ -111,13 +111,22 @@ pub struct MessageListItem {
     pub vcard_addr: QString,
     /// A shared contact's colour, `#rrggbb`.
     pub vcard_color: QString,
+    /// `downloadState` upstream: Done, Available, `InProgress`, Failure or
+    /// Undecipherable. Anything but Done is a message the core holds only
+    /// the header of, kept back by the download limit until asked for.
+    pub download_state: QString,
+    /// The text rendered as `Text.StyledText`, for when Markdown is drawn.
+    /// Made here rather than in the row, so a message is rendered once.
+    pub styled_text: QString,
+    /// The text with its Markdown markers taken out.
+    pub plain_text: QString,
 }
 
 /// Conversation model bound to a `SilicaListView` from QML.
 pub type MessageListModel = SimpleListModel<MessageListItem>;
 
 /// One account from `get_all_accounts`.
-#[derive(Default, Clone, qmetaobject::SimpleListItem)]
+#[derive(Default, Clone, PartialEq, qmetaobject::SimpleListItem)]
 pub struct AccountItem {
     /// The core's account id.
     pub account_id: u32,
@@ -127,6 +136,10 @@ pub struct AccountItem {
     pub addr: QString,
     /// Whether this account has a usable transport.
     pub is_configured: bool,
+    /// Path to the profile picture, empty when there is none.
+    pub avatar_path: QString,
+    /// The core's colour for the account's own contact, `#rrggbb`.
+    pub color: QString,
 }
 
 /// Account model, for the account switcher.
@@ -137,8 +150,15 @@ pub type AccountListModel = SimpleListModel<AccountItem>;
 pub struct ContactItem {
     /// The core's contact id.
     pub contact_id: u32,
-    /// Name to show: the contact's own, else their address.
+    /// Name to show: the one given here, else the contact's own, else
+    /// their address.
     pub display_name: QString,
+    /// The name given to the contact on this device, empty when none was.
+    /// What a name field holds.
+    pub name: QString,
+    /// The name the contact chose for themselves. What the display name
+    /// falls back to when the field above is left blank.
+    pub auth_name: QString,
     /// Email address.
     pub address: QString,
     /// Verified through a secure-join.

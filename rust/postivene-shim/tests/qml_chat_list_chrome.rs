@@ -146,6 +146,7 @@ fn the_list_offers_profiles_and_hides_a_search_with_nothing_to_search() {
 
     single_shot(Duration::from_secs(3), move || unsafe {
         record!("profiles", get!("profilesMenuItem", "visible"));
+        record!("settings", get!("settingsMenuItem", "visible"));
         record!("laid-out", call!("layout", QString::from("chatList")));
         record!("ordinary-search", get!("chatSearchField", "visible"));
         record!(
@@ -199,6 +200,14 @@ fn the_list_offers_profiles_and_hides_a_search_with_nothing_to_search() {
         "true",
         "the pulley does not offer Profiles with a single profile, so there \
          is no way to make a second one. {context}"
+    );
+    // A profile's settings are on its row on the profiles page, and the
+    // settings that belong to no profile are in the system's Settings app;
+    // a Settings entry here would lead to one of them twice or to nothing.
+    assert_eq!(
+        value("settings"),
+        "missing:settingsMenuItem",
+        "the pulley still offers Settings. {context}"
     );
     assert_eq!(
         value("ordinary-search"),

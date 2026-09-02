@@ -13,6 +13,12 @@ import Postivene 1.0
  * one, and the core's own words for a contact are the name, the picture
  * and the status line.
  *
+ * The name can be the reader's own for them: the field holds what was
+ * given here and shows what they call themselves behind it, and leaving
+ * it blank goes back to theirs -- the core's own rule for an empty name.
+ * Applied a pause after typing stops and again on the way out, the way
+ * the group page renames a group.
+ *
  * The same ChatInfo as the group page: a one-to-one chat has one member,
  * the contact, so the model that lists a group's members lists them.
  */
@@ -46,6 +52,62 @@ Page {
         }
     }
 
+    /// The one member, lifted out of the row that reads it: the field
+    /// sits outside the Repeater so a reload -- every save is one -- does
+    /// not rebuild it under the reader's thumb.
+    property int contactId: 0
+    /// The name given here, empty when none was.
+    property string givenName: ""
+    /// The name they chose for themselves.
+    property string ownName: ""
+
+    /// Someone has typed since the load. Guards the refill below.
+    property bool edited: false
+    /// The refill is writing to the field, so the change is not an edit.
+    property bool filling: false
+
+    // Filled from the core, never re-filled from it while someone is
+    // typing: every save reloads, and that would reset the cursor.
+    onGivenNameChanged: {
+        if (!page.edited) {
+            page.filling = true
+            nameField.text = page.givenName
+            page.filling = false
+        }
+    }
+
+    // A pause, not a keystroke: a round trip per letter would be three
+    // calls to write "Ada".
+    Timer {
+        id: autosave
+        objectName: "autosave"
+        interval: 1200
+        onTriggered: page.applyEdits()
+    }
+
+    function applyEdits() {
+        if (!chat.loaded || !page.edited || page.contactId === 0) {
+            return
+        }
+        page.edited = false
+        chat.rename_contact(page.contactId, nameField.text)
+    }
+
+    function noteEdit() {
+        if (chat.loaded && !page.filling) {
+            page.edited = true
+            autosave.restart()
+        }
+    }
+
+    // Leaving is the other moment worth saving at: a back-swipe within
+    // the pause above would otherwise drop what was typed.
+    onStatusChanged: {
+        if (status === PageStatus.Deactivating) {
+            page.applyEdits()
+        }
+    }
+
     SilicaFlickable {
         anchors.fill: parent
         contentHeight: column.height + Theme.paddingLarge
@@ -68,6 +130,12 @@ Page {
                     objectName: "contactDetails"
                     width: column.width
                     spacing: Theme.paddingMedium
+
+                    // Handed up to the page for the field below, which
+                    // cannot live in here.
+                    Binding { target: page; property: "contactId"; value: model.contact_id }
+                    Binding { target: page; property: "givenName"; value: model.name }
+                    Binding { target: page; property: "ownName"; value: model.auth_name }
 
                     Item {
                         width: parent.width
@@ -133,6 +201,20 @@ Page {
                         text: model.status
                     }
                 }
+            }
+
+            // What to call them here. Their own name stands in the empty
+            // field, which is also what a blank field goes back to. A
+            // field draws what it holds as text and nothing else, so it
+            // needs no pinning to plain.
+            TextField {
+                id: nameField
+                objectName: "contactNameField"
+                width: parent.width
+                label: qsTr("Name")
+                placeholderText: page.ownName.length > 0 ? page.ownName : qsTr("Name")
+                description: qsTr("Leave blank to use the name they chose")
+                onTextChanged: page.noteEdit()
             }
 
             DisappearingMessages {

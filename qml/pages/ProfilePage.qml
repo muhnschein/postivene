@@ -1,19 +1,28 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
 import "../components"
+import "../js/Format.js" as Format
 import Postivene 1.0
 
 /*
- * The profile as everyone else sees it: the picture, the name on every
- * message, the line under it, and whether the other end is told when
- * something has been read.
+ * One profile, as everyone else sees it and as this device holds it: the
+ * picture, the name on every message, the line under it, the address it
+ * writes from, whether the other end is told when something has been
+ * read, and how the relay and the phone are doing by it. Reached from the
+ * profile's row on the profiles page. The settings that belong to no
+ * profile are in the system's Settings app instead
+ * (qml/settings/GeneralSettingsPage.qml).
  *
- * All of it is core config keys rather than a record of its own, so this
- * page owns a Profile object over get_config/set_config instead of a
- * model. Nothing is confirmed: edits apply a moment after typing stops
- * and again on the way out, and the two switches apply on the tap. A
- * settings page that needs saving is a settings page that loses what was
- * typed when someone swipes back.
+ * The editable parts are core config keys rather than a record of their
+ * own, so this page owns a Profile object over get_config/set_config
+ * instead of a model. Nothing is confirmed: edits apply a moment after
+ * typing stops and again on the way out, and the switch applies on the
+ * tap. A settings page that needs saving is a settings page that loses
+ * what was typed when someone swipes back.
+ *
+ * The connectivity and the mailbox quota follow parla's profile dialog
+ * (github.com/trufae/parla): the core's own band for the connection, and
+ * the sentence and the percentage it wrote on its own report.
  */
 Page {
     id: page
@@ -38,6 +47,17 @@ Page {
                 nameField.text = profile.display_name
                 bioField.text = profile.status
                 page.filling = false
+            }
+        }
+    }
+
+    Connections {
+        target: core
+        // The core says when the connection changes; the mailbox and
+        // the storage are re-read with it.
+        onCore_event: {
+            if (kind === "ConnectivityChanged" && context_id === page.accountId) {
+                profile.refresh_connectivity()
             }
         }
     }
@@ -83,9 +103,9 @@ Page {
     // The gallery, pushed by URL and connected to, the way the
     // conversation attaches a photo: the Attach*Page files are the only
     // ones that name a `Sailfish.Pickers` type, so a type that is not
-    // there costs this button rather than the settings page. That page
-    // also ignores a cancelled pick, which this one used to hand to the
-    // core as `undefined`.
+    // there costs this button rather than the page. That page also
+    // ignores a cancelled pick, which this one used to hand to the core
+    // as `undefined`.
     function pickPicture() {
         var picker = pageStack.push(Qt.resolvedUrl("AttachPhotoPage.qml"))
         if (picker) {
@@ -97,9 +117,35 @@ Page {
         }
     }
 
+    /// The core's connectivity band in words. The bands are the core's
+    /// (connectivity.rs); 0 is a profile not yet asked about.
+    function connectionWords(state) {
+        if (state >= 4000) {
+            return qsTr("Connected")
+        }
+        if (state >= 3000) {
+            return qsTr("Connected, sending and receiving")
+        }
+        if (state >= 2000) {
+            return qsTr("Connecting")
+        }
+        if (state >= 1000) {
+            return qsTr("Not connected")
+        }
+        return qsTr("Checking the connection")
+    }
+
     SilicaFlickable {
         anchors.fill: parent
         contentHeight: column.height + Theme.paddingLarge
+
+        PullDownMenu {
+            MenuItem {
+                objectName: "refreshConnectivity"
+                text: qsTr("Check connection")
+                onClicked: profile.refresh_connectivity()
+            }
+        }
 
         Column {
             id: column
@@ -107,7 +153,7 @@ Page {
             spacing: Theme.paddingMedium
 
             PageHeader {
-                title: qsTr("Settings")
+                title: qsTr("Profile")
             }
 
             // The picture is the control, not a preview of one: tapping
@@ -182,6 +228,25 @@ Page {
                 onTextChanged: page.noteEdit()
             }
 
+            // The reader's own address: what the relay minted, and what
+            // tells two profiles apart. Shown, not edited -- changing it
+            // is a different transport, not a rename.
+            DetailItem {
+                objectName: "addressItem"
+                label: qsTr("Address")
+                value: profile.address
+            }
+
+            // The invite is how anyone gets in touch with this profile,
+            // so the page about the profile leads to it.
+            Button {
+                objectName: "inviteButton"
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: qsTr("Show invite code")
+                onClicked: pageStack.push(Qt.resolvedUrl("InvitePage.qml"),
+                                          { accountId: page.accountId })
+            }
+
             TextSwitch {
                 objectName: "readReceiptsSwitch"
                 text: qsTr("Send read receipts")
@@ -203,6 +268,45 @@ Page {
                 onClicked: profile.set_read_receipts(!checked)
             }
 
+            SectionHeader {
+                text: qsTr("Storage and connectivity")
+            }
+
+            Label {
+                objectName: "connectivityLabel"
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                wrapMode: Text.Wrap
+                color: Theme.highlightColor
+                // A translated literal, chosen by the core's number.
+                textFormat: Text.PlainText
+                text: page.connectionWords(profile.connectivity)
+            }
+
+            // The mailbox on the relay, when the relay says how full it
+            // is: the bar the core drew, and its own words beside it.
+            ProgressBar {
+                objectName: "quotaBar"
+                width: parent.width
+                visible: profile.quota_text.length > 0
+                minimumValue: 0
+                maximumValue: 100
+                value: Math.min(100, profile.quota_percent)
+                label: profile.quota_text
+            }
+
+            Label {
+                objectName: "storageLabel"
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                wrapMode: Text.Wrap
+                visible: profile.storage_bytes > 0
+                font.pixelSize: Theme.fontSizeSmall
+                color: Theme.secondaryColor
+                textFormat: Text.PlainText
+                //: How much room the profile takes on the phone. %1 is a size such as "12.3 MB".
+                text: qsTr("%1 on this phone").arg(Format.readableSize(profile.storage_bytes))
+            }
         }
     }
 

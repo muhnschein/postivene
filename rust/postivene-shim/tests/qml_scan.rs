@@ -7,6 +7,11 @@
 //! have written, and the page's `QrScanner` reads it back through the same
 //! call the viewfinder timer makes. That is the whole shim path under the
 //! Qt event loop, less the optics.
+//!
+//! The other way in is typed: the pull-down opens a panel over the
+//! viewfinder, with the clipboard's contents in it when they look like an
+//! invite, and what is entered there is handed back the way a scanned
+//! code is.
 
 // Qt harness: needs `unsafe` for `env::set_var` before Qt starts
 // (`unused_unsafe` because it is only unsafe from edition 2024 on),
@@ -85,6 +90,19 @@ const PROBE_QML: &str = r"
             return '' + item[property]
         }
         function setStatus(status) { loader.item.status = status; return 'ok' }
+        function click(name) {
+            var item = findIn(loader.item, name)
+            if (!item) { return 'missing:' + name }
+            item.clicked()
+            return 'ok'
+        }
+        function setText(name, value) {
+            var item = findIn(loader.item, name)
+            if (!item) { return 'missing:' + name }
+            item.text = value
+            return 'ok'
+        }
+        function setClipboard(text) { Clipboard.text = text; return 'ok' }
         function decode(path) {
             var scanner = findIn(loader.item, 'scanner')
             if (!scanner) { return 'missing:scanner' }
@@ -127,6 +145,7 @@ fn write_frame(encoded: &str, path: &Path) -> Result<(), String> {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn a_code_held_up_to_the_page_comes_back_as_its_text() {
     let temp = std::env::temp_dir().join(format!("postivene-scan-{}", std::process::id()));
     std::fs::create_dir_all(&temp).expect("create temp dir");
@@ -217,12 +236,94 @@ fn a_code_held_up_to_the_page_comes_back_as_its_text() {
         // event loop turn after it did.
         record!("searches", get!("camera", "searches"));
         record!("navigation", (*stack_ptr).pinned().borrow().log.to_string());
+        // The other way in, on a fresh page: a link typed rather than
+        // scanned, with the clipboard offering it first.
+        record!(
+            "reload",
+            call!("load", QString::from(common::page_url("ScanPage.qml")))
+        );
+        call!("setStatus", 2);
+        record!("panel-before", get!("linkPanel", "visible"));
+        record!(
+            "shopping",
+            call!("setClipboard", QString::from("milk, eggs"))
+        );
+        record!("open", call!("click", QString::from("typeLinkItem")));
+        record!("panel-open", get!("linkPanel", "visible"));
+        record!("not-pasted", get!("linkField", "text"));
+        record!(
+            "reload-again",
+            call!("load", QString::from(common::page_url("ScanPage.qml")))
+        );
+        call!("setStatus", 2);
+        record!("copied", call!("setClipboard", QString::from(TYPED)));
+        record!("open-again", call!("click", QString::from("typeLinkItem")));
+        record!("pasted", get!("linkField", "text"));
+        record!("connect", call!("click", QString::from("followButton")));
+        record!("typed-heard", call!("heardText"));
+        record!("typed-camera", get!("camera", "running"));
+        record!("typed-acting", get!("acting", "running"));
         (*engine_ptr).quit();
     });
 
     engine.exec();
 
     assert_scan(&steps);
+    assert_typed(&steps);
+}
+
+/// An invite the reader types, or copied and lets the panel paste.
+const TYPED: &str = "https://i.delta.chat/#FEDCBA9876543210&a=typed%40example.org&n=Typed";
+
+/// The panel opens from the pull-down, takes the clipboard only when it
+/// looks like an invite, and hands the link back the way a code is.
+fn assert_typed(steps: &[(&str, String)]) {
+    let context = format!("steps: {steps:?}");
+    let value = |label: &str| {
+        steps
+            .iter()
+            .find(|(name, _)| *name == label)
+            .map(|(_, value)| value.clone())
+            .unwrap_or_default()
+    };
+    for label in ["reload", "open", "reload-again", "open-again", "connect"] {
+        assert_eq!(value(label), "ok", "step {label} failed. {context}");
+    }
+    assert_eq!(
+        value("panel-before"),
+        "false",
+        "the link panel is up before anyone asked for it. {context}"
+    );
+    assert_eq!(
+        value("panel-open"),
+        "true",
+        "the pull-down did not open the link panel. {context}"
+    );
+    assert_eq!(
+        value("not-pasted"),
+        "",
+        "a clipboard that holds no invite was pasted into the field. {context}"
+    );
+    assert_eq!(
+        value("pasted"),
+        TYPED,
+        "an invite on the clipboard was not offered in the field. {context}"
+    );
+    assert_eq!(
+        value("typed-heard"),
+        TYPED,
+        "the typed link was not handed back the way a scanned code is. {context}"
+    );
+    assert_eq!(
+        value("typed-camera"),
+        "false",
+        "the camera keeps running after a link was entered. {context}"
+    );
+    assert_eq!(
+        value("typed-acting"),
+        "true",
+        "the page does not show that the link is being acted on. {context}"
+    );
 }
 
 /// The camera follows the page's status, the frame decodes to the invite,

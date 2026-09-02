@@ -322,6 +322,8 @@ pub(crate) fn contact_row(contact: &serde_json::Value) -> ContactItem {
     ContactItem {
         contact_id,
         display_name: display_name.into(),
+        name: json::text(contact, "name"),
+        auth_name: json::text(contact, "authName"),
         address: address.into(),
         is_verified: json::flag(contact, "isVerified"),
         is_key_contact: json::flag(contact, "isKeyContact"),

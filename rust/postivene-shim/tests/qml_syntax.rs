@@ -425,6 +425,40 @@ fn text_from_the_other_end_is_pinned_to_plain() {
     );
 }
 
+/// The settings page in the system's Settings app and the object the app
+/// reads through are two files that cannot share a definition, so the
+/// keys are written out in both. They have to be the same keys, or a
+/// switch in Settings changes something the app never reads.
+#[test]
+fn the_settings_page_and_the_app_name_the_same_keys() {
+    fn keys_in(file: &str) -> std::collections::BTreeSet<String> {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml");
+        let text =
+            fs::read_to_string(root.join(file)).unwrap_or_else(|err| panic!("read {file}: {err}"));
+        text.lines()
+            .filter_map(|line| line.trim().strip_prefix("key: \""))
+            .filter_map(|rest| rest.split('"').next())
+            .map(ToString::to_string)
+            .collect()
+    }
+    let app = keys_in("components/Settings.qml");
+    let page = keys_in("settings/GeneralSettingsPage.qml");
+    assert!(
+        app.len() >= 3,
+        "Settings.qml names fewer keys than the three settings it exists for: {app:?}"
+    );
+    assert!(
+        app.iter()
+            .all(|key| key.starts_with("/apps/harbour-postivene/")),
+        "a key is outside the app's own dconf path: {app:?}"
+    );
+    assert_eq!(
+        app, page,
+        "the Settings-app page and Settings.qml disagree about the keys, so a \
+         change made in Settings reaches nothing"
+    );
+}
+
 /// A path the other end named becomes a URL one segment at a time.
 ///
 /// `encodeURI` leaves `#` and `?` alone -- to it they are URL syntax --

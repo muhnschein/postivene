@@ -15,6 +15,9 @@ SilicaListView {
     // Groups have to say who is speaking; one-to-one chats do not.
     property bool showSender: false
     property string placeholderText
+    /// How a message body is drawn: 0 Markdown, 1 its words only, 2 as
+    /// written. The page binds it from the reader's setting.
+    property int markdownMode: 2
 
     property bool stickToBottom: true
 
@@ -86,6 +89,9 @@ SilicaListView {
     /// The reader tapped an attachment. What opening it means -- a page
     /// here, or handing it to another app -- is the page's decision.
     signal openRequested(url fileUrl, string fileName, string viewType)
+    /// The reader asked for the rest of a message the download limit
+    /// held back.
+    signal downloadRequested(int messageId)
 
     /// Back to the newest message, and following again.
     function jumpToNewest() {
@@ -428,6 +434,15 @@ SilicaListView {
                 onClicked: root.resendRequested(model.message_id)
             }
             MenuItem {
+                objectName: "downloadItem"
+                // The two states the rest of a message can be asked
+                // for in; the row offers the same tap.
+                visible: model.download_state === "Available"
+                         || model.download_state === "Failure"
+                text: qsTr("Download")
+                onClicked: root.downloadRequested(model.message_id)
+            }
+            MenuItem {
                 objectName: "deleteItem"
                 text: qsTr("Delete")
                 // Taken now rather than read in the callback: anything that
@@ -508,6 +523,10 @@ SilicaListView {
             y: dayHeading.height
             width: parent.width
             messageText: model.text
+            styledText: model.styled_text
+            plainText: model.plain_text
+            markdownMode: root.markdownMode
+            downloadState: model.download_state
             isOutgoing: model.is_outgoing
             isInfo: model.is_info
             isForwarded: model.is_forwarded
@@ -531,6 +550,7 @@ SilicaListView {
             vcardAddr: model.vcard_addr
             vcardColor: model.vcard_color
             onOpenRequested: root.openRequested(fileUrl, fileName, viewType)
+            onDownloadRequested: root.downloadRequested(model.message_id)
         }
     }
 

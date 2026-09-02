@@ -7,11 +7,12 @@ import Postivene 1.0
  * Pick someone to talk to: known contacts in the list, and the ways to get
  * a new one in the pulley menu, as on the chat list.
  *
- * "New Contact" opens the invite page rather than an address form. An
- * address alone produces a chat that cannot be encrypted, and an invite is
- * how a Delta Chat contact is actually added; the address route lives on
- * behind the invite page for writing to someone who does not use Delta
- * Chat at all.
+ * "New contact" opens the scanner rather than an address form. An address
+ * alone produces a chat that cannot be encrypted, and an invite is how a
+ * Delta Chat contact is actually added: the other person's code, held up
+ * to the camera, or their link typed into the panel the scanner offers.
+ * The scanner stays up while the invite is followed, and the chat
+ * replaces it and this page together.
  */
 Page {
     id: page
@@ -31,13 +32,36 @@ Page {
         id: contacts
         objectName: "contacts"
         account_id: page.accountId
-        onError: page.errorMessage = message
-        // Every route ends the same way: open the chat that now exists.
-        onChat_ready: pageStack.replace(Qt.resolvedUrl("ConversationPage.qml"), {
+        onError: {
+            page.errorMessage = message
+            // Back from the scanner, if it is what asked, to where the
+            // message is.
+            if (pageStack.currentPage !== page) {
+                pageStack.pop(page)
+            }
+        }
+        // Every route ends the same way: open the chat that now exists,
+        // above the page that opened this one. The scanner may be on top
+        // of this page, and goes with it.
+        onChat_ready: pageStack.replaceAbove(pageStack.previousPage(page),
+                                             Qt.resolvedUrl("ConversationPage.qml"), {
             accountId: page.accountId,
             chatId: chat_id,
             chatName: qsTr("Chat")
         })
+    }
+
+    // The scanner, pushed by URL and connected to, the way the pickers
+    // are: ScanPage is the only file that names a Camera, so a device
+    // without one costs this entry rather than the page.
+    function scan() {
+        var scanner = pageStack.push(Qt.resolvedUrl("ScanPage.qml"))
+        if (scanner) {
+            scanner.scanned.connect(function(text) {
+                page.errorMessage = ""
+                contacts.join_by_invite(text)
+            })
+        }
     }
 
     Connections {
@@ -77,12 +101,11 @@ Page {
             }
             MenuItem {
                 // An address alone produces a chat that cannot be
-                // encrypted, so adding a contact starts from an invite --
-                // which is how a Delta Chat contact is actually added.
+                // encrypted, so adding a contact starts from their code
+                // -- which is how a Delta Chat contact is actually added.
                 objectName: "newContactButton"
                 text: qsTr("New contact")
-                onClicked: pageStack.push(Qt.resolvedUrl("InvitePage.qml"),
-                                          { accountId: page.accountId })
+                onClicked: page.scan()
             }
         }
 
@@ -147,7 +170,7 @@ Page {
             ViewPlaceholder {
                 enabled: contacts.count === 0
                 text: qsTr("No contacts yet")
-                hintText: qsTr("Add one with an invite link")
+                hintText: qsTr("Pull down to scan someone's invite")
             }
         }
     }

@@ -4,6 +4,7 @@ import QtQuick 2.5
 import QtMultimedia 5.6
 import Sailfish.Silica 1.0
 import Nemo.Thumbnailer 1.0
+import "../js/Format.js" as Format
 
 /*
  * What a message's attachment looks like, whatever kind it is.
@@ -97,27 +98,17 @@ Item {
     height: still.height + video.height + sound.height
             + card.height + generic.height
 
+    /// A file size a person can read: Format.readableSize, reachable on
+    /// the preview because the fallback row is where a size is shown.
+    function readableSize(bytes) {
+        return Format.readableSize(bytes)
+    }
+
     /// m:ss from milliseconds, which is what QtMultimedia reports.
     function clock(milliseconds) {
         var total = Math.floor(milliseconds / 1000)
         var seconds = total % 60
         return Math.floor(total / 60) + ":" + (seconds < 10 ? "0" : "") + seconds
-    }
-
-    /// A file size a person can read. Decimal units, as the platform's own
-    /// file manager uses.
-    function readableSize(bytes) {
-        if (bytes <= 0) return ""
-        var units = ["B", "kB", "MB", "GB"]
-        var step = 0
-        var size = bytes
-        while (size >= 1000 && step < units.length - 1) {
-            size = size / 1000
-            step++
-        }
-        // Whole bytes, one decimal for everything else -- "1.5 MB", not
-        // "1.5 B".
-        return (step === 0 ? Math.round(size) : size.toFixed(1)) + " " + units[step]
     }
 
     /// How tall a picture `width` wide should be.

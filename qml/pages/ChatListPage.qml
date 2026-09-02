@@ -70,7 +70,7 @@ Page {
     function openLoadedChat(chatId) {
         // Only while this is the page on screen. The pulley menu stays
         // open while a chat loads, and a reader who used it to go to
-        // Settings in the meantime did not ask for a conversation on top.
+        // Profiles in the meantime did not ask for a conversation on top.
         if (page.status !== PageStatus.Active) {
             return
         }
@@ -177,6 +177,9 @@ Page {
             visible: !page.archived
             enabled: !page.archived
 
+            // No Settings entry: a profile's settings are on its row on
+            // the profiles page, and the settings that belong to no
+            // profile are in the system's Settings app, under Apps.
             MenuItem {
                 objectName: "profilesMenuItem"
                 // Not gated on there being more than one: adding a second
@@ -186,13 +189,6 @@ Page {
                 text: qsTr("Profiles")
                 onClicked: pageStack.push(Qt.resolvedUrl("ProfilesPage.qml"),
                                           { currentAccountId: page.accountId })
-            }
-            MenuItem {
-                objectName: "settingsMenuItem"
-                visible: !page.archived
-                text: qsTr("Settings")
-                onClicked: pageStack.push(Qt.resolvedUrl("SettingsPage.qml"),
-                                          { accountId: page.accountId })
             }
             MenuItem {
                 // The archived list is a mode, not a filter, so it is its

@@ -4,6 +4,11 @@
 //! double: the one member of chat 1 comes up with their name, their line
 //! about themselves and the state of the connection, and nothing on the
 //! page is an email address.
+//!
+//! The name can be the reader's own for them: typing one and leaving
+//! writes it to the core, which then shows it everywhere; blanking it
+//! writes an empty name, which is the core's own way back to what the
+//! contact calls themselves.
 
 // Qt harness: see qml_chat_list.rs.
 #![allow(
@@ -18,6 +23,7 @@ use std::time::Duration;
 
 use postivene_shim::DeltaChatCore;
 use qmetaobject::*;
+use serde_json::Value;
 
 mod common;
 
@@ -48,6 +54,19 @@ const PROBE_QML: &str = r"
             if (!item) { return 'missing:' + name }
             return '' + item[property]
         }
+        function setText(name, value) {
+            var item = findIn(loader.item, name)
+            if (!item) { return 'missing:' + name }
+            item.text = value
+            return 'ok'
+        }
+        /// Leaving the page is what applies what was typed. Back on
+        /// screen first: the status has to change for the page to notice.
+        function leave() {
+            loader.item.status = PageStatus.Active
+            loader.item.status = PageStatus.Deactivating
+            return 'ok'
+        }
         // Every string drawn anywhere on the page, for the one thing
         // none of them may be.
         function allText(node) {
@@ -67,13 +86,16 @@ const PROBE_QML: &str = r"
 ";
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn the_contact_page_names_the_contact_and_no_address() {
     let temp = std::env::temp_dir().join(format!("postivene-contact-page-{}", std::process::id()));
+    let journal = common::fresh_journal(&temp);
     std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
 
     // SAFETY: single-threaded test binary; set before Qt starts.
     unsafe {
         std::env::set_var("QT_QPA_PLATFORM", "offscreen");
+        std::env::set_var("POSTIVENE_FAKE_JOURNAL", &journal);
         std::env::set_var("POSTIVENE_ACCOUNTS_DIR", temp.join("accounts"));
     }
 
@@ -139,12 +161,113 @@ fn the_contact_page_names_the_contact_and_no_address() {
         record!("encryption", get!("encryptionLabel", "text"));
         record!("timer", get!("disappearingCombo", "currentIndex"));
         record!("texts", call!("texts"));
+        // No name given yet: the field is empty, and what they call
+        // themselves stands in it.
+        record!("given", get!("contactNameField", "text"));
+        record!("own", get!("contactNameField", "placeholderText"));
+        record!(
+            "typed",
+            call!(
+                "setText",
+                QString::from("contactNameField"),
+                QString::from("Countess")
+            )
+        );
+        record!("leave", call!("leave"));
+    });
+
+    single_shot(Duration::from_secs(5), move || unsafe {
+        // The core reloaded behind the save, so the name on the page is
+        // the one given.
+        record!("renamed", get!("contactName", "text"));
+        record!("field-kept", get!("contactNameField", "text"));
+        record!(
+            "blanked",
+            call!(
+                "setText",
+                QString::from("contactNameField"),
+                QString::from("")
+            )
+        );
+        record!("leave-again", call!("leave"));
+    });
+
+    single_shot(Duration::from_secs(7), move || unsafe {
+        record!("theirs-again", get!("contactName", "text"));
         (*engine_ptr).quit();
     });
 
     engine.exec();
 
     assert_page(&steps);
+    assert_rename(&steps, &common::calls(&journal));
+}
+
+/// A typed name reaches the core as the contact's, and a blank one
+/// reaches it as empty -- which is the core's own way back to theirs.
+fn assert_rename(steps: &[(&str, String)], calls: &[(String, Value)]) {
+    let context = format!("steps: {steps:?}");
+    let value = |label: &str| {
+        steps
+            .iter()
+            .find(|(name, _)| *name == label)
+            .map(|(_, value)| value.clone())
+            .unwrap_or_default()
+    };
+    assert_eq!(
+        value("given"),
+        "",
+        "the field holds a name nobody gave. {context}"
+    );
+    assert_eq!(
+        value("own"),
+        "ada",
+        "the field does not show what the contact calls themselves. {context}"
+    );
+    for step in ["typed", "leave", "blanked", "leave-again"] {
+        assert_eq!(value(step), "ok", "step {step} failed. {context}");
+    }
+    let renames: Vec<&Value> = calls
+        .iter()
+        .filter(|(name, _)| name == "change_contact_name")
+        .map(|(_, params)| params)
+        .collect();
+    assert_eq!(
+        renames.len(),
+        2,
+        "expected one rename and one blanking on the wire: {calls:?}"
+    );
+    assert_eq!(
+        renames[0].pointer("/1").and_then(Value::as_u64),
+        Some(10),
+        "the rename did not name the contact: {renames:?}"
+    );
+    assert_eq!(
+        renames[0].pointer("/2").and_then(Value::as_str),
+        Some("Countess"),
+        "the typed name did not reach the core: {renames:?}"
+    );
+    assert_eq!(
+        renames[1].pointer("/2").and_then(Value::as_str),
+        Some(""),
+        "a blanked field did not reach the core as an empty name, which is \
+         what puts the contact's own back: {renames:?}"
+    );
+    assert_eq!(
+        value("renamed"),
+        "Countess",
+        "the page does not show the name it just gave. {context}"
+    );
+    assert_eq!(
+        value("field-kept"),
+        "Countess",
+        "the reload behind the save wiped the field. {context}"
+    );
+    assert_eq!(
+        value("theirs-again"),
+        "ada",
+        "blanking the name did not go back to the contact's own. {context}"
+    );
 }
 
 /// The contact's own words and picture, the state of the connection, and

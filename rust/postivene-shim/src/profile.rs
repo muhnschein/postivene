@@ -7,6 +7,7 @@
 
 use qmetaobject::*;
 
+use crate::connectivity::{quota_from_report, Quota};
 use crate::core::connection;
 
 /// One account's profile, loaded and saved.
@@ -40,6 +41,27 @@ pub struct Profile {
     /// `mdns_enabled` to the core, which defaults it on.
     pub read_receipts: qt_property!(bool; NOTIFY loaded_changed),
 
+    /// The core's `get_connectivity` band: 0 until asked, then 1000 not
+    /// connected, 2000 connecting, 3000 connected and working, 4000
+    /// connected and idle, with the core's own finer steps in between.
+    /// The page puts words to it; see `connectivity.rs`.
+    pub connectivity: qt_property!(u32; NOTIFY connectivity_changed),
+    /// How full the mailbox on the relay is, in percent. Only meaningful
+    /// while `quota_text` says something: a relay need not report one.
+    pub quota_percent: qt_property!(u32; NOTIFY connectivity_changed),
+    /// The core's own sentence about the mailbox -- "1.3 MiB of 2 GiB
+    /// used" -- or empty when the relay has not said.
+    pub quota_text: qt_property!(QString; NOTIFY connectivity_changed),
+    /// What this profile takes up on the device, in bytes. A real: QML
+    /// has no 64-bit integer.
+    pub storage_bytes: qt_property!(f64; NOTIFY connectivity_changed),
+    /// Emitted when the connection, the quota or the storage is re-read.
+    pub connectivity_changed: qt_signal!(),
+    /// Ask the core again about the connection, the mailbox and the
+    /// space on the device. Asked once with the profile, and again on the
+    /// core's `ConnectivityChanged` event.
+    pub refresh_connectivity: qt_method!(fn(&mut self)),
+
     /// True once the profile has been read from the core. Until then the
     /// fields are empty because nothing has been loaded, not because the
     /// profile is blank -- and a save then would wipe it.
@@ -72,6 +94,10 @@ pub struct Profile {
 /// What one load brings back: name, status, picture, address, receipts.
 type Fields = (String, String, String, String, bool);
 
+/// What one connectivity check brings back: the band, the mailbox quota
+/// if the relay reports one, and the profile's size on the device.
+type Connectivity = (u32, Option<Quota>, f64);
+
 impl Profile {
     /// Set the account and reload if it changed.
     pub fn set_account_id(&mut self, account_id: u32) {
@@ -84,7 +110,75 @@ impl Profile {
                 self.loaded = false;
             }
             self.reload();
+            self.refresh_connectivity();
         }
+    }
+
+    /// Ask the core about the connection, the mailbox and the storage.
+    pub fn refresh_connectivity(&mut self) {
+        let account_id = self.account_id;
+        if account_id == 0 {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<Connectivity, String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            if this.borrow().account_id != account_id {
+                return;
+            }
+            match result {
+                Ok((connectivity, quota, storage_bytes)) => {
+                    {
+                        let mut this_mut = this.borrow_mut();
+                        this_mut.connectivity = connectivity;
+                        let (percent, text) =
+                            quota.map_or((0, String::new()), |quota| (quota.percent, quota.text));
+                        this_mut.quota_percent = percent;
+                        this_mut.quota_text = text.into();
+                        this_mut.storage_bytes = storage_bytes;
+                    }
+                    this.borrow().connectivity_changed();
+                }
+                Err(err) => this.borrow().error(err.into()),
+            }
+        });
+
+        runtime.spawn(async move {
+            let result = async {
+                let connectivity: u32 = rpc
+                    .call("get_connectivity", (account_id,))
+                    .await
+                    .map_err(|err| err.to_string())?;
+                // The report is a page written for a web view; the one
+                // fact worth showing is read off it.
+                let report: String = rpc
+                    .call("get_connectivity_html", (account_id,))
+                    .await
+                    .map_err(|err| err.to_string())?;
+                // Nice to have rather than needed: a profile that cannot
+                // be measured still has a connection to report.
+                let storage: u64 = rpc
+                    .call("get_account_file_size", (account_id,))
+                    .await
+                    .unwrap_or(0);
+                Ok::<_, String>((
+                    connectivity,
+                    quota_from_report(&report),
+                    // Through f64 because QML has no 64-bit integer. Exact
+                    // to 2^53 bytes, which no phone holds.
+                    #[allow(clippy::cast_precision_loss)]
+                    {
+                        storage as f64
+                    },
+                ))
+            }
+            .await;
+            done(result);
+        });
     }
 
     /// Read the profile from the core.

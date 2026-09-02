@@ -150,10 +150,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Settings</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Pinned</source>
         <translation type="unfinished"></translation>
     </message>
@@ -207,6 +203,14 @@
         <source>Saved</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Leave blank to use the name they chose</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ConversationList</name>
@@ -232,6 +236,10 @@
     </message>
     <message>
         <source>Deleting</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Download</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -344,6 +352,85 @@
     </message>
 </context>
 <context>
+    <name>GeneralSettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Postivene</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -400,22 +487,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Follow an invite</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Invite link</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Connect</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Your invite</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Fetching...</source>
         <translation type="unfinished"></translation>
     </message>
@@ -427,11 +498,32 @@
         <source>Scan QR code</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>MessageDelegate</name>
     <message>
         <source>Forwarded</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Downloading…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>⬇ Download failed, tap to try again</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot be decrypted</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>⬇ Download</source>
+        <extracomment>Fetches a message the auto-download limit held back.</extracomment>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -450,10 +542,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Add one with an invite link</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>New group</source>
         <translation type="unfinished"></translation>
     </message>
@@ -463,6 +551,10 @@
     </message>
     <message>
         <source>New chat</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pull down to scan someone&apos;s invite</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -494,6 +586,94 @@
     <message>
         <source>Open in another app</source>
         <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Saved to Pictures</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ProfilePage</name>
+    <message>
+        <source>Connected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Connected, sending and receiving</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Connecting</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Not connected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Checking the connection</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Check connection</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Profile</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove picture</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Your name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Bio</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A line about you</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Address</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show invite code</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Send read receipts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Tells the people you write to when you have read their messages, and asks the same of them. With this off you send none and see none.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Storage and connectivity</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 on this phone</source>
+        <extracomment>How much room the profile takes on the phone. %1 is a size such as &quot;12.3 MB&quot;.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Saved</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -538,6 +718,10 @@
         <source>Add profile</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Profile settings</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ReplyBar</name>
@@ -553,7 +737,23 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code</source>
+        <source>Enter invite link</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invite link</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Connect</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Or point the camera at the code</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -581,49 +781,18 @@
     </message>
 </context>
 <context>
-    <name>SettingsPage</name>
-    <message>
-        <source>Remove picture</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Settings</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Your name</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Saved</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Bio</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>A line about you</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Send read receipts</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Tells the people you write to when you have read their messages, and asks the same of them. With this off you send none and see none.</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
     <name>VideoPage</name>
     <message>
         <source>Open in another app</source>
         <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Saved to Videos</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Save to device</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

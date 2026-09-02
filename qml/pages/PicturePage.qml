@@ -1,6 +1,8 @@
 // 2.5 rather than 2.0 for Image.autoTransform; see AttachmentPreview.qml.
 import QtQuick 2.5
 import Sailfish.Silica 1.0
+import "../components"
+import Postivene 1.0
 
 /*
  * One picture, as big as the screen will show it.
@@ -14,6 +16,10 @@ import Sailfish.Silica 1.0
  * flickable's content is the larger of the picture and the view -- so
  * panning does nothing until there is something to pan, and the picture
  * stays centred while there is not.
+ *
+ * Saving copies the file into the Pictures folder, where the gallery
+ * finds it: what the chat holds lives in the core's own directory and
+ * goes with the app.
  */
 Page {
     id: page
@@ -96,6 +102,21 @@ Page {
         page.zoomAt(page.zoom > 1 ? 1 : 3, viewX, viewY)
     }
 
+    // A copy for the gallery. The folder is the platform's own answer to
+    // where pictures go; the sandbox grants it (Pictures).
+    FileSaver {
+        id: saver
+        objectName: "saver"
+        onSaved: {
+            notice.tone = "info"
+            notice.show(qsTr("Saved to Pictures"))
+        }
+        onError: {
+            notice.tone = "error"
+            notice.show(message)
+        }
+    }
+
     // Behind the picture rather than the theme's own background: a photo
     // with anything light in it reads better against black, and the bars
     // beside a picture that does not fill the screen are not the page.
@@ -119,6 +140,11 @@ Page {
                 //: handles files of its kind.
                 text: qsTr("Open in another app")
                 onClicked: Qt.openUrlExternally(page.fileUrl)
+            }
+            MenuItem {
+                objectName: "saveToDevice"
+                text: qsTr("Save to device")
+                onClicked: saver.save(page.fileUrl, StandardPaths.pictures)
             }
         }
 
@@ -203,5 +229,21 @@ Page {
             size: BusyIndicatorSize.Large
             running: picture.status === Image.Loading
         }
+    }
+
+    // Where the copy went, or why there is none. Over the picture rather
+    // than in the flickable, so panning does not move it.
+    Banner {
+        id: notice
+        objectName: "notice"
+        labelObjectName: "noticeLabel"
+        tone: "info"
+        timeout: 4
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+        onDismissed: notice.text = ""
     }
 }

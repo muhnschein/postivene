@@ -1,0 +1,4 @@
+# The one shared object in this directory. Everything else here is a
+# component found by its file name, as before; only a singleton has to be
+# declared.
+singleton Settings 1.0 Settings.qml

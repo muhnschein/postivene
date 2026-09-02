@@ -5,9 +5,10 @@ import "../components"
 import Postivene 1.0
 
 /*
- * Point the camera at a QR code. What the code says is handed back on
- * `scanned` and the page goes; what to do with it is the caller's --
- * an invite is followed, a provider payload creates a profile -- and the
+ * Point the camera at a QR code -- or, from the pull-down, type or paste
+ * the link the code would carry. What either says is handed back on
+ * `scanned` and the page waits; what to do with it is the caller's -- an
+ * invite is followed, a provider payload creates a profile -- and the
  * core is asked what it is first, the same as for a pasted link.
  *
  * A page of its own, pushed by URL and connected to, the way the pickers
@@ -23,7 +24,10 @@ import Postivene 1.0
  * indicator on, until the caller takes it down: Silica drops any stack
  * operation asked for while a transition is running, so a page that
  * popped itself here would have the caller's own navigation -- opening
- * the chat the invite led to -- land during the pop and be lost.
+ * the chat the invite led to -- land during the pop and be lost. The
+ * typed link is a panel on this page rather than a dialog for the same
+ * reason: a dialog's own pop would be the transition the caller's
+ * navigation lands in.
  *
  * Focus is asked for three ways, because a camera left to itself gave a
  * viewfinder too soft for any code to register: continuous autofocus in
@@ -35,25 +39,62 @@ import Postivene 1.0
 Page {
     id: page
 
-    /// A code was read, and this is its text.
+    /// A code was read, or a link typed, and this is its text.
     signal scanned(string text)
 
     property string errorMessage: ""
     /// Set once a code is read, so a second frame in flight cannot
     /// report the same code twice.
     property bool done: false
+    /// The link panel is open. The camera keeps running behind it: a
+    /// reader who opened the panel and then found the code can still
+    /// hold the phone up to it.
+    property bool typing: false
+
+    /// What was read or typed, once it is worth acting on.
+    function found(text) {
+        if (page.done) {
+            return
+        }
+        page.done = true
+        camera.stop()
+        page.scanned(text)
+    }
+
+    /// Open the link panel, with the clipboard's contents in it when
+    /// they look like an invite: pasting is what the panel is for, and a
+    /// link copied a moment ago is the likely reason it was opened.
+    function typeLink() {
+        page.typing = true
+        var clip = Clipboard.text
+        if (linkField.text.length === 0 && clip.length > 0 && page.looksLikeInvite(clip)) {
+            linkField.text = clip
+        }
+    }
+
+    /// Whether some text is one of the things a code carries, so the
+    /// clipboard is not pasted into the field when it holds a shopping
+    /// list. Only the prefixes: what the payload is is the core's call.
+    function looksLikeInvite(text) {
+        var trimmed = text.trim().toLowerCase()
+        return trimmed.indexOf("https://i.delta.chat/") === 0
+            || trimmed.indexOf("openpgp4fpr:") === 0
+            || trimmed.indexOf("dcaccount:") === 0
+            || trimmed.indexOf("dclogin:") === 0
+    }
+
+    function useLink() {
+        var text = linkField.text.trim()
+        if (text.length === 0) {
+            return
+        }
+        page.found(text)
+    }
 
     QrScanner {
         id: scanner
         objectName: "scanner"
-        onFound: {
-            if (page.done) {
-                return
-            }
-            page.done = true
-            camera.stop()
-            page.scanned(text)
-        }
+        onFound: page.found(text)
         onError: page.errorMessage = message
     }
 
@@ -96,24 +137,6 @@ Page {
         }
     }
 
-    VideoOutput {
-        id: viewfinder
-        objectName: "viewfinder"
-        anchors.fill: parent
-        source: camera
-
-        // Tap to focus on what is under the finger.
-        MouseArea {
-            objectName: "focusTap"
-            anchors.fill: parent
-            onClicked: {
-                camera.focus.focusPointMode = Camera.FocusPointCustom
-                camera.focus.customFocusPoint = Qt.point(mouse.x / width, mouse.y / height)
-                page.refocus()
-            }
-        }
-    }
-
     // Grabbed small: a code fills a good part of the frame when someone
     // is holding a phone up to it, and a third of the pixels decode in a
     // ninth of the time.
@@ -136,43 +159,126 @@ Page {
         }
     }
 
-    PageHeader {
-        title: qsTr("Scan QR code")
-    }
+    // A flickable that does not scroll, for the pull-down's sake: the
+    // page is the viewfinder, and the way to a typed link hangs off its
+    // top the way every other way to something does.
+    SilicaFlickable {
+        anchors.fill: parent
+        contentHeight: height
 
-    // The code was read and the caller is acting on it.
-    BusyIndicator {
-        objectName: "acting"
-        anchors.centerIn: parent
-        running: page.done
-        size: BusyIndicatorSize.Large
-    }
-
-    Label {
-        objectName: "hint"
-        anchors {
-            left: parent.left
-            right: parent.right
-            bottom: banner.top
-            margins: Theme.horizontalPageMargin
+        PullDownMenu {
+            MenuItem {
+                objectName: "typeLinkItem"
+                text: qsTr("Enter invite link")
+                onClicked: page.typeLink()
+            }
         }
-        horizontalAlignment: Text.AlignHCenter
-        wrapMode: Text.Wrap
-        color: Theme.secondaryHighlightColor
-        visible: !page.done
-        text: qsTr("Point the camera at an invite or a chatmail server code")
-    }
 
-    Banner {
-        id: banner
-        objectName: "errorBanner"
-        anchors {
-            left: parent.left
-            right: parent.right
-            bottom: parent.bottom
+        VideoOutput {
+            id: viewfinder
+            objectName: "viewfinder"
+            anchors.fill: parent
+            source: camera
+
+            // Tap to focus on what is under the finger.
+            MouseArea {
+                objectName: "focusTap"
+                anchors.fill: parent
+                onClicked: {
+                    camera.focus.focusPointMode = Camera.FocusPointCustom
+                    camera.focus.customFocusPoint = Qt.point(mouse.x / width, mouse.y / height)
+                    page.refocus()
+                }
+            }
         }
-        text: page.errorMessage
-        timeout: 8
-        onDismissed: page.errorMessage = ""
+
+        PageHeader {
+            title: qsTr("Scan QR code")
+        }
+
+        // The code was read and the caller is acting on it.
+        BusyIndicator {
+            objectName: "acting"
+            anchors.centerIn: parent
+            running: page.done
+            size: BusyIndicatorSize.Large
+        }
+
+        // The other way in: the link the code would carry, typed or
+        // pasted. Over the viewfinder rather than instead of it.
+        Column {
+            id: linkPanel
+            objectName: "linkPanel"
+            visible: page.typing && !page.done
+            anchors {
+                left: parent.left
+                right: parent.right
+                bottom: hint.top
+            }
+            spacing: Theme.paddingSmall
+
+            Rectangle {
+                width: parent.width
+                height: linkField.height + followButton.height + 2 * Theme.paddingMedium
+                color: Theme.rgba(Theme.highlightDimmerColor, 0.8)
+
+                TextField {
+                    id: linkField
+                    objectName: "linkField"
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                        top: parent.top
+                        topMargin: Theme.paddingMedium
+                    }
+                    label: qsTr("Invite link")
+                    placeholderText: "https://i.delta.chat/..."
+                    inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
+                }
+
+                Button {
+                    id: followButton
+                    objectName: "followButton"
+                    anchors {
+                        horizontalCenter: parent.horizontalCenter
+                        top: linkField.bottom
+                    }
+                    text: qsTr("Connect")
+                    enabled: linkField.text.trim().length > 0
+                    onClicked: page.useLink()
+                }
+            }
+        }
+
+        Label {
+            id: hint
+            objectName: "hint"
+            anchors {
+                left: parent.left
+                right: parent.right
+                bottom: banner.top
+                margins: Theme.horizontalPageMargin
+            }
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.Wrap
+            color: Theme.secondaryHighlightColor
+            visible: !page.done
+            text: page.typing
+                  ? qsTr("Or point the camera at the code")
+                  : qsTr("Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.")
+        }
+
+        Banner {
+            id: banner
+            objectName: "errorBanner"
+            anchors {
+                left: parent.left
+                right: parent.right
+                bottom: parent.bottom
+            }
+            text: page.errorMessage
+            timeout: 8
+            onDismissed: page.errorMessage = ""
+        }
     }
 }

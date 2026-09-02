@@ -18,14 +18,18 @@
 mod chat;
 mod chat_info;
 mod chatlist;
+mod connectivity;
 mod contacts;
 mod core;
 mod json;
+mod links;
+mod markdown;
 mod models;
 mod prefetch;
 mod profile;
 mod qr;
 mod runtime;
+mod saver;
 mod search;
 
 pub use crate::chat::{local_day_number, ChatMessages};
@@ -36,6 +40,7 @@ pub use crate::core::{server_path, shutdown, DeltaChatCore, BUNDLED_SERVER};
 pub use crate::prefetch::ChatPrefetch;
 pub use crate::profile::Profile;
 pub use crate::qr::{QrCode, QrScanner};
+pub use crate::saver::FileSaver;
 pub use crate::search::SearchResults;
 
 /// Register the shim's QML-instantiable types. The app and the tests share
@@ -61,9 +66,10 @@ pub fn register_qml_types() {
     let Ok(info) = std::ffi::CStr::from_bytes_with_nul(b"ChatInfo\0") else {
         return;
     };
-    let (Ok(qr_code), Ok(qr_scanner)) = (
+    let (Ok(qr_code), Ok(qr_scanner), Ok(saver)) = (
         std::ffi::CStr::from_bytes_with_nul(b"QrCode\0"),
         std::ffi::CStr::from_bytes_with_nul(b"QrScanner\0"),
+        std::ffi::CStr::from_bytes_with_nul(b"FileSaver\0"),
     ) else {
         return;
     };
@@ -76,6 +82,7 @@ pub fn register_qml_types() {
     qmetaobject::qml_register_type::<ChatInfo>(uri, 1, 0, info);
     qmetaobject::qml_register_type::<QrCode>(uri, 1, 0, qr_code);
     qmetaobject::qml_register_type::<QrScanner>(uri, 1, 0, qr_scanner);
+    qmetaobject::qml_register_type::<FileSaver>(uri, 1, 0, saver);
 }
 pub use models::{
     AccountItem, ChatListItem, ChatListModel, ContactItem, ContactListModel, MessageListItem,

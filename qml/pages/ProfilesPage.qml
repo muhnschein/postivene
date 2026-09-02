@@ -3,11 +3,19 @@ import Sailfish.Silica 1.0
 import "../components"
 
 /*
- * Which profile the chat list is showing.
+ * Which profile the chat list is showing, and the way to each one's own
+ * page.
  *
  * The core keeps every configured account open at once, so switching is a
  * matter of pointing the chat list at a different one rather than starting
- * anything up. Picking the profile already shown does nothing.
+ * anything up. Picking the profile already shown does nothing. A row's
+ * menu leads to the profile's page -- picture, name, address, the rest --
+ * and to deleting it.
+ *
+ * Deleting counts down on the row, and the list is refreshed in place
+ * rather than rebuilt when the deletion lands (core.rs): a rebuild
+ * destroyed every row, and with them the countdowns of the other
+ * profiles a reader had asked to delete in the same breath.
  */
 Page {
     id: page
@@ -45,6 +53,7 @@ Page {
 
     SilicaListView {
         id: listView
+        objectName: "profileList"
         anchors.fill: parent
         model: core.account_list
 
@@ -65,10 +74,17 @@ Page {
 
         delegate: ListItem {
             id: profileDelegate
-            objectName: "profileRow"
+            // Named per profile, so a test can find the one it means.
+            objectName: "profileRow" + model.account_id
             contentHeight: body.height
 
             menu: ContextMenu {
+                MenuItem {
+                    objectName: "profileSettingsItem"
+                    text: qsTr("Profile settings")
+                    onClicked: pageStack.push(Qt.resolvedUrl("ProfilePage.qml"),
+                                              { accountId: model.account_id })
+                }
                 MenuItem {
                     objectName: "deleteProfileItem"
                     text: qsTr("Delete profile")
@@ -91,11 +107,14 @@ Page {
             ContactRow {
                 id: body
                 width: parent.width
-                // An account has no colour of its own from the core, so
-                // the initial sits on the theme's highlight.
                 displayName: model.display_name.length > 0
                              ? model.display_name : model.addr
                 address: model.addr
+                // The profile's own picture and colour, as the core lists
+                // them with the account: the same row the chat list draws
+                // for everyone else, drawn for oneself.
+                ownColor: model.color
+                picturePath: model.avatar_path
                 // The reader's own, and what tells two profiles apart.
                 showAddress: true
                 isKeyContact: true

@@ -116,6 +116,10 @@ pub struct ChatInfo {
     pub remove_member: qt_method!(fn(&mut self, contact_id: u32)),
     /// Leave the group. Answers on `left`.
     pub leave: qt_method!(fn(&mut self)),
+    /// Give a contact a name of the reader's own, or none: an empty
+    /// name puts the contact back to what they call themselves. Answers
+    /// on `saved`.
+    pub rename_contact: qt_method!(fn(&mut self, contact_id: u32, name: QString)),
     /// Make messages in this chat disappear after `seconds`, or never for
     /// 0. Applies to every member, since the core tells them. Answers on
     /// `saved`.
@@ -384,6 +388,40 @@ impl ChatInfo {
         runtime.spawn(async move {
             let result = rpc
                 .call::<_, ()>("set_chat_ephemeral_timer", (account_id, chat_id, seconds))
+                .await
+                .map_err(|err| err.to_string());
+            done(result);
+        });
+    }
+
+    /// Give a contact a name of the reader's own, or none.
+    pub fn rename_contact(&mut self, contact_id: u32, name: QString) {
+        let name = name.to_string().trim().to_string();
+        let account_id = self.account_id;
+        if account_id == 0 || contact_id == 0 {
+            return;
+        }
+        // The name already held, whichever way: nothing to write.
+        let unchanged = self
+            .members
+            .borrow()
+            .iter()
+            .any(|row| row.contact_id == contact_id && row.name.to_string() == name);
+        if unchanged {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            self.error(QString::from("not started"));
+            return;
+        };
+        let done = self.stored_callback(Outcome::Saved);
+
+        runtime.spawn(async move {
+            // An empty name is the core's own way of saying "theirs
+            // again": pinned against the real core in
+            // deltachat-jsonrpc/tests/real_server.rs.
+            let result = rpc
+                .call::<_, ()>("change_contact_name", (account_id, contact_id, name))
                 .await
                 .map_err(|err| err.to_string());
             done(result);

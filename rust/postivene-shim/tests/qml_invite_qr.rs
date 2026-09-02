@@ -3,9 +3,10 @@
 //!
 //! Loaded headlessly against the stub Silica module and the recording
 //! double: once the invite arrives the code has modules and the picture is
-//! shown from a file; the scan button pushes the scanner page, and what
-//! it hands back is followed the way a pasted link is, into a chat that
-//! replaces the scanner and this page both.
+//! shown from a file; the scan entry pushes the scanner page, and what
+//! it hands back is followed into a chat that replaces the scanner and
+//! this page both. Nothing is pasted here: a typed link is the scanner's
+//! business, so the page has no field for one.
 
 // Qt harness: needs `unsafe` for `env::set_var` before Qt starts
 // (`unused_unsafe` because it is only unsafe from edition 2024 on),
@@ -198,6 +199,7 @@ fn the_invite_is_drawn_as_a_code_and_a_scanned_one_is_followed() {
         record!("code-size", get!("qr", "size"));
         record!("code-shown", get!("inviteQr", "visible"));
         record!("code-image", get!("inviteQr", "source"));
+        record!("paste-field", get!("linkField", "visible"));
         // Scanning: the page pushes the scanner and follows what it says.
         record!("scan", call!("click", QString::from("scanButton")));
         record!(
@@ -258,7 +260,13 @@ fn assert_page(steps: &[(&str, String)], calls: &[String]) {
                 .is_some_and(|ext| ext == "pgm"),
         "the code is not shown from a file the shim wrote: {image:?}. {context}"
     );
-    assert_eq!(value("scan"), "ok", "the scan button is missing. {context}");
+    assert_eq!(
+        value("paste-field"),
+        "missing:linkField",
+        "the invite page still has a field to paste a link into; that \
+         belongs to the scanner now. {context}"
+    );
+    assert_eq!(value("scan"), "ok", "the scan entry is missing. {context}");
     assert!(
         value("navigation").starts_with("push:ScanPage.qml|"),
         "the scan button did not push the scanner. {context}"

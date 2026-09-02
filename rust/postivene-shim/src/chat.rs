@@ -14,6 +14,7 @@ use qmetaobject::*;
 use crate::core::connection;
 use crate::json;
 use crate::models::{MessageListItem, MessageListModel};
+use crate::{links, markdown};
 
 /// `DC_STATE_IN_FRESH` and `DC_STATE_IN_NOTICED`: an incoming message the
 /// account has not read yet.
@@ -202,6 +203,16 @@ pub struct ChatMessages {
     pub quoted_message_id: qt_property!(u32; NOTIFY quote_changed),
     /// Emitted when `quoted_message_id` changes.
     pub quote_changed: qt_signal!(),
+
+    /// Take known tracking parameters out of the links in what is sent.
+    /// The reader's setting, handed in by the page; see `links.rs`.
+    pub clean_links: qt_property!(bool; NOTIFY clean_links_changed),
+    /// Emitted when [`Self::clean_links`] changes.
+    pub clean_links_changed: qt_signal!(),
+
+    /// Fetch the rest of a message the core holds only the header of.
+    /// The core announces the result as a change to the message.
+    pub download_full: qt_method!(fn(&mut self, message_id: u32)),
 
     /// Send a plain-text message to this chat.
     pub send: qt_method!(fn(&mut self, text: QString)),
@@ -884,6 +895,41 @@ impl ChatMessages {
         self.act("resend_messages", message_id);
     }
 
+    /// Fetch the rest of a message held back by the download limit.
+    ///
+    /// Its own call rather than `act`: the method takes one id, not a
+    /// list, and the row is re-read on the `MsgsChanged` the core sends
+    /// once the download lands rather than on this call's return, which
+    /// only says the download was started.
+    pub fn download_full(&mut self, message_id: u32) {
+        let account_id = self.account_id;
+        if account_id == 0 || message_id == 0 {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            self.error(QString::from("not started"));
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<(), String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            match result {
+                // The state moves to InProgress at once; show that.
+                Ok(()) => this.borrow_mut().refresh_one(message_id),
+                Err(err) => this.borrow().error(err.into()),
+            }
+        });
+
+        runtime.spawn(async move {
+            let result = rpc
+                .call::<_, ()>("download_full_message", (account_id, message_id))
+                .await
+                .map_err(|err| err.to_string());
+            done(result);
+        });
+    }
+
     /// Send a copy of one message into another chat.
     ///
     /// Not routed through the shared `act` helper: that calls
@@ -954,7 +1000,17 @@ impl ChatMessages {
 
     /// Send a plain-text message.
     pub fn send(&mut self, text: QString) {
-        self.send_message(text.to_string(), None);
+        self.send_message(self.outgoing_text(&text.to_string()), None);
+    }
+
+    /// The text as it goes out: with its links cleaned when the reader
+    /// asked for that, as written otherwise.
+    fn outgoing_text(&self, text: &str) -> String {
+        if self.clean_links {
+            links::clean_text(text)
+        } else {
+            text.to_string()
+        }
     }
 
     /// Send a message with a file attached.
@@ -965,7 +1021,7 @@ impl ChatMessages {
             return;
         }
         let name = file_name_of(&path);
-        self.send_message(text.to_string(), Some((path, name)));
+        self.send_message(self.outgoing_text(&text.to_string()), Some((path, name)));
     }
 
     /// The one send. `file` is the path the core should attach and the name
@@ -1207,10 +1263,18 @@ fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
         "" => json::text(message, "/sender/displayName"),
         name => name.into(),
     };
+    let text = json::str_at(message, "text");
     MessageListItem {
         message_id,
         loaded: true,
-        text: json::text(message, "/text"),
+        text: text.into(),
+        // Both renderings made here, once per fetch, so a row can switch
+        // between them on the reader's setting without a round trip.
+        styled_text: markdown::render(text).into(),
+        plain_text: markdown::strip(text).into(),
+        // Absent from the abbreviated object a send answers with; a
+        // message composed here is never one held back.
+        download_state: json::text(message, "/downloadState"),
         // Contact id 1 is the well-known DC_CONTACT_ID_SELF.
         is_outgoing: json::u32_opt(message, "fromId") == Some(1),
         timestamp,

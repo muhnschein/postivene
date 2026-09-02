@@ -191,6 +191,15 @@ pub struct DeltaChatCore {
     /// All accounts known to the core.
     pub account_list: qt_property!(RefCell<AccountListModel>; CONST),
 
+    /// Attachments larger than this many bytes are fetched only when
+    /// asked for; 0 fetches everything. The reader's setting, applied to
+    /// every account the core has -- when it is set, and again each time
+    /// the account list is read, so a profile added later gets it too.
+    /// The core's `download_limit`, which it applies to future messages.
+    pub download_limit: qt_property!(u32; WRITE set_download_limit NOTIFY download_limit_changed),
+    /// Emitted when [`DeltaChatCore::download_limit`] changes.
+    pub download_limit_changed: qt_signal!(),
+
     /// Repopulate `account_list`. QML uses the `accounts_refreshed` result
     /// at startup to choose between onboarding and resuming an account.
     pub refresh_accounts: qt_method!(fn(&mut self)),
@@ -266,6 +275,10 @@ pub struct DeltaChatCore {
     /// failing to start, which is reported and left alone; after it, a
     /// failure is something to retry.
     supervising: bool,
+    /// True once QML has handed over a download limit. Until then the
+    /// property holds a default nobody chose, and writing that to every
+    /// account would be the app deciding for the reader.
+    download_limit_set: bool,
 }
 
 impl DeltaChatCore {
@@ -688,6 +701,73 @@ impl DeltaChatCore {
         });
     }
 
+    /// Set the download limit and apply it to every account.
+    pub fn set_download_limit(&mut self, bytes: u32) {
+        if self.download_limit_set && self.download_limit == bytes {
+            return;
+        }
+        self.download_limit = bytes;
+        self.download_limit_set = true;
+        self.download_limit_changed();
+        // Applied to whatever accounts the core has now; nothing to apply
+        // to before the core is up, and `refresh_accounts` covers that.
+        let Some((rpc, runtime)) = self.connection() else {
+            return;
+        };
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<Vec<u32>, String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            match result {
+                Ok(ids) => this.borrow().apply_download_limit(ids),
+                Err(err) => this.borrow().core_error(err.into()),
+            }
+        });
+        runtime.spawn(async move {
+            let result = rpc
+                .call_unit::<Vec<serde_json::Value>>("get_all_accounts")
+                .await
+                .map(|accounts| {
+                    accounts
+                        .iter()
+                        .filter_map(|account| json::u32_opt(account, "id"))
+                        .collect::<Vec<_>>()
+                })
+                .map_err(|err| err.to_string());
+            done(result);
+        });
+    }
+
+    /// Write the download limit to each of these accounts, if one has
+    /// been chosen. A failure is reported and the rest still written.
+    fn apply_download_limit(&self, ids: Vec<u32>) {
+        if !self.download_limit_set || ids.is_empty() {
+            return;
+        }
+        let Some((rpc, runtime)) = self.connection() else {
+            return;
+        };
+        let limit = self.download_limit.to_string();
+        let ptr: QPointer<Self> = QPointer::from(self);
+        let failed = queued_callback(move |err: String| {
+            if let Some(this) = ptr.as_pinned() {
+                this.borrow().core_error(err.into());
+            }
+        });
+        runtime.spawn(async move {
+            for account_id in ids {
+                if let Err(err) = rpc
+                    .call::<_, ()>(
+                        "set_config",
+                        (account_id, "download_limit", Some(limit.clone())),
+                    )
+                    .await
+                {
+                    failed(format!("could not set the download limit: {err}"));
+                }
+            }
+        });
+    }
+
     /// Repopulate [`DeltaChatCore::account_list`] from the core.
     pub fn refresh_accounts(&mut self) {
         let Some((rpc, runtime)) = self.connection() else {
@@ -709,10 +789,9 @@ impl DeltaChatCore {
                         .iter()
                         .find(|item| item.is_configured)
                         .map_or(0, |item| item.account_id);
-                    this.borrow_mut()
-                        .account_list
-                        .borrow_mut()
-                        .reset_data(items);
+                    let ids: Vec<u32> = items.iter().map(|item| item.account_id).collect();
+                    reconcile_accounts(&mut this.borrow_mut().account_list.borrow_mut(), items);
+                    this.borrow().apply_download_limit(ids);
                     this.borrow()
                         .accounts_refreshed(configured_count, first_configured_id);
                 }
@@ -735,6 +814,8 @@ impl DeltaChatCore {
                                 display_name: json::text(account, "displayName"),
                                 addr: json::text(account, "addr"),
                                 is_configured: json::str_at(account, "kind") == "Configured",
+                                avatar_path: json::text(account, "profileImage"),
+                                color: json::text(account, "color"),
                             })
                         })
                         .collect::<Vec<_>>()
@@ -989,12 +1070,96 @@ impl DeltaChatCore {
     }
 }
 
+/// Bring the account rows in line with `wanted` without rebuilding them.
+///
+/// `reset_data` destroys every delegate, and a profile counting down to
+/// its deletion *is* a delegate: Silica's remorse timer lives on the row.
+/// Deleting the first of several profiles reloaded the list and tore the
+/// other countdowns down with it, so only the first deletion happened and
+/// the rest had to be asked for again. Rows are removed, inserted and
+/// changed in place instead, so a row that is still there keeps its
+/// delegate and whatever that delegate is in the middle of.
+fn reconcile_accounts(rows: &mut AccountListModel, wanted: Vec<AccountItem>) {
+    let wanted_ids: BTreeSet<u32> = wanted.iter().map(|item| item.account_id).collect();
+    let gone: Vec<usize> = rows
+        .iter()
+        .enumerate()
+        .filter(|(_, row)| !wanted_ids.contains(&row.account_id))
+        .map(|(index, _)| index)
+        .collect();
+    // Backwards, so each index still means what it did when it was found.
+    for index in gone.into_iter().rev() {
+        rows.remove(index);
+    }
+    let count = wanted.len();
+    for (index, item) in wanted.into_iter().enumerate() {
+        // Read before the match: the iterator borrows the rows, and the
+        // arms write to them.
+        let current = rows.iter().nth(index).map(|row| row.account_id);
+        match current {
+            Some(id) if id == item.account_id => {
+                if rows[index] != item {
+                    rows.change_line(index, item);
+                }
+            }
+            _ => rows.insert(index, item),
+        }
+    }
+    // Only a reordering leaves anything past the end: a row inserted at
+    // its new place while its old one was still there.
+    while rows.iter().count() > count {
+        rows.remove(count);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        last_words, restart_delay, server_path, BUNDLED_SERVER, RESTART_DELAY_MAX,
-        RESTART_DELAY_MIN, RESTART_LIMIT,
+        last_words, reconcile_accounts, restart_delay, server_path, AccountItem, AccountListModel,
+        BUNDLED_SERVER, RESTART_DELAY_MAX, RESTART_DELAY_MIN, RESTART_LIMIT,
     };
+
+    fn account(id: u32, name: &str) -> AccountItem {
+        AccountItem {
+            account_id: id,
+            display_name: name.into(),
+            is_configured: true,
+            ..AccountItem::default()
+        }
+    }
+
+    fn ids(rows: &AccountListModel) -> Vec<(u32, String)> {
+        rows.iter()
+            .map(|row| (row.account_id, row.display_name.to_string()))
+            .collect()
+    }
+
+    #[test]
+    fn a_refresh_removes_inserts_and_changes_rows_where_they_stand() {
+        let mut rows = AccountListModel::default();
+        reconcile_accounts(
+            &mut rows,
+            vec![account(1, "a"), account(2, "b"), account(3, "c")],
+        );
+        assert_eq!(
+            ids(&rows),
+            vec![(1, "a".into()), (2, "b".into()), (3, "c".into())]
+        );
+        // One gone from the middle, one renamed, one new at the end.
+        reconcile_accounts(
+            &mut rows,
+            vec![account(1, "ada"), account(3, "c"), account(4, "d")],
+        );
+        assert_eq!(
+            ids(&rows),
+            vec![(1, "ada".into()), (3, "c".into()), (4, "d".into())]
+        );
+        // A reordering still ends with exactly the wanted rows.
+        reconcile_accounts(&mut rows, vec![account(4, "d"), account(1, "ada")]);
+        assert_eq!(ids(&rows), vec![(4, "d".into()), (1, "ada".into())]);
+        reconcile_accounts(&mut rows, Vec::new());
+        assert_eq!(ids(&rows), Vec::<(u32, String)>::new());
+    }
 
     fn args(list: &[&str]) -> Vec<String> {
         list.iter().map(ToString::to_string).collect()

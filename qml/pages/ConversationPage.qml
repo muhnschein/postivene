@@ -23,6 +23,9 @@ Page {
         account_id: page.accountId
         // What the reader can actually see decides what counts as read.
         reading_history: !page.readerIsLooking
+        // The reader's setting, from the system's Settings app: known
+        // tracking parameters come out of links on the way out.
+        clean_links: Settings.cleanLinks === true
         onError: page.errorMessage = message
         // Sending is its own answer to "have I read this": go to the
         // message just sent rather than counting it as one that was missed.
@@ -306,6 +309,7 @@ Page {
         // screen; this is what tells it which those are.
         onHydrateRequested: messages.hydrate(first, last)
         showSender: messages.is_group
+        markdownMode: Settings.markdownMode
         placeholderText: qsTr("No messages yet")
 
         // Reaching the newest message is what marks what is there read.
@@ -320,6 +324,7 @@ Page {
             notice.show(qsTr("Copied to clipboard"))
         }
         onOpenRequested: page.openAttachment(fileUrl, fileName, viewType)
+        onDownloadRequested: messages.download_full(messageId)
         onDeleteRequested: messages.delete_message(messageId)
         onResendRequested: messages.resend_message(messageId)
         onForwardRequested: {

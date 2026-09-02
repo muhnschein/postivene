@@ -222,6 +222,12 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   hands a viewfinder's pixels to anything, and a `.pgm` path makes Qt
   write a header and bytes that need no image crate to read. Both crates
   are pure Rust under the 1.75 floor, with the image dependency off.
+  Focus is the page's job, not the platform's: Sailfish has no scanning
+  API for third parties (the stock camera reads codes on its own, behind
+  no interface), and a `Camera` left to itself gave a viewfinder too soft
+  for any code, so the page runs it in video mode with continuous
+  autofocus, asks for a focus search every couple of seconds while
+  nothing has been read, and focuses on a tapped point.
 - **The server is supervised.** Its event stream ending is the app's only
   notice that the core has gone -- a phone reclaiming memory kills it and
   says nothing -- so that is where the next one is started, with a backoff

@@ -192,6 +192,8 @@ fn a_code_held_up_to_the_page_comes_back_as_its_text() {
         call!("setStatus", 2);
         record!("camera-active", get!("camera", "running"));
         record!("grabbing-active", get!("grabber", "running"));
+        // Focus is asked for while nothing has been read.
+        record!("focusing-active", get!("refocus", "running"));
         // The viewfinder timer's own call, with the frame made above.
         record!(
             "decode",
@@ -207,6 +209,10 @@ fn a_code_held_up_to_the_page_comes_back_as_its_text() {
         record!("heard", call!("heardText"));
         record!("camera-after", get!("camera", "running"));
         record!("grabbing-after", get!("grabber", "running"));
+        record!("focusing-after", get!("refocus", "running"));
+        // The first search ran as soon as the page came on screen, on the
+        // event loop turn after it did.
+        record!("searches", get!("camera", "searches"));
         record!("navigation", (*stack_ptr).pinned().borrow().log.to_string());
         (*engine_ptr).quit();
     });
@@ -252,6 +258,15 @@ fn assert_scan(steps: &[(&str, String)]) {
         "frames are not grabbed while the page is on screen. {context}"
     );
     assert_eq!(
+        value("focusing-active"),
+        "true",
+        "focus is not being asked for while scanning. {context}"
+    );
+    assert!(
+        value("searches").parse::<u32>().unwrap_or(0) >= 1,
+        "no focus search was run when the page came on screen. {context}"
+    );
+    assert_eq!(
         value("busy"),
         "true",
         "the scanner does not say it is busy while decoding, so frames \
@@ -271,6 +286,11 @@ fn assert_scan(steps: &[(&str, String)]) {
         value("grabbing-after"),
         "false",
         "frames keep being grabbed after a code was read. {context}"
+    );
+    assert_eq!(
+        value("focusing-after"),
+        "false",
+        "focus keeps being asked for after a code was read. {context}"
     );
     assert_eq!(
         value("navigation"),

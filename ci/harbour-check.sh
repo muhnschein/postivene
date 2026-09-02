@@ -602,7 +602,7 @@ else
         # spelled the same way. A rename on one side only is silent until
         # the app is confined on a device.
         if [ -n "$org" ] && [ -n "$app" ]; then
-            if grep -rqF "\"$org/$app/" "$root/rust"; then
+            if grep -rqF --exclude-dir=target "\"$org/$app/" "$root/rust"; then
                 note "[2.5] the app's data path uses OrganizationName/ApplicationName ($org/$app)"
             else
                 fail 2.5 "$org/$app" \

@@ -18,6 +18,13 @@ import Postivene 1.0
  * hands a viewfinder's pixels to anything, and go to the scanner as a
  * file. The next frame is grabbed only once the last has been decoded, so
  * a slow decode never queues frames behind it.
+ *
+ * Focus is asked for three ways, because a camera left to itself gave a
+ * viewfinder too soft for any code to register: continuous autofocus in
+ * the video pipeline, where the platform's cameras run it; a focus search
+ * every couple of seconds while nothing has been read, for a camera that
+ * only focuses when told; and a tap on the viewfinder, which focuses on
+ * the point under the finger.
  */
 Page {
     id: page
@@ -48,6 +55,31 @@ Page {
     Camera {
         id: camera
         objectName: "camera"
+        // The video pipeline is where continuous autofocus runs.
+        captureMode: Camera.CaptureVideo
+        focus {
+            focusMode: Camera.FocusContinuous
+            focusPointMode: Camera.FocusPointAuto
+        }
+    }
+
+    // An autofocus run, for a camera that does not run one on its own.
+    // Unlocked first: a search that finds focus locks it, and a locked
+    // focus is a fixed one.
+    function refocus() {
+        camera.unlock()
+        camera.searchAndLock()
+    }
+
+    // Every couple of seconds while nothing has been read.
+    Timer {
+        id: refocusTimer
+        objectName: "refocus"
+        interval: 2500
+        repeat: true
+        triggeredOnStart: true
+        running: page.status === PageStatus.Active && !page.done
+        onTriggered: page.refocus()
     }
 
     // The camera runs only while this page is the one on screen.
@@ -64,6 +96,17 @@ Page {
         objectName: "viewfinder"
         anchors.fill: parent
         source: camera
+
+        // Tap to focus on what is under the finger.
+        MouseArea {
+            objectName: "focusTap"
+            anchors.fill: parent
+            onClicked: {
+                camera.focus.focusPointMode = Camera.FocusPointCustom
+                camera.focus.customFocusPoint = Qt.point(mouse.x / width, mouse.y / height)
+                page.refocus()
+            }
+        }
     }
 
     // Grabbed small: a code fills a good part of the frame when someone

@@ -570,6 +570,10 @@
         <source>Deleting profile</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Add profile</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ReplyBar</name>

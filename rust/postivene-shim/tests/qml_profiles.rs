@@ -136,6 +136,13 @@ const PROBE_QML: &str = r"
             row.clicked()
             return 'ok'
         }
+        // The pulley's way to another profile.
+        function addProfile() {
+            var item = findIn(loader.item, 'addProfileMenuItem')
+            if (!item) { return 'missing:addProfileMenuItem' }
+            item.clicked()
+            return 'ok'
+        }
     }
 ";
 
@@ -209,6 +216,9 @@ fn switching_profile_leaves_one_chat_list_on_the_stack() {
 
     single_shot(Duration::from_secs(7), move || unsafe {
         (*steps_ptr).push(("seeded", (*stack_ptr).pinned().borrow().stack.to_string()));
+        // Another profile is made from the pulley, on top of this page.
+        (*steps_ptr).push(("add", call!("addProfile")));
+        (*steps_ptr).push(("added", (*stack_ptr).pinned().borrow().stack.to_string()));
         (*steps_ptr).push(("tap", call!("tapFirstRow")));
     });
 
@@ -252,6 +262,17 @@ fn switching_profile_leaves_one_chat_list_on_the_stack() {
         value("seeded"),
         "ChatListPage.qml,ProfilesPage.qml",
         "the stack was not seeded as the app really has it. {context}"
+    );
+    assert_eq!(
+        value("add"),
+        "ok",
+        "the pulley offers no way to add a profile. {context}"
+    );
+    assert!(
+        value("added").ends_with(",CreateProfilePage.qml"),
+        "adding a profile did not open the create-profile page on top: \
+         {}. {context}",
+        value("added")
     );
     // Also the guard that the list really had rows: with no accounts there
     // is no row to tap and nothing here would be under test.

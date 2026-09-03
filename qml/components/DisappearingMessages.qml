@@ -2,8 +2,8 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 
 /*
- * How long messages in a chat live: the same eight choices the reference
- * clients offer, from off to five weeks.
+ * How long messages in a chat live: the same nine choices the reference
+ * clients offer, from off to a year.
  *
  * The core is what decides. The chosen index is bound from it rather than
  * held here, and a tap asks the core for the other value; the binding then
@@ -11,6 +11,11 @@ import Sailfish.Silica 1.0
  * switch, and for the same reason. Silica's ComboBox writes currentIndex
  * itself on a tap, which detaches the binding, so the page puts it back on
  * every load.
+ *
+ * A duration another client set that is not on the list is still said in
+ * the largest unit that fits it, rather than as a count of seconds: a year
+ * set from a desktop showed as "After 31536000 second(s)" before this had
+ * a year on its list, and the next odd value would do the same.
  */
 Column {
     id: root
@@ -24,19 +29,39 @@ Column {
     signal chosen(int seconds)
 
     // In the reference clients' order.
-    readonly property var choices: [0, 60, 300, 1800, 3600, 86400, 604800, 3024000]
+    readonly property var choices: [0, 60, 300, 1800, 3600, 86400, 604800, 3024000, 31536000]
+
+    /// A duration in words: the largest unit it is at least one of, with
+    /// a decimal only when it is not a whole number of them. Two forms by
+    /// hand rather than qsTr's %n: without a loaded translation %n shows
+    /// the source text as it stands, "(s)" and all.
+    function words(value) {
+        if (value <= 0) {
+            return qsTr("Off")
+        }
+        var units = [
+            [31536000, qsTr("After 1 year"), qsTr("After %1 years")],
+            [604800, qsTr("After 1 week"), qsTr("After %1 weeks")],
+            [86400, qsTr("After 1 day"), qsTr("After %1 days")],
+            [3600, qsTr("After 1 hour"), qsTr("After %1 hours")],
+            [60, qsTr("After 1 minute"), qsTr("After %1 minutes")],
+            [1, qsTr("After 1 second"), qsTr("After %1 seconds")]
+        ]
+        for (var i = 0; i < units.length; i++) {
+            if (value >= units[i][0]) {
+                var count = value / units[i][0]
+                if (count === 1) {
+                    return units[i][1]
+                }
+                var shown = count === Math.floor(count) ? count : count.toFixed(1)
+                return units[i][2].arg(shown)
+            }
+        }
+        return qsTr("Off")
+    }
 
     function labelFor(index) {
-        switch (index) {
-        case 0: return qsTr("Off")
-        case 1: return qsTr("After 1 minute")
-        case 2: return qsTr("After 5 minutes")
-        case 3: return qsTr("After 30 minutes")
-        case 4: return qsTr("After 1 hour")
-        case 5: return qsTr("After 1 day")
-        case 6: return qsTr("After 1 week")
-        default: return qsTr("After 5 weeks")
-        }
+        return root.words(root.choices[index])
     }
 
     function indexOf(value) {
@@ -64,12 +89,8 @@ Column {
         width: parent.width
         label: qsTr("Disappearing messages")
         enabled: root.canChange
-        // A duration another client set that is not on the list is still
-        // said, in seconds, rather than shown as nothing.
-        value: currentIndex >= 0
-               ? root.labelFor(currentIndex)
-               //: A disappearing-messages duration not among the offered ones. %n is seconds.
-               : qsTr("After %n second(s)", "", root.seconds)
+        // On the list or not, the duration is said the same way.
+        value: root.words(root.seconds)
 
         menu: ContextMenu {
             Repeater {

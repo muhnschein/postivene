@@ -6,7 +6,7 @@ builds**:
 
 - **Project:** Delta Chat core (chatmail core library)
 - **Source code:** https://github.com/chatmail/core
-- **Version / tag:** `v2.53.0`
+- **Version / tag:** `v2.59.0`
 - **License:** MPL-2.0. Postivene itself is GPL-3.0-or-later; the two sit
   side by side in the RPM as separate works, and this file is installed
   with the package to satisfy MPL-2.0 §3.2(a)'s requirement that recipients
@@ -18,7 +18,7 @@ builds**:
   incompatibility", per that workflow). Target triples:
   `aarch64-unknown-linux-musl`, `armv7-unknown-linux-musleabihf`
   (hard-float, matching Sailfish `armv7hl`), `x86_64-unknown-linux-musl`.
-- **Distribution channel used:** the PyPI `deltachat-rpc-server==2.53.0`
+- **Distribution channel used:** the PyPI `deltachat-rpc-server==2.59.0`
   wheels, which contain the same binaries upstream attaches to its GitHub
   release (both are the nix build output). Fetched, checksum-verified, and
   placed here by `scripts/fetch-rpc-server.sh` — that script pins the
@@ -28,9 +28,9 @@ builds**:
 
 ```
 vendor/deltachat-rpc-server/
-  aarch64/deltachat-rpc-server   sha256 2df89ca213948e4557a11eff3ffff05efd46c0314374fc791309bd1b7fe6b769
-  armv7hl/deltachat-rpc-server   sha256 d7c20192ab29b0bc80e15a464b436a0ffcc4b0e21c4f43f3fffc6c5268410645
-  x86_64/deltachat-rpc-server    sha256 dcc37af7b7e95aae714c2366ff9f6d5c64170d0a7bb72cd7e3926a1a46e7e750
+  aarch64/deltachat-rpc-server   sha256 9ea514d0e9ef9c1b76ca9e490b05e07047cff48b53188e282d4ee482f2078ba0
+  armv7hl/deltachat-rpc-server   sha256 5d0c0d1c64bcd45dec768b5c6ff28df95033c5aac0cde794201be341c5984af4
+  x86_64/deltachat-rpc-server    sha256 b73ce0f8732f7589cd34e59db4b2ed6a0f6ab6857e691b73b06710e150af4ee0
 ```
 
 Directory names are Sailfish's architecture names (`%{_target_cpu}` in

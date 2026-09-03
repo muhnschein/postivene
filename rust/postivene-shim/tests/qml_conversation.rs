@@ -197,6 +197,33 @@ fn a_message_shows_its_sender_time_quote_and_attachment() {
 
     single_shot(Duration::from_secs(8), move || unsafe {
         record!("plain-not-forwarded", get!("forwardedLabel", "visible"));
+        // Markdown, as the setting wants it: the shim's rendering drawn
+        // as StyledText, its words alone, or the message as written.
+        set!("messageText", QString::from("**bold** words"));
+        set!("styledText", QString::from("<b>bold</b> words"));
+        set!("plainText", QString::from("bold words"));
+        set!("markdownMode", 0);
+        record!("drawn-text", get!("messageLabel", "text"));
+        record!("drawn-format", get!("messageLabel", "textFormat"));
+        set!("markdownMode", 1);
+        record!("stripped-text", get!("messageLabel", "text"));
+        record!("stripped-format", get!("messageLabel", "textFormat"));
+        set!("markdownMode", 2);
+        record!("written-text", get!("messageLabel", "text"));
+        record!("written-format", get!("messageLabel", "textFormat"));
+        // Drawn, but with nothing rendered to draw: never the raw text as
+        // StyledText, which is the case the plain-text pinning exists for.
+        set!("markdownMode", 0);
+        set!("styledText", QString::from(""));
+        record!("unrendered-text", get!("messageLabel", "text"));
+        record!("unrendered-format", get!("messageLabel", "textFormat"));
+        // A message the download limit held back offers the rest.
+        record!("download-hidden", get!("downloadButton", "visible"));
+        set!("downloadState", QString::from("Available"));
+        record!("download-shown", get!("downloadButton", "visible"));
+        record!("download-text", get!("downloadButton", "text"));
+        set!("downloadState", QString::from("Done"));
+        record!("download-done", get!("downloadButton", "visible"));
         (*engine_ptr).quit();
     });
 
@@ -204,6 +231,70 @@ fn a_message_shows_its_sender_time_quote_and_attachment() {
 
     assert_outcome(&steps);
     assert_forwarded(&steps);
+    assert_markdown_and_download(&steps);
+}
+
+/// The body follows the Markdown setting, is `StyledText` only when the
+/// shim rendered it, and a held-back message offers its rest.
+fn assert_markdown_and_download(steps: &[(&str, String)]) {
+    let context = format!("steps: {steps:?}");
+    let value = |label: &str| {
+        steps
+            .iter()
+            .find(|(name, _)| *name == label)
+            .map(|(_, value)| value.clone())
+            .unwrap_or_default()
+    };
+    // Text.PlainText is 0 and Text.StyledText is 4.
+    assert_eq!(
+        (value("drawn-text").as_str(), value("drawn-format").as_str()),
+        ("<b>bold</b> words", "4"),
+        "with Markdown drawn, the body is not the rendering as StyledText. {context}"
+    );
+    assert_eq!(
+        (
+            value("stripped-text").as_str(),
+            value("stripped-format").as_str()
+        ),
+        ("bold words", "0"),
+        "with Markdown taken out, the body is not the words as plain text. {context}"
+    );
+    assert_eq!(
+        (
+            value("written-text").as_str(),
+            value("written-format").as_str()
+        ),
+        ("**bold** words", "0"),
+        "with Markdown off, the body is not the message as written. {context}"
+    );
+    assert_eq!(
+        (
+            value("unrendered-text").as_str(),
+            value("unrendered-format").as_str()
+        ),
+        ("**bold** words", "0"),
+        "a row with nothing rendered drew its raw text as StyledText, which \
+         is exactly what the plain-text pinning is for. {context}"
+    );
+    assert_eq!(
+        value("download-hidden"),
+        "false",
+        "a message with nothing to fetch offers a download. {context}"
+    );
+    assert_eq!(
+        value("download-shown"),
+        "true",
+        "a message the limit held back offers no way to fetch the rest. {context}"
+    );
+    assert!(
+        value("download-text").contains("Download"),
+        "the download offer does not say what it does. {context}"
+    );
+    assert_eq!(
+        value("download-done"),
+        "false",
+        "the offer stays once the message is fetched. {context}"
+    );
 }
 
 /// Everything the conversation view has to get right about one message.

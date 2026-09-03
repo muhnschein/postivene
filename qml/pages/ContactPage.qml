@@ -13,8 +13,19 @@ import Postivene 1.0
  * one, and the core's own words for a contact are the name, the picture
  * and the status line.
  *
+ * The name can be the reader's own for them: the name under the picture
+ * wears an edit badge, a tap on it turns the name into a field, and what
+ * is typed there is what the contact is called here. Leaving it blank
+ * goes back to theirs -- the core's own rule for an empty name -- and the
+ * name stands there again the next time the page is seen. Applied a
+ * pause after typing stops and again on the way out, the way the group
+ * page renames a group.
+ *
  * The same ChatInfo as the group page: a one-to-one chat has one member,
- * the contact, so the model that lists a group's members lists them.
+ * the contact, so the model that lists a group's members lists them. The
+ * row is read into properties of the page rather than drawn from, so a
+ * reload -- every save is one -- does not rebuild what the reader is
+ * looking at, or the field under their thumb.
  */
 Page {
     id: page
@@ -46,6 +57,94 @@ Page {
         }
     }
 
+    /// The one member, lifted out of the row that reads it.
+    property int contactId: 0
+    /// The name given here, empty when none was.
+    property string givenName: ""
+    /// The name they chose for themselves.
+    property string ownName: ""
+    /// The name the core shows them under: the given one, else theirs.
+    property string displayName: ""
+    property string contactColor: ""
+    property string avatarPath: ""
+    /// What they wrote about themselves, when they did.
+    property string statusLine: ""
+    property bool isVerified: false
+    property bool isKeyContact: true
+
+    /// Someone has typed since the load. Guards the refill below.
+    property bool edited: false
+    /// The refill is writing to the field, so the change is not an edit.
+    property bool filling: false
+
+    // Filled from the core, never re-filled from it while someone is
+    // typing: every save reloads, and that would reset the cursor.
+    onGivenNameChanged: {
+        if (!page.edited) {
+            page.filling = true
+            nameField.text = page.givenName
+            page.filling = false
+        }
+    }
+
+    // A pause, not a keystroke: a round trip per letter would be three
+    // calls to write "Ada".
+    Timer {
+        id: autosave
+        objectName: "autosave"
+        interval: 1200
+        onTriggered: page.applyEdits()
+    }
+
+    function applyEdits() {
+        if (!chat.loaded || !page.edited || page.contactId === 0) {
+            return
+        }
+        page.edited = false
+        chat.rename_contact(page.contactId, nameField.text)
+    }
+
+    function noteEdit() {
+        if (chat.loaded && !page.filling) {
+            page.edited = true
+            autosave.restart()
+        }
+    }
+
+    // Leaving is the other moment worth saving at: a back-swipe within
+    // the pause above would otherwise drop what was typed. The field
+    // goes back to being a name on the way out too.
+    onStatusChanged: {
+        if (status === PageStatus.Deactivating) {
+            page.applyEdits()
+            nameField.editing = false
+        }
+    }
+
+    // One row, the contact, read into the page: a Repeater is how a model
+    // row is read from QML, and the one here has exactly one. Nothing is
+    // drawn in here, so the reload behind every save rebuilds nothing on
+    // screen.
+    Repeater {
+        model: chat.members
+
+        delegate: Item {
+            objectName: "contactDetails"
+            width: 0
+            height: 0
+
+            Binding { target: page; property: "contactId"; value: model.contact_id }
+            Binding { target: page; property: "givenName"; value: model.name }
+            Binding { target: page; property: "ownName"; value: model.auth_name }
+            Binding { target: page; property: "displayName"; value: model.display_name }
+            Binding { target: page; property: "contactColor"; value: model.color }
+            Binding { target: page; property: "avatarPath"; value: model.avatar_path }
+            Binding { target: page; property: "statusLine"; value: model.status }
+            Binding { target: page; property: "isVerified"; value: model.is_verified }
+            Binding { target: page; property: "isKeyContact"; value: model.is_key_contact }
+        }
+    }
+
     SilicaFlickable {
         anchors.fill: parent
         contentHeight: column.height + Theme.paddingLarge
@@ -59,80 +158,78 @@ Page {
                 title: qsTr("Contact")
             }
 
-            // One row, the contact: a Repeater is how a model row is read
-            // from QML, and the one here has exactly one.
-            Repeater {
-                model: chat.members
+            Item {
+                width: parent.width
+                height: bigAvatar.height + 2 * Theme.paddingLarge
 
-                delegate: Column {
-                    objectName: "contactDetails"
-                    width: column.width
-                    spacing: Theme.paddingMedium
-
-                    Item {
-                        width: parent.width
-                        height: bigAvatar.height + 2 * Theme.paddingLarge
-
-                        Avatar {
-                            id: bigAvatar
-                            objectName: "contactAvatar"
-                            anchors.centerIn: parent
-                            width: 2 * Theme.itemSizeExtraLarge
-                            initial: model.display_name
-                            ownColor: model.color
-                            picturePath: model.avatar_path
-                        }
-                    }
-
-                    // The name is the contact's own choice, so it is
-                    // drawn as written.
-                    Label {
-                        objectName: "contactName"
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        width: parent.width - 2 * Theme.horizontalPageMargin
-                        horizontalAlignment: Text.AlignHCenter
-                        wrapMode: Text.Wrap
-                        textFormat: Text.PlainText
-                        font.pixelSize: Theme.fontSizeLarge
-                        color: Theme.highlightColor
-                        text: model.display_name
-                    }
-
-                    // The same two facts the chat list marks a row with,
-                    // said in words: whether the connection is encrypted,
-                    // and whether it was checked in person.
-                    Label {
-                        objectName: "encryptionLabel"
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        width: parent.width - 2 * Theme.horizontalPageMargin
-                        horizontalAlignment: Text.AlignHCenter
-                        wrapMode: Text.Wrap
-                        font.pixelSize: Theme.fontSizeSmall
-                        color: Theme.secondaryHighlightColor
-                        // Translated literals, but pinned all the same:
-                        // the binding reads the model to choose one.
-                        textFormat: Text.PlainText
-                        text: model.is_verified
-                              ? qsTr("Verified: end-to-end encrypted, and checked in person")
-                              : model.is_key_contact
-                                ? qsTr("End-to-end encrypted")
-                                : qsTr("Not encrypted: a plain email contact")
-                    }
-
-                    // What they wrote about themselves, when they did.
-                    // Their words, so pinned to plain text.
-                    Label {
-                        objectName: "statusLabel"
-                        visible: model.status.length > 0
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        width: parent.width - 2 * Theme.horizontalPageMargin
-                        horizontalAlignment: Text.AlignHCenter
-                        wrapMode: Text.Wrap
-                        textFormat: Text.PlainText
-                        color: Theme.primaryColor
-                        text: model.status
-                    }
+                Avatar {
+                    id: bigAvatar
+                    objectName: "contactAvatar"
+                    anchors.centerIn: parent
+                    width: 2 * Theme.itemSizeExtraLarge
+                    initial: page.displayName
+                    ownColor: page.contactColor
+                    picturePath: page.avatarPath
                 }
+            }
+
+            // What to call them here. The name shows what they chose
+            // until one is given; the field, when it is up, holds only
+            // what was given, with theirs standing in the empty field --
+            // which is also what a blank field goes back to.
+            EditableName {
+                id: nameField
+                objectName: "contactNameControl"
+                labelObjectName: "contactName"
+                fieldObjectName: "contactNameField"
+                badgeObjectName: "nameEditBadge"
+                hintObjectName: "nameHint"
+                fallbackText: page.ownName
+                placeholderText: page.ownName.length > 0 ? page.ownName : qsTr("Name")
+                hint: qsTr("Leave blank to use the name they chose")
+                onTextChanged: page.noteEdit()
+            }
+
+            // The same two facts the chat list marks a row with, said in
+            // words: whether the connection is encrypted, and whether it
+            // was checked in person.
+            Label {
+                objectName: "encryptionLabel"
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
+                font.pixelSize: Theme.fontSizeSmall
+                color: Theme.secondaryHighlightColor
+                // Translated literals, but pinned all the same: the
+                // binding reads the page to choose one.
+                textFormat: Text.PlainText
+                text: page.isVerified
+                      ? qsTr("Verified: end-to-end encrypted, and checked in person")
+                      : page.isKeyContact
+                        ? qsTr("End-to-end encrypted")
+                        : qsTr("Not encrypted: a plain email contact")
+            }
+
+            // What they wrote about themselves, when they did. Their
+            // words, so pinned to plain text.
+            Label {
+                objectName: "statusLabel"
+                visible: page.statusLine.length > 0
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
+                textFormat: Text.PlainText
+                color: Theme.primaryColor
+                text: page.statusLine
+            }
+
+            // Room under the name, so the badge at its corner does not
+            // sit on what follows.
+            Item {
+                width: 1
+                height: Theme.paddingLarge
             }
 
             DisappearingMessages {

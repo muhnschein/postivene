@@ -14,6 +14,7 @@ use qmetaobject::*;
 use crate::core::connection;
 use crate::json;
 use crate::models::{MessageListItem, MessageListModel};
+use crate::{links, markdown};
 
 /// `DC_STATE_IN_FRESH` and `DC_STATE_IN_NOTICED`: an incoming message the
 /// account has not read yet.
@@ -134,6 +135,13 @@ pub struct ChatMessages {
     pub is_group: qt_property!(bool; NOTIFY is_group_changed),
     /// Emitted once the chat's kind is known.
     pub is_group_changed: qt_signal!(),
+    /// The chat's name as the core shows it: the group's, or the contact's
+    /// display name. Empty until read. Re-read on every event that could
+    /// have changed it, so the header over the messages follows a rename
+    /// made on the page beside it, or on another device.
+    pub chat_name: qt_property!(QString; NOTIFY chat_name_changed),
+    /// Emitted when `chat_name` is re-read and differs.
+    pub chat_name_changed: qt_signal!(),
 
     /// The rows, for a `SilicaListView`'s `model`.
     pub rows: qt_property!(RefCell<MessageListModel>; CONST),
@@ -202,6 +210,16 @@ pub struct ChatMessages {
     pub quoted_message_id: qt_property!(u32; NOTIFY quote_changed),
     /// Emitted when `quoted_message_id` changes.
     pub quote_changed: qt_signal!(),
+
+    /// Take known tracking parameters out of the links in what is sent.
+    /// The reader's setting, handed in by the page; see `links.rs`.
+    pub clean_links: qt_property!(bool; NOTIFY clean_links_changed),
+    /// Emitted when [`Self::clean_links`] changes.
+    pub clean_links_changed: qt_signal!(),
+
+    /// Fetch the rest of a message the core holds only the header of.
+    /// The core announces the result as a change to the message.
+    pub download_full: qt_method!(fn(&mut self, message_id: u32)),
 
     /// Send a plain-text message to this chat.
     pub send: qt_method!(fn(&mut self, text: QString)),
@@ -391,6 +409,10 @@ impl ChatMessages {
         // flag being down is what tells such a reply to drop.
         self.hydrating = false;
         self.hydrating_changed();
+        // The name is its own small fetch, on both paths below: the
+        // prefetch does not carry it, and the page opens with the name the
+        // list handed it anyway.
+        self.refresh_name();
         // Already loaded, by whoever opened this page: take it and skip
         // the round trip entirely. This is what lets the transition start
         // with the rows in place rather than fill in behind it.
@@ -605,8 +627,45 @@ impl ChatMessages {
                     self.refresh_one(message_id);
                 }
             }
+            // A rename, of the group or of the contact behind a one-to-one
+            // chat; the core does not say whose contact changed.
+            "ChatModified" | "ContactsChanged" => self.refresh_name(),
             _ => {}
         }
+    }
+
+    /// Re-read the chat's name: one `get_basic_chat_info`, cheap enough
+    /// to do on every event that could have changed it. Nothing is said
+    /// when it did not.
+    fn refresh_name(&mut self) {
+        let (account_id, chat_id) = (self.account_id, self.chat_id);
+        if account_id == 0 || chat_id == 0 {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            return;
+        };
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |name: Option<String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            let Some(name) = name else { return };
+            // Answered for a chat this model has moved on from.
+            if this.borrow().chat_id != chat_id {
+                return;
+            }
+            if this.borrow().chat_name.to_string() != name {
+                this.borrow_mut().chat_name = name.into();
+                this.borrow().chat_name_changed();
+            }
+        });
+        runtime.spawn(async move {
+            let name = rpc
+                .call::<_, serde_json::Value>("get_basic_chat_info", (account_id, chat_id))
+                .await
+                .ok()
+                .map(|info| json::str_at(&info, "name").to_string());
+            done(name);
+        });
     }
 
     /// Bring the rows in line with the chat's current id list.
@@ -884,6 +943,41 @@ impl ChatMessages {
         self.act("resend_messages", message_id);
     }
 
+    /// Fetch the rest of a message held back by the download limit.
+    ///
+    /// Its own call rather than `act`: the method takes one id, not a
+    /// list, and the row is re-read on the `MsgsChanged` the core sends
+    /// once the download lands rather than on this call's return, which
+    /// only says the download was started.
+    pub fn download_full(&mut self, message_id: u32) {
+        let account_id = self.account_id;
+        if account_id == 0 || message_id == 0 {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            self.error(QString::from("not started"));
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<(), String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            match result {
+                // The state moves to InProgress at once; show that.
+                Ok(()) => this.borrow_mut().refresh_one(message_id),
+                Err(err) => this.borrow().error(err.into()),
+            }
+        });
+
+        runtime.spawn(async move {
+            let result = rpc
+                .call::<_, ()>("download_full_message", (account_id, message_id))
+                .await
+                .map_err(|err| err.to_string());
+            done(result);
+        });
+    }
+
     /// Send a copy of one message into another chat.
     ///
     /// Not routed through the shared `act` helper: that calls
@@ -954,7 +1048,17 @@ impl ChatMessages {
 
     /// Send a plain-text message.
     pub fn send(&mut self, text: QString) {
-        self.send_message(text.to_string(), None);
+        self.send_message(self.outgoing_text(&text.to_string()), None);
+    }
+
+    /// The text as it goes out: with its links cleaned when the reader
+    /// asked for that, as written otherwise.
+    fn outgoing_text(&self, text: &str) -> String {
+        if self.clean_links {
+            links::clean_text(text)
+        } else {
+            text.to_string()
+        }
     }
 
     /// Send a message with a file attached.
@@ -965,7 +1069,7 @@ impl ChatMessages {
             return;
         }
         let name = file_name_of(&path);
-        self.send_message(text.to_string(), Some((path, name)));
+        self.send_message(self.outgoing_text(&text.to_string()), Some((path, name)));
     }
 
     /// The one send. `file` is the path the core should attach and the name
@@ -1207,10 +1311,18 @@ fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
         "" => json::text(message, "/sender/displayName"),
         name => name.into(),
     };
+    let text = json::str_at(message, "text");
     MessageListItem {
         message_id,
         loaded: true,
-        text: json::text(message, "/text"),
+        text: text.into(),
+        // Both renderings made here, once per fetch, so a row can switch
+        // between them on the reader's setting without a round trip.
+        styled_text: markdown::render(text).into(),
+        plain_text: markdown::strip(text).into(),
+        // Absent from the abbreviated object a send answers with; a
+        // message composed here is never one held back.
+        download_state: json::text(message, "/downloadState"),
         // Contact id 1 is the well-known DC_CONTACT_ID_SELF.
         is_outgoing: json::u32_opt(message, "fromId") == Some(1),
         timestamp,

@@ -1,6 +1,8 @@
 import QtQuick 2.0
 import QtMultimedia 5.6
 import Sailfish.Silica 1.0
+import "../components"
+import Postivene 1.0
 
 /*
  * One video, played here.
@@ -8,7 +10,8 @@ import Sailfish.Silica 1.0
  * Tapping a video used to hand it to whatever the system thought played
  * video, which left Postivene and, on a device, failed there. QtMultimedia
  * is already how a voice message plays in its own row; this is the same
- * player with a picture. The way out to another app stays in the pull-down.
+ * player with a picture. The way out to another app stays in the pull-down,
+ * and so does a copy into the Videos folder, where the gallery finds it.
  */
 Page {
     id: page
@@ -53,6 +56,21 @@ Page {
         autoPlay: true
     }
 
+    // A copy for the gallery. The folder is the platform's own answer to
+    // where videos go; the sandbox grants it (UserDirs).
+    FileSaver {
+        id: saver
+        objectName: "saver"
+        onSaved: {
+            notice.tone = "info"
+            notice.show(qsTr("Saved to Videos"))
+        }
+        onError: {
+            notice.tone = "error"
+            notice.show(message)
+        }
+    }
+
     // Stopped on the way out. A page that is gone is not a reason for a
     // decoder to keep running, and on a phone it is a reason it should not.
     Component.onDestruction: player.stop()
@@ -79,6 +97,11 @@ Page {
                 text: qsTr("Open in another app")
                 onClicked: Qt.openUrlExternally(page.fileUrl)
             }
+            MenuItem {
+                objectName: "saveToDevice"
+                text: qsTr("Save to device")
+                onClicked: saver.save(page.fileUrl, StandardPaths.videos)
+            }
         }
 
         VideoOutput {
@@ -86,7 +109,7 @@ Page {
             anchors {
                 left: parent.left
                 right: parent.right
-                top: parent.top
+                top: notice.bottom
                 bottom: controls.top
             }
             // fillMode left at its default, which is PreserveAspectFit.
@@ -98,6 +121,22 @@ Page {
                 anchors.fill: parent
                 onClicked: page.toggle()
             }
+        }
+
+        // Where the copy went, or why there is none. Above the video,
+        // which is laid out below it.
+        Banner {
+            id: notice
+            objectName: "notice"
+            labelObjectName: "noticeLabel"
+            tone: "info"
+            timeout: 4
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: parent.top
+            }
+            onDismissed: notice.text = ""
         }
 
         Item {

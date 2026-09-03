@@ -61,20 +61,45 @@ struct State {
     /// The unsent text each chat is holding. The core keeps drafts, so a
     /// fake standing in for it has to as well.
     drafts: std::collections::BTreeMap<u32, String>,
+    /// Names given to contacts here, by contact. The real core shows one
+    /// in place of what the contact calls themselves, and an empty name
+    /// puts theirs back.
+    contact_names: std::collections::BTreeMap<u32, String>,
+    /// Messages whose remainder was asked for; see `downloadState`.
+    downloaded: std::collections::BTreeSet<u32>,
+    /// Chats with an unread message on them, by account: marked unread
+    /// from the list, and cleared when the chat is noticed. The real
+    /// core counts fresh messages; this counts a chat as having one.
+    fresh: std::collections::BTreeSet<(u32, u32)>,
 }
 
 impl State {
+    /// A config value, as the real core would read it back.
+    fn config(&self, account: u32, key: &str) -> Option<String> {
+        self.config.get(&(account, key.to_string())).cloned()
+    }
+
+    /// The accounts, shaped as the real core shapes them: a configured
+    /// one carries its profile -- name, address, picture, colour -- and
+    /// an unconfigured one is an id and nothing else.
     fn account_list(&self) -> Value {
         Value::Array(
             self.accounts
                 .iter()
                 .map(|account| {
-                    json!({
-                        "id": account.id,
-                        "kind": if account.configured { "Configured" } else { "Unconfigured" },
-                        "displayName": "",
-                        "addr": "",
-                    })
+                    if account.configured {
+                        json!({
+                            "id": account.id,
+                            "kind": "Configured",
+                            "displayName": self.config(account.id, "displayname").unwrap_or_default(),
+                            "addr": self.config(account.id, "configured_addr")
+                                .unwrap_or_else(|| format!("account{}@example.org", account.id)),
+                            "profileImage": self.config(account.id, "selfavatar"),
+                            "color": "#4a90d9",
+                        })
+                    } else {
+                        json!({"id": account.id, "kind": "Unconfigured"})
+                    }
                 })
                 .collect(),
         )
@@ -139,16 +164,33 @@ impl State {
     /// own contact is not in the list but can be asked for by id, which
     /// is how a chat's members come back. Ada has written a line about
     /// herself, so a contact page has one to show.
+    ///
+    /// The three names are the real core's: `authName` is what the
+    /// contact calls themselves, `name` what was given to them here, and
+    /// `displayName` the second when there is one, else the first.
     fn contact_object(&self, contact: u32) -> Option<Value> {
         let address = if contact == SELF {
             "me@example.org"
         } else {
             self.contacts.get(&contact)?
         };
+        let auth_name = address.split('@').next().unwrap_or(address);
+        let name = self
+            .contact_names
+            .get(&contact)
+            .cloned()
+            .unwrap_or_default();
+        let display_name = if name.is_empty() {
+            auth_name.to_string()
+        } else {
+            name.clone()
+        };
         Some(json!({
             "id": contact,
             "address": address,
-            "displayName": address.split('@').next().unwrap_or(address),
+            "authName": auth_name,
+            "name": name,
+            "displayName": display_name,
             "isVerified": contact == 10,
             "isKeyContact": true,
             "status": if contact == 10 { "Poet and mathematician" } else { "" },
@@ -443,9 +485,65 @@ async fn main() {
                         .map_or(Value::Null, Value::String);
                     ok(&id, &value)
                 }
+                // Read and unread, as the list marks them. The real core
+                // announces both, and the announcements are what every
+                // badge follows; `get_fresh_msgs` is what the profiles
+                // page counts.
+                "marknoticed_chat" => {
+                    let account = account_id();
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.fresh.remove(&(account, chat));
+                    state.events.push_back(json!({
+                        "contextId": account,
+                        "event": {"kind": "MsgsNoticed", "chatId": chat},
+                    }));
+                    ok(&id, &Value::Null)
+                }
+                "markfresh_chat" => {
+                    let account = account_id();
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    state.fresh.insert((account, chat));
+                    // The real core (chat.rs, `markfresh_chat`) puts the
+                    // newest incoming message back to fresh and announces
+                    // the chat changed, with no message named, and its
+                    // list item changed.
+                    state.events.push_back(json!({
+                        "contextId": account,
+                        "event": {"kind": "MsgsChanged", "chatId": chat, "msgId": 0},
+                    }));
+                    state.events.push_back(json!({
+                        "contextId": account,
+                        "event": {"kind": "ChatlistItemChanged", "chatId": chat},
+                    }));
+                    ok(&id, &Value::Null)
+                }
+                "get_fresh_msgs" => {
+                    let account = account_id();
+                    let state = state.lock().await;
+                    let ids: Vec<u32> = state
+                        .fresh
+                        .iter()
+                        .filter(|(owner, _)| *owner == account)
+                        .filter_map(|(_, chat)| {
+                            state
+                                .chats
+                                .get(chat)
+                                .and_then(|messages| messages.last().copied())
+                        })
+                        .collect();
+                    ok(&id, &json!(ids))
+                }
                 "start_io"
                 | "stop_ongoing_process"
-                | "marknoticed_chat"
                 | "markseen_msgs"
                 | "set_chat_visibility"
                 | "set_chat_mute_duration"
@@ -485,23 +583,76 @@ async fn main() {
                     let mut state = state.lock().await;
                     state.seed_chats();
                     let query = positional(2).as_str().unwrap_or_default().to_lowercase();
-                    let contacts: Vec<Value> = state
+                    let ids: Vec<u32> = state
                         .contacts
                         .iter()
                         .filter(|(_, address)| {
                             query.is_empty() || address.to_lowercase().contains(&query)
                         })
-                        .map(|(contact, address)| {
-                            json!({
-                                "id": contact,
-                                "address": address,
-                                "displayName": address.split('@').next().unwrap_or(address),
-                                "isVerified": false,
-                                "isKeyContact": true,
-                            })
-                        })
+                        .map(|(contact, _)| *contact)
+                        .collect();
+                    let contacts: Vec<Value> = ids
+                        .iter()
+                        .filter_map(|contact| state.contact_object(*contact))
                         .collect();
                     ok(&id, &Value::Array(contacts))
+                }
+                // A name of the reader's own for a contact; empty puts the
+                // contact's own back. Announced the way the real core
+                // announces any contact change.
+                "change_contact_name" => {
+                    let account = account_id();
+                    let contact = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let name = positional(2).as_str().unwrap_or_default().to_string();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    if name.is_empty() {
+                        state.contact_names.remove(&contact);
+                    } else {
+                        state.contact_names.insert(contact, name);
+                    }
+                    state.events.push_back(json!({
+                        "contextId": account,
+                        "event": {"kind": "ContactsChanged", "contactId": contact},
+                    }));
+                    ok(&id, &Value::Null)
+                }
+                // The connection and the mailbox, as the profile page
+                // reads them: a band, and a report written for a web view
+                // with the quota on a bar in it -- the shape the real core
+                // writes, pinned in deltachat-jsonrpc/tests/real_server.rs.
+                "get_connectivity" => ok(&id, &json!(4000)),
+                "get_connectivity_html" => ok(
+                    &id,
+                    &json!(concat!(
+                        "<html><body><h3>Incoming messages</h3><ul>",
+                        "<li class=\"transport\"><b>example.org:</b> Connected<br />",
+                        "<ul class=\"quota-list\"><li>1.34 GiB of 2 GiB used",
+                        "<div class=\"bar\"><div class=\"progress grey\" style=\"width: 67%\">67%</div></div>",
+                        "</li></ul></li></ul></body></html>"
+                    )),
+                ),
+                "get_account_file_size" => ok(&id, &json!(123_456)),
+                // The rest of a message held back by the download limit.
+                // The real core fetches it and announces the message
+                // changed; here the fetch is instant.
+                "download_full_message" => {
+                    let account = account_id();
+                    let msg = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.downloaded.insert(msg);
+                    let chat = state.chat_of(msg);
+                    state.events.push_back(json!({
+                        "contextId": account,
+                        "event": {"kind": "MsgsChanged", "chatId": chat, "msgId": msg},
+                    }));
+                    ok(&id, &Value::Null)
                 }
                 // A join and a one-to-one both end in a fresh chat at the top.
                 "create_chat_by_contact_id" | "secure_join" => {
@@ -775,6 +926,20 @@ async fn main() {
                         }),
                     )
                 }
+                // One contact by id, the account's own included: the
+                // profile page asks for its colour this way.
+                "get_contact" => {
+                    let contact = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    match state.contact_object(contact) {
+                        Some(object) => ok(&id, &object),
+                        None => err(&id, "contact not found"),
+                    }
+                }
                 "get_chatlist_entries" => {
                     let mut state = state.lock().await;
                     state.seed_chats();
@@ -828,6 +993,7 @@ async fn main() {
                     ok(&id, &json!(entries))
                 }
                 "get_chatlist_items_by_entries" => {
+                    let account = account_id();
                     let ids: Vec<u64> = positional(1)
                         .as_array()
                         .map(|array| array.iter().filter_map(Value::as_u64).collect())
@@ -835,6 +1001,9 @@ async fn main() {
                     let state = state.lock().await;
                     let mut items = serde_json::Map::new();
                     for chat in ids {
+                        let fresh = u32::try_from(chat)
+                            .ok()
+                            .is_some_and(|chat| state.fresh.contains(&(account, chat)));
                         // A chat holding a draft previews the draft, and
                         // names it in the prefix the row shows in front:
                         // "Draft", and DC_STATE_OUT_DRAFT for the state.
@@ -855,7 +1024,7 @@ async fn main() {
                                     Clone::clone,
                                 ),
                                 "summaryStatus": if draft.is_some() { 19 } else { 0 },
-                                "freshMessageCounter": 0,
+                                "freshMessageCounter": u32::from(fresh),
                                 "isEncrypted": true,
                                 // Chat 1 is pinned, so the ordinary list
                                 // has both kinds in it and a test can see
@@ -931,10 +1100,22 @@ async fn main() {
                     let mut state = state.lock().await;
                     state.seed_chats();
                     let mut loaded = serde_json::Map::new();
+                    // One message the download limit held back, when a
+                    // test names it, until its remainder is asked for.
+                    let held_back = std::env::var("POSTIVENE_FAKE_HELD_BACK_MSG")
+                        .ok()
+                        .and_then(|value| value.parse::<u64>().ok());
                     for msg in ids {
                         let mut message = message_object(msg);
                         let chat = u32::try_from(msg).map_or(0, |msg| state.chat_of(msg));
                         message["chatId"] = json!(chat);
+                        let fetched =
+                            u32::try_from(msg).is_ok_and(|msg| state.downloaded.contains(&msg));
+                        message["downloadState"] = json!(if held_back == Some(msg) && !fetched {
+                            "Available"
+                        } else {
+                            "Done"
+                        });
                         loaded.insert(msg.to_string(), message);
                     }
                     ok(&id, &Value::Object(loaded))

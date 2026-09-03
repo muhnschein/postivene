@@ -176,7 +176,7 @@ it -- a setuid bit or a dynamic link on the bundled server would still
 fail.
 
 A waiver that stops matching anything fails the check, so the file cannot
-outlive what it excuses. Its entries cover the one blocker below --
+outlive what it excuses. Its entries cover the two blockers below --
 removing the QtWidgets waiver is what the fix above had to do to land.
 
 ## QtWidgets, and the vendored qmetaobject
@@ -235,11 +235,16 @@ and `QGuiApplication` would serve every Sailfish app built on qmetaobject,
 all of which hit this. Until then the fork is three lines and rebases
 cleanly.
 
-## The open blocker
+## The open blockers
 
-**Postivene cannot be submitted to Harbour today.** One rule is broken, it
-is structural, and it cannot be fixed by editing anything in this
-repository.
+**Postivene cannot be submitted to Harbour today.** One rule is broken,
+and it is structural: it cannot be fixed by editing anything in this
+repository. (A second, an entry in the system's Settings app for the
+app's own settings, was broken knowingly for a while; the entry never
+made the page appear on a device, and the settings are back on a page
+inside the app.)
+
+### The bundled core
 
 `deltachat-rpc-server` is an ELF executable, bundled at
 `/usr/libexec/harbour-postivene/`, spawned as a subprocess and spoken to

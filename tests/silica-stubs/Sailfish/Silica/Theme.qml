@@ -25,6 +25,9 @@ QtObject {
     property color highlightBackgroundColor: "#2060a0"
     property color highlightDimmerColor: "#404040"
     property color errorColor: "#ff4040"
+    property real highlightBackgroundOpacity: 0.3
+    property int iconSizeSmall: 32
+    property int iconSizeMedium: 64
 
     function rgba(color, opacity) {
         return Qt.rgba(color.r, color.g, color.b, opacity)

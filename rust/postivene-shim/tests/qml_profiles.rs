@@ -96,8 +96,10 @@ const PROBE_QML: &str = r"
         function refresh() { core.refresh_accounts() }
         // Counted off the page's own list, since the model exposes no
         // count of its own.
+        // Rows are named per profile; account 2 is the one left once
+        // the first row's profile has gone.
         function accountsLeft() {
-            var view = findIn(loader.item, 'profileRow')
+            var view = findIn(loader.item, 'profileRow2')
             return view ? 'has-rows' : 'no-rows'
         }
         function load(url, currentAccountId) {
@@ -131,8 +133,8 @@ const PROBE_QML: &str = r"
             return 'ok'
         }
         function tapFirstRow() {
-            var row = findIn(loader.item, 'profileRow')
-            if (!row) { return 'missing:profileRow' }
+            var row = findIn(loader.item, 'profileRow1')
+            if (!row) { return 'missing:profileRow1' }
             row.clicked()
             return 'ok'
         }

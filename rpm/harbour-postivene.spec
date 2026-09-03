@@ -77,6 +77,9 @@ Requires:   qt5-qtdeclarative-import-multimedia
 Requires:   qt5-qtgraphicaleffects
 Requires:   nemo-qml-plugin-notifications-qt5
 Requires:   nemo-qml-plugin-thumbnailer-qt5
+# Nemo.Configuration, for the settings that belong to no profile: they
+# live in dconf, so a change on the settings page reaches every open page.
+Requires:   nemo-qml-plugin-configuration-qt5
 
 # Harbour allows no Provides: at all, and rpm generates one from any shared
 # library it finds in the package. Neither of the app's private directories

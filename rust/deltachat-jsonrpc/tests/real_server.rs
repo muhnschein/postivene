@@ -954,6 +954,147 @@ async fn offline_round_trip_against_real_core() {
         .expect("set_config selfavatar null clears it");
     let _ = std::fs::remove_file(&avatar);
 
+    // The account list, as the profiles page draws it: a configured
+    // account carries its picture and its colour.
+    let accounts: Vec<Value> = client
+        .call_unit("get_all_accounts")
+        .await
+        .expect("get_all_accounts after configuring one");
+    let configured = accounts
+        .iter()
+        .find(|a| a.get("id").and_then(Value::as_u64) == Some(u64::from(sender_id)))
+        .expect("the configured account is missing from get_all_accounts");
+    assert_eq!(
+        configured.get("kind").and_then(Value::as_str),
+        Some("Configured"),
+        "unexpected account shape: {configured:?}"
+    );
+    for field in ["displayName", "addr", "profileImage", "color"] {
+        assert!(
+            configured.get(field).is_some(),
+            "a configured account lost the {field} field, which the profiles \
+             page draws: {configured:?}"
+        );
+    }
+
+    // A name of the reader's own for a contact, and the way back to the
+    // contact's: an empty name. The contact page is built on the empty
+    // name meaning that rather than being refused.
+    client
+        .call::<_, ()>("change_contact_name", (sender_id, ada, "Countess"))
+        .await
+        .expect("change_contact_name");
+    let named: std::collections::HashMap<u32, Value> = client
+        .call("get_contacts_by_ids", (sender_id, vec![ada]))
+        .await
+        .expect("get_contacts_by_ids after the rename");
+    assert_eq!(
+        named[&ada].get("displayName").and_then(Value::as_str),
+        Some("Countess"),
+        "the given name is not what the contact is shown as: {named:?}"
+    );
+    for field in ["name", "authName"] {
+        assert!(
+            named[&ada].get(field).is_some(),
+            "the contact lost the {field} field, which the name field is \
+             built from: {named:?}"
+        );
+    }
+    client
+        .call::<_, ()>("change_contact_name", (sender_id, ada, ""))
+        .await
+        .expect("change_contact_name with an empty name");
+    let unnamed: std::collections::HashMap<u32, Value> = client
+        .call("get_contacts_by_ids", (sender_id, vec![ada]))
+        .await
+        .expect("get_contacts_by_ids after blanking the name");
+    assert_eq!(
+        unnamed[&ada].get("name").and_then(Value::as_str),
+        Some(""),
+        "an empty name did not clear the given one: {unnamed:?}"
+    );
+    assert_ne!(
+        unnamed[&ada].get("displayName").and_then(Value::as_str),
+        Some("Countess"),
+        "the contact is still shown under the cleared name: {unnamed:?}"
+    );
+
+    // What the profile page says about the connection and the mailbox:
+    // a band, a report written for a web view, and the profile's size on
+    // the device. Offline, so the band says so and the report holds no
+    // quota -- what is pinned is that the calls exist and answer in the
+    // shapes connectivity.rs reads.
+    let band: u32 = client
+        .call("get_connectivity", (sender_id,))
+        .await
+        .expect("get_connectivity");
+    assert!(
+        band >= 1000,
+        "the connectivity band is below the core's own scale: {band}"
+    );
+    let report: String = client
+        .call("get_connectivity_html", (sender_id,))
+        .await
+        .expect("get_connectivity_html");
+    assert!(
+        report.contains("<h3>"),
+        "the connectivity report is not the page the core writes: {report:?}"
+    );
+    let size: u64 = client
+        .call("get_account_file_size", (sender_id,))
+        .await
+        .expect("get_account_file_size");
+    assert!(
+        size > 0,
+        "an account with messages in it takes no space: {size}"
+    );
+
+    // The download limit, as the settings page writes it to every
+    // account: a config key, in bytes, read back as written.
+    client
+        .call::<_, ()>("set_config", (sender_id, "download_limit", "1048576"))
+        .await
+        .expect("set_config download_limit");
+    let limit: Option<String> = client
+        .call("get_config", (sender_id, "download_limit"))
+        .await
+        .expect("get_config download_limit");
+    assert_eq!(
+        limit.as_deref(),
+        Some("1048576"),
+        "download_limit did not stick"
+    );
+    // Marking a chat unread, and counting what is unread: the calls the
+    // chat list's menu and the badges on the profiles page are built on.
+    // The saved-messages chat holds only outgoing messages, so there is
+    // nothing offline for markfresh_chat to put back to fresh; what is
+    // pinned is that both calls exist and answer in the shapes
+    // chatlist.rs and core.rs read.
+    client
+        .call::<_, ()>("markfresh_chat", (sender_id, saved))
+        .await
+        .expect("markfresh_chat");
+    let fresh: Vec<u32> = client
+        .call("get_fresh_msgs", (sender_id,))
+        .await
+        .expect("get_fresh_msgs");
+    let fresh_here: usize = client
+        .call("get_fresh_msg_cnt", (sender_id, saved))
+        .await
+        .expect("get_fresh_msg_cnt");
+    assert!(
+        fresh.is_empty() && fresh_here == 0,
+        "a chat of the reader's own messages counts as unread: {fresh:?}, {fresh_here}"
+    );
+
+    // And the field a held-back message is told apart by, on one that
+    // is not: the delegate offers the rest on anything but Done.
+    assert_eq!(
+        reply.get("downloadState").and_then(Value::as_str),
+        Some("Done"),
+        "a message sent from here is not marked as fully there: {reply:?}"
+    );
+
     let _ = std::fs::remove_file(&attachment);
     handle.stop();
     client.shutdown().await.expect("shutdown");

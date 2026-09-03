@@ -2,8 +2,10 @@
 //!
 //! Loaded headlessly against the stub Silica module and the recording
 //! double: the members come up, the name is filled in from the core rather
-//! than the page that opened it, typing a new one and leaving saves it,
-//! and a chat that is not a group offers no edits at all.
+//! than the page that opened it, typing a new one and leaving saves it, a
+//! blanked one goes back to the group's rather than to the core, leaving
+//! the group is asked about on a page of its own, and a chat that is not
+//! a group offers no edits at all.
 
 // Qt harness: see qml_chat_list.rs.
 #![allow(
@@ -11,7 +13,10 @@
     unused_unsafe,
     clippy::borrow_as_ptr,
     clippy::disallowed_methods,
-    clippy::expect_used
+    clippy::expect_used,
+    // qt_method! declarations must match the generated dispatcher's
+    // by-value parameters; see postivene-shim/src/lib.rs.
+    clippy::needless_pass_by_value
 )]
 
 use std::time::Duration;
@@ -21,6 +26,28 @@ use qmetaobject::*;
 use serde_json::Value;
 
 mod common;
+
+/// Silica's `pageStack`, recorded rather than performed: only which page
+/// leaving the group opens is asked about.
+#[derive(QObject, Default)]
+struct PageStackProbe {
+    base: qt_base_class!(trait QObject),
+    /// `push:LeaveGroupDialog.qml|...`
+    log: qt_property!(QString; NOTIFY log_changed),
+    log_changed: qt_signal!(),
+    push: qt_method!(fn(&mut self, page: QString, properties: QVariantMap) -> QVariant),
+}
+
+impl PageStackProbe {
+    fn push(&mut self, page: QString, _properties: QVariantMap) -> QVariant {
+        let page = page.to_string();
+        let name = page.rsplit('/').next().unwrap_or(&page);
+        let current = self.log.to_string();
+        self.log = format!("{current}push:{name}|").into();
+        self.log_changed();
+        QVariant::default()
+    }
+}
 
 const PROBE_QML: &str = r"
     import QtQuick 2.0
@@ -70,8 +97,10 @@ const PROBE_QML: &str = r"
             item.clicked()
             return 'ok'
         }
-        /// Leaving the page is what applies what was typed.
+        /// Leaving the page is what applies what was typed. Back on
+        /// screen first: the status has to change for the page to notice.
         function leave() {
+            loader.item.status = PageStatus.Active
             loader.item.status = PageStatus.Deactivating
             return 'ok'
         }
@@ -95,11 +124,13 @@ fn the_group_page_shows_the_group_and_renames_it() {
     postivene_shim::register_qml_types();
 
     let core_box = QObjectBox::new(DeltaChatCore::default());
+    let stack_box = QObjectBox::new(PageStackProbe::default());
     let mut engine = QmlEngine::new();
     engine.add_import_path(QString::from(
         common::stubs_dir().to_string_lossy().into_owned(),
     ));
     engine.set_object_property("core".into(), core_box.pinned());
+    engine.set_object_property("pageStack".into(), stack_box.pinned());
     engine.load_data(QByteArray::from(PROBE_QML));
 
     core_box
@@ -172,8 +203,26 @@ fn the_group_page_shows_the_group_and_renames_it() {
         record!("leave", call!("leave"));
     });
 
-    // A one-to-one chat: shown, but nothing about it can be changed here.
     single_shot(Duration::from_secs(5), move || unsafe {
+        // A blanked name goes back to the group's rather than to the
+        // core as nothing.
+        record!(
+            "blanked",
+            call!(
+                "setText",
+                QString::from("groupNameField"),
+                QString::from("")
+            )
+        );
+        record!("leave-blank", call!("leave"));
+        record!("refilled", get!("groupNameField", "text"));
+        // Leaving is asked about on a page of its own.
+        record!(
+            "confirm-leave",
+            call!("click", QString::from("leaveButton"))
+        );
+        // A one-to-one chat: shown, but nothing about it can be changed
+        // here.
         record!(
             "load-single",
             call!("load", QString::from(common::page_url("GroupPage.qml")), 1)
@@ -191,13 +240,15 @@ fn the_group_page_shows_the_group_and_renames_it() {
 
     engine.exec();
 
-    assert_page(&steps, &common::calls(&journal));
+    let navigation = stack_box.pinned().borrow().log.to_string();
+    assert_page(&steps, &navigation, &common::calls(&journal));
 }
 
 /// What was shown came from the core, and what was typed went back to it.
-fn assert_page(steps: &[(&str, String)], calls: &[(String, Value)]) {
+#[allow(clippy::too_many_lines)]
+fn assert_page(steps: &[(&str, String)], navigation: &str, calls: &[(String, Value)]) {
     let names: Vec<&str> = calls.iter().map(|(name, _)| name.as_str()).collect();
-    let context = format!("steps: {steps:?}\ncalls: {names:?}");
+    let context = format!("steps: {steps:?}\nnavigation: {navigation}\ncalls: {names:?}");
     let value = |label: &str| {
         steps
             .iter()
@@ -206,9 +257,35 @@ fn assert_page(steps: &[(&str, String)], calls: &[(String, Value)]) {
             .unwrap_or_default()
     };
 
-    for label in ["load", "typed", "leave", "load-single", "timer-pick"] {
+    for label in [
+        "load",
+        "typed",
+        "leave",
+        "blanked",
+        "leave-blank",
+        "confirm-leave",
+        "load-single",
+        "timer-pick",
+    ] {
         assert_eq!(value(label), "ok", "step {label} failed. {context}");
     }
+    assert_eq!(
+        value("refilled"),
+        "Hikers",
+        "a blanked name was not put back to the group's own. {context}"
+    );
+    assert_eq!(
+        calls
+            .iter()
+            .filter(|(name, _)| name == "set_chat_name")
+            .count(),
+        1,
+        "a blanked name reached the core, or the typed one did not. {context}"
+    );
+    assert_eq!(
+        navigation, "push:LeaveGroupDialog.qml|",
+        "leaving the group is not asked about on a page of its own. {context}"
+    );
     assert_eq!(
         value("timer-off"),
         "0",

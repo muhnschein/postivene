@@ -1,10 +1,17 @@
-//! The settings page reads the profile out of the core and writes it back.
+//! The profile page reads the profile out of the core and writes it back.
 //!
 //! Name, signature and picture are core config keys rather than a record
 //! of their own, and the picture is the odd one: `selfavatar` takes a
 //! *path to a file the core copies*, refuses an empty string outright, and
 //! is cleared with null. A picker hands back a `file://` URL, so the path
 //! has to be unwrapped before it goes anywhere near the core.
+//!
+//! The rest of the page is what parla's profile dialog shows: the address,
+//! the way to the invite, and what the relay and the phone say about the
+//! profile -- the connection band, the mailbox quota read off the core's
+//! own report and said as used, left and whole, and the space taken on
+//! the device. The name is a name under the picture until its badge is
+//! tapped, and a field with a hint under it after.
 
 // Qt harness: see qml_chat_list.rs.
 #![allow(
@@ -12,7 +19,10 @@
     unused_unsafe,
     clippy::borrow_as_ptr,
     clippy::disallowed_methods,
-    clippy::expect_used
+    clippy::expect_used,
+    // qt_method! declarations must match the generated dispatcher's
+    // by-value parameters; see postivene-shim/src/lib.rs.
+    clippy::needless_pass_by_value
 )]
 
 use std::time::Duration;
@@ -22,6 +32,27 @@ use qmetaobject::*;
 use serde_json::Value;
 
 mod common;
+
+/// Silica's `pageStack`, recorded rather than performed: only which page
+/// the invite button opens is asked about.
+#[derive(QObject, Default)]
+struct PageStackProbe {
+    base: qt_base_class!(trait QObject),
+    /// `push:QrPage.qml|...`
+    log: qt_property!(QString; NOTIFY log_changed),
+    log_changed: qt_signal!(),
+    push: qt_method!(fn(&mut self, page: QString, properties: QVariantMap)),
+}
+
+impl PageStackProbe {
+    fn push(&mut self, page: QString, _properties: QVariantMap) {
+        let page = page.to_string();
+        let name = page.rsplit('/').next().unwrap_or(&page);
+        let current = self.log.to_string();
+        self.log = format!("{current}push:{name}|").into();
+        self.log_changed();
+    }
+}
 
 const PROBE_QML: &str = r"
     import QtQuick 2.0
@@ -60,6 +91,20 @@ const PROBE_QML: &str = r"
             return 'ok'
         }
         function pageProperty(property) { return '' + loader.item[property] }
+        function click(name) {
+            var item = findIn(loader.item, name)
+            if (!item) { return 'missing:' + name }
+            item.clicked()
+            return 'ok'
+        }
+        // A tap on a MouseArea: its clicked() carries the event, and
+        // QML refuses to emit it without one.
+        function tap(name) {
+            var item = findIn(loader.item, name)
+            if (!item) { return 'missing:' + name }
+            item.clicked(null)
+            return 'ok'
+        }
         function toggleReceipts() {
             var sw = findIn(loader.item, 'readReceiptsSwitch')
             if (!sw) { return 'missing:readReceiptsSwitch' }
@@ -93,8 +138,8 @@ const PROBE_QML: &str = r"
 
 #[test]
 #[allow(clippy::too_many_lines)]
-fn the_settings_page_round_trips_the_profile() {
-    let temp = std::env::temp_dir().join(format!("postivene-settings-{}", std::process::id()));
+fn the_profile_page_round_trips_the_profile() {
+    let temp = std::env::temp_dir().join(format!("postivene-profile-page-{}", std::process::id()));
     let journal = common::fresh_journal(&temp);
     std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
 
@@ -108,11 +153,13 @@ fn the_settings_page_round_trips_the_profile() {
     postivene_shim::register_qml_types();
 
     let core_box = QObjectBox::new(DeltaChatCore::default());
+    let stack_box = QObjectBox::new(PageStackProbe::default());
     let mut engine = QmlEngine::new();
     engine.add_import_path(QString::from(
         common::stubs_dir().to_string_lossy().into_owned(),
     ));
     engine.set_object_property("core".into(), core_box.pinned());
+    engine.set_object_property("pageStack".into(), stack_box.pinned());
     engine.load_data(QByteArray::from(PROBE_QML));
 
     core_box
@@ -151,13 +198,29 @@ fn the_settings_page_round_trips_the_profile() {
             "load",
             call!(
                 "load",
-                QString::from(common::page_url("SettingsPage.qml")),
+                QString::from(common::page_url("ProfilePage.qml")),
                 1
             )
         );
     });
 
     single_shot(Duration::from_secs(3), move || unsafe {
+        // What the relay and the phone say, as parla's dialog shows it.
+        record!("address", get!("addressLabel", "text"));
+        record!("connection", get!("connectivityLabel", "text"));
+        record!("quota-shown", get!("quotaBar", "visible"));
+        record!("quota-words", get!("quotaBar", "label"));
+        record!("quota-value", get!("quotaBar", "value"));
+        record!("storage", get!("storageLabel", "text"));
+        record!("invite", call!("click", QString::from("inviteButton")));
+        // The name: a name with a badge, and a field with a hint once
+        // the badge is tapped.
+        record!("name-badge", get!("nameEditBadge", "visible"));
+        record!("hint-before", get!("nameHint", "visible"));
+        record!("field-before", get!("profileNameField", "visible"));
+        record!("edit", call!("tap", QString::from("nameTap")));
+        record!("hint-editing", get!("nameHint", "visible"));
+        record!("field-editing", get!("profileNameField", "visible"));
         record!(
             "typed-name",
             call!(
@@ -199,7 +262,7 @@ fn the_settings_page_round_trips_the_profile() {
             "reopen",
             call!(
                 "load",
-                QString::from(common::page_url("SettingsPage.qml")),
+                QString::from(common::page_url("ProfilePage.qml")),
                 1
             )
         );
@@ -209,6 +272,9 @@ fn the_settings_page_round_trips_the_profile() {
     single_shot(Duration::from_secs(10), move || unsafe {
         record!("receipts-after", get!("profile", "read_receipts"));
         record!("refilled", get!("profileNameField", "text"));
+        // A page opened anew shows the name as a name again.
+        record!("name-reopened", get!("profileName", "text"));
+        record!("hint-reopened", get!("nameHint", "visible"));
         record!(
             "edited-after-refill",
             call!("pageProperty", QString::from("edited"))
@@ -242,13 +308,15 @@ fn the_settings_page_round_trips_the_profile() {
             .unwrap_or_default()
     };
     let calls = common::calls(&journal);
-    let context = format!("steps: {steps:?}");
+    let navigation = stack_box.pinned().borrow().log.to_string();
+    let context = format!("steps: {steps:?}\nnavigation: {navigation}");
 
     assert_eq!(
         value("load"),
         "ok",
-        "the settings page did not load. {context}"
+        "the profile page did not load. {context}"
     );
+    assert_page_says_what_the_relay_said(&steps, &navigation, &context);
     assert_eq!(
         value("edited-after-typing"),
         "true",
@@ -339,5 +407,78 @@ fn the_settings_page_round_trips_the_profile() {
         value("picture-gone"),
         "",
         "the picture was cleared but the page still shows one. {context}"
+    );
+}
+
+/// The address, the way to the invite, and the connection and the
+/// mailbox as the fake relay reports them.
+fn assert_page_says_what_the_relay_said(steps: &[(&str, String)], navigation: &str, context: &str) {
+    let value = |label: &str| {
+        steps
+            .iter()
+            .find(|(name, _)| *name == label)
+            .map(|(_, value)| value.clone())
+            .unwrap_or_default()
+    };
+    assert_eq!(
+        value("address"),
+        "",
+        "an unconfigured account has no address, and the page showed one. {context}"
+    );
+    assert_eq!(
+        value("invite"),
+        "ok",
+        "the page offers no way to the invite. {context}"
+    );
+    assert!(
+        navigation.contains("push:QrPage.qml|"),
+        "the invite button did not open the QR code page. {context}"
+    );
+    assert_eq!(
+        value("connection"),
+        "Connected, and up to date",
+        "the core's connectivity band was not put into words. {context}"
+    );
+    assert_eq!(
+        value("quota-shown"),
+        "true",
+        "the relay reported a quota and the page shows none. {context}"
+    );
+    assert_eq!(
+        value("quota-words"),
+        "1.4 GB used · 708.7 MB left of 2.1 GB",
+        "the mailbox is not said as used, left and whole, the way parla \
+         says it. {context}"
+    );
+    for (label, expected) in [
+        ("name-badge", "true"),
+        ("hint-before", "false"),
+        ("field-before", "false"),
+        ("edit", "ok"),
+        ("hint-editing", "true"),
+        ("field-editing", "true"),
+        ("hint-reopened", "false"),
+    ] {
+        assert_eq!(
+            value(label),
+            expected,
+            "the name is not a name with a badge that turns it into a field: \
+             {label}. {context}"
+        );
+    }
+    assert_eq!(
+        value("name-reopened"),
+        "Ada Lovelace",
+        "the name reopened as something other than the saved one. {context}"
+    );
+    assert_eq!(
+        value("quota-value"),
+        "67",
+        "the bar does not show the percentage the core wrote. {context}"
+    );
+    assert_eq!(
+        value("storage"),
+        "123.5 kB on this phone",
+        "the space the profile takes on the device is not said. {context}"
     );
 }

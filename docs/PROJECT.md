@@ -241,15 +241,15 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   directory for an `Image`, because a `Canvas` is drawn into the window's
   GL context, which the platform takes from an app in the background, and
   it came back blank. Both crates are pure Rust under the 1.75 floor,
-  with the image dependency off. The scanner page does not pop itself
-  once it has read a code: Silica drops any stack operation asked for
-  while a transition runs, so the caller's own navigation -- the chat the
-  invite led to -- landed during the pop and was lost. It waits, and the
-  chat replaces it and the page that pushed it together.
-  Focus is the page's job, not the platform's: Sailfish has no scanning
-  API for third parties (the stock camera reads codes on its own, behind
-  no interface), and a `Camera` left to itself gave a viewfinder too soft
-  for any code, so the page runs it in video mode with continuous
+  with the image dependency off. The scanner does not take its page
+  down once it has read a code: Silica drops any stack operation asked
+  for while a transition runs, so the page's own navigation -- the chat
+  the invite led to -- landed during the pop and was lost. It waits, and
+  the chat replaces the page. Focus is the scanner's job, not the
+  platform's: Sailfish has no scanning API for third parties (the stock
+  camera reads codes on its own, behind no interface), and a `Camera`
+  left to itself gave a viewfinder too soft for any code, so the view
+  runs it in video mode with continuous
   autofocus, asks for a focus search every couple of seconds while
   nothing has been read, and focuses on a tapped point.
 - **The server is supervised.** Its event stream ending is the app's only
@@ -258,6 +258,116 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   that resets after a healthy run, and IO resumed for whatever accounts were
   running. Twelve failures without a healthy run in between is a core that
   will not start, which the app says rather than retrying forever.
+- **A profile's settings are on the profile; the app's are on the
+  settings page.** The picture, the name, the bio, the read-receipt
+  switch, the address, the way to the invite and what the relay says
+  about the mailbox are `ProfilePage`, reached from the profile's row on
+  the profiles page, and laid out as parla's profile dialog is
+  (github.com/trufae/parla): a dot and the band in words for the
+  connection, a bar for the mailbox that is there before the relay has
+  said anything, and under it what is used, what is left and what there
+  is, read off the core's own report (`connectivity.rs`); the bar is
+  drawn by the page, the width of the text around it, since Silica's
+  own sits well inside its margins. The three
+  settings that belong to no profile -- how Markdown is drawn, whether
+  links go out with their tracking parameters, how large an attachment
+  arrives unasked -- are `SettingsPage`, in the chat list's pull-down.
+  They live in dconf under `/apps/harbour-postivene/`, behind
+  `Settings.qml`, a singleton every page reads and the settings page
+  writes, so a change reaches every open page and outlives the app. (They
+  were briefly a page in the system's Settings app, which never appeared
+  on a device: the entry that puts a page there is outside Harbour's
+  paths and turned out to need more than that entry.) The download limit
+  is the one the core has to be told: it is per account there, so
+  `DeltaChatCore` writes it to every account when it is set and again
+  whenever the account list is read, which is how a profile added later
+  gets it.
+- **A name is a name until its badge is tapped.** The reader's own name
+  on the profile page, a contact's on theirs and a group's on its page
+  are one control, `EditableName.qml`: the name centred under the
+  picture, wearing the picture's own edit badge at the bottom right of
+  the text; a tap turns it into a field where the name was, with a line
+  under it saying what the field means, and the badge into a tick at the
+  end of what is typed (measured with the field's font, since the field
+  centres its text and says nothing about its width) that puts the name
+  back. The page puts it back on the way out too, so a contact left with
+  no given name shows the name they chose, not an empty field. The field
+  is what the page reads and saves, the way it did when the field stood
+  on its own; a group's cannot be saved blank, and goes back to the name
+  the group has. The conversation's header follows a rename through its
+  own model -- `Chat` re-reads the chat's name on `ChatModified` and
+  `ContactsChanged` -- rather than through whichever page did the
+  renaming, which is what left it showing the old name until the chat
+  was reopened.
+- **Leaving a group is asked about on a page.** `LeaveGroupDialog`, with
+  the platform's accept and cancel at the top, rather than a countdown
+  on the pull-down that a thumb already moving could miss. The group
+  page does the leaving on `accepted`, and finishes the dialog's own
+  transition before popping to the chat, since Silica drops a stack
+  operation asked for during one. Adding members is a row at the end of
+  the member list, shaped like a member with a plus for a picture;
+  removing a picture is in the pull-down on the group and profile pages,
+  and only while there is one.
+- **Markdown is rendered here, and rendered safely.** Sailfish's Qt 5.6
+  has no Markdown of its own, so `markdown.rs` turns the subset people
+  type -- emphasis, strikethrough, code, headings, links -- into
+  `Text.StyledText`, with every character of the message escaped and the
+  only tags the ones it wrote: a tracking pixel in a message body stays a
+  string of angle brackets, which is the whole reason every label in the
+  app is pinned to plain text. Both renderings are made once per fetched
+  row, in the shim, so switching the setting is a change of binding. With
+  the setting off the body is shown as written; taken out, its words
+  alone. Links are anchors, followed on a tap and on nothing else, and
+  only web and mail ones. `links.rs` is the other half of the setting
+  pair: with the switch on, known tracking parameters come out of the
+  links in a message on the way to the core, so the reader's own bubble
+  shows what went out. The rules are parla's.
+- **A message the download limit held back offers its rest.** The core
+  keeps only the header of a message over the limit and marks it
+  `Available`; the row says so and a tap asks for the rest
+  (`download_full_message`), which the core announces as the message
+  changing. Nothing here decides what to fetch.
+- **Deleting one profile leaves the others' countdowns alone.** Silica's
+  remorse timer lives on the row, and reloading the account list with a
+  reset destroyed every row and every timer with it -- reported as only
+  the first of two deletions happening. `refresh_accounts` reconciles the
+  rows in place instead, the way the chat list does.
+- **Both directions of an invite are one page.** `QrPage`, in the chat
+  list's pull-down as "QR code" and behind the profile page's "Show
+  invite code": a switch at the top, the way an inline view switcher
+  works on the desktop, between this profile's invite drawn as a code
+  and the scanner for someone else's, drawn the way Silica's own tab bar
+  draws one, with the profile the code belongs to named above the code.
+  The scanner (`ScanView.qml`, the one file that names a `Camera`,
+  loaded by URL so a device without one loses that side and not the
+  page) has a button under the viewfinder
+  for the link the code would carry, typed or pasted -- a panel over the
+  viewfinder rather than a dialog, because a dialog's own pop is the
+  transition the page's navigation would land in and be dropped by.
+  "New group" is in the same pull-down; the new-chat page is the known
+  contacts and nothing else.
+- **A chat can be marked unread, and a profile shows what is.** The
+  row's menu offers "Mark as unread" on a chat with nothing unread: the
+  core's `markfresh_chat`, which puts the chat's newest incoming message
+  back to unread, so the chat counts one until it is opened. The
+  profiles page draws the chat list's badge on each profile, from the
+  core's `get_fresh_msgs` -- the figure the reference clients put on
+  their account switchers, which leaves muted chats out -- re-read on
+  every event that could have moved it and changed on the row in place.
+- **A disappearing-messages duration is said in words whatever it is.**
+  The reference clients' nine choices, up to a year, and any other value
+  another client set said in the largest unit that fits it: a year set
+  from a desktop showed as "After 31536000 second(s)" before the list had
+  a year on it.
+- **A contact can be given a name here.** `change_contact_name`, with the
+  core's own rule for a blank one: an empty name puts the contact back to
+  what they call themselves, which is what the field shows behind the
+  text. Pinned against the real core.
+- **Saving an attachment is one copy.** What a chat holds lives in the
+  core's blob directory and goes with the app; Save to device copies it
+  into the folder the platform names -- `StandardPaths.pictures`,
+  `StandardPaths.videos` -- under the name the sender gave it, and a
+  number when that name is taken.
 
 ## Platform baseline
 
@@ -276,24 +386,32 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
 
 Upstream's release binaries are statically linked against musl, so no
 Sailfish-specific core build is needed; `scripts/fetch-rpc-server.sh`
-fetches v2.53.0 sha256-pinned, and the wire shapes are verified against
+fetches v2.59.0 sha256-pinned, and the wire shapes are verified against
 the real binary offline.
 
 On top of that: the chat list (unread badges, timestamps, avatars,
 encryption/pin/mute marks, context menu, search across chats/contacts/
-messages, archive, contact requests, multiple profiles), groups (created,
-and then renamed, given a picture, added to, removed from and left), a
-contact page beside each one-to-one chat, disappearing messages, the
+messages, archive, contact requests, multiple profiles with their own
+pictures), a page per profile (picture, name, bio, address, read receipts,
+the way to the invite, and what the relay and the phone say about it),
+groups (created, and then renamed, given a picture, added to, removed
+from and left), a contact page beside each one-to-one chat with a name of
+the reader's own for the contact, disappearing messages, the
 conversation view (bubbles, quotes, delivery marks, day separators, reply/copy/delete/
-resend, a page of history at a time, and every kind of attachment the core
-classifies: photos and
+resend, Markdown drawn or taken out or left as written, a page of history
+at a time, and every kind of attachment the core classifies: photos and
 stickers inline, GIFs animated over a still poster, a video's poster frame
 from the platform thumbnailer, voice and audio played where they sit, a
-shared contact as a card, everything else named and sized), adding a
+shared contact as a card, everything else named and sized; pictures and
+video saved to the device from their own pages; a message the download
+limit held back fetched on a tap), adding a
 profile on a chosen chatmail relay through the core's current transport
-API, `secure_join` invites in both directions -- as links, and as QR
-codes drawn and scanned, into the chat -- encryption indicators,
-foreground notifications, and the cover.
+API, `secure_join` invites in both directions -- as links typed or
+pasted, and as QR codes drawn and scanned, into the chat -- encryption
+indicators, the three app-wide settings on the settings page (Markdown,
+tracking parameters out of sent links, the auto-download limit), a chat
+marked unread and unread badges on the profiles, foreground
+notifications, and the cover.
 
 Packaging is real: `mb2` builds produce `harbour-postivene-0.1.0-<release>.aarch64.rpm`,
 and `.github/workflows/rpm.yml` builds it unattended on a GitHub runner in
@@ -348,8 +466,8 @@ In order of what matters:
    pages; add-as-second-device and restore-from-backup, which are now the
    only ways an existing profile could arrive, the mailbox login page
    having gone; parla's "discover relays from contacts" on the add-profile
-   dialog.
-5. **Message polish**: avatars on bubbles, reactions, drafts, and an unread
+   dialog, and its per-conversation storage breakdown behind the quota bar.
+5. **Message polish**: avatars on bubbles, reactions, and an unread
    divider.
 6. **Recording a voice message, and taking a picture.** Sending every
    kind of attachment works; making one does not. QML has no audio

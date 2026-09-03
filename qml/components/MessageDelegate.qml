@@ -10,7 +10,11 @@ import "../js/Format.js" as Format
  * Every string here comes from whoever sent the message, so each one
  * that shows it is pinned to PlainText: the default detects markup and
  * switches to rich text, which would let a message body fetch a remote
- * image the moment its row is drawn.
+ * image the moment its row is drawn. The one exception is deliberate: with
+ * Markdown drawn, the body is the shim's own rendering of it
+ * (markdown.rs), in which every character of the message is escaped and
+ * the only tags are the ones the shim wrote -- and it is shown as
+ * StyledText, never RichText, so nothing in it can load anything.
  *
  * Laid out by bindings rather than by a Column: a positioner sizes itself in
  * a polish pass, which never runs headlessly, so a row built from one cannot
@@ -22,8 +26,22 @@ Item {
     /// The reader asked to open the attachment. The URL rather than the
     /// path: the encoding it needs is already done once, in the preview.
     signal openRequested(url fileUrl, string fileName, string viewType)
+    /// The reader asked for the rest of a message the core holds only
+    /// the header of.
+    signal downloadRequested()
 
     property string messageText: ""
+    /// The same text rendered as StyledText by the shim, and with its
+    /// Markdown taken out. Empty for a row that has neither, which is
+    /// shown as written.
+    property string styledText: ""
+    property string plainText: ""
+    /// 0 draws Markdown, 1 takes its markers out, 2 shows it as written.
+    property int markdownMode: 2
+    /// `downloadState` upstream: Done, Available, InProgress, Failure or
+    /// Undecipherable. Anything but Done and empty is a message the core
+    /// has only the header of.
+    property string downloadState: ""
     property bool isOutgoing: false
     property bool isInfo: false
     property bool isForwarded: false
@@ -60,6 +78,22 @@ Item {
     // of what makes it one.
     readonly property bool isSticker: root.viewType === "Sticker" && root.hasFile
 
+    /// Whether the body is drawn from the shim's rendering. Only with a
+    /// rendering to draw: the raw text as StyledText would be the very
+    /// thing the plain-text pinning is for.
+    readonly property bool drawsStyled: root.markdownMode === 0
+                                        && root.styledText.length > 0
+    /// The body as the setting wants it shown.
+    readonly property string shownText: root.drawsStyled
+                                        ? root.styledText
+                                        : root.markdownMode === 1 && root.plainText.length > 0
+                                          ? root.plainText
+                                          : root.messageText
+    /// A message the core has only the header of, or is fetching, or
+    /// could not fetch: something to say, and mostly something to tap.
+    readonly property bool heldBack: root.downloadState.length > 0
+                                     && root.downloadState !== "Done"
+
     // A bubble is as wide as its content, up to most of the screen. The
     // widths come off unconstrained copies of the text: measuring the real
     // labels, whose width comes back from the bubble, is a binding loop.
@@ -84,8 +118,9 @@ Item {
         id: textMetric
         visible: false
         font: messageLabel.font
-        textFormat: Text.PlainText
-        text: root.messageText
+        // Measured as it will be drawn: bold is wider than plain.
+        textFormat: root.drawsStyled ? Text.StyledText : Text.PlainText
+        text: root.shownText
     }
 
     Text {
@@ -250,8 +285,44 @@ Item {
             width: root.contentWidth
             wrapMode: Text.Wrap
             color: Theme.primaryColor
+            linkColor: Theme.highlightColor
+            // Plain, unless the shim rendered it: see the note at the top.
+            textFormat: root.drawsStyled ? Text.StyledText : Text.PlainText
+            text: root.shownText
+            // A link is followed on a tap and on nothing else.
+            onLinkActivated: Qt.openUrlExternally(link)
+        }
+
+        // A message the download limit held back: the core has its
+        // header and this is where the rest is asked for.
+        Label {
+            id: downloadLabel
+            objectName: "downloadButton"
+            visible: root.heldBack
+            height: visible ? implicitHeight + Theme.paddingSmall : 0
+            x: Theme.paddingMedium
+            y: root.below(messageLabel, visible)
+            width: root.contentWidth
+            wrapMode: Text.Wrap
+            font.pixelSize: Theme.fontSizeSmall
+            color: Theme.highlightColor
+            // Translated literals, chosen by the core's state.
             textFormat: Text.PlainText
-            text: root.messageText
+            text: root.downloadState === "InProgress"
+                  ? qsTr("Downloading…")
+                  : root.downloadState === "Failure"
+                    ? qsTr("⬇ Download failed, tap to try again")
+                    : root.downloadState === "Undecipherable"
+                      ? qsTr("Cannot be decrypted")
+                      //: Fetches a message the auto-download limit held back.
+                      : qsTr("⬇ Download")
+
+            MouseArea {
+                anchors.fill: parent
+                enabled: root.downloadState === "Available"
+                         || root.downloadState === "Failure"
+                onClicked: root.downloadRequested()
+            }
         }
 
         // Time, and for our own messages how far it got. A mail icon marks
@@ -260,7 +331,7 @@ Item {
             id: footerLabel
             objectName: "footerLabel"
             x: Theme.paddingMedium
-            y: root.below(messageLabel, true)
+            y: root.below(downloadLabel, true)
             width: root.contentWidth
             horizontalAlignment: Text.AlignRight
             font.pixelSize: Theme.fontSizeExtraSmall

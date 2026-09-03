@@ -98,6 +98,9 @@ pub struct ChatList {
 
     /// Mark everything in a chat read, without opening it.
     pub mark_read: qt_method!(fn(&mut self, chat_id: u32)),
+    /// Put one unread message back on a chat, so it stands out in the
+    /// list again until it is opened.
+    pub mark_unread: qt_method!(fn(&mut self, chat_id: u32)),
     /// Keep a chat at the top of the list, or let it sort by time again.
     pub set_pinned: qt_method!(fn(&mut self, chat_id: u32, pinned: bool)),
     /// Silence a chat, or let it speak again.
@@ -241,6 +244,14 @@ impl ChatList {
     /// Mark everything in a chat read.
     pub fn mark_read(&mut self, chat_id: u32) {
         self.act(chat_id, "marknoticed_chat", serde_json::Value::Null);
+    }
+
+    /// Mark a chat unread: the core's `markfresh_chat`, which puts the
+    /// chat's last incoming message back to fresh, so the chat counts one
+    /// unread until it is opened. A chat with no incoming message has
+    /// nothing to put back, and the core leaves it as it is.
+    pub fn mark_unread(&mut self, chat_id: u32) {
+        self.act(chat_id, "markfresh_chat", serde_json::Value::Null);
     }
 
     /// Pin a chat, or unpin it.

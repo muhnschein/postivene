@@ -24,6 +24,9 @@ Item {
     /// An address contact cannot be written to encrypted.
     property bool isKeyContact: true
     property bool isVerified: false
+    /// Room kept free at the right, for whatever the page draws over the
+    /// end of the row -- a badge, a mark -- so the text fades before it.
+    property real trailingSpace: 0
 
     height: Math.max(avatar.height,
                      (root.showAddress ? addressLabel.y + addressLabel.height
@@ -47,7 +50,7 @@ Item {
         // Centred on the avatar when it is the only line.
         y: root.showAddress ? Theme.paddingMedium
                             : avatar.y + (avatar.height - height) / 2
-        width: root.width - x - Theme.horizontalPageMargin
+        width: root.width - x - Theme.horizontalPageMargin - root.trailingSpace
         truncationMode: TruncationMode.Fade
         textFormat: Text.PlainText
         // The same marks the chat list uses: a mail icon for a contact

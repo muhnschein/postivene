@@ -36,6 +36,21 @@ function timeLabel(seconds) {
     return Qt.formatDate(when, Qt.DefaultLocaleShortDate)
 }
 
+/// A size a person can read. Decimal units, as the platform's own file
+/// manager uses; whole bytes, one decimal for everything else -- "1.5 MB",
+/// not "1.5 B".
+function readableSize(bytes) {
+    if (bytes <= 0) return ""
+    var units = ["B", "kB", "MB", "GB"]
+    var step = 0
+    var size = bytes
+    while (size >= 1000 && step < units.length - 1) {
+        size = size / 1000
+        step++
+    }
+    return (step === 0 ? Math.round(size) : size.toFixed(1)) + " " + units[step]
+}
+
 /// The mark beside a message we sent, from its DC_STATE_*: 20 pending,
 /// 24 failed, 26 delivered, 28 read. Nothing for an incoming message.
 function stateMark(state) {

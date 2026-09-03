@@ -1,101 +1,73 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
 import "../components"
-import Postivene 1.0
 
 /*
- * The profile as everyone else sees it: the picture, the name on every
- * message, the line under it, and whether the other end is told when
- * something has been read.
+ * The settings that belong to no profile: how a message is drawn, what
+ * goes out with a link, and how much of an attachment arrives unasked.
+ * Reached from the chat list's pull-down. A profile's own settings --
+ * picture, name, address, read receipts, what the relay says -- are on
+ * the profile's page, reached from its row on the profiles page.
  *
- * All of it is core config keys rather than a record of its own, so this
- * page owns a Profile object over get_config/set_config instead of a
- * model. Nothing is confirmed: edits apply a moment after typing stops
- * and again on the way out, and the two switches apply on the tap. A
- * settings page that needs saving is a settings page that loses what was
- * typed when someone swipes back.
+ * The values live in dconf, behind the `Settings` singleton every page
+ * reads (qml/components/Settings.qml); this page writes the same object,
+ * so a change here reaches every open page without either side being
+ * told. They were briefly a page in the system's Settings app instead,
+ * which never showed up on a device: the entry that puts a page there is
+ * outside the paths Harbour allows, and it turned out to need more than
+ * that entry to appear at all.
+ *
+ * Nothing here needs saving: each control writes its setting on the tap.
  */
 Page {
     id: page
 
-    property int accountId
+    /// The download limits offered, in bytes, as parla offers them. The
+    /// first is the smallest the core accepts, which is as near to never
+    /// as it goes; the last is no limit.
+    readonly property var limits: [32768, 262144, 524288, 1048576, 2097152, 5242880, 0]
 
-    Profile {
-        id: profile
-        objectName: "profile"
-        account_id: page.accountId
-        onError: page.errorMessage = message
-        // The fields are only filled from the core, never re-filled from
-        // it while someone is typing into them: a save reloads, and that
-        // would otherwise reach in and reset the cursor.
-        onLoaded_changed: {
-            if (profile.loaded && !page.edited) {
-                // Assigning to a field fires onTextChanged, which is the
-                // same signal the reader typing produces. Without this
-                // the load itself would count as an edit, and leaving
-                // the page would write the profile back over itself.
-                page.filling = true
-                nameField.text = profile.display_name
-                bioField.text = profile.status
-                page.filling = false
+    function limitLabel(index) {
+        switch (index) {
+        case 0: return qsTr("Never")
+        case 1: return qsTr("Up to 256 kB")
+        case 2: return qsTr("Up to 512 kB")
+        case 3: return qsTr("Up to 1 MB")
+        case 4: return qsTr("Up to 2 MB")
+        case 5: return qsTr("Up to 5 MB")
+        default: return qsTr("Always")
+        }
+    }
+
+    function limitIndex(bytes) {
+        for (var i = 0; i < limits.length; i++) {
+            if (limits[i] === bytes) {
+                return i
             }
         }
+        return 3
     }
 
-    /// Someone has typed since the load. Guards the refill above.
-    property bool edited: false
-    /// The refill is writing to the fields, so the changes are not edits.
-    property bool filling: false
-    property string errorMessage: ""
-
-    // A pause, not a keystroke: a round trip per letter would be four
-    // calls to write "Ada".
-    Timer {
-        id: autosave
-        objectName: "autosave"
-        interval: 1200
-        onTriggered: page.applyEdits()
+    function markdownIndex(mode) {
+        return mode >= 0 && mode <= 2 ? mode : 0
     }
 
-    function applyEdits() {
-        if (!profile.loaded || !page.edited) {
-            return
-        }
-        page.edited = false
-        profile.save(nameField.text, bioField.text)
+    /// Put each choice back to what the setting holds. Silica writes
+    /// currentIndex itself on a tap, which detaches a binding, so the
+    /// choice is put back from the setting each time it changes -- the
+    /// arrangement DisappearingMessages uses.
+    function refresh() {
+        markdownCombo.currentIndex = page.markdownIndex(Settings.markdownMode)
+        downloadCombo.currentIndex = page.limitIndex(Settings.downloadLimit)
     }
 
-    function noteEdit() {
-        if (profile.loaded && !page.filling) {
-            page.edited = true
-            autosave.restart()
-        }
+    Connections {
+        target: Settings
+        onMarkdownModeChanged: page.refresh()
+        onDownloadLimitChanged: page.refresh()
     }
 
-    // Leaving is the other moment worth saving at: a back-swipe within
-    // the pause above would otherwise drop what was typed.
-    onStatusChanged: {
-        if (status === PageStatus.Deactivating) {
-            page.applyEdits()
-        }
-    }
-
-    // The gallery, pushed by URL and connected to, the way the
-    // conversation attaches a photo: the Attach*Page files are the only
-    // ones that name a `Sailfish.Pickers` type, so a type that is not
-    // there costs this button rather than the settings page. That page
-    // also ignores a cancelled pick, which this one used to hand to the
-    // core as `undefined`.
-    function pickPicture() {
-        var picker = pageStack.push(Qt.resolvedUrl("AttachPhotoPage.qml"))
-        if (picker) {
-            picker.picked.connect(function(path) {
-                // The core copies the file into its own blob directory,
-                // so the picked one may go away afterwards.
-                profile.set_picture(path)
-            })
-        }
-    }
+    Component.onCompleted: page.refresh()
 
     SilicaFlickable {
         anchors.fill: parent
@@ -110,132 +82,70 @@ Page {
                 title: qsTr("Settings")
             }
 
-            // The picture is the control, not a preview of one: tapping
-            // it opens the gallery, and the badge says so without a row
-            // of its own.
-            Item {
+            SectionHeader {
+                text: qsTr("Messages")
+            }
+
+            ComboBox {
+                id: markdownCombo
+                objectName: "markdownCombo"
                 width: parent.width
-                height: bigAvatar.height + 2 * Theme.paddingLarge
+                label: qsTr("Markdown")
+                description: qsTr("How a message written with *stars* and `backticks` is shown.")
 
-                Avatar {
-                    id: bigAvatar
-                    objectName: "profileAvatar"
-                    anchors.centerIn: parent
-                    width: 2 * Theme.itemSizeExtraLarge
-                    initial: nameField.text.length > 0
-                             ? nameField.text
-                             : profile.address
-                    picturePath: profile.avatar_path
-                }
-
-                Rectangle {
-                    id: editBadge
-                    objectName: "editBadge"
-                    anchors {
-                        right: bigAvatar.right
-                        bottom: bigAvatar.bottom
+                menu: ContextMenu {
+                    MenuItem {
+                        objectName: "markdownOption0"
+                        text: qsTr("Drawn: bold, italics, links")
+                        onClicked: Settings.markdownMode = 0
                     }
-                    width: Theme.itemSizeExtraSmall
-                    height: width
-                    radius: width / 2
-                    color: Theme.highlightBackgroundColor
-
-                    Image {
-                        anchors.centerIn: parent
-                        source: "image://theme/icon-s-edit"
+                    MenuItem {
+                        objectName: "markdownOption1"
+                        text: qsTr("Taken out: the words only")
+                        onClicked: Settings.markdownMode = 1
+                    }
+                    MenuItem {
+                        objectName: "markdownOption2"
+                        text: qsTr("As written")
+                        onClicked: Settings.markdownMode = 2
                     }
                 }
+            }
 
-                MouseArea {
-                    objectName: "pictureTap"
-                    anchors.fill: bigAvatar
-                    onClicked: page.pickPicture()
+            ComboBox {
+                id: downloadCombo
+                objectName: "downloadCombo"
+                width: parent.width
+                label: qsTr("Auto-download attachments")
+                description: qsTr("Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.")
+
+                menu: ContextMenu {
+                    Repeater {
+                        model: page.limits
+
+                        MenuItem {
+                            objectName: "downloadOption" + modelData
+                            text: page.limitLabel(index)
+                            onClicked: Settings.downloadLimit = modelData
+                        }
+                    }
                 }
             }
 
-            // Only offered when there is one to remove, and kept off the
-            // picture itself: a tap that might delete is not a tap you
-            // want under a finger reaching for the gallery.
-            Button {
-                objectName: "removePicture"
-                anchors.horizontalCenter: parent.horizontalCenter
-                visible: profile.avatar_path.length > 0
-                text: qsTr("Remove picture")
-                onClicked: profile.clear_picture()
-            }
-
-            TextField {
-                id: nameField
-                objectName: "profileNameField"
-                width: parent.width
-                label: qsTr("Name")
-                placeholderText: qsTr("Your name")
-                onTextChanged: page.noteEdit()
-            }
-
-            TextField {
-                id: bioField
-                objectName: "profileBioField"
-                width: parent.width
-                label: qsTr("Bio")
-                placeholderText: qsTr("A line about you")
-                onTextChanged: page.noteEdit()
+            SectionHeader {
+                text: qsTr("Links")
             }
 
             TextSwitch {
-                objectName: "readReceiptsSwitch"
-                text: qsTr("Send read receipts")
-                // The core's own words for mdns_enabled are "should be
-                // sent and requested", so this is not one-way: with it
-                // off nothing is asked for either, and read marks stop
-                // coming back from the people who would have sent them.
-                description: qsTr("Tells the people you write to when you have read their messages, and asks the same of them. With this off you send none and see none.")
-                // Bound to the profile, not held here: the core is what
-                // decides, and a switch that drifts from it is a lie. So
-                // the tap must not flip it either -- Silica does that by
-                // default, which detaches the binding on the first tap and
-                // leaves a refused change looking like it took. The tap
-                // asks the core for the other state, and the binding
-                // shows whatever the core then says.
+                objectName: "cleanLinksSwitch"
+                text: qsTr("Remove tracking from links")
+                description: qsTr("Known tracking parameters -- click ids, campaign tags, the sharer's account -- are taken out of the links in the messages you send. The rest of the link is left as it was.")
+                // Bound to the setting, not held here, so the switch cannot
+                // drift from what the app will read.
                 automaticCheck: false
-                checked: profile.read_receipts
-                enabled: profile.loaded
-                onClicked: profile.set_read_receipts(!checked)
+                checked: Settings.cleanLinks === true
+                onClicked: Settings.cleanLinks = !checked
             }
-
         }
-    }
-
-    Banner {
-        objectName: "errorBanner"
-        anchors {
-            left: parent.left
-            right: parent.right
-            bottom: notice.top
-        }
-        text: page.errorMessage
-        timeout: 8
-        onDismissed: page.errorMessage = ""
-    }
-
-    Banner {
-        id: notice
-        objectName: "notice"
-        labelObjectName: "noticeLabel"
-        tone: "info"
-        timeout: 2
-        anchors {
-            left: parent.left
-            right: parent.right
-            bottom: parent.bottom
-        }
-        onDismissed: notice.text = ""
-    }
-
-    Connections {
-        target: profile
-        // Quiet confirmation that something reached the core, since
-        // nothing else on this page says so any more.
-        onSaved: notice.show(qsTr("Saved"))
     }
 }

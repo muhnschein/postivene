@@ -203,7 +203,7 @@ fails on the tooling's i686 linker, which is fine — the rlibs under
 Verified on the produced package, not just the build log: the app binary
 is an aarch64 pie executable linked against the target's Qt 5.6.3 with a
 highest requirement of `GLIBC_2.29`; the bundled server survives rpm's strip
-pass and still answers `--version` → `2.53.0` and passes the full
+pass and still answers `--version` → `2.59.0` and passes the full
 `real_server` suite under `qemu-aarch64`; and `rpm -qlp` shows every file
 where `qml_dir()` and the rpc-server lookup expect it. Those builds predate
 the Harbour rename and produced `postivene`, not `harbour-postivene`;

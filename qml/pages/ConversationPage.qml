@@ -23,6 +23,9 @@ Page {
         account_id: page.accountId
         // What the reader can actually see decides what counts as read.
         reading_history: !page.readerIsLooking
+        // The reader's setting, from the settings page: known tracking
+        // parameters come out of links on the way out.
+        clean_links: Settings.cleanLinks === true
         onError: page.errorMessage = message
         // Sending is its own answer to "have I read this": go to the
         // message just sent rather than counting it as one that was missed.
@@ -262,19 +265,12 @@ Page {
         if (pageStack.nextPage(page)) {
             return
         }
-        var info = pageStack.pushAttached(
+        pageStack.pushAttached(
             Qt.resolvedUrl(messages.is_group ? "GroupPage.qml" : "ContactPage.qml"), {
                 accountId: page.accountId,
                 chatId: page.chatId,
                 chatName: page.chatName
             })
-        // The group page renames the chat this page is named for, and
-        // says so, so the header does not go on showing the old name.
-        if (info && messages.is_group) {
-            info.renamed.connect(function(name) {
-                page.chatName = name
-            })
-        }
     }
 
     function openInfo() {
@@ -286,6 +282,15 @@ Page {
     Connections {
         target: messages
         onLoaded_changed: page.attachInfo()
+        // The name the list handed over, until the core says otherwise:
+        // a rename on the page beside this one, or on another device,
+        // reaches the header through the model rather than through
+        // whichever page did it.
+        onChat_name_changed: {
+            if (messages.chat_name.length > 0) {
+                page.chatName = messages.chat_name
+            }
+        }
     }
 
     ConversationList {
@@ -306,6 +311,7 @@ Page {
         // screen; this is what tells it which those are.
         onHydrateRequested: messages.hydrate(first, last)
         showSender: messages.is_group
+        markdownMode: Settings.markdownMode
         placeholderText: qsTr("No messages yet")
 
         // Reaching the newest message is what marks what is there read.
@@ -320,6 +326,7 @@ Page {
             notice.show(qsTr("Copied to clipboard"))
         }
         onOpenRequested: page.openAttachment(fileUrl, fileName, viewType)
+        onDownloadRequested: messages.download_full(messageId)
         onDeleteRequested: messages.delete_message(messageId)
         onResendRequested: messages.resend_message(messageId)
         onForwardRequested: {

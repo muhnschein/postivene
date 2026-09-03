@@ -30,8 +30,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: sudo apt-get update
       # qml-module-qtquick2 is the QtQuick runtime plugin, which the -dev
-      # packages do not pull in.
-      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qtdeclarative5-dev-tools qml-module-qtquick2 qml-module-qtgraphicaleffects
+      # packages do not pull in. qttools5-dev-tools is lrelease, which the
+      # app's translation test compiles a catalog with.
+      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qtdeclarative5-dev-tools qml-module-qtquick2 qml-module-qtgraphicaleffects qttools5-dev-tools
       - run: rustc --version && cargo --version
       - run: cd rust && cargo fmt --all --check
       - run: cd rust && cargo clippy --workspace --all-targets -- -D warnings

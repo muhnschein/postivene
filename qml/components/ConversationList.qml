@@ -92,6 +92,15 @@ SilicaListView {
     /// The reader asked for the rest of a message the download limit
     /// held back.
     signal downloadRequested(int messageId)
+    /// The reader picked an emoji for a message, from the menu or from a
+    /// chip already on it. Whether that puts it on or takes it off is the
+    /// model's to decide, from what it knows the reader already sent.
+    signal reactionRequested(int messageId, string emoji)
+
+    /// The emoji the menu offers first, as the reference clients offer
+    /// them. Anything else is a chip someone else's reaction has put on
+    /// the message, which a tap answers in kind.
+    readonly property var quickReactions: ["👍", "❤️", "😂", "😮", "😢", "🙏"]
 
     /// Back to the newest message, and following again.
     function jumpToNewest() {
@@ -399,6 +408,52 @@ SilicaListView {
         objectName: "messageRow"
 
         menu: ContextMenu {
+            id: rowMenu
+
+            // The quick reactions, above the actions: one tap on an emoji
+            // and the menu is done. Not a MenuItem, which is one line of
+            // text; the menu takes any item, and lays this one out like
+            // the rest.
+            Item {
+                id: reactionPicker
+                objectName: "reactionPicker"
+                // A core notice is nobody's message to react to.
+                visible: !model.is_info
+                width: parent ? parent.width : 0
+                height: visible ? Theme.itemSizeSmall : 0
+                /// Taken while the row is here, like Delete's id: the
+                /// menu can outlive the row it was opened on.
+                readonly property int messageId: model.message_id
+
+                Row {
+                    anchors.centerIn: parent
+                    spacing: Theme.paddingMedium
+
+                    Repeater {
+                        model: root.quickReactions
+
+                        MouseArea {
+                            objectName: "reactionOption"
+                            width: Theme.itemSizeSmall
+                            height: Theme.itemSizeSmall
+                            readonly property string emoji: modelData
+                            function choose() {
+                                root.reactionRequested(reactionPicker.messageId, emoji)
+                                rowMenu.close()
+                            }
+                            onClicked: choose()
+
+                            Label {
+                                anchors.centerIn: parent
+                                font.pixelSize: Theme.fontSizeLarge
+                                textFormat: Text.PlainText
+                                text: modelData
+                            }
+                        }
+                    }
+                }
+            }
+
             MenuItem {
                 objectName: "replyItem"
                 // A core notice is nobody's message to answer.
@@ -549,8 +604,10 @@ SilicaListView {
             vcardName: model.vcard_name
             vcardAddr: model.vcard_addr
             vcardColor: model.vcard_color
+            reactions: model.reactions
             onOpenRequested: root.openRequested(fileUrl, fileName, viewType)
             onDownloadRequested: root.downloadRequested(model.message_id)
+            onReactionRequested: root.reactionRequested(model.message_id, emoji)
         }
     }
 

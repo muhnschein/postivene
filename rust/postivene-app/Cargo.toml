@@ -10,6 +10,17 @@ description = "Binary that wires DeltaChatCore + the chat/message list models in
 [dependencies]
 postivene-shim = { path = "../postivene-shim" }
 qmetaobject = "0.2"
+# The one `cpp!` block in the tree: src/translations.rs, which installs a
+# QTranslator, a class qmetaobject does not bind. Same versions as the
+# vendored qmetaobject's, so nothing new reaches Cargo.lock.
+cpp = "0.5"
+# Not used from Rust. qttypes' build script is what finds Qt, and it tells
+# only its direct dependents where: build.rs reads the DEP_QT_* variables
+# it exports, which is how the C++ above finds <QtCore/QTranslator>.
+qttypes = "0.2"
+
+[build-dependencies]
+cpp_build = "0.5"
 
 [[bin]]
 name = "harbour-postivene"

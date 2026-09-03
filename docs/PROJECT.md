@@ -398,8 +398,10 @@ groups (created, and then renamed, given a picture, added to, removed
 from and left), a contact page beside each one-to-one chat with a name of
 the reader's own for the contact, disappearing messages, the
 conversation view (bubbles, quotes, delivery marks, day separators, reply/copy/delete/
-resend, Markdown drawn or taken out or left as written, a page of history
-at a time, and every kind of attachment the core classifies: photos and
+resend, reactions -- six quick ones in a row's menu, and a tap on any chip
+already on a message to answer it in kind, one per person as the reference
+clients have it -- Markdown drawn or taken out or left as written, a page
+of history at a time, and every kind of attachment the core classifies: photos and
 stickers inline, GIFs animated over a still poster, a video's poster frame
 from the platform thumbnailer, voice and audio played where they sit, a
 shared contact as a card, everything else named and sized; pictures and
@@ -412,6 +414,18 @@ indicators, the three app-wide settings on the settings page (Markdown,
 tracking parameters out of sent links, the auto-download limit), a chat
 marked unread and unread badges on the profiles, foreground
 notifications, and the cover.
+
+The app speaks every language Sailfish OS ships in: forty catalogs under
+`translations/`, one per language the platform's Language setting offers,
+compiled by `lrelease` at build time and loaded at startup for the locale
+the system starts the app under, with the English one -- there for its
+plural forms -- standing in for a language that has none. The loading is
+the one `cpp!` block in
+the tree -- `QTranslator` is not bound by qmetaobject -- and the one
+`unsafe` outside the tests, kept to `postivene-app/src/translations.rs`.
+`ci/packaging-lint.sh` regenerates and compiles every catalog, and
+`tests/translation_catalogs.rs` fails on a string left untranslated in
+any of them.
 
 Packaging is real: `mb2` builds produce `harbour-postivene-0.1.0-<release>.aarch64.rpm`,
 and `.github/workflows/rpm.yml` builds it unattended on a GitHub runner in
@@ -456,19 +470,22 @@ In order of what matters:
 
    Restarting `deltachat-rpc-server` after it dies is done: see the
    architecture note above.
-3. **Loading a translation.** The catalog is real and `ci/packaging-lint.sh`
-   fails if it drifts from the `qsTr()` calls, but `QTranslator` is not
-   bound by qmetaobject 0.2.10. That means a `cpp!` block, an `unsafe`
-   exception to a workspace lint, and C++ build machinery in a second crate,
-   in a build environment `BUILDING.md` already documents as fragile. Worth
-   deciding deliberately rather than in passing.
+3. **Translating the page in the Settings app.** The catalogs carry
+   `GeneralSettingsPage`'s strings, but that page runs inside
+   `jolla-settings`, which loads catalogs of its own from
+   `/usr/share/translations` and nothing from an app's directory -- so
+   the three settings there are shown in English whatever the phone's
+   language. Shipping a catalog where the Settings app looks is one more
+   path Harbour does not allow, on top of the entry file already waived,
+   and whether the Settings app would load it is not something the tree
+   can prove. Left as is until a device says which.
 4. **Blocking** outside a request; a media grid on the group and contact
    pages; add-as-second-device and restore-from-backup, which are now the
    only ways an existing profile could arrive, the mailbox login page
    having gone; parla's "discover relays from contacts" on the add-profile
    dialog, and its per-conversation storage breakdown behind the quota bar.
-5. **Message polish**: avatars on bubbles, reactions, and an unread
-   divider.
+5. **Message polish**: avatars on bubbles, an unread divider, and a way
+   to react with an emoji the quick row does not offer.
 6. **Recording a voice message, and taking a picture.** Sending every
    kind of attachment works; making one does not. QML has no audio
    recorder on Qt 5.6 -- `harbour-whisperfish` wrote its own against

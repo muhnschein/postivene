@@ -22,8 +22,12 @@ Workspace-level, so a bare `cargo clippy` fails the way CI does:
 outside tests, `missing_docs` and `unsafe_code` denied.
 
 `unsafe_code` is deny rather than forbid because the Qt harness tests need
-`env::set_var` before Qt initialises. Every exception is at the narrowest
-scope and says why.
+`env::set_var` before Qt initialises, and because one thing the app does
+has no safe binding: installing a `QTranslator`, which qmetaobject does
+not wrap. That is the one `cpp!` block in the tree, in
+`postivene-app/src/translations.rs`, and the C++ build step in that
+crate's `build.rs` exists for it alone. Every exception is at the
+narrowest scope and says why.
 
 `rust/clippy.toml` bans two methods that have already caused device-only
 failures: `tokio::runtime::Runtime::new` (must go through `CoreRuntime`) and
@@ -64,8 +68,9 @@ first time, and `deny` wants the advisory database.
    `DELTACHAT_RPC_SERVER`, offline. `real_core.rs` distinguishes a request
    the real core could not decode from one it could not deliver.
 7. **Packaging checks** (`ci/packaging-lint.sh`): spec parses, desktop
-   entry validates, shell scripts clean, translation catalog current,
-   every `docs/*.md` a comment points at exists. Locally a missing tool is
+   entry validates, shell scripts clean, every translation catalog
+   current and compiling cleanly with `lrelease`, every `docs/*.md` a
+   comment points at exists. Locally a missing tool is
    a SKIP; CI sets `PACKAGING_LINT_STRICT=1` so it is a failure there, as
    `HARBOUR_CHECK_STRICT=1` already does for the Harbour check.
 
@@ -83,6 +88,33 @@ Where a step depends on work finishing, wait for the work. A repeating
 — `chat_model.rs` and `qml_naming.rs` both do this — with `single_shot` left
 as a backstop that reads results and quits. The other Qt tests still
 schedule on the clock and should move over as they are touched.
+
+## Translations
+
+The strings are the `qsTr()` calls in `qml/`; `translations/postivene.ts`
+is the untranslated source catalog and `translations/postivene-<lang>.ts`
+one catalog per language Sailfish ships in. `scripts/update-translations.sh`
+regenerates all of them from the source in one `lupdate` run, so a new
+string turns up as `unfinished` in every language at once, and
+`ci/packaging-lint.sh` fails when a committed catalog differs from what
+that run produces. `tests/translation_catalogs.rs` fails when a string in
+any language is left untranslated, so a new string is not done until every
+catalog has it.
+
+The app loads `postivene-<lang>.qm`, which `scripts/release-translations.sh`
+compiles with `lrelease` -- in the RPM's `%build`, and locally with
+`make translations`, which leaves them beside the `.ts` files where a
+source-tree run finds them. `lupdate` and `lrelease` are Debian's
+`qttools5-dev-tools`, and the SDK's `qt5-qttools-linguist`; the app's own
+test compiles the German catalog, so the package is a test dependency too.
+
+`<lang>` is what `QTranslator` matches against the reader's locale from
+the most specific form down: `de` serves every German locale, `pt_BR`
+only Brazil, and a language with no catalog gets the English one -- the
+strings are English already, and that catalog holds their plural forms.
+To add one, write the three-line header `update-translations.sh` documents to
+`translations/postivene-<lang>.ts` and run the script; `lupdate` fills in
+every string with as many plural forms as that language has.
 
 ## Comments
 

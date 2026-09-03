@@ -327,6 +327,9 @@ Page {
         }
         onOpenRequested: page.openAttachment(fileUrl, fileName, viewType)
         onDownloadRequested: messages.download_full(messageId)
+        // On or off is the model's call: it knows what the reader already
+        // sent, and the core takes the whole list either way.
+        onReactionRequested: messages.react(messageId, emoji)
         onDeleteRequested: messages.delete_message(messageId)
         onResendRequested: messages.resend_message(messageId)
         onForwardRequested: {

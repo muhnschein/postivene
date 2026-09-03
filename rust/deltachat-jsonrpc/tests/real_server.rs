@@ -831,6 +831,102 @@ async fn offline_round_trip_against_real_core() {
         .await
         .expect("markseen_msgs");
 
+    // Reactions, as ChatMessages sends and draws them. The call takes the
+    // whole list of this account's reactions on the message and answers
+    // with the id of the hidden message carrying it; the message object
+    // then carries them counted and sorted, with a flag for our own, and
+    // reads null once an empty list has taken them off again. A reaction
+    // is a message the list does not show, so the chat's id list must not
+    // grow by it.
+    let listed_before: Vec<Value> = client
+        .call("get_message_list_items", (sender_id, saved, false, false))
+        .await
+        .expect("get_message_list_items before reacting");
+    let carrier: u32 = client
+        .call("send_reaction", (sender_id, first, vec!["👍"]))
+        .await
+        .expect("send_reaction");
+    assert_ne!(
+        carrier, first,
+        "the reaction's carrier is the message itself"
+    );
+    let reacted: std::collections::HashMap<u32, Value> = client
+        .call("get_messages", (sender_id, vec![first]))
+        .await
+        .expect("get_messages after reacting");
+    let reactions = reacted[&first]
+        .pointer("/reactions/reactions")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    assert_eq!(
+        reactions.len(),
+        1,
+        "one reaction did not come back as one: {:?}",
+        reacted[&first]
+    );
+    assert_eq!(
+        reactions[0].get("emoji").and_then(Value::as_str),
+        Some("👍"),
+        "the reaction is not the emoji that was sent: {reactions:?}"
+    );
+    assert_eq!(
+        reactions[0].get("count").and_then(Value::as_u64),
+        Some(1),
+        "the reaction is not counted: {reactions:?}"
+    );
+    assert_eq!(
+        reactions[0].get("isFromSelf").and_then(Value::as_bool),
+        Some(true),
+        "our own reaction is not marked as ours, so a second tap cannot \
+         take it off: {reactions:?}"
+    );
+    let listed_after: Vec<Value> = client
+        .call("get_message_list_items", (sender_id, saved, false, false))
+        .await
+        .expect("get_message_list_items after reacting");
+    assert_eq!(
+        listed_before.len(),
+        listed_after.len(),
+        "a reaction shows up as a row of its own: {listed_after:?}"
+    );
+    // The event the model refreshes the row on, with the message named.
+    let mut saw_reactions_changed = false;
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(30);
+    while tokio::time::Instant::now() < deadline {
+        match tokio::time::timeout_at(deadline, events.recv()).await {
+            Ok(Some(event)) => {
+                if event.context_id == sender_id
+                    && event.event.get("kind").and_then(Value::as_str) == Some("ReactionsChanged")
+                    && event.event.get("msgId").and_then(Value::as_u64) == Some(u64::from(first))
+                {
+                    saw_reactions_changed = true;
+                    break;
+                }
+            }
+            _ => break,
+        }
+    }
+    assert!(
+        saw_reactions_changed,
+        "no ReactionsChanged event named message {first} after reacting to it"
+    );
+    let _: u32 = client
+        .call("send_reaction", (sender_id, first, Vec::<String>::new()))
+        .await
+        .expect("send_reaction with an empty list");
+    let cleared: std::collections::HashMap<u32, Value> = client
+        .call("get_messages", (sender_id, vec![first]))
+        .await
+        .expect("get_messages after clearing the reaction");
+    assert!(
+        cleared[&first]
+            .get("reactions")
+            .is_some_and(serde_json::Value::is_null),
+        "an empty list did not take the reaction off: {:?}",
+        cleared[&first]
+    );
+
     // What the next round of UI work depends on, pinned here because a
     // wrong method name or config key fails only on a device -- the fake
     // core answers to whatever it is asked.

@@ -104,6 +104,8 @@ BuildRequires:  desktop-file-utils
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5Qml)
 BuildRequires:  pkgconfig(Qt5Quick)
+# lrelease, which compiles the translation catalogs in %%build.
+BuildRequires:  qt5-qttools-linguist
 
 %ifarch %arm
 %define rusttarget armv7-unknown-linux-gnueabihf
@@ -211,6 +213,11 @@ cargo build \
     --package postivene-app
 )
 
+# The translation catalogs: translations/postivene-<lang>.ts, compiled
+# here into the .qm files the app loads. Made at build time rather than
+# checked in, as the binary is.
+./scripts/release-translations.sh
+
 %install
 rm -rf %{buildroot}
 
@@ -226,6 +233,12 @@ install -Dm 755 "$builddir/%{name}" \
 # would otherwise ship, and Harbour would then have an opinion about it.
 (cd qml && find . -type f \( -name '*.qml' -o -name '*.js' -o -name qmldir \) -exec \
     install -Dm 644 "{}" "%{buildroot}%{appdatadir}/qml/{}" \; )
+
+# The compiled catalogs, beside the QML: postivene-app looks for them at
+# this path, the way it looks for qml/ above. Only the .qm files; the .ts
+# sources they were built from stay in the tree.
+(cd translations && find . -type f -name 'postivene-*.qm' -exec \
+    install -Dm 644 "{}" "%{buildroot}%{appdatadir}/translations/{}" \; )
 
 # Bundled deltachat-rpc-server: see vendor/deltachat-rpc-server/ and
 # scripts/fetch-rpc-server.sh. Installed under a private libexec dir rather

@@ -9,6 +9,10 @@ RPMS/
 build-*/
 *.spec.bak
 
+# Compiled translation catalogs: `make translations` and the RPM's %build
+# make them from the .ts files beside them (scripts/release-translations.sh)
+*.qm
+
 # Qt Creator / QML tooling
 *.pro.user
 *.pro.user.*

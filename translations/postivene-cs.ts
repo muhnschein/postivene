@@ -1,0 +1,823 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="cs">
+<context>
+    <name>AddMembersPage</name>
+    <message>
+        <source>Add to group</source>
+        <translation>Přidat do skupiny</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>Přidat členy</translation>
+    </message>
+    <message>
+        <source>No contacts to add</source>
+        <translation>Žádné kontakty k přidání</translation>
+    </message>
+</context>
+<context>
+    <name>AddProfileDialog</name>
+    <message>
+        <source>Add profile</source>
+        <translation>Přidat profil</translation>
+    </message>
+    <message>
+        <source>Create</source>
+        <translation>Vytvořit</translation>
+    </message>
+    <message>
+        <source>Pick a chatmail relay or enter a custom server. The server assigns the address; the encryption keys are made on this device.</source>
+        <translation>Vyberte chatmail relay nebo zadejte vlastní server. Server přidělí adresu; šifrovací klíče se vytvoří na tomto zařízení.</translation>
+    </message>
+    <message>
+        <source>Your name</source>
+        <translation>Vaše jméno</translation>
+    </message>
+    <message>
+        <source>Relay</source>
+        <translation>Relay</translation>
+    </message>
+    <message>
+        <source>Custom server</source>
+        <translation>Vlastní server</translation>
+    </message>
+    <message>
+        <source>See &lt;a href=&quot;https://chatmail.at/relays&quot;&gt;chatmail.at/relays&lt;/a&gt; for the full list.</source>
+        <translation>Úplný seznam je na &lt;a href=&quot;https://chatmail.at/relays&quot;&gt;chatmail.at/relays&lt;/a&gt;.</translation>
+    </message>
+</context>
+<context>
+    <name>AttachmentBar</name>
+    <message>
+        <source>Sending %1</source>
+        <extracomment>Shown above the message field once a file has been picked. %1 is the file name.</extracomment>
+        <translation>Odesílá se %1</translation>
+    </message>
+</context>
+<context>
+    <name>AttachmentPreview</name>
+    <message>
+        <source>Voice message</source>
+        <extracomment>A recorded voice message, which has no useful file name.</extracomment>
+        <translation>Hlasová zpráva</translation>
+    </message>
+</context>
+<context>
+    <name>ChatListPage</name>
+    <message>
+        <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
+        <translation>Spojení s jádrem Delta Chatu bylo ztraceno. Znovu se připojuje...</translation>
+    </message>
+    <message>
+        <source>Lost the connection to the Delta Chat core. Restart Postivene.</source>
+        <translation>Spojení s jádrem Delta Chatu bylo ztraceno. Restartujte Postivene.</translation>
+    </message>
+    <message>
+        <source>Profiles</source>
+        <translation>Profily</translation>
+    </message>
+    <message>
+        <source>Archived chats</source>
+        <translation>Archivované chaty</translation>
+    </message>
+    <message>
+        <source>New chat</source>
+        <translation>Nový chat</translation>
+    </message>
+    <message>
+        <source>Archived</source>
+        <translation>Archivované</translation>
+    </message>
+    <message>
+        <source>Chats</source>
+        <translation>Chaty</translation>
+    </message>
+    <message>
+        <source>Search chats</source>
+        <translation>Hledat v chatech</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Hledat</translation>
+    </message>
+    <message>
+        <source>Pinned</source>
+        <translation>Připnuté</translation>
+    </message>
+    <message>
+        <source>Other chats</source>
+        <translation>Ostatní chaty</translation>
+    </message>
+    <message>
+        <source>Mark as read</source>
+        <translation>Označit jako přečtené</translation>
+    </message>
+    <message>
+        <source>Unpin</source>
+        <translation>Odepnout</translation>
+    </message>
+    <message>
+        <source>Pin</source>
+        <translation>Připnout</translation>
+    </message>
+    <message>
+        <source>Unmute</source>
+        <translation>Zrušit ztlumení</translation>
+    </message>
+    <message>
+        <source>Mute</source>
+        <translation>Ztlumit</translation>
+    </message>
+    <message>
+        <source>Accept</source>
+        <translation>Přijmout</translation>
+    </message>
+    <message>
+        <source>Block</source>
+        <translation>Blokovat</translation>
+    </message>
+    <message>
+        <source>Archive</source>
+        <translation>Archivovat</translation>
+    </message>
+    <message>
+        <source>Unarchive</source>
+        <translation>Obnovit z archivu</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Smazat</translation>
+    </message>
+    <message>
+        <source>Deleting</source>
+        <translation>Mazání</translation>
+    </message>
+    <message>
+        <source>No archived chats</source>
+        <translation>Žádné archivované chaty</translation>
+    </message>
+    <message>
+        <source>No chats yet</source>
+        <translation>Zatím žádné chaty</translation>
+    </message>
+    <message>
+        <source>Pull down to start one</source>
+        <translation>Stažením dolů nějaký založíte</translation>
+    </message>
+</context>
+<context>
+    <name>ChatPickerPage</name>
+    <message>
+        <source>Forward to</source>
+        <translation>Přeposlat do</translation>
+    </message>
+    <message>
+        <source>Search chats</source>
+        <translation>Hledat v chatech</translation>
+    </message>
+    <message>
+        <source>No chats to forward to</source>
+        <translation>Žádné chaty k přeposlání</translation>
+    </message>
+</context>
+<context>
+    <name>ContactPage</name>
+    <message>
+        <source>Saved</source>
+        <translation>Uloženo</translation>
+    </message>
+    <message>
+        <source>Contact</source>
+        <translation>Kontakt</translation>
+    </message>
+    <message>
+        <source>Verified: end-to-end encrypted, and checked in person</source>
+        <translation>Ověřeno: šifrováno mezi koncovými body a osobně zkontrolováno</translation>
+    </message>
+    <message>
+        <source>End-to-end encrypted</source>
+        <translation>Šifrováno mezi koncovými body</translation>
+    </message>
+    <message>
+        <source>Not encrypted: a plain email contact</source>
+        <translation>Nešifrováno: běžný e-mailový kontakt</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Jméno</translation>
+    </message>
+    <message>
+        <source>Leave blank to use the name they chose</source>
+        <translation>Ponechte prázdné, aby se použilo jméno, které si zvolili</translation>
+    </message>
+</context>
+<context>
+    <name>ConversationList</name>
+    <message>
+        <source>Reply</source>
+        <translation>Odpovědět</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Kopírovat</translation>
+    </message>
+    <message>
+        <source>Forward</source>
+        <translation>Přeposlat</translation>
+    </message>
+    <message>
+        <source>Send again</source>
+        <translation>Poslat znovu</translation>
+    </message>
+    <message>
+        <source>Download</source>
+        <translation>Stáhnout</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Smazat</translation>
+    </message>
+    <message>
+        <source>Deleting</source>
+        <translation>Mazání</translation>
+    </message>
+</context>
+<context>
+    <name>ConversationPage</name>
+    <message>
+        <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
+        <translation>Spojení s jádrem Delta Chatu bylo ztraceno. Znovu se připojuje...</translation>
+    </message>
+    <message>
+        <source>Lost the connection to the Delta Chat core. Restart Postivene.</source>
+        <translation>Spojení s jádrem Delta Chatu bylo ztraceno. Restartujte Postivene.</translation>
+    </message>
+    <message>
+        <source>No messages yet</source>
+        <translation>Zatím žádné zprávy</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>Zkopírováno do schránky</translation>
+    </message>
+    <message>
+        <source>Caption</source>
+        <extracomment>Message field placeholder. Also the prompt for the caption on a message that is carrying a file.</extracomment>
+        <translation>Popisek</translation>
+    </message>
+    <message>
+        <source>Message</source>
+        <translation>Zpráva</translation>
+    </message>
+</context>
+<context>
+    <name>CoverPage</name>
+    <message>
+        <source>No new messages</source>
+        <translation>Žádné nové zprávy</translation>
+    </message>
+</context>
+<context>
+    <name>DisappearingMessages</name>
+    <message>
+        <source>Off</source>
+        <translation>Vypnuto</translation>
+    </message>
+    <message>
+        <source>After 1 minute</source>
+        <translation>Po 1 minutě</translation>
+    </message>
+    <message>
+        <source>After 5 minutes</source>
+        <translation>Po 5 minutách</translation>
+    </message>
+    <message>
+        <source>After 30 minutes</source>
+        <translation>Po 30 minutách</translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation>Po 1 hodině</translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation>Po 1 dni</translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation>Po 1 týdnu</translation>
+    </message>
+    <message>
+        <source>After 5 weeks</source>
+        <translation>Po 5 týdnech</translation>
+    </message>
+    <message>
+        <source>Disappearing messages</source>
+        <translation>Mizející zprávy</translation>
+    </message>
+    <message numerus="yes">
+        <source>After %n second(s)</source>
+        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
+        <translation>
+            <numerusform>Po %n sekundě</numerusform>
+            <numerusform>Po %n sekundách</numerusform>
+            <numerusform>Po %n sekundách</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
+        <translation>Platí pro všechny členy tohoto chatu; zprávy mohou stále kopírovat, ukládat a přeposílat.</translation>
+    </message>
+</context>
+<context>
+    <name>Format</name>
+    <message>
+        <source>now</source>
+        <translation>teď</translation>
+    </message>
+    <message>
+        <source>%1 min</source>
+        <translation>%1 min</translation>
+    </message>
+    <message>
+        <source>%1 h</source>
+        <translation>%1 h</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n day(s)</source>
+        <extracomment>How long ago a chat&apos;s last message was. %n is a count of days.</extracomment>
+        <translation>
+            <numerusform>%n den</numerusform>
+            <numerusform>%n dny</numerusform>
+            <numerusform>%n dní</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>GeneralSettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>Nikdy</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>Do 256 kB</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>Do 512 kB</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>Do 1 MB</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>Do 2 MB</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>Do 5 MB</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Vždy</translation>
+    </message>
+    <message>
+        <source>Postivene</source>
+        <translation>Postivene</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Zprávy</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>Jak se zobrazí zpráva napsaná s *hvězdičkami* a `zpětnými apostrofy`.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>Vykreslené: tučně, kurzíva, odkazy</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>Odstraněné: jen slova</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>Jak bylo napsáno</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>Automaticky stahovat přílohy</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>Větší počkají, dokud si o ně neřeknete. Platí pro každý profil a pro zprávy, které přijdou od této chvíle.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Odkazy</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>Odstranit sledování z odkazů</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>Známé sledovací parametry – ID kliknutí, značky kampaní, účet sdílejícího – se z odkazů ve vašich odesílaných zprávách odstraní. Zbytek odkazu zůstane, jak byl.</translation>
+    </message>
+</context>
+<context>
+    <name>GroupPage</name>
+    <message>
+        <source>Saved</source>
+        <translation>Uloženo</translation>
+    </message>
+    <message>
+        <source>Leave group</source>
+        <translation>Opustit skupinu</translation>
+    </message>
+    <message>
+        <source>Leaving group</source>
+        <translation>Opouštění skupiny</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>Přidat členy</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>Skupina</translation>
+    </message>
+    <message>
+        <source>Remove picture</source>
+        <translation>Odstranit obrázek</translation>
+    </message>
+    <message>
+        <source>Group name</source>
+        <translation>Název skupiny</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are.</extracomment>
+        <translation>
+            <numerusform>%n člen</numerusform>
+            <numerusform>%n členové</numerusform>
+            <numerusform>%n členů</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>Odebrat ze skupiny</translation>
+    </message>
+    <message>
+        <source>Removing</source>
+        <translation>Odebírání</translation>
+    </message>
+</context>
+<context>
+    <name>InvitePage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Chat</translation>
+    </message>
+    <message>
+        <source>Scan QR code</source>
+        <translation>Naskenovat QR kód</translation>
+    </message>
+    <message>
+        <source>Invite</source>
+        <translation>Pozvánka</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
+        <translation>Nechte někoho naskenovat tento kód, nebo mu pošlete odkaz. Chcete-li někoho přidat z jeho kódu, stáhněte dolů.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>Načítá se...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>Kopírovat odkaz pozvánky</translation>
+    </message>
+</context>
+<context>
+    <name>MessageDelegate</name>
+    <message>
+        <source>Forwarded</source>
+        <translation>Přeposláno</translation>
+    </message>
+    <message>
+        <source>Downloading…</source>
+        <translation>Stahuje se…</translation>
+    </message>
+    <message>
+        <source>⬇ Download failed, tap to try again</source>
+        <translation>⬇ Stahování selhalo, klepnutím to zkusíte znovu</translation>
+    </message>
+    <message>
+        <source>Cannot be decrypted</source>
+        <translation>Nelze dešifrovat</translation>
+    </message>
+    <message>
+        <source>⬇ Download</source>
+        <extracomment>Fetches a message the auto-download limit held back.</extracomment>
+        <translation>⬇ Stáhnout</translation>
+    </message>
+</context>
+<context>
+    <name>NewChatPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Chat</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Nová skupina</translation>
+    </message>
+    <message>
+        <source>New contact</source>
+        <translation>Nový kontakt</translation>
+    </message>
+    <message>
+        <source>New chat</source>
+        <translation>Nový chat</translation>
+    </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>Hledat v kontaktech</translation>
+    </message>
+    <message>
+        <source>No contacts yet</source>
+        <translation>Zatím žádné kontakty</translation>
+    </message>
+    <message>
+        <source>Pull down to scan someone&apos;s invite</source>
+        <translation>Stažením dolů naskenujete něčí pozvánku</translation>
+    </message>
+</context>
+<context>
+    <name>NewGroupPage</name>
+    <message>
+        <source>Please name the group</source>
+        <translation>Pojmenujte prosím skupinu</translation>
+    </message>
+    <message>
+        <source>Create Group</source>
+        <translation>Vytvořit skupinu</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Nová skupina</translation>
+    </message>
+    <message>
+        <source>Group name</source>
+        <translation>Název skupiny</translation>
+    </message>
+    <message>
+        <source>No contacts to add yet</source>
+        <translation>Zatím žádné kontakty k přidání</translation>
+    </message>
+</context>
+<context>
+    <name>PicturePage</name>
+    <message>
+        <source>Saved to Pictures</source>
+        <translation>Uloženo do Obrázků</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>Otevřít v jiné aplikaci</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>Uložit do zařízení</translation>
+    </message>
+</context>
+<context>
+    <name>ProfilePage</name>
+    <message>
+        <source>Connected</source>
+        <translation>Připojeno</translation>
+    </message>
+    <message>
+        <source>Connected, sending and receiving</source>
+        <translation>Připojeno, odesílá a přijímá</translation>
+    </message>
+    <message>
+        <source>Connecting</source>
+        <translation>Připojování</translation>
+    </message>
+    <message>
+        <source>Not connected</source>
+        <translation>Nepřipojeno</translation>
+    </message>
+    <message>
+        <source>Checking the connection</source>
+        <translation>Kontroluje se spojení</translation>
+    </message>
+    <message>
+        <source>Check connection</source>
+        <translation>Zkontrolovat spojení</translation>
+    </message>
+    <message>
+        <source>Profile</source>
+        <translation>Profil</translation>
+    </message>
+    <message>
+        <source>Remove picture</source>
+        <translation>Odstranit obrázek</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Jméno</translation>
+    </message>
+    <message>
+        <source>Your name</source>
+        <translation>Vaše jméno</translation>
+    </message>
+    <message>
+        <source>Bio</source>
+        <translation>O mně</translation>
+    </message>
+    <message>
+        <source>A line about you</source>
+        <translation>Řádek o vás</translation>
+    </message>
+    <message>
+        <source>Address</source>
+        <translation>Adresa</translation>
+    </message>
+    <message>
+        <source>Show invite code</source>
+        <translation>Zobrazit kód pozvánky</translation>
+    </message>
+    <message>
+        <source>Send read receipts</source>
+        <translation>Odesílat potvrzení o přečtení</translation>
+    </message>
+    <message>
+        <source>Tells the people you write to when you have read their messages, and asks the same of them. With this off you send none and see none.</source>
+        <translation>Dává lidem, kterým píšete, vědět, kdy jste si přečetli jejich zprávy, a žádá od nich totéž. Když je to vypnuto, žádná neposíláte ani nevidíte.</translation>
+    </message>
+    <message>
+        <source>Storage and connectivity</source>
+        <translation>Úložiště a připojení</translation>
+    </message>
+    <message>
+        <source>%1 on this phone</source>
+        <extracomment>How much room the profile takes on the phone. %1 is a size such as &quot;12.3 MB&quot;.</extracomment>
+        <translation>%1 v tomto telefonu</translation>
+    </message>
+    <message>
+        <source>Saved</source>
+        <translation>Uloženo</translation>
+    </message>
+</context>
+<context>
+    <name>ProfileSetupPage</name>
+    <message>
+        <source>Add profile</source>
+        <translation>Přidat profil</translation>
+    </message>
+    <message>
+        <source>Contacting %1...</source>
+        <translation>Kontaktuje se %1...</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Zrušit</translation>
+    </message>
+    <message>
+        <source>Back</source>
+        <translation>Zpět</translation>
+    </message>
+</context>
+<context>
+    <name>ProfilesPage</name>
+    <message>
+        <source>Add profile</source>
+        <translation>Přidat profil</translation>
+    </message>
+    <message>
+        <source>Profiles</source>
+        <translation>Profily</translation>
+    </message>
+    <message>
+        <source>Profile settings</source>
+        <translation>Nastavení profilu</translation>
+    </message>
+    <message>
+        <source>Delete profile</source>
+        <translation>Smazat profil</translation>
+    </message>
+    <message>
+        <source>Deleting profile</source>
+        <translation>Mazání profilu</translation>
+    </message>
+    <message>
+        <source>No profiles</source>
+        <translation>Žádné profily</translation>
+    </message>
+</context>
+<context>
+    <name>ReplyBar</name>
+    <message>
+        <source>Replying to %1</source>
+        <translation>Odpověď pro %1</translation>
+    </message>
+</context>
+<context>
+    <name>ScanPage</name>
+    <message>
+        <source>Enter invite link</source>
+        <translation>Zadat odkaz pozvánky</translation>
+    </message>
+    <message>
+        <source>Scan QR code</source>
+        <translation>Naskenovat QR kód</translation>
+    </message>
+    <message>
+        <source>Invite link</source>
+        <translation>Odkaz pozvánky</translation>
+    </message>
+    <message>
+        <source>Connect</source>
+        <translation>Připojit</translation>
+    </message>
+    <message>
+        <source>Or point the camera at the code</source>
+        <translation>Nebo namiřte fotoaparát na kód</translation>
+    </message>
+    <message>
+        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
+        <translation>Namiřte fotoaparát na pozvánku nebo na kód chatmail serveru. Stažením dolů místo toho zadáte odkaz.</translation>
+    </message>
+</context>
+<context>
+    <name>SearchResultsList</name>
+    <message>
+        <source>Chats (%1)</source>
+        <translation>Chaty (%1)</translation>
+    </message>
+    <message>
+        <source>Contacts (%1)</source>
+        <translation>Kontakty (%1)</translation>
+    </message>
+    <message>
+        <source>Messages (%1 of %2)</source>
+        <translation>Zprávy (%1 z %2)</translation>
+    </message>
+    <message>
+        <source>Messages (%1)</source>
+        <translation>Zprávy (%1)</translation>
+    </message>
+    <message>
+        <source>Nothing found</source>
+        <translation>Nic nenalezeno</translation>
+    </message>
+</context>
+<context>
+    <name>VideoPage</name>
+    <message>
+        <source>Saved to Videos</source>
+        <translation>Uloženo do Videí</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>Otevřít v jiné aplikaci</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>Uložit do zařízení</translation>
+    </message>
+</context>
+<context>
+    <name>WelcomePage</name>
+    <message>
+        <source>Postivene</source>
+        <translation>Postivene</translation>
+    </message>
+    <message>
+        <source>Secure decentralized chat</source>
+        <translation>Bezpečný decentralizovaný chat</translation>
+    </message>
+    <message>
+        <source>No phone number, no account with us: your profile lives on a mail server of your choosing.</source>
+        <translation>Žádné telefonní číslo, žádný účet u nás: váš profil žije na poštovním serveru podle vaší volby.</translation>
+    </message>
+    <message>
+        <source>Add profile</source>
+        <translation>Přidat profil</translation>
+    </message>
+</context>
+</TS>

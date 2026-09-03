@@ -135,6 +135,13 @@ pub struct ChatMessages {
     pub is_group: qt_property!(bool; NOTIFY is_group_changed),
     /// Emitted once the chat's kind is known.
     pub is_group_changed: qt_signal!(),
+    /// The chat's name as the core shows it: the group's, or the contact's
+    /// display name. Empty until read. Re-read on every event that could
+    /// have changed it, so the header over the messages follows a rename
+    /// made on the page beside it, or on another device.
+    pub chat_name: qt_property!(QString; NOTIFY chat_name_changed),
+    /// Emitted when `chat_name` is re-read and differs.
+    pub chat_name_changed: qt_signal!(),
 
     /// The rows, for a `SilicaListView`'s `model`.
     pub rows: qt_property!(RefCell<MessageListModel>; CONST),
@@ -402,6 +409,10 @@ impl ChatMessages {
         // flag being down is what tells such a reply to drop.
         self.hydrating = false;
         self.hydrating_changed();
+        // The name is its own small fetch, on both paths below: the
+        // prefetch does not carry it, and the page opens with the name the
+        // list handed it anyway.
+        self.refresh_name();
         // Already loaded, by whoever opened this page: take it and skip
         // the round trip entirely. This is what lets the transition start
         // with the rows in place rather than fill in behind it.
@@ -616,8 +627,45 @@ impl ChatMessages {
                     self.refresh_one(message_id);
                 }
             }
+            // A rename, of the group or of the contact behind a one-to-one
+            // chat; the core does not say whose contact changed.
+            "ChatModified" | "ContactsChanged" => self.refresh_name(),
             _ => {}
         }
+    }
+
+    /// Re-read the chat's name: one `get_basic_chat_info`, cheap enough
+    /// to do on every event that could have changed it. Nothing is said
+    /// when it did not.
+    fn refresh_name(&mut self) {
+        let (account_id, chat_id) = (self.account_id, self.chat_id);
+        if account_id == 0 || chat_id == 0 {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            return;
+        };
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |name: Option<String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            let Some(name) = name else { return };
+            // Answered for a chat this model has moved on from.
+            if this.borrow().chat_id != chat_id {
+                return;
+            }
+            if this.borrow().chat_name.to_string() != name {
+                this.borrow_mut().chat_name = name.into();
+                this.borrow().chat_name_changed();
+            }
+        });
+        runtime.spawn(async move {
+            let name = rpc
+                .call::<_, serde_json::Value>("get_basic_chat_info", (account_id, chat_id))
+                .await
+                .ok()
+                .map(|info| json::str_at(&info, "name").to_string());
+            done(name);
+        });
     }
 
     /// Bring the rows in line with the chat's current id list.

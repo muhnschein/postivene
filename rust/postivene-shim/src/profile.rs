@@ -9,6 +9,7 @@ use qmetaobject::*;
 
 use crate::connectivity::{quota_from_report, Quota};
 use crate::core::connection;
+use crate::json;
 
 /// One account's profile, loaded and saved.
 ///
@@ -36,6 +37,9 @@ pub struct Profile {
     /// The address this profile sends from. Not editable: changing it is
     /// setting up a different transport, not renaming this one.
     pub address: qt_property!(QString; NOTIFY loaded_changed),
+    /// The colour the core gives the reader's own contact, `#rrggbb`, for
+    /// the avatar wherever the profile is drawn beside other people's.
+    pub color: qt_property!(QString; NOTIFY loaded_changed),
 
     /// Whether the other end is told when a message has been read.
     /// `mdns_enabled` to the core, which defaults it on.
@@ -98,7 +102,7 @@ pub struct Profile {
 }
 
 /// What one load brings back: name, status, picture, address, receipts.
-type Fields = (String, String, String, String, bool);
+type Fields = (String, String, String, String, bool, String);
 
 /// What one connectivity check brings back: the band, the mailbox quota
 /// if the relay reports one, and the profile's size on the device.
@@ -221,7 +225,7 @@ impl Profile {
                 return;
             }
             match result {
-                Ok((display_name, status, avatar_path, address, read_receipts)) => {
+                Ok((display_name, status, avatar_path, address, read_receipts, color)) => {
                     {
                         let mut this_mut = this.borrow_mut();
                         this_mut.display_name = display_name.into();
@@ -229,6 +233,7 @@ impl Profile {
                         this_mut.avatar_path = avatar_path.into();
                         this_mut.address = address.into();
                         this_mut.read_receipts = read_receipts;
+                        this_mut.color = color.into();
                         this_mut.loaded = true;
                     }
                     this.borrow().loaded_changed();
@@ -256,6 +261,13 @@ impl Profile {
                     // The core stores it as "1"/"0" and defaults it on,
                     // so an absent value is not "off".
                     get("mdns_enabled").await? != "0",
+                    // The reader's own contact is id 1 in every account.
+                    // Nice to have rather than needed: a profile whose
+                    // colour cannot be read still has a name to show.
+                    rpc.call::<_, serde_json::Value>("get_contact", (account_id, 1_u32))
+                        .await
+                        .map(|contact| json::str_at(&contact, "color").to_string())
+                        .unwrap_or_default(),
                 ))
             }
             .await;

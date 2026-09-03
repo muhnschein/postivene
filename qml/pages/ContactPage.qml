@@ -225,6 +225,13 @@ Page {
                 text: page.statusLine
             }
 
+            // Room under the name, so the badge at its corner does not
+            // sit on what follows.
+            Item {
+                width: 1
+                height: Theme.paddingLarge
+            }
+
             DisappearingMessages {
                 objectName: "disappearing"
                 seconds: chat.ephemeral_timer

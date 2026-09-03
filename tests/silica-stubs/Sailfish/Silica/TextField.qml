@@ -14,6 +14,8 @@ Item {
     property bool focus_: false
     property int horizontalAlignment: 0
     property bool labelVisible: true
+    property int textTopMargin: 0
+    property font font
     signal clicked()
     implicitWidth: 400
     implicitHeight: 60

@@ -926,6 +926,20 @@ async fn main() {
                         }),
                     )
                 }
+                // One contact by id, the account's own included: the
+                // profile page asks for its colour this way.
+                "get_contact" => {
+                    let contact = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    match state.contact_object(contact) {
+                        Some(object) => ok(&id, &object),
+                        None => err(&id, "contact not found"),
+                    }
+                }
                 "get_chatlist_entries" => {
                     let mut state = state.lock().await;
                     state.seed_chats();

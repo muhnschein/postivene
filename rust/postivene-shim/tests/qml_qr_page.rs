@@ -105,6 +105,13 @@ const PROBE_QML: &str = r"
             return '' + item[property]
         }
         function pageProperty(property) { return '' + loader.item[property] }
+        // The profile row's avatar, for whose code this is.
+        function profileColor() {
+            var row = findIn(loader.item, 'profileRow')
+            if (!row) { return 'missing:profileRow' }
+            var avatar = findIn(row, 'contactAvatar')
+            return avatar ? '' + avatar.ownColor : 'missing:contactAvatar'
+        }
         function click(name) {
             var item = findIn(loader.item, name)
             if (!item) { return 'missing:' + name }
@@ -195,6 +202,9 @@ fn the_page_shows_the_invite_and_follows_one_entered_on_the_scanner_side() {
         record!("mode", call!("pageProperty", QString::from("mode")));
         record!("code-side", get!("codeView", "visible"));
         record!("scan-side", get!("scanArea", "visible"));
+        // Whose code: the profile, in its own colour, above it.
+        record!("profile-row", get!("profileRow", "visible"));
+        record!("profile-color", call!("profileColor"));
         record!("invite", get!("myInviteLabel", "text"));
         record!("code-size", get!("qr", "size"));
         record!("code-shown", get!("inviteQr", "visible"));
@@ -262,6 +272,17 @@ fn assert_page(steps: &[(&str, String)], calls: &[String]) {
         value("scan-side"),
         "false",
         "the scanner side is showing beside the code. {context}"
+    );
+    assert_eq!(
+        value("profile-row"),
+        "true",
+        "the code side does not say whose code it is. {context}"
+    );
+    assert_eq!(
+        value("profile-color"),
+        "#00875a",
+        "the profile row is not drawn in the colour the core gives the \
+         reader's own contact. {context}"
     );
     assert!(
         value("invite").starts_with("https://i.delta.chat/"),

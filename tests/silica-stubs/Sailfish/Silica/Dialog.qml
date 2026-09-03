@@ -9,6 +9,7 @@ import Sailfish.Silica 1.0
 Page {
     property bool canAccept: true
     property var acceptDestination
+    property int acceptDestinationAction: 0
     property var acceptDestinationInstance
     signal accepted()
     signal rejected()

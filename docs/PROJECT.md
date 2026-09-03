@@ -266,7 +266,9 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   (github.com/trufae/parla): a dot and the band in words for the
   connection, a bar for the mailbox that is there before the relay has
   said anything, and under it what is used, what is left and what there
-  is, read off the core's own report (`connectivity.rs`). The three
+  is, read off the core's own report (`connectivity.rs`); the bar is
+  drawn by the page, the width of the text around it, since Silica's
+  own sits well inside its margins. The three
   settings that belong to no profile -- how Markdown is drawn, whether
   links go out with their tracking parameters, how large an attachment
   arrives unasked -- are `SettingsPage`, in the chat list's pull-down.
@@ -283,13 +285,29 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
 - **A name is a name until its badge is tapped.** The reader's own name
   on the profile page, a contact's on theirs and a group's on its page
   are one control, `EditableName.qml`: the name centred under the
-  picture, wearing the picture's own edit badge at its top right; a tap
-  turns it into a field where the name was, with a line under it saying
-  what the field means, and the badge into a tick that puts the name
+  picture, wearing the picture's own edit badge at the bottom right of
+  the text; a tap turns it into a field where the name was, with a line
+  under it saying what the field means, and the badge into a tick at the
+  end of what is typed (measured with the field's font, since the field
+  centres its text and says nothing about its width) that puts the name
   back. The page puts it back on the way out too, so a contact left with
   no given name shows the name they chose, not an empty field. The field
   is what the page reads and saves, the way it did when the field stood
-  on its own.
+  on its own; a group's cannot be saved blank, and goes back to the name
+  the group has. The conversation's header follows a rename through its
+  own model -- `Chat` re-reads the chat's name on `ChatModified` and
+  `ContactsChanged` -- rather than through whichever page did the
+  renaming, which is what left it showing the old name until the chat
+  was reopened.
+- **Leaving a group is asked about on a page.** `LeaveGroupDialog`, with
+  the platform's accept and cancel at the top, rather than a countdown
+  on the pull-down that a thumb already moving could miss. The group
+  page does the leaving on `accepted`, and finishes the dialog's own
+  transition before popping to the chat, since Silica drops a stack
+  operation asked for during one. Adding members is a row at the end of
+  the member list, shaped like a member with a plus for a picture;
+  removing a picture is in the pull-down on the group and profile pages,
+  and only while there is one.
 - **Markdown is rendered here, and rendered safely.** Sailfish's Qt 5.6
   has no Markdown of its own, so `markdown.rs` turns the subset people
   type -- emphasis, strikethrough, code, headings, links -- into
@@ -318,9 +336,11 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   list's pull-down as "QR code" and behind the profile page's "Show
   invite code": a switch at the top, the way an inline view switcher
   works on the desktop, between this profile's invite drawn as a code
-  and the scanner for someone else's. The scanner (`ScanView.qml`, the
-  one file that names a `Camera`, loaded by URL so a device without one
-  loses that side and not the page) has a button under the viewfinder
+  and the scanner for someone else's, drawn the way Silica's own tab bar
+  draws one, with the profile the code belongs to named above the code.
+  The scanner (`ScanView.qml`, the one file that names a `Camera`,
+  loaded by URL so a device without one loses that side and not the
+  page) has a button under the viewfinder
   for the link the code would carry, typed or pasted -- a panel over the
   viewfinder rather than a dialog, because a dialog's own pop is the
   transition the page's navigation would land in and be dropped by.

@@ -52,8 +52,16 @@ Page {
             page.renamed(name)
         }
         // A group that has been left is still a chat, with its history in
-        // it, so the way out is back to it rather than to the list.
-        onLeft: pageStack.pop()
+        // it, so the way out is back to it rather than to the list. The
+        // confirmation's own pop may still be running when the core
+        // answers, and Silica drops a stack operation asked for during a
+        // transition -- so that one is finished first.
+        onLeft: {
+            if (pageStack.completeAnimation) {
+                pageStack.completeAnimation()
+            }
+            pageStack.pop()
+        }
     }
 
     Connections {
@@ -89,6 +97,14 @@ Page {
             return
         }
         page.edited = false
+        // A group has to be called something: a blanked field goes back
+        // to the name the group has, rather than to the core as nothing.
+        if (nameField.text.trim().length === 0) {
+            page.filling = true
+            nameField.text = chat.name
+            page.filling = false
+            return
+        }
         chat.rename(nameField.text)
     }
 
@@ -131,6 +147,19 @@ Page {
         })
     }
 
+    // Asked on a page of its own, with the platform's accept at the top,
+    // rather than counted down: there is no way back in without someone
+    // else adding you, and a countdown on a pull-down is easy to miss.
+    function confirmLeave() {
+        var dialog = pageStack.push(Qt.resolvedUrl("LeaveGroupDialog.qml"),
+                                    { groupName: chat.name })
+        if (dialog) {
+            dialog.accepted.connect(function() {
+                chat.leave()
+            })
+        }
+    }
+
     SilicaFlickable {
         anchors.fill: parent
         contentHeight: column.height + Theme.paddingLarge
@@ -140,17 +169,16 @@ Page {
                 objectName: "leaveButton"
                 visible: chat.can_edit
                 text: qsTr("Leave group")
-                // Counted down rather than done: there is no way back in
-                // without someone else adding you.
-                onClicked: remorse.execute(qsTr("Leaving group"), function() {
-                    chat.leave()
-                })
+                onClicked: page.confirmLeave()
             }
+            // Only offered when there is one to remove, and kept off the
+            // picture itself: a tap that might delete is not a tap you
+            // want under a finger reaching for the gallery.
             MenuItem {
-                objectName: "addMembersButton"
-                visible: chat.can_edit
-                text: qsTr("Add members")
-                onClicked: page.addMembers()
+                objectName: "removePicture"
+                visible: chat.can_edit && chat.avatar_path.length > 0
+                text: qsTr("Remove picture")
+                onClicked: chat.clear_picture()
             }
         }
 
@@ -206,17 +234,6 @@ Page {
                 }
             }
 
-            // Only offered when there is one to remove, and kept off the
-            // picture itself: a tap that might delete is not a tap you
-            // want under a finger reaching for the gallery.
-            Button {
-                objectName: "removePicture"
-                anchors.horizontalCenter: parent.horizontalCenter
-                visible: chat.can_edit && chat.avatar_path.length > 0
-                text: qsTr("Remove picture")
-                onClicked: chat.clear_picture()
-            }
-
             // The name, under the picture, with the badge that turns it
             // into a field -- on a group this account is still in. The
             // field is what is read and written; see EditableName.qml.
@@ -231,6 +248,13 @@ Page {
                 hint: qsTr("Everyone in the group sees the name")
                 canEdit: chat.can_edit
                 onTextChanged: page.noteEdit()
+            }
+
+            // Room under the name, so the badge at its corner does not
+            // sit on the setting below.
+            Item {
+                width: 1
+                height: Theme.paddingLarge
             }
 
             DisappearingMessages {
@@ -284,18 +308,50 @@ Page {
                         id: body
                         width: parent.width
                         displayName: model.display_name
-                            ownColor: model.color
+                        ownColor: model.color
                         picturePath: model.avatar_path
                         isKeyContact: model.is_key_contact
                         isVerified: model.is_verified
                     }
                 }
             }
-        }
-    }
 
-    RemorsePopup {
-        id: remorse
+            // The way to more members, where the next one would be listed:
+            // a row shaped like a member's, with a plus for a picture.
+            ListItem {
+                id: addMembersRow
+                objectName: "addMembersButton"
+                visible: chat.can_edit
+                width: column.width
+                contentHeight: Theme.itemSizeSmall + 2 * Theme.paddingMedium
+
+                Rectangle {
+                    id: plus
+                    x: Theme.horizontalPageMargin
+                    y: Theme.paddingMedium
+                    width: Theme.itemSizeSmall
+                    height: width
+                    radius: width / 2
+                    color: Theme.rgba(Theme.highlightBackgroundColor,
+                                      Theme.highlightBackgroundOpacity)
+
+                    Image {
+                        anchors.centerIn: parent
+                        source: "image://theme/icon-m-add"
+                    }
+                }
+
+                Label {
+                    x: plus.x + plus.width + Theme.paddingMedium
+                    anchors.verticalCenter: plus.verticalCenter
+                    color: addMembersRow.highlighted ? Theme.highlightColor
+                                                     : Theme.primaryColor
+                    text: qsTr("Add members")
+                }
+
+                onClicked: page.addMembers()
+            }
+        }
     }
 
     Banner {

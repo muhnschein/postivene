@@ -182,6 +182,12 @@ Page {
             // where a short pull reaches them. Settings is the app's own
             // -- a profile's settings are on its row on the profiles page.
             MenuItem {
+                objectName: "settingsMenuItem"
+                visible: !page.archived
+                text: qsTr("Settings")
+                onClicked: pageStack.push(Qt.resolvedUrl("SettingsPage.qml"), {})
+            }
+            MenuItem {
                 objectName: "profilesMenuItem"
                 // Not gated on there being more than one: adding a second
                 // is itself a reason to open this, and hiding it until
@@ -190,12 +196,6 @@ Page {
                 text: qsTr("Profiles")
                 onClicked: pageStack.push(Qt.resolvedUrl("ProfilesPage.qml"),
                                           { currentAccountId: page.accountId })
-            }
-            MenuItem {
-                objectName: "settingsMenuItem"
-                visible: !page.archived
-                text: qsTr("Settings")
-                onClicked: pageStack.push(Qt.resolvedUrl("SettingsPage.qml"), {})
             }
             MenuItem {
                 // The archived list is a mode, not a filter, so it is its
@@ -210,13 +210,6 @@ Page {
                 })
             }
             MenuItem {
-                objectName: "newGroupMenuItem"
-                visible: !page.archived
-                text: qsTr("New group")
-                onClicked: pageStack.push(Qt.resolvedUrl("NewGroupPage.qml"),
-                                          { accountId: page.accountId })
-            }
-            MenuItem {
                 // Both directions of an invite: this profile's code to
                 // show, and someone else's to scan -- which is how a
                 // Delta Chat contact is added, since an address alone
@@ -225,6 +218,13 @@ Page {
                 visible: !page.archived
                 text: qsTr("QR code")
                 onClicked: pageStack.push(Qt.resolvedUrl("QrPage.qml"),
+                                          { accountId: page.accountId })
+            }
+            MenuItem {
+                objectName: "newGroupMenuItem"
+                visible: !page.archived
+                text: qsTr("New group")
+                onClicked: pageStack.push(Qt.resolvedUrl("NewGroupPage.qml"),
                                           { accountId: page.accountId })
             }
             MenuItem {

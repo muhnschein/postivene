@@ -5,10 +5,11 @@ import Sailfish.Silica 1.0
  * A name under a picture, and the way to change it.
  *
  * Drawn as a name: centred, in the highlight colour, with an edit badge
- * at its top right -- the same badge the picture above it wears. A tap
- * on the badge turns the name into a field, centred where the name was,
- * with a line under it saying what the field means; the badge turns into
- * a tick, and a tap on that puts the name back. Leaving the page puts it
+ * at the bottom right of the text -- the same badge the picture above it
+ * wears, at the same corner. A tap on the badge turns the name into a
+ * field, centred where the name was, with a line under it saying what
+ * the field means; the badge turns into a tick at the end of what is
+ * typed, and a tap on that puts the name back. Leaving the page puts it
  * back too (the page does that), so a name left blank is a name again
  * the next time the page is seen, not an empty field.
  *
@@ -57,7 +58,9 @@ Item {
         root.text.length === 0 && root.fallbackText.length === 0
 
     width: parent ? parent.width : 0
-    height: root.editing ? editor.height : nameLabel.height
+    // The badge hangs half below the name, and is part of what this takes
+    // up: whatever follows starts under it, not under the text.
+    height: root.editing ? editor.height : nameLabel.height + badge.height / 2
 
     // Opening the field puts the cursor in it; closing it drops the
     // keyboard with it.
@@ -121,19 +124,33 @@ Item {
         }
     }
 
-    // The badge: at the top right of the name, or of the field. The same
-    // round badge the picture wears, a pencil to open and a tick to close.
+    // Where the field's text ends: the field centres it, and says nothing
+    // about how wide it is, so it is measured with the field's own font
+    // on a label that is never shown. (TextMetrics would do the same,
+    // and needs a QtQuick newer than the device's.) The placeholder
+    // stands in for an empty field, as it does on screen.
+    Label {
+        id: typed
+        visible: false
+        font: field.font
+        textFormat: Text.PlainText
+        text: field.text.length > 0 ? field.text : root.placeholderText
+    }
+
+    // The badge: at the bottom right of the text, whether that is the
+    // name or what has been typed into the field. The same round badge
+    // the picture wears, a pencil to open and a tick to close. Kept on
+    // the page when the typed text runs past it.
     Rectangle {
         id: badge
         visible: root.canEdit
-        anchors {
-            left: root.editing ? undefined : nameLabel.right
-            right: root.editing ? field.right : undefined
-            rightMargin: Theme.horizontalPageMargin
-            leftMargin: Theme.paddingSmall
-            verticalCenter: root.editing ? field.top : nameLabel.top
-            verticalCenterOffset: root.editing ? badge.height / 2 : 0
-        }
+        x: root.editing
+           ? Math.min(field.width / 2 + typed.implicitWidth / 2 + Theme.paddingSmall,
+                      root.width - Theme.horizontalPageMargin - width)
+           : nameLabel.x + nameLabel.width + Theme.paddingSmall
+        y: root.editing
+           ? field.y + field.textTopMargin + typed.implicitHeight - height / 2
+           : nameLabel.y + nameLabel.height - height / 2
         width: Theme.iconSizeMedium
         height: width
         radius: width / 2
@@ -159,8 +176,8 @@ Item {
         anchors {
             left: nameLabel.left
             right: badge.right
-            top: badge.top
-            bottom: nameLabel.bottom
+            top: nameLabel.top
+            bottom: badge.bottom
         }
         onClicked: root.editing = true
     }

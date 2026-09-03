@@ -83,6 +83,14 @@ Page {
         text: page.myInvite
     }
 
+    // Whose code this is: with more than one profile, the code side says
+    // which of them it is showing.
+    Profile {
+        id: profile
+        objectName: "profile"
+        account_id: page.accountId
+    }
+
     SilicaFlickable {
         id: flickable
         anchors.fill: parent
@@ -97,15 +105,15 @@ Page {
                 title: qsTr("QR code")
             }
 
-            // The switch: two halves of one pill, the chosen one filled.
-            Rectangle {
+            // The switch, drawn the way Silica's own tab bar draws one:
+            // the two names side by side across the page, the chosen one
+            // in the highlight colour with a bar under it, a hairline
+            // under both.
+            Item {
                 id: switcher
                 objectName: "viewSwitcher"
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: parent.width - 2 * Theme.horizontalPageMargin
+                width: parent.width
                 height: Theme.itemSizeSmall
-                radius: height / 2
-                color: Theme.rgba(Theme.primaryColor, 0.1)
 
                 Row {
                     anchors.fill: parent
@@ -114,28 +122,41 @@ Page {
                         model: [qsTr("My code"), qsTr("Scan")]
 
                         BackgroundItem {
+                            id: option
                             objectName: "viewOption" + index
                             width: switcher.width / 2
                             height: switcher.height
 
-                            Rectangle {
-                                anchors.fill: parent
-                                radius: height / 2
-                                visible: page.mode === index
-                                color: Theme.rgba(Theme.highlightBackgroundColor,
-                                                  Theme.highlightBackgroundOpacity)
-                            }
-
                             Label {
                                 anchors.centerIn: parent
-                                color: page.mode === index ? Theme.primaryColor
-                                                           : Theme.highlightColor
+                                color: page.mode === index || option.highlighted
+                                       ? Theme.highlightColor : Theme.primaryColor
                                 text: modelData
+                            }
+
+                            Rectangle {
+                                anchors {
+                                    left: parent.left
+                                    right: parent.right
+                                    bottom: parent.bottom
+                                    leftMargin: Theme.paddingLarge
+                                    rightMargin: Theme.paddingLarge
+                                }
+                                height: Theme.paddingSmall / 2
+                                visible: page.mode === index
+                                color: Theme.highlightColor
                             }
 
                             onClicked: page.mode = index
                         }
                     }
+                }
+
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    width: parent.width
+                    height: 1
+                    color: Theme.rgba(Theme.primaryColor, 0.2)
                 }
             }
 
@@ -146,6 +167,20 @@ Page {
                 visible: page.mode === 0
                 width: parent.width
                 spacing: Theme.paddingLarge
+
+                // Whose: the profile the code belongs to, drawn as the
+                // profiles page draws it.
+                ContactRow {
+                    objectName: "profileRow"
+                    width: parent.width
+                    displayName: profile.display_name.length > 0
+                                 ? profile.display_name : profile.address
+                    address: profile.address
+                    showAddress: true
+                    ownColor: profile.color
+                    picturePath: profile.avatar_path
+                    isKeyContact: true
+                }
 
                 Label {
                     objectName: "intro"

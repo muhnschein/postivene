@@ -4,6 +4,7 @@ Item {
 
     property int contentHeight: 80
     property bool down: false
+    property bool highlighted: down
     property bool menuOpen: false
     property var menu
     signal clicked()

@@ -265,19 +265,12 @@ Page {
         if (pageStack.nextPage(page)) {
             return
         }
-        var info = pageStack.pushAttached(
+        pageStack.pushAttached(
             Qt.resolvedUrl(messages.is_group ? "GroupPage.qml" : "ContactPage.qml"), {
                 accountId: page.accountId,
                 chatId: page.chatId,
                 chatName: page.chatName
             })
-        // The group page renames the chat this page is named for, and
-        // says so, so the header does not go on showing the old name.
-        if (info && messages.is_group) {
-            info.renamed.connect(function(name) {
-                page.chatName = name
-            })
-        }
     }
 
     function openInfo() {
@@ -289,6 +282,15 @@ Page {
     Connections {
         target: messages
         onLoaded_changed: page.attachInfo()
+        // The name the list handed over, until the core says otherwise:
+        // a rename on the page beside this one, or on another device,
+        // reaches the header through the model rather than through
+        // whichever page did it.
+        onChat_name_changed: {
+            if (messages.chat_name.length > 0) {
+                page.chatName = messages.chat_name
+            }
+        }
     }
 
     ConversationList {

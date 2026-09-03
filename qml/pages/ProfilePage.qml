@@ -187,11 +187,17 @@ Page {
         anchors.fill: parent
         contentHeight: column.height + Theme.paddingLarge
 
+        // Only there when there is a picture to remove, and kept off the
+        // picture itself: a tap that might delete is not a tap you want
+        // under a finger reaching for the gallery. The connection needs
+        // no entry: the core says when it changes, and the page re-reads.
         PullDownMenu {
+            visible: profile.avatar_path.length > 0
+
             MenuItem {
-                objectName: "refreshConnectivity"
-                text: qsTr("Check connection")
-                onClicked: profile.refresh_connectivity()
+                objectName: "removePicture"
+                text: qsTr("Remove picture")
+                onClicked: profile.clear_picture()
             }
         }
 
@@ -247,17 +253,6 @@ Page {
                 }
             }
 
-            // Only offered when there is one to remove, and kept off the
-            // picture itself: a tap that might delete is not a tap you
-            // want under a finger reaching for the gallery.
-            Button {
-                objectName: "removePicture"
-                anchors.horizontalCenter: parent.horizontalCenter
-                visible: profile.avatar_path.length > 0
-                text: qsTr("Remove picture")
-                onClicked: profile.clear_picture()
-            }
-
             // The name on every message, under the picture, with the
             // badge that turns it into a field. The field is what is
             // read and written; see EditableName.qml.
@@ -306,6 +301,13 @@ Page {
                     textFormat: Text.PlainText
                     text: profile.address
                 }
+            }
+
+            // Room between the address and the button: the two are not
+            // one thing, and read as one without it.
+            Item {
+                width: 1
+                height: Theme.paddingLarge
             }
 
             // The invite is how anyone gets in touch with this profile,
@@ -372,14 +374,51 @@ Page {
 
             // The mailbox on the relay: the bar is always there, at
             // nothing until the relay has said how full it is, and the
-            // words under it say what the relay said.
-            ProgressBar {
+            // words under it say what the relay said. Drawn here rather
+            // than Silica's ProgressBar, whose track sits well inside its
+            // own margins: this one runs the width of the text above it.
+            Item {
+                id: quotaBar
                 objectName: "quotaBar"
-                width: parent.width
-                minimumValue: 0
-                maximumValue: 100
-                value: Math.min(100, profile.quota_percent)
-                label: page.quotaWords()
+                /// Percent used, 0 to 100.
+                property real value: Math.min(100, profile.quota_percent)
+                /// What is said under the bar.
+                property string label: page.quotaWords()
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                height: track.height + Theme.paddingSmall + quotaLabel.height
+
+                Rectangle {
+                    id: track
+                    width: parent.width
+                    height: Theme.paddingSmall
+                    radius: height / 2
+                    color: Theme.rgba(Theme.primaryColor, 0.2)
+
+                    Rectangle {
+                        objectName: "quotaFill"
+                        width: Math.round(parent.width * quotaBar.value / 100)
+                        height: parent.height
+                        radius: height / 2
+                        color: Theme.highlightColor
+                    }
+                }
+
+                Label {
+                    id: quotaLabel
+                    objectName: "quotaLabel"
+                    anchors {
+                        top: track.bottom
+                        topMargin: Theme.paddingSmall
+                    }
+                    width: parent.width
+                    wrapMode: Text.Wrap
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.secondaryHighlightColor
+                    // The relay's own words, when they are what is shown.
+                    textFormat: Text.PlainText
+                    text: quotaBar.label
+                }
             }
 
             Label {

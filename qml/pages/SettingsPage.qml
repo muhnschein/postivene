@@ -1,49 +1,26 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
-import Nemo.Configuration 1.0
+import "../components"
 
 /*
- * Postivene's page in the system's Settings app, under Apps.
+ * The settings that belong to no profile: how a message is drawn, what
+ * goes out with a link, and how much of an attachment arrives unasked.
+ * Reached from the chat list's pull-down. A profile's own settings --
+ * picture, name, address, read receipts, what the relay says -- are on
+ * the profile's page, reached from its row on the profiles page.
  *
- * This file runs inside jolla-settings, not inside Postivene: the entry
- * in settings/harbour-postivene.json points the Settings app at it, and
- * the Settings app loads it in its own process. So nothing here can reach
- * the core or any component of ours -- only Silica and dconf, which is
- * where these three values live. The app reads the same keys through
- * qml/components/Settings.qml and follows them as they change.
+ * The values live in dconf, behind the `Settings` singleton every page
+ * reads (qml/components/Settings.qml); this page writes the same object,
+ * so a change here reaches every open page without either side being
+ * told. They were briefly a page in the system's Settings app instead,
+ * which never showed up on a device: the entry that puts a page there is
+ * outside the paths Harbour allows, and it turned out to need more than
+ * that entry to appear at all.
  *
- * Everything on this page is a setting for the whole app rather than for
- * one profile; a profile's own settings are on its page inside the app.
+ * Nothing here needs saving: each control writes its setting on the tap.
  */
 Page {
     id: page
-
-    // What the app reads; the keys are the ones Settings.qml names.
-    ConfigurationValue {
-        id: markdownConfig
-        objectName: "markdownConfig"
-        key: "/apps/harbour-postivene/markdown_mode"
-        defaultValue: 0
-        // Silica writes currentIndex itself on a tap, which detaches the
-        // binding, so the choice is put back from the key each time it
-        // changes -- the arrangement DisappearingMessages uses.
-        onValueChanged: markdownCombo.currentIndex = page.markdownIndex(value)
-    }
-
-    ConfigurationValue {
-        id: cleanLinksConfig
-        objectName: "cleanLinksConfig"
-        key: "/apps/harbour-postivene/clean_links"
-        defaultValue: false
-    }
-
-    ConfigurationValue {
-        id: downloadConfig
-        objectName: "downloadConfig"
-        key: "/apps/harbour-postivene/download_limit"
-        defaultValue: 1048576
-        onValueChanged: downloadCombo.currentIndex = page.limitIndex(value)
-    }
 
     /// The download limits offered, in bytes, as parla offers them. The
     /// first is the smallest the core accepts, which is as near to never
@@ -75,10 +52,22 @@ Page {
         return mode >= 0 && mode <= 2 ? mode : 0
     }
 
-    Component.onCompleted: {
-        markdownCombo.currentIndex = page.markdownIndex(markdownConfig.value)
-        downloadCombo.currentIndex = page.limitIndex(downloadConfig.value)
+    /// Put each choice back to what the setting holds. Silica writes
+    /// currentIndex itself on a tap, which detaches a binding, so the
+    /// choice is put back from the setting each time it changes -- the
+    /// arrangement DisappearingMessages uses.
+    function refresh() {
+        markdownCombo.currentIndex = page.markdownIndex(Settings.markdownMode)
+        downloadCombo.currentIndex = page.limitIndex(Settings.downloadLimit)
     }
+
+    Connections {
+        target: Settings
+        onMarkdownModeChanged: page.refresh()
+        onDownloadLimitChanged: page.refresh()
+    }
+
+    Component.onCompleted: page.refresh()
 
     SilicaFlickable {
         anchors.fill: parent
@@ -90,7 +79,7 @@ Page {
             spacing: Theme.paddingMedium
 
             PageHeader {
-                title: qsTr("Postivene")
+                title: qsTr("Settings")
             }
 
             SectionHeader {
@@ -108,17 +97,17 @@ Page {
                     MenuItem {
                         objectName: "markdownOption0"
                         text: qsTr("Drawn: bold, italics, links")
-                        onClicked: markdownConfig.value = 0
+                        onClicked: Settings.markdownMode = 0
                     }
                     MenuItem {
                         objectName: "markdownOption1"
                         text: qsTr("Taken out: the words only")
-                        onClicked: markdownConfig.value = 1
+                        onClicked: Settings.markdownMode = 1
                     }
                     MenuItem {
                         objectName: "markdownOption2"
                         text: qsTr("As written")
-                        onClicked: markdownConfig.value = 2
+                        onClicked: Settings.markdownMode = 2
                     }
                 }
             }
@@ -137,7 +126,7 @@ Page {
                         MenuItem {
                             objectName: "downloadOption" + modelData
                             text: page.limitLabel(index)
-                            onClicked: downloadConfig.value = modelData
+                            onClicked: Settings.downloadLimit = modelData
                         }
                     }
                 }
@@ -151,11 +140,11 @@ Page {
                 objectName: "cleanLinksSwitch"
                 text: qsTr("Remove tracking from links")
                 description: qsTr("Known tracking parameters -- click ids, campaign tags, the sharer's account -- are taken out of the links in the messages you send. The rest of the link is left as it was.")
-                // Bound to the key, not held here, so the switch cannot
+                // Bound to the setting, not held here, so the switch cannot
                 // drift from what the app will read.
                 automaticCheck: false
-                checked: cleanLinksConfig.value === true
-                onClicked: cleanLinksConfig.value = !checked
+                checked: Settings.cleanLinks === true
+                onClicked: Settings.cleanLinks = !checked
             }
         }
     }

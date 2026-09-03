@@ -177,9 +177,10 @@ Page {
             visible: !page.archived
             enabled: !page.archived
 
-            // No Settings entry: a profile's settings are on its row on
-            // the profiles page, and the settings that belong to no
-            // profile are in the system's Settings app, under Apps.
+            // Every way to something starts here, nearest the list
+            // last: the three that make something new are at the bottom,
+            // where a short pull reaches them. Settings is the app's own
+            // -- a profile's settings are on its row on the profiles page.
             MenuItem {
                 objectName: "profilesMenuItem"
                 // Not gated on there being more than one: adding a second
@@ -189,6 +190,12 @@ Page {
                 text: qsTr("Profiles")
                 onClicked: pageStack.push(Qt.resolvedUrl("ProfilesPage.qml"),
                                           { currentAccountId: page.accountId })
+            }
+            MenuItem {
+                objectName: "settingsMenuItem"
+                visible: !page.archived
+                text: qsTr("Settings")
+                onClicked: pageStack.push(Qt.resolvedUrl("SettingsPage.qml"), {})
             }
             MenuItem {
                 // The archived list is a mode, not a filter, so it is its
@@ -201,6 +208,24 @@ Page {
                     accountId: page.accountId,
                     archived: true
                 })
+            }
+            MenuItem {
+                objectName: "newGroupMenuItem"
+                visible: !page.archived
+                text: qsTr("New group")
+                onClicked: pageStack.push(Qt.resolvedUrl("NewGroupPage.qml"),
+                                          { accountId: page.accountId })
+            }
+            MenuItem {
+                // Both directions of an invite: this profile's code to
+                // show, and someone else's to scan -- which is how a
+                // Delta Chat contact is added, since an address alone
+                // produces a chat that cannot be encrypted.
+                objectName: "qrMenuItem"
+                visible: !page.archived
+                text: qsTr("QR code")
+                onClicked: pageStack.push(Qt.resolvedUrl("QrPage.qml"),
+                                          { accountId: page.accountId })
             }
             MenuItem {
                 objectName: "newChatMenuItem"
@@ -331,6 +356,17 @@ Page {
                         visible: !page.archived && model.unread_count > 0
                         text: qsTr("Mark as read")
                         onClicked: chats.mark_read(model.chat_id)
+                    }
+                    // The other way: one unread message back on a chat
+                    // already read, so it stands out until it is opened.
+                    // The core puts its last incoming message back to
+                    // unread, so a chat with only the reader's own
+                    // messages in it stays as it is.
+                    MenuItem {
+                        objectName: "markUnreadItem"
+                        visible: !page.archived && model.unread_count === 0
+                        text: qsTr("Mark as unread")
+                        onClicked: chats.mark_unread(model.chat_id)
                     }
                     MenuItem {
                         objectName: "pinItem"

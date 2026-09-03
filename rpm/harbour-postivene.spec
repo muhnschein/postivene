@@ -78,7 +78,7 @@ Requires:   qt5-qtgraphicaleffects
 Requires:   nemo-qml-plugin-notifications-qt5
 Requires:   nemo-qml-plugin-thumbnailer-qt5
 # Nemo.Configuration, for the settings that belong to no profile: they
-# live in dconf, where the system's Settings app changes them.
+# live in dconf, so a change on the settings page reaches every open page.
 Requires:   nemo-qml-plugin-configuration-qt5
 
 # Harbour allows no Provides: at all, and rpm generates one from any shared
@@ -256,14 +256,6 @@ desktop-file-install \
     --dir %{buildroot}%{_datadir}/applications \
     %{name}.desktop
 
-# The app's entry in the system's Settings app, under Apps: it points the
-# Settings app at qml/settings/GeneralSettingsPage.qml, which is installed
-# with the rest of the QML above. Outside the four paths Harbour permits,
-# and knowingly so -- ci/harbour/waivers.conf names it, and docs/HARBOUR.md
-# says why it is there anyway.
-install -Dm 644 settings/%{name}.json \
-    %{buildroot}%{_datadir}/jolla-settings/entries/%{name}.json
-
 install -Dm 644 icons/86x86/%{name}.png \
     %{buildroot}%{_datadir}/icons/hicolor/86x86/apps/%{name}.png
 install -Dm 644 icons/108x108/%{name}.png \
@@ -287,5 +279,3 @@ install -Dm 644 icons/256x256/%{name}.png \
 %endif
 %{_datadir}/applications/%{name}.desktop
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
-# The directory is the Settings app's own; only the file is ours.
-%{_datadir}/jolla-settings/entries/%{name}.json

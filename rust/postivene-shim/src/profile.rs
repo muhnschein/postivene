@@ -52,6 +52,12 @@ pub struct Profile {
     /// The core's own sentence about the mailbox -- "1.3 MiB of 2 GiB
     /// used" -- or empty when the relay has not said.
     pub quota_text: qt_property!(QString; NOTIFY connectivity_changed),
+    /// The amounts behind `quota_text`, in bytes, for saying how much is
+    /// left the way parla's dialog does. Both 0 when the relay reported
+    /// none. Through f64 because QML has no 64-bit integer.
+    pub quota_used_bytes: qt_property!(f64; NOTIFY connectivity_changed),
+    /// See `quota_used_bytes`.
+    pub quota_limit_bytes: qt_property!(f64; NOTIFY connectivity_changed),
     /// What this profile takes up on the device, in bytes. A real: QML
     /// has no 64-bit integer.
     pub storage_bytes: qt_property!(f64; NOTIFY connectivity_changed),
@@ -135,10 +141,23 @@ impl Profile {
                     {
                         let mut this_mut = this.borrow_mut();
                         this_mut.connectivity = connectivity;
-                        let (percent, text) =
-                            quota.map_or((0, String::new()), |quota| (quota.percent, quota.text));
+                        let (percent, text, used, limit) =
+                            quota.map_or((0, String::new(), 0, 0), |quota| {
+                                (
+                                    quota.percent,
+                                    quota.text,
+                                    quota.used_bytes,
+                                    quota.limit_bytes,
+                                )
+                            });
                         this_mut.quota_percent = percent;
                         this_mut.quota_text = text.into();
+                        // Exact to 2^53 bytes, which no mailbox holds.
+                        #[allow(clippy::cast_precision_loss)]
+                        {
+                            this_mut.quota_used_bytes = used as f64;
+                            this_mut.quota_limit_bytes = limit as f64;
+                        }
                         this_mut.storage_bytes = storage_bytes;
                     }
                     this.borrow().connectivity_changed();

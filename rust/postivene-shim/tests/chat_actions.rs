@@ -34,6 +34,7 @@ const PROBE_QML: &str = r"
         }
         function act() {
             chats.mark_read(1)
+            chats.mark_unread(2)
             chats.set_pinned(1, true)
             chats.set_muted(1, true)
             chats.archive(1)
@@ -125,7 +126,11 @@ fn assert_outcome(calls: &[(String, Value)], before_delete: &str, report: &str) 
 
     assert!(
         params_of("marknoticed_chat").contains(&serde_json::json!([1, 1])),
-        "marking a chat read did not reach the core. {context}"
+        "mark_read did not reach the core as marknoticed_chat(1, 1): {report}"
+    );
+    assert!(
+        params_of("markfresh_chat").contains(&serde_json::json!([1, 2])),
+        "mark_unread did not reach the core as markfresh_chat(1, 2). {context}"
     );
     // Visibility is one method with a variant name, not one method each.
     // The four actions are fired together and race, so assert on the set.

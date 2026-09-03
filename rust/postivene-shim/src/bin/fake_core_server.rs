@@ -67,6 +67,10 @@ struct State {
     contact_names: std::collections::BTreeMap<u32, String>,
     /// Messages whose remainder was asked for; see `downloadState`.
     downloaded: std::collections::BTreeSet<u32>,
+    /// Chats with an unread message on them, by account: marked unread
+    /// from the list, and cleared when the chat is noticed. The real
+    /// core counts fresh messages; this counts a chat as having one.
+    fresh: std::collections::BTreeSet<(u32, u32)>,
 }
 
 impl State {
@@ -481,9 +485,65 @@ async fn main() {
                         .map_or(Value::Null, Value::String);
                     ok(&id, &value)
                 }
+                // Read and unread, as the list marks them. The real core
+                // announces both, and the announcements are what every
+                // badge follows; `get_fresh_msgs` is what the profiles
+                // page counts.
+                "marknoticed_chat" => {
+                    let account = account_id();
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.fresh.remove(&(account, chat));
+                    state.events.push_back(json!({
+                        "contextId": account,
+                        "event": {"kind": "MsgsNoticed", "chatId": chat},
+                    }));
+                    ok(&id, &Value::Null)
+                }
+                "markfresh_chat" => {
+                    let account = account_id();
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    state.fresh.insert((account, chat));
+                    // The real core (chat.rs, `markfresh_chat`) puts the
+                    // newest incoming message back to fresh and announces
+                    // the chat changed, with no message named, and its
+                    // list item changed.
+                    state.events.push_back(json!({
+                        "contextId": account,
+                        "event": {"kind": "MsgsChanged", "chatId": chat, "msgId": 0},
+                    }));
+                    state.events.push_back(json!({
+                        "contextId": account,
+                        "event": {"kind": "ChatlistItemChanged", "chatId": chat},
+                    }));
+                    ok(&id, &Value::Null)
+                }
+                "get_fresh_msgs" => {
+                    let account = account_id();
+                    let state = state.lock().await;
+                    let ids: Vec<u32> = state
+                        .fresh
+                        .iter()
+                        .filter(|(owner, _)| *owner == account)
+                        .filter_map(|(_, chat)| {
+                            state
+                                .chats
+                                .get(chat)
+                                .and_then(|messages| messages.last().copied())
+                        })
+                        .collect();
+                    ok(&id, &json!(ids))
+                }
                 "start_io"
                 | "stop_ongoing_process"
-                | "marknoticed_chat"
                 | "markseen_msgs"
                 | "set_chat_visibility"
                 | "set_chat_mute_duration"
@@ -919,6 +979,7 @@ async fn main() {
                     ok(&id, &json!(entries))
                 }
                 "get_chatlist_items_by_entries" => {
+                    let account = account_id();
                     let ids: Vec<u64> = positional(1)
                         .as_array()
                         .map(|array| array.iter().filter_map(Value::as_u64).collect())
@@ -926,6 +987,9 @@ async fn main() {
                     let state = state.lock().await;
                     let mut items = serde_json::Map::new();
                     for chat in ids {
+                        let fresh = u32::try_from(chat)
+                            .ok()
+                            .is_some_and(|chat| state.fresh.contains(&(account, chat)));
                         // A chat holding a draft previews the draft, and
                         // names it in the prefix the row shows in front:
                         // "Draft", and DC_STATE_OUT_DRAFT for the state.
@@ -946,7 +1010,7 @@ async fn main() {
                                     Clone::clone,
                                 ),
                                 "summaryStatus": if draft.is_some() { 19 } else { 0 },
-                                "freshMessageCounter": 0,
+                                "freshMessageCounter": u32::from(fresh),
                                 "isEncrypted": true,
                                 // Chat 1 is pinned, so the ordinary list
                                 // has both kinds in it and a test can see

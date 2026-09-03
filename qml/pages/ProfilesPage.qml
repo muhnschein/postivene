@@ -118,20 +118,57 @@ Page {
                 // The reader's own, and what tells two profiles apart.
                 showAddress: true
                 isKeyContact: true
+                // Room for the badge and the mark, so a long name fades
+                // before them rather than running under them.
+                trailingSpace: marks.width + Theme.paddingMedium
             }
 
-            // The one being shown, marked the way a chosen group member is.
-            Label {
-                objectName: "currentMark"
+            Row {
+                id: marks
                 anchors {
                     right: parent.right
                     rightMargin: Theme.horizontalPageMargin
                     verticalCenter: body.verticalCenter
                 }
-                visible: model.account_id === page.currentAccountId
-                text: "✓"
-                color: Theme.highlightColor
-                font.pixelSize: Theme.fontSizeLarge
+                spacing: Theme.paddingMedium
+
+                // Waiting to be read in this profile: the badge the chat
+                // list draws on a chat, drawn on the profile. The core's
+                // own count, which leaves muted chats out.
+                Rectangle {
+                    objectName: "profileUnreadBadge"
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: model.unread_count > 0
+                    width: visible
+                           ? Math.max(height, unreadLabel.implicitWidth + Theme.paddingMedium)
+                           : 0
+                    height: unreadLabel.implicitHeight + Theme.paddingSmall
+                    radius: height / 2
+                    color: Theme.highlightColor
+
+                    Label {
+                        id: unreadLabel
+                        objectName: "profileUnreadLabel"
+                        anchors.centerIn: parent
+                        font.pixelSize: Theme.fontSizeExtraSmall
+                        color: Theme.primaryColor
+                        // A number, but pinned like everything read off
+                        // a model.
+                        textFormat: Text.PlainText
+                        text: model.unread_count > 99 ? "99+" : model.unread_count
+                    }
+                }
+
+                // The one being shown, marked the way a chosen group
+                // member is.
+                Label {
+                    objectName: "currentMark"
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: model.account_id === page.currentAccountId
+                    text: "✓"
+                    color: Theme.highlightColor
+                    font.pixelSize: Theme.fontSizeLarge
+                }
             }
 
             onClicked: {

@@ -4,15 +4,13 @@ import "../components"
 import Postivene 1.0
 
 /*
- * Pick someone to talk to: known contacts in the list, and the ways to get
- * a new one in the pulley menu, as on the chat list.
+ * Pick someone to talk to: the known contacts, and a search over them.
  *
- * "New contact" opens the scanner rather than an address form. An address
- * alone produces a chat that cannot be encrypted, and an invite is how a
- * Delta Chat contact is actually added: the other person's code, held up
- * to the camera, or their link typed into the panel the scanner offers.
- * The scanner stays up while the invite is followed, and the chat
- * replaces it and this page together.
+ * Nothing here adds a contact. An address alone produces a chat that
+ * cannot be encrypted, and an invite is how a Delta Chat contact is
+ * actually added -- the other person's code held up to the camera, or
+ * their link typed -- which is the QR code page, in the chat list's
+ * pull-down beside this one. A group is made from there too.
  */
 Page {
     id: page
@@ -32,36 +30,15 @@ Page {
         id: contacts
         objectName: "contacts"
         account_id: page.accountId
-        onError: {
-            page.errorMessage = message
-            // Back from the scanner, if it is what asked, to where the
-            // message is.
-            if (pageStack.currentPage !== page) {
-                pageStack.pop(page)
-            }
-        }
-        // Every route ends the same way: open the chat that now exists,
-        // above the page that opened this one. The scanner may be on top
-        // of this page, and goes with it.
+        onError: page.errorMessage = message
+        // Open the chat that now exists, above the page that opened this
+        // one: this page has done its job.
         onChat_ready: pageStack.replaceAbove(pageStack.previousPage(page),
                                              Qt.resolvedUrl("ConversationPage.qml"), {
             accountId: page.accountId,
             chatId: chat_id,
             chatName: qsTr("Chat")
         })
-    }
-
-    // The scanner, pushed by URL and connected to, the way the pickers
-    // are: ScanPage is the only file that names a Camera, so a device
-    // without one costs this entry rather than the page.
-    function scan() {
-        var scanner = pageStack.push(Qt.resolvedUrl("ScanPage.qml"))
-        if (scanner) {
-            scanner.scanned.connect(function(text) {
-                page.errorMessage = ""
-                contacts.join_by_invite(text)
-            })
-        }
     }
 
     Connections {
@@ -74,40 +51,15 @@ Page {
         }
     }
 
-    // Outside the list for the reason ChatListPage documents: a field in
-    // a view's `header` lives inside the flickable and its id does not
-    // resolve from the page, so every reference to it below was reading
-    // an undefined name.
-    // One flickable for the whole page, owning the pulley.
-    //
-    // A PullDownMenu draws at the top of the flickable that owns
-    // it, and the list starts below the search field -- so a pulley
-    // on the list opened below the field, or inside it. It does not
-    // scroll: the field has to stay out of a view whose contents
-    // change on every keystroke, which is what took the keyboard
-    // away mid-search.
+    // The search field outside the list, for the reason ChatListPage
+    // documents: a field in a view's `header` lives inside the flickable
+    // and moves on every keystroke, which is what took the keyboard away
+    // mid-search. A flickable that does not scroll holds the two.
     SilicaFlickable {
-        id: pulleyHost
+        id: host
         anchors.fill: parent
         contentWidth: width
         contentHeight: height
-
-        PullDownMenu {
-            MenuItem {
-                objectName: "newGroupButton"
-                text: qsTr("New group")
-                onClicked: pageStack.push(Qt.resolvedUrl("NewGroupPage.qml"),
-                                          { accountId: page.accountId })
-            }
-            MenuItem {
-                // An address alone produces a chat that cannot be
-                // encrypted, so adding a contact starts from their code
-                // -- which is how a Delta Chat contact is actually added.
-                objectName: "newContactButton"
-                text: qsTr("New contact")
-                onClicked: page.scan()
-            }
-        }
 
         Column {
             id: heading
@@ -170,7 +122,7 @@ Page {
             ViewPlaceholder {
                 enabled: contacts.count === 0
                 text: qsTr("No contacts yet")
-                hintText: qsTr("Pull down to scan someone's invite")
+                hintText: qsTr("Scan someone's invite from the chat list: QR code")
             }
         }
     }

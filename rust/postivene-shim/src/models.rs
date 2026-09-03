@@ -140,6 +140,11 @@ pub struct AccountItem {
     pub avatar_path: QString,
     /// The core's colour for the account's own contact, `#rrggbb`.
     pub color: QString,
+    /// Messages waiting to be read across the account's chats, for the
+    /// badge on the profiles page. The core's own count (`get_fresh_msgs`),
+    /// which leaves muted chats out -- the same figure the reference
+    /// clients put on their account switchers.
+    pub unread_count: u32,
 }
 
 /// Account model, for the account switcher.

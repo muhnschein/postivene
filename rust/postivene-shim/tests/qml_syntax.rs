@@ -425,37 +425,48 @@ fn text_from_the_other_end_is_pinned_to_plain() {
     );
 }
 
-/// The settings page in the system's Settings app and the object the app
-/// reads through are two files that cannot share a definition, so the
-/// keys are written out in both. They have to be the same keys, or a
-/// switch in Settings changes something the app never reads.
+/// The dconf keys are named in `Settings.qml` and nowhere else.
+///
+/// Every page reads and writes the settings through that one object; a
+/// second file naming a key would be a second definition of it, and the
+/// two would drift the way the app and its page in the Settings app once
+/// could.
 #[test]
-fn the_settings_page_and_the_app_name_the_same_keys() {
-    fn keys_in(file: &str) -> std::collections::BTreeSet<String> {
-        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml");
-        let text =
-            fs::read_to_string(root.join(file)).unwrap_or_else(|err| panic!("read {file}: {err}"));
-        text.lines()
+fn only_the_settings_object_names_the_dconf_keys() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml");
+    let mut elsewhere = Vec::new();
+    let mut keys = std::collections::BTreeSet::new();
+    for file in qml_files() {
+        let text = fs::read_to_string(&file).expect("read qml");
+        let named: Vec<String> = text
+            .lines()
             .filter_map(|line| line.trim().strip_prefix("key: \""))
             .filter_map(|rest| rest.split('"').next())
             .map(ToString::to_string)
-            .collect()
+            .collect();
+        if named.is_empty() {
+            continue;
+        }
+        if file == root.join("components/Settings.qml") {
+            keys.extend(named);
+        } else {
+            elsewhere.push(file.display().to_string());
+        }
     }
-    let app = keys_in("components/Settings.qml");
-    let page = keys_in("settings/GeneralSettingsPage.qml");
     assert!(
-        app.len() >= 3,
-        "Settings.qml names fewer keys than the three settings it exists for: {app:?}"
+        elsewhere.is_empty(),
+        "these name a dconf key outside components/Settings.qml, which is \
+         the one place the keys are defined:\n  {}",
+        elsewhere.join("\n  ")
     );
     assert!(
-        app.iter()
+        keys.len() >= 3,
+        "Settings.qml names fewer keys than the three settings it exists for: {keys:?}"
+    );
+    assert!(
+        keys.iter()
             .all(|key| key.starts_with("/apps/harbour-postivene/")),
-        "a key is outside the app's own dconf path: {app:?}"
-    );
-    assert_eq!(
-        app, page,
-        "the Settings-app page and Settings.qml disagree about the keys, so a \
-         change made in Settings reaches nothing"
+        "a key is outside the app's own dconf path: {keys:?}"
     );
 }
 

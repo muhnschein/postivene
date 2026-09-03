@@ -596,6 +596,24 @@ impl DeltaChatCore {
                         this.borrow().configure_progress(event.context_id, permille);
                     }
                 }
+                // The count on the profile's row follows whatever could
+                // have moved it: a message in, a chat read or marked
+                // unread, a chat gone. The overflow could have hidden any
+                // of those.
+                if matches!(
+                    kind.as_str(),
+                    "IncomingMsg"
+                        | "IncomingMsgBunch"
+                        | "MsgsChanged"
+                        | "MsgsNoticed"
+                        | "ChatModified"
+                        | "ChatDeleted"
+                        | "ChatlistChanged"
+                        | "ChatlistItemChanged"
+                        | "EventChannelOverflow"
+                ) {
+                    this.borrow().refresh_unread(event.context_id);
+                }
                 this.borrow()
                     .core_event(event.context_id, kind.into(), payload.into());
             }
@@ -800,28 +818,69 @@ impl DeltaChatCore {
         });
 
         runtime.spawn(async move {
-            // Upstream `Account`: `kind` is "Configured"/"Unconfigured",
-            // fields camelCase.
-            let result = rpc
-                .call_unit::<Vec<serde_json::Value>>("get_all_accounts")
-                .await
-                .map(|accounts| {
-                    accounts
-                        .iter()
-                        .filter_map(|account| {
-                            Some(AccountItem {
-                                account_id: json::u32_opt(account, "id")?,
-                                display_name: json::text(account, "displayName"),
-                                addr: json::text(account, "addr"),
-                                is_configured: json::str_at(account, "kind") == "Configured",
-                                avatar_path: json::text(account, "profileImage"),
-                                color: json::text(account, "color"),
-                            })
+            let result = async {
+                // Upstream `Account`: `kind` is "Configured"/"Unconfigured",
+                // fields camelCase.
+                let accounts: Vec<serde_json::Value> = rpc
+                    .call_unit("get_all_accounts")
+                    .await
+                    .map_err(|err| err.to_string())?;
+                let mut items: Vec<AccountItem> = accounts
+                    .iter()
+                    .filter_map(|account| {
+                        Some(AccountItem {
+                            account_id: json::u32_opt(account, "id")?,
+                            display_name: json::text(account, "displayName"),
+                            addr: json::text(account, "addr"),
+                            is_configured: json::str_at(account, "kind") == "Configured",
+                            avatar_path: json::text(account, "profileImage"),
+                            color: json::text(account, "color"),
+                            unread_count: 0,
                         })
-                        .collect::<Vec<_>>()
-                })
-                .map_err(|err| err.to_string());
+                    })
+                    .collect();
+                // One more call per profile, for the badge on its row.
+                // Only the configured ones: an unconfigured account has
+                // no chats to count.
+                for item in items.iter_mut().filter(|item| item.is_configured) {
+                    item.unread_count = fresh_count(&rpc, item.account_id).await;
+                }
+                Ok::<_, String>(items)
+            }
+            .await;
             done(result);
+        });
+    }
+
+    /// Re-read one profile's unread count, after an event that could have
+    /// moved it, and change its row in place. Cheap enough to do on every
+    /// such event: it is one query, and the profiles page's badge is
+    /// wrong until it is done.
+    pub fn refresh_unread(&self, account_id: u32) {
+        if account_id == 0 {
+            return;
+        }
+        let Some((rpc, runtime)) = self.connection() else {
+            return;
+        };
+        let ptr: QPointer<Self> = QPointer::from(self);
+        let done = queued_callback(move |count: u32| {
+            let Some(this) = ptr.as_pinned() else { return };
+            let this_ref = this.borrow();
+            let mut rows = this_ref.account_list.borrow_mut();
+            // Read before the change: the iterator borrows the rows.
+            let changed = rows
+                .iter()
+                .enumerate()
+                .find(|(_, row)| row.account_id == account_id && row.unread_count != count)
+                .map(|(index, row)| (index, row.clone()));
+            if let Some((index, mut row)) = changed {
+                row.unread_count = count;
+                rows.change_line(index, row);
+            }
+        });
+        runtime.spawn(async move {
+            done(fresh_count(&rpc, account_id).await);
         });
     }
 
@@ -1072,6 +1131,17 @@ impl DeltaChatCore {
 
 /// Bring the account rows in line with `wanted` without rebuilding them.
 ///
+/// How many messages wait to be read across an account's chats: the
+/// core's `get_fresh_msgs`, which is the figure the reference clients put
+/// on their account switchers. It leaves muted chats out, as they do. An
+/// account that cannot be asked counts as having nothing waiting: the
+/// badge is a nicety, and the list is not worth failing over it.
+async fn fresh_count(rpc: &RpcClient, account_id: u32) -> u32 {
+    rpc.call::<_, Vec<u32>>("get_fresh_msgs", (account_id,))
+        .await
+        .map_or(0, |ids| u32::try_from(ids.len()).unwrap_or(u32::MAX))
+}
+
 /// `reset_data` destroys every delegate, and a profile counting down to
 /// its deletion *is* a delegate: Silica's remorse timer lives on the row.
 /// Deleting the first of several profiles reloaded the list and tore the

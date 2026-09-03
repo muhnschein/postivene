@@ -165,6 +165,22 @@
         <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation type="unfinished"></translation>
     </message>
@@ -309,22 +317,43 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation type="unfinished"></translation>
     </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation type="unfinished">
-            <numerusform></numerusform>
-        </translation>
-    </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -348,85 +377,6 @@
     </message>
     <message>
         <source>%1 days</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -475,31 +425,8 @@
         <source>Removing</source>
         <translation type="unfinished"></translation>
     </message>
-</context>
-<context>
-    <name>InvitePage</name>
     <message>
-        <source>Chat</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Invite</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
+        <source>Everyone in the group sees the name</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -542,19 +469,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -600,18 +519,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation type="unfinished"></translation>
     </message>
@@ -629,10 +536,6 @@
     </message>
     <message>
         <source>Remove picture</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -674,6 +577,31 @@
     </message>
     <message>
         <source>Saved</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -724,6 +652,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -731,11 +694,7 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
-    <message>
-        <source>Scan QR code</source>
-        <translation type="unfinished"></translation>
-    </message>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation type="unfinished"></translation>
@@ -753,7 +712,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
+        <source>Point the camera at someone&apos;s invite code</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -777,6 +736,85 @@
     </message>
     <message>
         <source>Nothing found</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

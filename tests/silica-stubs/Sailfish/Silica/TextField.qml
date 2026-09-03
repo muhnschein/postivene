@@ -12,6 +12,8 @@ Item {
     property bool errorHighlight: false
     property bool readOnly: false
     property bool focus_: false
+    property int horizontalAlignment: 0
+    property bool labelVisible: true
     signal clicked()
     implicitWidth: 400
     implicitHeight: 60

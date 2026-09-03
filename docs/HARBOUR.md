@@ -237,9 +237,12 @@ cleanly.
 
 ## The open blockers
 
-**Postivene cannot be submitted to Harbour today.** Two rules are broken.
-The first is structural and cannot be fixed by editing anything in this
-repository; the second is a choice, made with its eyes open.
+**Postivene cannot be submitted to Harbour today.** One rule is broken,
+and it is structural: it cannot be fixed by editing anything in this
+repository. (A second, an entry in the system's Settings app for the
+app's own settings, was broken knowingly for a while; the entry never
+made the page appear on a device, and the settings are back on a page
+inside the app.)
 
 ### The bundled core
 
@@ -277,35 +280,6 @@ validator's README points at, rather than to engineer around.
 Renaming the binary to `.so` would pass the validator. It is also
 precisely what that README calls circumvention, and it says such apps are
 removed from the store even after approval. Not an option.
-
-### The page in the Settings app
-
-The settings that belong to the app as a whole rather than to a profile
--- how Markdown is drawn, whether links go out with their tracking
-parameters, how large an attachment arrives unasked -- are on Postivene's
-page in the system's Settings app, under Apps, where every other app's
-are. That page is `qml/settings/GeneralSettingsPage.qml`, installed with
-the rest of the QML; what puts it in the Settings app is one JSON file,
-`settings/harbour-postivene.json`, installed at
-`/usr/share/jolla-settings/entries/harbour-postivene.json`. That is where
-the Settings app looks, and it is not one of the four places Harbour
-allows a file (1.2.1).
-
-The page runs inside the Settings app's process, so it can reach nothing
-of Postivene's but dconf. Its three values live under
-`/apps/harbour-postivene/`, and the app reads them back through
-`qml/components/Settings.qml` -- `Nemo.Configuration` is on Harbour's
-import list, and the dconf plugin on its dependency list, so the reading
-side breaks no rule. Only the entry file does.
-
-It is waived rather than avoided because the alternative is a settings
-page inside the app, which is what it replaced: a profile's own settings
-are on the profile's page, and a second settings page for three values
-that are nobody's profile is the kind of thing a reader looks for in
-Settings and does not find. The entry costs nothing to drop -- one
-`install` line and one `%files` line in the spec, and the page is still
-reachable by nothing -- so if Jolla's answer on the bundled core is yes
-and on this is no, the settings move back into the app that day.
 
 ## Before submitting
 

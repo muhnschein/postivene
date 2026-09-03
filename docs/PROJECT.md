@@ -241,15 +241,15 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   directory for an `Image`, because a `Canvas` is drawn into the window's
   GL context, which the platform takes from an app in the background, and
   it came back blank. Both crates are pure Rust under the 1.75 floor,
-  with the image dependency off. The scanner page does not pop itself
-  once it has read a code: Silica drops any stack operation asked for
-  while a transition runs, so the caller's own navigation -- the chat the
-  invite led to -- landed during the pop and was lost. It waits, and the
-  chat replaces it and the page that pushed it together.
-  Focus is the page's job, not the platform's: Sailfish has no scanning
-  API for third parties (the stock camera reads codes on its own, behind
-  no interface), and a `Camera` left to itself gave a viewfinder too soft
-  for any code, so the page runs it in video mode with continuous
+  with the image dependency off. The scanner does not take its page
+  down once it has read a code: Silica drops any stack operation asked
+  for while a transition runs, so the page's own navigation -- the chat
+  the invite led to -- landed during the pop and was lost. It waits, and
+  the chat replaces the page. Focus is the scanner's job, not the
+  platform's: Sailfish has no scanning API for third parties (the stock
+  camera reads codes on its own, behind no interface), and a `Camera`
+  left to itself gave a viewfinder too soft for any code, so the view
+  runs it in video mode with continuous
   autofocus, asks for a focus search every couple of seconds while
   nothing has been read, and focuses on a tapped point.
 - **The server is supervised.** Its event stream ending is the app's only
@@ -258,23 +258,38 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   that resets after a healthy run, and IO resumed for whatever accounts were
   running. Twelve failures without a healthy run in between is a core that
   will not start, which the app says rather than retrying forever.
-- **A profile's settings are on the profile; the app's are in Settings.**
-  The picture, the name, the bio, the read-receipt switch, the address,
-  the way to the invite and what the relay says about the mailbox are
-  `ProfilePage`, reached from the profile's row on the profiles page,
-  and laid out as parla's profile dialog is (github.com/trufae/parla).
-  The three settings that belong to no profile -- how Markdown is drawn,
-  whether links go out with their tracking parameters, how large an
-  attachment arrives unasked -- are on Postivene's page in the system's
-  Settings app, under Apps. That page runs in the Settings app's own
-  process and can reach nothing of ours but dconf, so the values live
-  under `/apps/harbour-postivene/` and `Settings.qml`, a singleton every
-  page reads, follows them from there. The download limit is the one the
-  core has to be told: it is per account there, so `DeltaChatCore` writes
-  it to every account when it is set and again whenever the account list
-  is read, which is how a profile added later gets it. The entry file
-  that puts the page in the Settings app is outside Harbour's four paths;
-  `HARBOUR.md` has the waiver and the reasoning.
+- **A profile's settings are on the profile; the app's are on the
+  settings page.** The picture, the name, the bio, the read-receipt
+  switch, the address, the way to the invite and what the relay says
+  about the mailbox are `ProfilePage`, reached from the profile's row on
+  the profiles page, and laid out as parla's profile dialog is
+  (github.com/trufae/parla): a dot and the band in words for the
+  connection, a bar for the mailbox that is there before the relay has
+  said anything, and under it what is used, what is left and what there
+  is, read off the core's own report (`connectivity.rs`). The three
+  settings that belong to no profile -- how Markdown is drawn, whether
+  links go out with their tracking parameters, how large an attachment
+  arrives unasked -- are `SettingsPage`, in the chat list's pull-down.
+  They live in dconf under `/apps/harbour-postivene/`, behind
+  `Settings.qml`, a singleton every page reads and the settings page
+  writes, so a change reaches every open page and outlives the app. (They
+  were briefly a page in the system's Settings app, which never appeared
+  on a device: the entry that puts a page there is outside Harbour's
+  paths and turned out to need more than that entry.) The download limit
+  is the one the core has to be told: it is per account there, so
+  `DeltaChatCore` writes it to every account when it is set and again
+  whenever the account list is read, which is how a profile added later
+  gets it.
+- **A name is a name until its badge is tapped.** The reader's own name
+  on the profile page, a contact's on theirs and a group's on its page
+  are one control, `EditableName.qml`: the name centred under the
+  picture, wearing the picture's own edit badge at its top right; a tap
+  turns it into a field where the name was, with a line under it saying
+  what the field means, and the badge into a tick that puts the name
+  back. The page puts it back on the way out too, so a contact left with
+  no given name shows the name they chose, not an empty field. The field
+  is what the page reads and saves, the way it did when the field stood
+  on its own.
 - **Markdown is rendered here, and rendered safely.** Sailfish's Qt 5.6
   has no Markdown of its own, so `markdown.rs` turns the subset people
   type -- emphasis, strikethrough, code, headings, links -- into
@@ -299,13 +314,31 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   reset destroyed every row and every timer with it -- reported as only
   the first of two deletions happening. `refresh_accounts` reconciles the
   rows in place instead, the way the chat list does.
-- **Adding a contact starts at the camera.** Someone else's invite is a
-  code on their screen or a link they sent, and "New contact" goes
-  straight to the scanner, which is also where a link is typed or pasted
-  -- as a panel over the viewfinder rather than a dialog, because a
-  dialog's own pop is the transition the caller's navigation would land
-  in and be dropped by. The invite page is the reader's own invite, and
-  reaches the scanner from its pull-down.
+- **Both directions of an invite are one page.** `QrPage`, in the chat
+  list's pull-down as "QR code" and behind the profile page's "Show
+  invite code": a switch at the top, the way an inline view switcher
+  works on the desktop, between this profile's invite drawn as a code
+  and the scanner for someone else's. The scanner (`ScanView.qml`, the
+  one file that names a `Camera`, loaded by URL so a device without one
+  loses that side and not the page) has a button under the viewfinder
+  for the link the code would carry, typed or pasted -- a panel over the
+  viewfinder rather than a dialog, because a dialog's own pop is the
+  transition the page's navigation would land in and be dropped by.
+  "New group" is in the same pull-down; the new-chat page is the known
+  contacts and nothing else.
+- **A chat can be marked unread, and a profile shows what is.** The
+  row's menu offers "Mark as unread" on a chat with nothing unread: the
+  core's `markfresh_chat`, which puts the chat's newest incoming message
+  back to unread, so the chat counts one until it is opened. The
+  profiles page draws the chat list's badge on each profile, from the
+  core's `get_fresh_msgs` -- the figure the reference clients put on
+  their account switchers, which leaves muted chats out -- re-read on
+  every event that could have moved it and changed on the row in place.
+- **A disappearing-messages duration is said in words whatever it is.**
+  The reference clients' nine choices, up to a year, and any other value
+  another client set said in the largest unit that fits it: a year set
+  from a desktop showed as "After 31536000 second(s)" before the list had
+  a year on it.
 - **A contact can be given a name here.** `change_contact_name`, with the
   core's own rule for a blank one: an empty name puts the contact back to
   what they call themselves, which is what the field shows behind the
@@ -355,9 +388,10 @@ limit held back fetched on a tap), adding a
 profile on a chosen chatmail relay through the core's current transport
 API, `secure_join` invites in both directions -- as links typed or
 pasted, and as QR codes drawn and scanned, into the chat -- encryption
-indicators, the three app-wide settings in the system's Settings app
-(Markdown, tracking parameters out of sent links, the auto-download
-limit), foreground notifications, and the cover.
+indicators, the three app-wide settings on the settings page (Markdown,
+tracking parameters out of sent links, the auto-download limit), a chat
+marked unread and unread badges on the profiles, foreground
+notifications, and the cover.
 
 Packaging is real: `mb2` builds produce `harbour-postivene-0.1.0-<release>.aarch64.rpm`,
 and `.github/workflows/rpm.yml` builds it unattended on a GitHub runner in

@@ -14,12 +14,16 @@
 // 4000 connected and idle. Anything at or above a band is in it; the
 // values in between are the core's own finer steps.
 
-/// The mailbox quota as the report states it: the percentage used, and
-/// the core's own words for the amounts.
+/// The mailbox quota as the report states it: the percentage used, the
+/// core's own words for the amounts, and those amounts in bytes -- read
+/// out of the words, so the page can say how much is left the way parla
+/// does. Both are 0 when the sentence is not in the shape the core writes.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Quota {
     pub percent: u32,
     pub text: String,
+    pub used_bytes: u64,
+    pub limit_bytes: u64,
 }
 
 /// The first quota bar in a connectivity report, if there is one. A relay
@@ -43,7 +47,57 @@ pub(crate) fn quota_from_report(html: &str) -> Option<Quota> {
     let item_start = html[..bar].rfind("<li>")? + "<li>".len();
     let bar_div = html[..bar].rfind("<div")?;
     let text = strip_tags(&html[item_start..bar_div]);
-    Some(Quota { percent, text })
+    let (used_bytes, limit_bytes) = amounts(&text).unwrap_or((0, 0));
+    Some(Quota {
+        percent,
+        text,
+        used_bytes,
+        limit_bytes,
+    })
+}
+
+/// The two amounts in "1.34 GiB of 2 GiB used", in bytes. parla reads
+/// the same sentence with the same pattern (`storage_quota.vala`): a
+/// number, a unit, "of", a number, a unit, "used".
+fn amounts(text: &str) -> Option<(u64, u64)> {
+    let words: Vec<&str> = text.split_whitespace().collect();
+    let of = words
+        .iter()
+        .position(|word| word.eq_ignore_ascii_case("of"))?;
+    if of < 2 || of + 3 > words.len() {
+        return None;
+    }
+    let used = bytes(words[of - 2], words[of - 1])?;
+    let limit = bytes(words[of + 1], words[of + 2])?;
+    Some((used, limit))
+}
+
+/// A number and a unit -- "1.34" and "GiB" -- as bytes. Binary units
+/// (`KiB`, `MiB`, ...) are powers of 1024, decimal ones (`kB`, `MB`, ...)
+/// of 1000; a bare `B` is bytes. A decimal comma counts as a point.
+fn bytes(number: &str, unit: &str) -> Option<u64> {
+    let number: f64 = number.replace(',', ".").parse().ok()?;
+    if !number.is_finite() || number < 0.0 {
+        return None;
+    }
+    let unit = unit.trim_end_matches(['B', 'b']);
+    let (prefix, binary) = match unit.strip_suffix('i') {
+        Some(prefix) => (prefix, true),
+        None => (unit, false),
+    };
+    let power = match prefix.to_ascii_lowercase().as_str() {
+        "" => 0,
+        "k" => 1,
+        "m" => 2,
+        "g" => 3,
+        "t" => 4,
+        _ => return None,
+    };
+    let base: f64 = if binary { 1024.0 } else { 1000.0 };
+    // Rounded to the byte: the sentence carries two decimals at most, so
+    // the truncation is below what it can say anyway.
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    Some((number * base.powi(power)).round() as u64)
 }
 
 /// The text of a fragment of HTML: tags dropped, the few entities the
@@ -93,7 +147,7 @@ fn decode_entity(rest: &str) -> (&'static str, usize) {
 
 #[cfg(test)]
 mod tests {
-    use super::{quota_from_report, Quota};
+    use super::{amounts, quota_from_report, Quota};
 
     /// The shape the core writes, less the style block.
     const REPORT: &str = "<html><body><h3>Incoming messages</h3><ul>\
@@ -108,9 +162,28 @@ mod tests {
             quota_from_report(REPORT),
             Some(Quota {
                 percent: 67,
-                text: "1.34 GiB of 2 GiB used".to_string()
+                text: "1.34 GiB of 2 GiB used".to_string(),
+                used_bytes: 1_438_814_044,
+                limit_bytes: 2_147_483_648,
             })
         );
+    }
+
+    #[test]
+    fn the_amounts_are_read_in_either_kind_of_unit() {
+        assert_eq!(
+            amounts("1.34 GiB of 2 GiB used"),
+            Some((1_438_814_044, 2_147_483_648))
+        );
+        assert_eq!(amounts("512 kB of 1 MB used"), Some((512_000, 1_000_000)));
+        assert_eq!(
+            amounts("0,5 MiB of 10 MiB used"),
+            Some((524_288, 10_485_760))
+        );
+        assert_eq!(amounts("900 B of 1 KiB used"), Some((900, 1024)));
+        // Not the shape the core writes: no amounts rather than wrong ones.
+        assert_eq!(amounts("Quota unknown"), None);
+        assert_eq!(amounts("1.34 parsecs of 2 GiB used"), None);
     }
 
     #[test]

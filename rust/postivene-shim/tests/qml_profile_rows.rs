@@ -74,6 +74,19 @@ const PROBE_QML: &str = r"
             target: core
             onProfile_created: core.add_account()
         }
+        // The first profile's chat list, for marking a chat unread the
+        // way the chat list's menu does.
+        ChatList { id: chats; objectName: 'chats'; account_id: 1 }
+        function markUnread() { chats.mark_unread(2); return 'ok' }
+        // The badge on a profile's row: whether it shows, and what.
+        function badgeOf(accountId) {
+            var row = findIn(loader.item, 'profileRow' + accountId)
+            if (!row) { return 'missing:profileRow' + accountId }
+            var badge = findIn(row, 'profileUnreadBadge')
+            var label = findIn(row, 'profileUnreadLabel')
+            if (!badge || !label) { return 'missing:profileUnreadBadge' }
+            return badge.visible + ':' + label.text
+        }
         function seed() {
             core.create_profile('Ada', 'dcaccount:nine.testrun.org')
             return 'ok'
@@ -213,7 +226,14 @@ fn a_profile_row_has_its_picture_leads_to_its_page_and_outlives_a_neighbour() {
             )
         );
     });
+    single_shot(Duration::from_secs(8), move || unsafe {
+        // Nothing unread yet; then a chat marked unread from the list,
+        // which the core announces and the row follows.
+        record!("badge-before", call!("badgeOf", 1));
+        record!("mark-unread", call!("markUnread"));
+    });
     single_shot(Duration::from_secs(9), move || unsafe {
+        record!("badge-after", call!("badgeOf", 1));
         record!(
             "avatar-path",
             call!("avatarOf", 1, QString::from("picturePath"))
@@ -252,8 +272,9 @@ fn a_profile_row_has_its_picture_leads_to_its_page_and_outlives_a_neighbour() {
     assert_rows(&steps, &navigation, &common::calls(&journal));
 }
 
-/// The picture and colour are the core's, the menu leads to the profile's
-/// page, and the second row is the same object after the first deletion.
+/// The picture and colour are the core's, the badge follows what is
+/// unread, the menu leads to the profile's page, and the second row is
+/// the same object after the first deletion.
 fn assert_rows(steps: &[(&str, String)], navigation: &str, calls: &[(String, Value)]) {
     let context = format!("steps: {steps:?}\nnavigation: {navigation}");
     let value = |label: &str| {
@@ -264,10 +285,27 @@ fn assert_rows(steps: &[(&str, String)], navigation: &str, calls: &[(String, Val
             .unwrap_or_default()
     };
     for label in [
-        "seed", "picture", "load", "settings", "remember", "delete-1", "delete-2",
+        "seed",
+        "picture",
+        "load",
+        "mark-unread",
+        "settings",
+        "remember",
+        "delete-1",
+        "delete-2",
     ] {
         assert_eq!(value(label), "ok", "step {label} failed. {context}");
     }
+    assert_eq!(
+        value("badge-before"),
+        "false:0",
+        "the row shows a badge with nothing unread. {context}"
+    );
+    assert_eq!(
+        value("badge-after"),
+        "true:1",
+        "a chat marked unread did not put a badge on the profile's row. {context}"
+    );
     assert_eq!(
         value("avatar-path"),
         "/tmp/postivene-fake/ada.jpg",

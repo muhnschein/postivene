@@ -1,12 +1,11 @@
-//! The app's page in the system's Settings app, and the object the app
-//! reads the same keys through.
+//! The settings page, and the object every page reads the settings
+//! through.
 //!
-//! The page runs inside jolla-settings, so it can reach nothing of ours
-//! but dconf: each control writes one key, and the choice it shows follows
-//! the key back. `Settings.qml` is the other side, a singleton every page
-//! in the app reads, with the same keys behind it. Both are loaded here
-//! against a stub `ConfigurationValue` that holds a value and stores
-//! nothing.
+//! Each control on the page writes one value of the `Settings` singleton,
+//! and the choice it shows follows the value back -- so a change made
+//! anywhere reaches the page, and a change made on the page reaches the
+//! conversation. Both are loaded here against a stub `ConfigurationValue`
+//! that holds a value and stores nothing.
 
 // Qt harness: see qml_pages.rs.
 #![allow(
@@ -79,18 +78,9 @@ fn probe_qml() -> String {
     )
 }
 
-fn settings_page_url() -> String {
-    format!(
-        "file://{}",
-        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../qml/settings/GeneralSettingsPage.qml")
-            .display()
-    )
-}
-
 #[test]
 #[allow(clippy::too_many_lines)]
-fn the_settings_page_writes_the_keys_the_app_reads() {
+fn the_settings_page_writes_what_the_app_reads() {
     // SAFETY: single-threaded test binary; set before Qt starts.
     unsafe {
         std::env::set_var("QT_QPA_PLATFORM", "offscreen");
@@ -129,46 +119,7 @@ fn the_settings_page_writes_the_keys_the_app_reads() {
     }
 
     single_shot(Duration::from_secs(1), move || unsafe {
-        record!("load", call!("load", QString::from(settings_page_url())));
-        // What a fresh phone shows.
-        record!("markdown-default", get!("markdownConfig", "value"));
-        record!("markdown-index", get!("markdownCombo", "currentIndex"));
-        record!("download-default", get!("downloadConfig", "value"));
-        record!("download-index", get!("downloadCombo", "currentIndex"));
-        record!("links-default", get!("cleanLinksConfig", "value"));
-        record!("links-switch", get!("cleanLinksSwitch", "checked"));
-        // Each control writes its key, and the choice shown follows it.
-        record!(
-            "pick-markdown",
-            call!("click", QString::from("markdownOption1"))
-        );
-        record!("markdown-picked", get!("markdownConfig", "value"));
-        record!("markdown-shown", get!("markdownCombo", "currentIndex"));
-        record!(
-            "pick-download",
-            call!("click", QString::from("downloadOption32768"))
-        );
-        record!("download-picked", get!("downloadConfig", "value"));
-        record!("download-shown", get!("downloadCombo", "currentIndex"));
-        record!(
-            "pick-always",
-            call!("click", QString::from("downloadOption0"))
-        );
-        record!("always-picked", get!("downloadConfig", "value"));
-        record!("always-shown", get!("downloadCombo", "currentIndex"));
-        record!(
-            "flip-links",
-            call!("click", QString::from("cleanLinksSwitch"))
-        );
-        record!("links-on", get!("cleanLinksConfig", "value"));
-        record!("links-switch-on", get!("cleanLinksSwitch", "checked"));
-        record!(
-            "flip-back",
-            call!("click", QString::from("cleanLinksSwitch"))
-        );
-        record!("links-off", get!("cleanLinksConfig", "value"));
-        // The app's side: the same keys, the same defaults, and a value
-        // that follows a write.
+        // The keys, under the app's own path.
         record!(
             "app-markdown-key",
             call!("appKey", QString::from("markdownConfig"))
@@ -182,22 +133,71 @@ fn the_settings_page_writes_the_keys_the_app_reads() {
             call!("appKey", QString::from("downloadLimitConfig"))
         );
         record!(
-            "app-markdown",
+            "load",
+            call!("load", QString::from(common::page_url("SettingsPage.qml")))
+        );
+        // What a fresh phone shows.
+        record!(
+            "markdown-default",
             call!("appReads", QString::from("markdownMode"))
         );
-        record!("app-links", call!("appReads", QString::from("cleanLinks")));
+        record!("markdown-index", get!("markdownCombo", "currentIndex"));
         record!(
-            "app-download",
+            "download-default",
             call!("appReads", QString::from("downloadLimit"))
         );
+        record!("download-index", get!("downloadCombo", "currentIndex"));
+        record!(
+            "links-default",
+            call!("appReads", QString::from("cleanLinks"))
+        );
+        record!("links-switch", get!("cleanLinksSwitch", "checked"));
+        // Each control writes its setting, and the choice shown follows it.
+        record!(
+            "pick-markdown",
+            call!("click", QString::from("markdownOption1"))
+        );
+        record!(
+            "markdown-picked",
+            call!("appReads", QString::from("markdownMode"))
+        );
+        record!("markdown-shown", get!("markdownCombo", "currentIndex"));
+        record!(
+            "pick-download",
+            call!("click", QString::from("downloadOption32768"))
+        );
+        record!(
+            "download-picked",
+            call!("appReads", QString::from("downloadLimit"))
+        );
+        record!("download-shown", get!("downloadCombo", "currentIndex"));
+        record!(
+            "pick-always",
+            call!("click", QString::from("downloadOption0"))
+        );
+        record!(
+            "always-picked",
+            call!("appReads", QString::from("downloadLimit"))
+        );
+        record!("always-shown", get!("downloadCombo", "currentIndex"));
+        record!(
+            "flip-links",
+            call!("click", QString::from("cleanLinksSwitch"))
+        );
+        record!("links-on", call!("appReads", QString::from("cleanLinks")));
+        record!("links-switch-on", get!("cleanLinksSwitch", "checked"));
+        record!(
+            "flip-back",
+            call!("click", QString::from("cleanLinksSwitch"))
+        );
+        record!("links-off", call!("appReads", QString::from("cleanLinks")));
+        // The other direction: a change made anywhere else reaches the
+        // page's choice.
         record!(
             "app-write",
             call!("appWrites", QString::from("markdownMode"), 2)
         );
-        record!(
-            "app-follows",
-            call!("appReads", QString::from("markdownMode"))
-        );
+        record!("page-follows", get!("markdownCombo", "currentIndex"));
         (*engine_ptr).quit();
     });
 
@@ -241,11 +241,8 @@ fn the_settings_page_writes_the_keys_the_app_reads() {
         ("app-markdown-key", "/apps/harbour-postivene/markdown_mode"),
         ("app-links-key", "/apps/harbour-postivene/clean_links"),
         ("app-download-key", "/apps/harbour-postivene/download_limit"),
-        ("app-markdown", "0"),
-        ("app-links", "false"),
-        ("app-download", "1048576"),
         ("app-write", "ok"),
-        ("app-follows", "2"),
+        ("page-follows", "2"),
     ] {
         assert_eq!(value(label), expected, "{label} is wrong. {context}");
     }

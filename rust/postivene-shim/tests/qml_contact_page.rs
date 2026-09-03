@@ -60,6 +60,14 @@ const PROBE_QML: &str = r"
             item.text = value
             return 'ok'
         }
+        // A tap on a MouseArea: its clicked() carries the event, and
+        // QML refuses to emit it without one.
+        function tap(name) {
+            var item = findIn(loader.item, name)
+            if (!item) { return 'missing:' + name }
+            item.clicked(null)
+            return 'ok'
+        }
         /// Leaving the page is what applies what was typed. Back on
         /// screen first: the status has to change for the page to notice.
         function leave() {
@@ -165,6 +173,14 @@ fn the_contact_page_names_the_contact_and_no_address() {
         // themselves stands in it.
         record!("given", get!("contactNameField", "text"));
         record!("own", get!("contactNameField", "placeholderText"));
+        // A name until the badge is tapped; a field, with the hint under
+        // it, after.
+        record!("hint-before", get!("nameHint", "visible"));
+        record!("field-before", get!("contactNameField", "visible"));
+        record!("edit", call!("tap", QString::from("nameTap")));
+        record!("name-editing", get!("contactName", "visible"));
+        record!("hint-editing", get!("nameHint", "visible"));
+        record!("field-editing", get!("contactNameField", "visible"));
         record!(
             "typed",
             call!(
@@ -178,8 +194,9 @@ fn the_contact_page_names_the_contact_and_no_address() {
 
     single_shot(Duration::from_secs(5), move || unsafe {
         // The core reloaded behind the save, so the name on the page is
-        // the one given.
+        // the one given -- and a name again, the page having been left.
         record!("renamed", get!("contactName", "text"));
+        record!("hint-after-leave", get!("nameHint", "visible"));
         record!("field-kept", get!("contactNameField", "text"));
         record!(
             "blanked",
@@ -224,8 +241,23 @@ fn assert_rename(steps: &[(&str, String)], calls: &[(String, Value)]) {
         "ada",
         "the field does not show what the contact calls themselves. {context}"
     );
-    for step in ["typed", "leave", "blanked", "leave-again"] {
+    for step in ["edit", "typed", "leave", "blanked", "leave-again"] {
         assert_eq!(value(step), "ok", "step {step} failed. {context}");
+    }
+    for (label, expected) in [
+        ("hint-before", "false"),
+        ("field-before", "false"),
+        ("name-editing", "false"),
+        ("hint-editing", "true"),
+        ("field-editing", "true"),
+        ("hint-after-leave", "false"),
+    ] {
+        assert_eq!(
+            value(label),
+            expected,
+            "the name is not a name with a badge that turns it into a field: \
+             {label}. {context}"
+        );
     }
     let renames: Vec<&Value> = calls
         .iter()

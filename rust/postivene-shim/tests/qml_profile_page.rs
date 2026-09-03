@@ -9,7 +9,9 @@
 //! The rest of the page is what parla's profile dialog shows: the address,
 //! the way to the invite, and what the relay and the phone say about the
 //! profile -- the connection band, the mailbox quota read off the core's
-//! own report, and the space taken on the device.
+//! own report and said as used, left and whole, and the space taken on
+//! the device. The name is a name under the picture until its badge is
+//! tapped, and a field with a hint under it after.
 
 // Qt harness: see qml_chat_list.rs.
 #![allow(
@@ -36,7 +38,7 @@ mod common;
 #[derive(QObject, Default)]
 struct PageStackProbe {
     base: qt_base_class!(trait QObject),
-    /// `push:InvitePage.qml|...`
+    /// `push:QrPage.qml|...`
     log: qt_property!(QString; NOTIFY log_changed),
     log_changed: qt_signal!(),
     push: qt_method!(fn(&mut self, page: QString, properties: QVariantMap)),
@@ -93,6 +95,14 @@ const PROBE_QML: &str = r"
             var item = findIn(loader.item, name)
             if (!item) { return 'missing:' + name }
             item.clicked()
+            return 'ok'
+        }
+        // A tap on a MouseArea: its clicked() carries the event, and
+        // QML refuses to emit it without one.
+        function tap(name) {
+            var item = findIn(loader.item, name)
+            if (!item) { return 'missing:' + name }
+            item.clicked(null)
             return 'ok'
         }
         function toggleReceipts() {
@@ -196,13 +206,21 @@ fn the_profile_page_round_trips_the_profile() {
 
     single_shot(Duration::from_secs(3), move || unsafe {
         // What the relay and the phone say, as parla's dialog shows it.
-        record!("address", get!("addressItem", "value"));
+        record!("address", get!("addressLabel", "text"));
         record!("connection", get!("connectivityLabel", "text"));
         record!("quota-shown", get!("quotaBar", "visible"));
         record!("quota-words", get!("quotaBar", "label"));
         record!("quota-value", get!("quotaBar", "value"));
         record!("storage", get!("storageLabel", "text"));
         record!("invite", call!("click", QString::from("inviteButton")));
+        // The name: a name with a badge, and a field with a hint once
+        // the badge is tapped.
+        record!("name-badge", get!("nameEditBadge", "visible"));
+        record!("hint-before", get!("nameHint", "visible"));
+        record!("field-before", get!("profileNameField", "visible"));
+        record!("edit", call!("tap", QString::from("nameTap")));
+        record!("hint-editing", get!("nameHint", "visible"));
+        record!("field-editing", get!("profileNameField", "visible"));
         record!(
             "typed-name",
             call!(
@@ -254,6 +272,9 @@ fn the_profile_page_round_trips_the_profile() {
     single_shot(Duration::from_secs(10), move || unsafe {
         record!("receipts-after", get!("profile", "read_receipts"));
         record!("refilled", get!("profileNameField", "text"));
+        // A page opened anew shows the name as a name again.
+        record!("name-reopened", get!("profileName", "text"));
+        record!("hint-reopened", get!("nameHint", "visible"));
         record!(
             "edited-after-refill",
             call!("pageProperty", QString::from("edited"))
@@ -410,12 +431,12 @@ fn assert_page_says_what_the_relay_said(steps: &[(&str, String)], navigation: &s
         "the page offers no way to the invite. {context}"
     );
     assert!(
-        navigation.contains("push:InvitePage.qml|"),
-        "the invite button did not open the invite page. {context}"
+        navigation.contains("push:QrPage.qml|"),
+        "the invite button did not open the QR code page. {context}"
     );
     assert_eq!(
         value("connection"),
-        "Connected",
+        "Connected, and up to date",
         "the core's connectivity band was not put into words. {context}"
     );
     assert_eq!(
@@ -425,8 +446,30 @@ fn assert_page_says_what_the_relay_said(steps: &[(&str, String)], navigation: &s
     );
     assert_eq!(
         value("quota-words"),
-        "1.34 GiB of 2 GiB used",
-        "the mailbox is not described in the core's own words. {context}"
+        "1.4 GB used · 708.7 MB left of 2.1 GB",
+        "the mailbox is not said as used, left and whole, the way parla \
+         says it. {context}"
+    );
+    for (label, expected) in [
+        ("name-badge", "true"),
+        ("hint-before", "false"),
+        ("field-before", "false"),
+        ("edit", "ok"),
+        ("hint-editing", "true"),
+        ("field-editing", "true"),
+        ("hint-reopened", "false"),
+    ] {
+        assert_eq!(
+            value(label),
+            expected,
+            "the name is not a name with a badge that turns it into a field: \
+             {label}. {context}"
+        );
+    }
+    assert_eq!(
+        value("name-reopened"),
+        "Ada Lovelace",
+        "the name reopened as something other than the saved one. {context}"
     );
     assert_eq!(
         value("quota-value"),

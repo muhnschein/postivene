@@ -23,8 +23,8 @@ Page {
         account_id: page.accountId
         // What the reader can actually see decides what counts as read.
         reading_history: !page.readerIsLooking
-        // The reader's setting, from the system's Settings app: known
-        // tracking parameters come out of links on the way out.
+        // The reader's setting, from the settings page: known tracking
+        // parameters come out of links on the way out.
         clean_links: Settings.cleanLinks === true
         onError: page.errorMessage = message
         // Sending is its own answer to "have I read this": go to the

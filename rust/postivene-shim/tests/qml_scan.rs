@@ -1,17 +1,17 @@
-//! Scanning a QR code: the page runs the camera only while it is on
-//! screen, a frame with a code in it comes back as the code's text, and
-//! the page then stays for the caller to take down.
+//! Scanning a QR code: the view runs the camera only while it is the one
+//! on screen, a frame with a code in it comes back as the code's text,
+//! and the view then stays for its host to take down.
 //!
-//! The frame is made here rather than by a camera: the page's own `QrCode`
-//! encodes an invite, the test draws those modules into the PGM Qt would
-//! have written, and the page's `QrScanner` reads it back through the same
-//! call the viewfinder timer makes. That is the whole shim path under the
-//! Qt event loop, less the optics.
+//! The frame is made here rather than by a camera: the test's own
+//! `QrCode` encodes an invite, the test draws those modules into the PGM
+//! Qt would have written, and the view's `QrScanner` reads it back
+//! through the same call the viewfinder timer makes. That is the whole
+//! shim path under the Qt event loop, less the optics.
 //!
-//! The other way in is typed: the pull-down opens a panel over the
-//! viewfinder, with the clipboard's contents in it when they look like an
-//! invite, and what is entered there is handed back the way a scanned
-//! code is.
+//! The other way in is typed: the button under the viewfinder opens a
+//! panel over it, with the clipboard's contents in it when they look
+//! like an invite, and what is entered there is handed back the way a
+//! scanned code is.
 
 // Qt harness: needs `unsafe` for `env::set_var` before Qt starts
 // (`unused_unsafe` because it is only unsafe from edition 2024 on),
@@ -35,24 +35,6 @@ use qmetaobject::*;
 
 mod common;
 
-/// Silica's `pageStack`, recorded rather than performed.
-#[derive(QObject, Default)]
-struct PageStackProbe {
-    base: qt_base_class!(trait QObject),
-    /// `pop|...`
-    log: qt_property!(QString; NOTIFY log_changed),
-    log_changed: qt_signal!(),
-    pop: qt_method!(fn(&mut self)),
-}
-
-impl PageStackProbe {
-    fn pop(&mut self) {
-        let current = self.log.to_string();
-        self.log = format!("{current}pop|").into();
-        self.log_changed();
-    }
-}
-
 const INVITE: &str = "https://i.delta.chat/#0123456789ABCDEF&a=them%40example.org&n=Them";
 
 const PROBE_QML: &str = r"
@@ -69,7 +51,7 @@ const PROBE_QML: &str = r"
             return code.size + ':' + code.modules
         }
         function load(url) {
-            loader.setSource(url, { status: PageStatus.Activating })
+            loader.setSource(url, {})
             if (loader.status !== Loader.Ready) { return 'load-failed' }
             loader.item.scanned.connect(function(text) { heard = text })
             return 'ok'
@@ -89,7 +71,8 @@ const PROBE_QML: &str = r"
             if (!item) { return 'missing:' + name }
             return '' + item[property]
         }
-        function setStatus(status) { loader.item.status = status; return 'ok' }
+        // What the host says when the view is the one on screen.
+        function setActive(active) { loader.item.active = active; return 'ok' }
         function click(name) {
             var item = findIn(loader.item, name)
             if (!item) { return 'missing:' + name }
@@ -159,16 +142,13 @@ fn a_code_held_up_to_the_page_comes_back_as_its_text() {
 
     postivene_shim::register_qml_types();
 
-    let stack_box = QObjectBox::new(PageStackProbe::default());
     let mut engine = QmlEngine::new();
     engine.add_import_path(QString::from(
         common::stubs_dir().to_string_lossy().into_owned(),
     ));
-    engine.set_object_property("pageStack".into(), stack_box.pinned());
     engine.load_data(QByteArray::from(PROBE_QML));
 
     let engine_ptr = std::ptr::addr_of_mut!(engine);
-    let stack_ptr: *const QObjectBox<PageStackProbe> = std::ptr::addr_of!(stack_box);
     let mut steps: Vec<(&str, String)> = Vec::new();
     let steps_ptr: *mut Vec<(&str, String)> = std::ptr::addr_of_mut!(steps);
 
@@ -204,12 +184,13 @@ fn a_code_held_up_to_the_page_comes_back_as_its_text() {
         );
         record!(
             "load",
-            call!("load", QString::from(common::page_url("ScanPage.qml")))
+            call!("load", QString::from(common::component_url("ScanView.qml")))
         );
-        // Still arriving: the camera is not running and nothing is grabbed.
+        // Not yet on screen: the camera is not running and nothing is
+        // grabbed.
         record!("camera-before", get!("camera", "running"));
         record!("grabbing-before", get!("grabber", "running"));
-        call!("setStatus", 2);
+        call!("setActive", true);
         record!("camera-active", get!("camera", "running"));
         record!("grabbing-active", get!("grabber", "running"));
         // Focus is asked for while nothing has been read.
@@ -232,32 +213,34 @@ fn a_code_held_up_to_the_page_comes_back_as_its_text() {
         record!("grabbing-after", get!("grabber", "running"));
         record!("focusing-after", get!("refocus", "running"));
         record!("acting-after", get!("acting", "running"));
-        // The first search ran as soon as the page came on screen, on the
-        // event loop turn after it did.
+        // The first search ran as soon as the view came on screen, on
+        // the event loop turn after it did.
         record!("searches", get!("camera", "searches"));
-        record!("navigation", (*stack_ptr).pinned().borrow().log.to_string());
-        // The other way in, on a fresh page: a link typed rather than
+        // The other way in, on a fresh view: a link typed rather than
         // scanned, with the clipboard offering it first.
         record!(
             "reload",
-            call!("load", QString::from(common::page_url("ScanPage.qml")))
+            call!("load", QString::from(common::component_url("ScanView.qml")))
         );
-        call!("setStatus", 2);
+        call!("setActive", true);
         record!("panel-before", get!("linkPanel", "visible"));
         record!(
             "shopping",
             call!("setClipboard", QString::from("milk, eggs"))
         );
-        record!("open", call!("click", QString::from("typeLinkItem")));
+        record!("open", call!("click", QString::from("typeLinkButton")));
         record!("panel-open", get!("linkPanel", "visible"));
         record!("not-pasted", get!("linkField", "text"));
         record!(
             "reload-again",
-            call!("load", QString::from(common::page_url("ScanPage.qml")))
+            call!("load", QString::from(common::component_url("ScanView.qml")))
         );
-        call!("setStatus", 2);
+        call!("setActive", true);
         record!("copied", call!("setClipboard", QString::from(TYPED)));
-        record!("open-again", call!("click", QString::from("typeLinkItem")));
+        record!(
+            "open-again",
+            call!("click", QString::from("typeLinkButton"))
+        );
         record!("pasted", get!("linkField", "text"));
         record!("connect", call!("click", QString::from("followButton")));
         record!("typed-heard", call!("heardText"));
@@ -275,7 +258,7 @@ fn a_code_held_up_to_the_page_comes_back_as_its_text() {
 /// An invite the reader types, or copied and lets the panel paste.
 const TYPED: &str = "https://i.delta.chat/#FEDCBA9876543210&a=typed%40example.org&n=Typed";
 
-/// The panel opens from the pull-down, takes the clipboard only when it
+/// The panel opens from the button, takes the clipboard only when it
 /// looks like an invite, and hands the link back the way a code is.
 fn assert_typed(steps: &[(&str, String)]) {
     let context = format!("steps: {steps:?}");
@@ -297,7 +280,7 @@ fn assert_typed(steps: &[(&str, String)]) {
     assert_eq!(
         value("panel-open"),
         "true",
-        "the pull-down did not open the link panel. {context}"
+        "the button did not open the link panel. {context}"
     );
     assert_eq!(
         value("not-pasted"),
@@ -322,7 +305,7 @@ fn assert_typed(steps: &[(&str, String)]) {
     assert_eq!(
         value("typed-acting"),
         "true",
-        "the page does not show that the link is being acted on. {context}"
+        "the view does not show that the link is being acted on. {context}"
     );
 }
 
@@ -344,22 +327,22 @@ fn assert_scan(steps: &[(&str, String)]) {
     assert_eq!(
         value("camera-before"),
         "false",
-        "the camera runs before the page is on screen. {context}"
+        "the camera runs before the view is on screen. {context}"
     );
     assert_eq!(
         value("grabbing-before"),
         "false",
-        "frames are grabbed before the page is on screen. {context}"
+        "frames are grabbed before the view is on screen. {context}"
     );
     assert_eq!(
         value("camera-active"),
         "true",
-        "the camera does not start with the page. {context}"
+        "the camera does not start with the view. {context}"
     );
     assert_eq!(
         value("grabbing-active"),
         "true",
-        "frames are not grabbed while the page is on screen. {context}"
+        "frames are not grabbed while the view is on screen. {context}"
     );
     assert_eq!(
         value("focusing-active"),
@@ -368,7 +351,7 @@ fn assert_scan(steps: &[(&str, String)]) {
     );
     assert!(
         value("searches").parse::<u32>().unwrap_or(0) >= 1,
-        "no focus search was run when the page came on screen. {context}"
+        "no focus search was run when the view came on screen. {context}"
     );
     assert_eq!(
         value("busy"),
@@ -399,18 +382,11 @@ fn assert_scan(steps: &[(&str, String)]) {
     assert_eq!(
         value("acting-before"),
         "false",
-        "the page says it is acting on a code before one was read. {context}"
+        "the view says it is acting on a code before one was read. {context}"
     );
     assert_eq!(
         value("acting-after"),
         "true",
-        "the page does not show that the code is being acted on. {context}"
-    );
-    // Not the page's to do: Silica drops a stack operation asked for
-    // during a transition, and the caller's is the one that matters.
-    assert_eq!(
-        value("navigation"),
-        "",
-        "the page took itself down instead of leaving that to the caller. {context}"
+        "the view does not show that the code is being acted on. {context}"
     );
 }

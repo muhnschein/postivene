@@ -1064,6 +1064,29 @@ async fn offline_round_trip_against_real_core() {
         Some("1048576"),
         "download_limit did not stick"
     );
+    // Marking a chat unread, and counting what is unread: the calls the
+    // chat list's menu and the badges on the profiles page are built on.
+    // The saved-messages chat holds only outgoing messages, so there is
+    // nothing offline for markfresh_chat to put back to fresh; what is
+    // pinned is that both calls exist and answer in the shapes
+    // chatlist.rs and core.rs read.
+    client
+        .call::<_, ()>("markfresh_chat", (sender_id, saved))
+        .await
+        .expect("markfresh_chat");
+    let fresh: Vec<u32> = client
+        .call("get_fresh_msgs", (sender_id,))
+        .await
+        .expect("get_fresh_msgs");
+    let fresh_here: usize = client
+        .call("get_fresh_msg_cnt", (sender_id, saved))
+        .await
+        .expect("get_fresh_msg_cnt");
+    assert!(
+        fresh.is_empty() && fresh_here == 0,
+        "a chat of the reader's own messages counts as unread: {fresh:?}, {fresh_here}"
+    );
+
     // And the field a held-back message is told apart by, on one that
     // is not: the delegate offers the rest on anything but Done.
     assert_eq!(

@@ -10,7 +10,7 @@ import Postivene 1.0
  * All of it is the core's, so this page owns a ChatInfo over
  * get_full_chat_by_id rather than a record of its own, and every change
  * goes to the core the moment it is made -- the name a pause after typing
- * stops and again on the way out, as the settings page does, and
+ * stops and again on the way out, as the profile page does, and
  * everything else on the tap. Nothing here needs saving.
  *
  * What can be changed is the core's call too: a group this account has
@@ -100,10 +100,12 @@ Page {
     }
 
     // Leaving is the other moment worth saving at: a back-swipe within
-    // the pause above would otherwise drop what was typed.
+    // the pause above would otherwise drop what was typed. The name goes
+    // back to being a name on the way out too.
     onStatusChanged: {
         if (status === PageStatus.Deactivating) {
             page.applyEdits()
+            nameField.editing = false
         }
     }
 
@@ -215,16 +217,19 @@ Page {
                 onClicked: chat.clear_picture()
             }
 
-            // The name is whatever the group's members chose, but a field
-            // draws what it holds as text and nothing else, so it needs no
-            // pinning to plain.
-            TextField {
+            // The name, under the picture, with the badge that turns it
+            // into a field -- on a group this account is still in. The
+            // field is what is read and written; see EditableName.qml.
+            EditableName {
                 id: nameField
-                objectName: "groupNameField"
-                width: parent.width
-                label: qsTr("Group name")
-                placeholderText: label
-                readOnly: !chat.can_edit
+                objectName: "groupNameControl"
+                labelObjectName: "groupName"
+                fieldObjectName: "groupNameField"
+                badgeObjectName: "nameEditBadge"
+                hintObjectName: "nameHint"
+                placeholderText: qsTr("Group name")
+                hint: qsTr("Everyone in the group sees the name")
+                canEdit: chat.can_edit
                 onTextChanged: page.noteEdit()
             }
 

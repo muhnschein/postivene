@@ -10,8 +10,7 @@ import Postivene 1.0
  * writes from, whether the other end is told when something has been
  * read, and how the relay and the phone are doing by it. Reached from the
  * profile's row on the profiles page. The settings that belong to no
- * profile are in the system's Settings app instead
- * (qml/settings/GeneralSettingsPage.qml).
+ * profile are on the settings page instead (SettingsPage.qml).
  *
  * The editable parts are core config keys rather than a record of their
  * own, so this page owns a Profile object over get_config/set_config
@@ -20,9 +19,16 @@ import Postivene 1.0
  * tap. A settings page that needs saving is a settings page that loses
  * what was typed when someone swipes back.
  *
- * The connectivity and the mailbox quota follow parla's profile dialog
- * (github.com/trufae/parla): the core's own band for the connection, and
- * the sentence and the percentage it wrote on its own report.
+ * The name sits under the picture and wears the same edit badge; a tap
+ * turns it into a field (EditableName.qml). The connectivity and the
+ * mailbox quota follow parla's profile dialog (github.com/trufae/parla):
+ * the core's own band for the connection, with a dot in the colour the
+ * core's own report uses; the bar for the mailbox, always there, at
+ * nothing until the relay has said; and under it what is used, what is
+ * left and what there is, read off the core's report. What parla's
+ * "Details" dialog adds -- the storage per conversation, scanned message
+ * by message -- is not here: on a phone that scan is what the reader
+ * would be waiting on.
  */
 Page {
     id: page
@@ -93,10 +99,12 @@ Page {
     }
 
     // Leaving is the other moment worth saving at: a back-swipe within
-    // the pause above would otherwise drop what was typed.
+    // the pause above would otherwise drop what was typed. The name goes
+    // back to being a name on the way out too.
     onStatusChanged: {
         if (status === PageStatus.Deactivating) {
             page.applyEdits()
+            nameField.editing = false
         }
     }
 
@@ -117,22 +125,62 @@ Page {
         }
     }
 
-    /// The core's connectivity band in words. The bands are the core's
-    /// (connectivity.rs); 0 is a profile not yet asked about.
+    /// The core's connectivity band in words -- parla's, near enough.
+    /// The bands are the core's (connectivity.rs); 0 is a profile not
+    /// yet asked about.
     function connectionWords(state) {
         if (state >= 4000) {
-            return qsTr("Connected")
+            return qsTr("Connected, and up to date")
         }
         if (state >= 3000) {
-            return qsTr("Connected, sending and receiving")
+            return qsTr("Connected, sending or syncing messages")
         }
         if (state >= 2000) {
-            return qsTr("Connecting")
+            return qsTr("Connecting to the relay")
         }
         if (state >= 1000) {
             return qsTr("Not connected")
         }
         return qsTr("Checking the connection")
+    }
+
+    /// The dot beside the words, in the colours the core's own report
+    /// draws its dots: green connected, yellow on the way, red not, and
+    /// grey for not yet asked.
+    function connectionColor(state) {
+        if (state >= 4000) {
+            return "#4caf50"
+        }
+        if (state >= 2000) {
+            return "#ffc107"
+        }
+        if (state >= 1000) {
+            return "#f44336"
+        }
+        return Theme.secondaryColor
+    }
+
+    /// A size, with nothing at all said as "0 B" rather than as nothing.
+    function size(bytes) {
+        return bytes > 0 ? Format.readableSize(bytes) : "0 B"
+    }
+
+    /// What is under the bar: the amounts when the relay gave them, the
+    /// core's own sentence when it gave something this could not read,
+    /// and the fact that it has not said yet otherwise.
+    function quotaWords() {
+        if (profile.quota_limit_bytes > 0) {
+            var left = Math.max(0, profile.quota_limit_bytes - profile.quota_used_bytes)
+            //: The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as "1.4 GB".
+            return qsTr("%1 used · %2 left of %3")
+                .arg(page.size(profile.quota_used_bytes))
+                .arg(page.size(left))
+                .arg(page.size(profile.quota_limit_bytes))
+        }
+        if (profile.quota_text.length > 0) {
+            return profile.quota_text
+        }
+        return qsTr("The relay has not reported its quota yet")
     }
 
     SilicaFlickable {
@@ -210,12 +258,18 @@ Page {
                 onClicked: profile.clear_picture()
             }
 
-            TextField {
+            // The name on every message, under the picture, with the
+            // badge that turns it into a field. The field is what is
+            // read and written; see EditableName.qml.
+            EditableName {
                 id: nameField
-                objectName: "profileNameField"
-                width: parent.width
-                label: qsTr("Name")
+                objectName: "profileNameControl"
+                labelObjectName: "profileName"
+                fieldObjectName: "profileNameField"
+                badgeObjectName: "nameEditBadge"
+                hintObjectName: "nameHint"
                 placeholderText: qsTr("Your name")
+                hint: qsTr("The name on every message you send")
                 onTextChanged: page.noteEdit()
             }
 
@@ -230,11 +284,28 @@ Page {
 
             // The reader's own address: what the relay minted, and what
             // tells two profiles apart. Shown, not edited -- changing it
-            // is a different transport, not a rename.
-            DetailItem {
-                objectName: "addressItem"
-                label: qsTr("Address")
-                value: profile.address
+            // is a different transport, not a rename. Under its own
+            // caption, at the left edge like everything else on the page.
+            Column {
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+
+                Label {
+                    objectName: "addressCaption"
+                    font.pixelSize: Theme.fontSizeExtraSmall
+                    color: Theme.secondaryColor
+                    text: qsTr("Address")
+                }
+
+                Label {
+                    objectName: "addressLabel"
+                    width: parent.width
+                    wrapMode: Text.WrapAnywhere
+                    color: Theme.highlightColor
+                    // The relay's string, pinned to plain.
+                    textFormat: Text.PlainText
+                    text: profile.address
+                }
             }
 
             // The invite is how anyone gets in touch with this profile,
@@ -243,7 +314,7 @@ Page {
                 objectName: "inviteButton"
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: qsTr("Show invite code")
-                onClicked: pageStack.push(Qt.resolvedUrl("InvitePage.qml"),
+                onClicked: pageStack.push(Qt.resolvedUrl("QrPage.qml"),
                                           { accountId: page.accountId })
             }
 
@@ -272,27 +343,43 @@ Page {
                 text: qsTr("Storage and connectivity")
             }
 
-            Label {
-                objectName: "connectivityLabel"
+            // The connection: a dot in the core's colour and the band in
+            // words, the row parla's dialog starts its section with.
+            Row {
                 x: Theme.horizontalPageMargin
                 width: parent.width - 2 * Theme.horizontalPageMargin
-                wrapMode: Text.Wrap
-                color: Theme.highlightColor
-                // A translated literal, chosen by the core's number.
-                textFormat: Text.PlainText
-                text: page.connectionWords(profile.connectivity)
+                spacing: Theme.paddingMedium
+
+                Rectangle {
+                    objectName: "connectivityDot"
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Theme.paddingLarge
+                    height: width
+                    radius: width / 2
+                    color: page.connectionColor(profile.connectivity)
+                }
+
+                Label {
+                    objectName: "connectivityLabel"
+                    width: parent.width - Theme.paddingLarge - Theme.paddingMedium
+                    wrapMode: Text.Wrap
+                    color: Theme.highlightColor
+                    // A translated literal, chosen by the core's number.
+                    textFormat: Text.PlainText
+                    text: page.connectionWords(profile.connectivity)
+                }
             }
 
-            // The mailbox on the relay, when the relay says how full it
-            // is: the bar the core drew, and its own words beside it.
+            // The mailbox on the relay: the bar is always there, at
+            // nothing until the relay has said how full it is, and the
+            // words under it say what the relay said.
             ProgressBar {
                 objectName: "quotaBar"
                 width: parent.width
-                visible: profile.quota_text.length > 0
                 minimumValue: 0
                 maximumValue: 100
                 value: Math.min(100, profile.quota_percent)
-                label: profile.quota_text
+                label: page.quotaWords()
             }
 
             Label {

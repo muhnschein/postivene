@@ -6,13 +6,12 @@ import Nemo.Configuration 1.0
  * The settings that belong to no profile: how a message is drawn, what
  * goes out with a link, and how much of an attachment arrives unasked.
  *
- * They live in dconf under the app's own path, because the page that
- * changes them is not in this app. It sits in the system's Settings app
- * -- qml/settings/GeneralSettingsPage.qml, listed by
- * settings/harbour-postivene.json -- which runs in another process and
- * can reach nothing of ours but these keys. Each value here follows its
- * key, so a change made there reaches every page that reads this without
- * either side being told.
+ * They live in dconf under the app's own path, and every page reads
+ * them through this one object: the settings page (qml/pages/
+ * SettingsPage.qml) writes it, and each value follows its key, so a
+ * change made there reaches every open page without either side being
+ * told. dconf rather than a property of the window, so the values
+ * outlive the app the way a setting should.
  *
  * A singleton rather than a property handed down page by page: a message
  * row three components deep wants the same answer as the page that
@@ -28,9 +27,8 @@ QtObject {
     /// every profile.
     property alias downloadLimit: downloadLimitValue.value
 
-    // The keys, named once here and once in the settings page: the two
-    // files cannot share a definition, so tests/qml_syntax.rs holds them
-    // to the same strings.
+    // The keys, named here and nowhere else: tests/qml_syntax.rs holds
+    // every other file to reading them through this object.
     property ConfigurationValue markdownConfig: ConfigurationValue {
         id: markdownValue
         key: "/apps/harbour-postivene/markdown_mode"

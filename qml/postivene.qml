@@ -14,8 +14,7 @@ ApplicationWindow {
     cover: Component { CoverPage {} }
 
     // The one setting the core has to be told about: it applies to every
-    // profile, and it follows the key as the system's Settings app
-    // changes it.
+    // profile, and it follows the key as the settings page changes it.
     Binding {
         target: core
         property: "download_limit"

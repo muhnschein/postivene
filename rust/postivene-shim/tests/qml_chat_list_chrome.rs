@@ -1,6 +1,11 @@
 //! What the chat list offers, and what it hides when there is nothing to
 //! offer.
 //!
+//! The pull-down is where every way to something starts: the profiles,
+//! the settings, the archive, a new group, the QR code page and a new
+//! chat. The row's menu offers to mark a read chat unread, and an unread
+//! one read -- one or the other, never both.
+//!
 //! Both of these were reported from a device twice. The first time they
 //! were written, a patch script asserted and died before saving, so
 //! neither reached the tree -- and nothing here would have noticed,
@@ -49,6 +54,11 @@ const PROBE_QML: &str = r"
             }
             if (node.contentItem && node.contentItem !== node) {
                 return findIn(node.contentItem, name)
+            }
+            // A row's menu is not among its children.
+            if (node.menu) {
+                var inMenu = findIn(node.menu, name)
+                if (inMenu) { return inMenu }
             }
             return null
         }
@@ -147,7 +157,13 @@ fn the_list_offers_profiles_and_hides_a_search_with_nothing_to_search() {
     single_shot(Duration::from_secs(3), move || unsafe {
         record!("profiles", get!("profilesMenuItem", "visible"));
         record!("settings", get!("settingsMenuItem", "visible"));
+        record!("new-group", get!("newGroupMenuItem", "visible"));
+        record!("qr", get!("qrMenuItem", "visible"));
         record!("laid-out", call!("layout", QString::from("chatList")));
+        // The seeded chats have nothing unread, so the first row offers
+        // to be marked unread and not read.
+        record!("mark-unread", get!("markUnreadItem", "visible"));
+        record!("mark-read", get!("markReadItem", "visible"));
         record!("ordinary-search", get!("chatSearchField", "visible"));
         record!(
             "archived",
@@ -201,13 +217,26 @@ fn the_list_offers_profiles_and_hides_a_search_with_nothing_to_search() {
         "the pulley does not offer Profiles with a single profile, so there \
          is no way to make a second one. {context}"
     );
-    // A profile's settings are on its row on the profiles page, and the
-    // settings that belong to no profile are in the system's Settings app;
-    // a Settings entry here would lead to one of them twice or to nothing.
+    // The settings that belong to no profile are a page of their own,
+    // reached from here; a profile's own are on its row on the profiles
+    // page. Making a group and adding a contact start here too, rather
+    // than a page further in.
+    for label in ["settings", "new-group", "qr"] {
+        assert_eq!(
+            value(label),
+            "true",
+            "the pulley does not offer {label}. {context}"
+        );
+    }
     assert_eq!(
-        value("settings"),
-        "missing:settingsMenuItem",
-        "the pulley still offers Settings. {context}"
+        value("mark-unread"),
+        "true",
+        "a chat with nothing unread is not offered to be marked unread. {context}"
+    );
+    assert_eq!(
+        value("mark-read"),
+        "false",
+        "a chat with nothing unread is offered to be marked read. {context}"
     );
     assert_eq!(
         value("ordinary-search"),

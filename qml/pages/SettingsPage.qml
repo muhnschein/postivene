@@ -57,6 +57,38 @@ Page {
         return detail >= 0 && detail <= 2 ? detail : 0
     }
 
+    /// When the title was tapped, oldest first, kept to the last three
+    /// seconds.
+    property var titleTaps: []
+
+    /// A tap on the title at `now`, in milliseconds. Ten within three
+    /// seconds open the developer view (DeveloperPage.qml); nothing else
+    /// leads there. Apart from the MouseArea so a test can hand in the
+    /// clock.
+    function noteTitleTap(now) {
+        var recent = []
+        for (var i = 0; i < page.titleTaps.length; i++) {
+            if (now - page.titleTaps[i] <= 3000) {
+                recent.push(page.titleTaps[i])
+            }
+        }
+        recent.push(now)
+        if (recent.length >= 10) {
+            page.titleTaps = []
+            page.openDeveloperView()
+        } else {
+            page.titleTaps = recent
+        }
+    }
+
+    function openDeveloperView() {
+        // The recorder is the root window's, so a recording outlives the
+        // page. A page loaded on its own, as a test does, has no window.
+        pageStack.push(Qt.resolvedUrl("DeveloperPage.qml"), {
+            recorder: typeof appWindow !== "undefined" ? appWindow.recorder : null
+        })
+    }
+
     /// Put each choice back to what the setting holds. Silica writes
     /// currentIndex itself on a tap, which detaches a binding, so the
     /// choice is put back from the setting each time it changes -- the
@@ -88,6 +120,16 @@ Page {
 
             PageHeader {
                 title: qsTr("Settings")
+
+                // Ten taps on the title within three seconds open the
+                // developer view. Over the header only, and a drag
+                // started here still reaches the flickable, which takes
+                // the gesture over once it is one.
+                MouseArea {
+                    objectName: "titleTaps"
+                    anchors.fill: parent
+                    onClicked: page.noteTitleTap(Date.now())
+                }
             }
 
             SectionHeader {

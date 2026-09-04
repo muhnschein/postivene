@@ -72,6 +72,24 @@ fn probe_qml() -> String {
         function appReads(name) {{ return '' + Settings[name] }}
         function appWrites(name, value) {{ Settings[name] = value; return 'ok' }}
         function appKey(name) {{ return '' + Settings[name].key }}
+        // Silica's page stack, recorded: ten taps on the title open the
+        // developer view through it.
+        property QtObject pageStack: QtObject {{
+            property string pushed: ''
+            function push(url, properties) {{
+                pushed += ('' + url).split('/').pop() + '|'
+                return null
+            }}
+        }}
+        function pushed() {{ return pageStack.pushed }}
+        function tapTitle(times) {{
+            var area = findIn(loader.item, 'titleTaps')
+            if (!area) {{ return 'missing:titleTaps' }}
+            for (var i = 0; i < times; i++) {{ area.clicked(null) }}
+            return 'ok'
+        }}
+        // A tap at a time of the test's choosing, in milliseconds.
+        function tapTitleAt(when) {{ loader.item.noteTitleTap(when); return 'ok' }}
     }}
 ",
         components.display()
@@ -222,6 +240,22 @@ fn the_settings_page_writes_what_the_app_reads() {
             call!("appWrites", QString::from("markdownMode"), 2)
         );
         record!("page-follows", get!("markdownCombo", "currentIndex"));
+
+        // The developer view, behind ten taps on the title within three
+        // seconds: nine are nothing, the tenth opens it.
+        record!("nine-taps", call!("tapTitle", 9));
+        record!("nine-pushed", call!("pushed"));
+        record!("tenth-tap", call!("tapTitle", 1));
+        record!("ten-pushed", call!("pushed"));
+        // Ten spread over longer are nothing either: five, then five a
+        // hundred seconds later, and the count starts over.
+        for _ in 0..5 {
+            call!("tapTitleAt", 100_000);
+        }
+        for _ in 0..5 {
+            call!("tapTitleAt", 200_000);
+        }
+        record!("spread-pushed", call!("pushed"));
         (*engine_ptr).quit();
     });
 
@@ -276,6 +310,11 @@ fn the_settings_page_writes_what_the_app_reads() {
         ("notification-shown", "2"),
         ("app-write", "ok"),
         ("page-follows", "2"),
+        ("nine-taps", "ok"),
+        ("nine-pushed", ""),
+        ("tenth-tap", "ok"),
+        ("ten-pushed", "DeveloperPage.qml|"),
+        ("spread-pushed", "DeveloperPage.qml|"),
     ] {
         assert_eq!(value(label), expected, "{label} is wrong. {context}");
     }

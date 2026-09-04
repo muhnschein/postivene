@@ -80,8 +80,13 @@ for `pre_exec`, an allowance in the lints, and a device to test on.
 
 **Verdict:** not now. Firejail's filter already covers the syscalls that
 matter most, and a whitelist on the app is a crash waiting for a
-platform update. A whitelist on the core is worth doing when there is a
-device to record it from; it is written up above so that it can be.
+platform update. A whitelist on the core is worth doing once a device
+has recorded its profile, and the developer view now writes the script
+that records it: `strace.sh` in every recording attaches from outside
+the sandbox, as root over SSH, and lists the distinct syscalls of each
+process (docs/BUILDING.md, "Profiling on a device"). The core's list
+from a session that sends, receives, downloads and plays is the
+whitelist's first draft.
 
 ## Landlock, best-effort
 
@@ -108,10 +113,13 @@ The calls are three raw syscalls (`landlock_create_ruleset`,
 `Command::pre_exec` for the child. Best-effort is the right posture:
 `ENOSYS` or `EOPNOTSUPP` means carry on without it, logged once.
 
-**Verdict:** worth a probe on a device (`cat /sys/kernel/security/lsm`;
-`grep -c landlock /proc/kallsyms` as a second opinion). If it is there,
+**Verdict:** worth a probe on a device, and the developer view makes it:
+`system.txt` in every recording carries the LSM list and a `Landlock:`
+line that reads it and, as a second opinion, the kernel's symbol table
+(docs/BUILDING.md, "Profiling on a device"). If it says enabled,
 confining the core is a contained change: one `pre_exec`, one lint
-allowance, no new dependency. If it is not, there is nothing to build.
+allowance, no new dependency. If it says absent, there is nothing to
+build.
 
 ## Sandboxed media decoding
 
@@ -148,7 +156,8 @@ third is the one still open.
 
 ## Where this leaves things
 
-In order of value for effort: Landlock on the core (a probe, then one
-contained change), placeholders for contact requests' attachments, then
-seccomp on the core once a device can record its profile. Nothing here
-changes the app's own sandbox, which is Sailjail's to provide.
+In order of value for effort: Landlock on the core (read `system.txt`
+off a device, then one contained change), placeholders for contact
+requests' attachments, then seccomp on the core from the list
+`strace.sh` records. Nothing here changes the app's own sandbox, which
+is Sailjail's to provide.

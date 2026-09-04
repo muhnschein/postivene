@@ -2,13 +2,10 @@
 
 *A native SailfishOS client for [Delta Chat](https://delta.chat).*
 
-What the project is, what it deliberately is not, and where it currently
-stands. Build and test procedure is in [`BUILDING.md`](BUILDING.md).
-
 ## What this is
 
-Delta Chat is an email-based ("chatmail") messenger with end-to-end
-encryption, no phone number and no central operator.
+Delta Chat is a chatmail messenger with end-to-end encryption, no phone
+number and no central operator.
 
 The thesis is narrow: **do not build a messenger, build a SailfishOS UI on
 top of one.** Protocol, cryptography and storage are the upstream core's.
@@ -32,7 +29,7 @@ the packaging, and aspires to ships to Jolla's Harbour app store.
   support European-made alternatives. 👊🇪🇺🔥
 - **Shipping via OpenRepos/Chum.** We need to improve this platform and get
   it to a point where it is competitive. That means appealing to a broad
-  majority of regular, non-technical people. That means also no developer mode,
+  majority of regular, non-technical people. That also means no developer mode,
   no SSH'ing to fix small things, no community repos. Most importantly, that
   means [dogfooding](https://en.wikipedia.org/wiki/Eating_your_own_dog_food).
   Lots and lots of dogfooding - and nagging Jolla about the things that the 
@@ -41,7 +38,7 @@ the packaging, and aspires to ships to Jolla's Harbour app store.
 ## Architecture
 
 ```
-QML / Silica UI  +  background service (planned)
+QML / Silica UI
         |  models / signals
 Rust shim (qmetaobject-rs): JSON-RPC client, event loop -> Qt queued
 signals, QAbstractListModel adapters for chats/messages/accounts
@@ -54,376 +51,6 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   away from CFFI. The OpenRPC spec is the interface contract.
 - **Core events run off the main thread**, marshalled to the Qt main thread
   via queued signals.
-- **Background reception** relies on IMAP IDLE plus a Sailfish background
-  process. It is the hardest platform problem and the largest open risk.
-- **A chat holds a row for every message in it.** The ids are cheap and the
-  messages are not: `get_message_list_items` returns a list of numbers for
-  the whole chat, while `get_messages` builds every field of every row. So
-  the model builds one row per id the moment that list arrives, and fills in
-  only the ones somebody is looking at. `hydrate(first, last)` is the only
-  thing that fetches messages after a chat opens; the view asks as it
-  scrolls.
-- **Which is what makes the first message row 0, and keeps it there.** The
-  model used to hold a moving *window* of loaded messages, and every way of
-  getting somewhere -- the beginning of the chat, a search result -- meant
-  replacing its contents. That is the shape the bug was in, and it took
-  three attempts at the symptoms to be sure: positioning into a model that
-  has just been reset is contingent on how fast rows are measured, a
-  reconciliation that overlapped a move undid it, and the control that
-  offered the move hid itself at the moment it was wanted. Each was a real
-  defect. None of them was the cause. Whisperfish and deltachat-android both
-  keep the whole conversation addressable and have none of this; going to
-  the beginning of a chat is now a scroll, with nothing to fetch, nothing to
-  replace, and nothing that can put the reader somewhere else.
-- **Rows are filled in where they stand.** `change_line` rather than a
-  reset, so the view keeps its position and its delegates. An arrival is one
-  row appended; a deletion is one removed. Nothing else moves.
-- **The day heading is drawn inside the row it heads.** `section.property`
-  is set, so the view still groups by day and fills in `ListView.section`
-  and `ListView.previousSection` on each delegate -- but there is no
-  `section.delegate`. A section delegate is its own item, positioned above
-  its row and sized from whatever height the view last measured, and a date
-  drawn on top of the message beneath it was reported twice. Getting the
-  height right at creation was not enough, because where the row goes is the
-  view's bookkeeping rather than ours. Inside the row it is arithmetic: the
-  heading is part of `contentHeight`, and a row cannot be drawn over itself.
-- **A row knows its day before it knows its message.**
-  `get_message_list_items` interleaves the core's own day markers when asked
-  for them, so the day comes with the id rather than with the message. Not a
-  nicety: the list is sectioned by day, so a row that does not know its day
-  sits under day 0, and a screenful of them is a heading reading 1 January
-  1970. Worse, each row moves to its real day as it is filled in, which
-  resizes a heading the view has already laid out and leaves it drawn over
-  the row beneath. The markers are local midnight, checked against the real
-  `deltachat-rpc-server` in three zones -- a marker at *UTC* midnight would
-  file every message in a zone behind UTC under yesterday -- and go through
-  the same `local_day_number` as a fetched row, so a row's day cannot change
-  when its message arrives.
-- **Following the newest message stops when something else moves the view
-  up.** A chat opens at its newest message and stays there as messages
-  arrive -- which means every change to the content height sends the view
-  back to the end. The system's own scroll-to-top changes `contentY` without
-  a drag, so nothing would otherwise tell the list that the reader has gone
-  somewhere, and the first row measured after the jump would haul them back
-  down. `ConversationList` reads a move *up* it did not make as the reader
-  leaving, and only once the view has actually reached the end at least
-  once: before that, a view far from the end is a chat that has not finished
-  opening. Only up, because the view also moves down on its own -- the last
-  row growing as its picture decodes, or the view clamping to an end that
-  has just moved -- and taking that for the reader leaving was how a tall
-  picture at the end of a chat came to be shown from its top: the view was
-  put at the end of the row as it stood, the row grew, and the move that
-  would have followed it down had been switched off by the one before.
-- **The jump button lets go of everything first.** Coming back from a
-  picture holds the row the reader left on for a while, re-applied on
-  every change to the content; a jump tapped inside that while went to
-  the end and was put straight back by the next row measured, with the
-  button already gone. `jumpToNewest` releases the held row, cancels any
-  flick, and sets following before it positions, so nothing the list is
-  doing on its own account can undo it. deltachat-android's button was
-  looked at for this: it scrolls smoothly when the end is near and jumps
-  when it is far, and hides only when the list reports it is at the
-  bottom. The smooth scroll was not ported -- rows here are measured as
-  they come into view, so the end moves under an animation aimed at it --
-  and the rest is what this already does.
-- **The chat is on the page before the page arrives.** `ChatPrefetch` loads
-  it while the reader is still looking at the chat list, and
-  `ConversationPage` takes it in `Component.onCompleted` -- after
-  `reading_history` is bound, or the model reads the default and marks the
-  chat read behind a page nobody has seen. A prefetch hit is a move, not a
-  fetch. When a search result is what was tapped, the prefetch fills in the
-  rows around *that message* rather than the newest ones, so the page never
-  shows today and then jumps.
-- **A row jumped to has to be held, not jumped to.** One
-  `positionViewAtIndex` is enough only where every row is already its final
-  height, which is nowhere real: rows are measured as they are laid out,
-  wrapped text at the device's own metrics is taller than an estimate, a
-  picture's row changes height again when the picture decodes, and a row
-  gains its text the moment it is filled in. Each of those that happens
-  above the reader moves them, and they all happen after the jump. So
-  `holdAt` re-applies the row on every change to the content, until the
-  reader takes the view over or it stops moving under them. Landing on a
-  search result and back on the place a full-screen picture was opened from
-  are both this.
-- **A page pushed over the conversation takes its place with it.** The list
-  is torn down far enough to forget where it was, and replaces what it
-  forgets with the beginning. The row is *held* from `Deactivating`, not
-  merely written down and restored on `Active`: restoring is too late,
-  because the reset happens while the page is away and a frame showing the
-  top of the chat is painted before anything corrects it. That was the
-  flash of the oldest messages, and being yanked back from it. Held, the
-  reset is undone in the same turn it happens and no wrong frame is drawn.
-  A hold is let go of when the reader touches the list, and otherwise on a
-  deadline -- but never on a quiet timer: a device lays its rows out,
-  goes quiet while a picture decodes, and moves them again, and the gap is
-  longer than any timer worth having.
-- **Zoom is about the point that was touched.** A picture that grows about
-  its own top-left corner takes a reader who pinched a face in the bottom
-  right to the top left instead. `PicturePage.zoomAt` works out where in
-  the picture the fingers are, changes the zoom, and puts the view back so
-  the same point is under them.
-- **The top of the list offers the beginning of the chat.** Not decoration:
-  the system's own scroll-to-top gesture goes to the top of what is loaded
-  and gives no sign that it is not the top of the chat. That is where the
-  gesture leaves the reader looking, so that is where the way to the real
-  beginning goes.
-- **Drafts belong to the core, not the page.** `misc_set_draft` and
-  `get_draft` keep what was typed and not sent, so it survives the app
-  being closed rather than only the trip back to the chat list. It also
-  means the chat list needs no new field: a chat holding one comes back
-  with `summaryText1` "Draft", which the row already shows in front of the
-  preview, so it reads "Draft: ..." in whatever language the core is in.
-  Written on a debounce while typing and again the moment the page goes,
-  because leaving is exactly when the debounce has not fired yet.
-- **One send at a time.** The compose state clears when the core answers,
-  not when the button is tapped, so a send that fails leaves the reader
-  holding what they chose. `ChatMessages.sending` closes the window that
-  opens up in between: copying a large video into the core's blob directory
-  takes seconds, and a second tap in those seconds used to send the whole
-  thing again.
-- **Pictures and video open in the app.** Handing them to the system took
-  the reader out of Postivene to something that then failed to show them.
-  A picture gets a page with a pinch-zoom flickable; a video gets
-  QtMultimedia, which is already how a voice message plays in its own row.
-  Everything else is still somebody else's file: a page here that could
-  only say "cannot show this" would be worse than the handover. The way
-  out to another app stays in each viewer's pull-down.
-- **A photo is shown the way it was taken.** `Image.autoTransform` reads
-  the EXIF orientation tag, which is where a camera records the turn
-  rather than applying it to the pixels. The core reads the file's
-  header, so its dimensions are the size before the turn; the row is
-  measured from them all the same, and lets the decoded picture override
-  them only where the shapes disagree. Same shape means the header was
-  right and the row stays put.
-- **A picture's row is the right height before the picture is decoded.**
-  A row that changes height when its picture lands moves every row below
-  it, and under a reader scrolling through a chat full of pictures that
-  is the list jumping about as they decode. So `AttachmentPreview` sizes
-  the row from the dimensions it was handed and not from the decode: the
-  core's for PNG and JPEG, and for a GIF -- which the core reports as
-  0x0 -- the two fields at the front of the file, read by the model as
-  the row is built. deltachat-android's `ThumbnailView` does the same
-  from the message's stored width and height. The decode is bounded to
-  the row's width with `sourceSize`, which is also what keeps a chat of
-  photos from holding every one of them at the camera's resolution.
-- **A GIF plays three times, and only when it is new.** The movie is
-  drawn over the still while there are runs left -- three for a GIF that
-  arrived while the chat was open or was unread when it was opened, three
-  more for a tap on the mark a stopped GIF carries -- and unloaded
-  otherwise, because a stopped movie still holds every frame it decoded,
-  which in a long conversation of GIFs is memory a phone notices. The
-  runs are counted from the frame number going back to nought, since a
-  GIF's frames each carry their own delay. A GIF from last week does not
-  start on its own. What "new" means is the model's `is_new`: an
-  incoming message in one of the unseen states at the moment its row was
-  built.
-- **A picture opens on the row's own decode, and finishes decoding once
-  the page is in place.** Opening a picture full screen dropped frames
-  for about a second; a GIF dropped them for its whole first run. Both
-  were decoding behind the page transition -- the still on a thread, the
-  movie's frames on the main thread as they come round. `PicturePage`
-  now asks first for the picture at the width the row drew it, which is
-  a hit in Qt's pixmap cache while the row is on the page underneath, so
-  the page arrives with the picture on it and nothing decoding; the full
-  decode, bounded to twice the screen's long edge, and the movie start
-  once the page's status is `Active`.
-- **The core classifies attachments, not the app.** Every file goes to
-  `misc_send_msg` and comes back with a `viewType` the core chose from the
-  file itself; `AttachmentPreview` picks a renderer from that answer and
-  nothing here inspects a file. What the core leaves blank matters as much:
-  it reports no dimensions for a GIF and no duration for a sound file, so
-  the model reads a GIF's size off its header and the row lets the audio
-  player report its own length (`deltachat-jsonrpc/tests/real_server.rs`
-  pins both). It also declines to call a `.vcf` a contact card unless the file
-  holds exactly one contact *with an email address* -- a phone-only contact
-  exported from the address book is neither, and is not someone Delta Chat
-  could open a chat with anyway -- so those land on the file row, which
-  marks them as cards rather than as anonymous blobs.
-- **What a chat is sits to the right of it.** Swiping left from a
-  conversation reaches the group behind it -- picture, name, members --
-  or, from a one-to-one chat, the contact: picture, name, the line they
-  wrote about themselves, and whether the connection is checked and
-  encrypted. Attached rather than pushed, so the page indicator says it is
-  there; the header tap goes the same way. One `ChatInfo` serves both: it
-  reads `get_full_chat_by_id`, which names the members by id, so the
-  contacts come from `get_contacts_by_ids`, keyed by id as strings, and a
-  one-to-one chat simply has one. Every group edit is one core call
-  followed by a reload, since the core is what knows who is in the group
-  now and where it put the picture. What can be changed is the core's
-  answer too: `selfInGroup` goes false on leaving and every edit is then
-  refused, so the controls are not offered. Disappearing messages sit on
-  both pages: the eight durations the reference clients offer, bound
-  from the core's `ephemeralTimer` and set with one call, which tells the
-  other members itself.
-- **The conversation header is laid out as `PageHeader` lays out its
-  own.** The title on the line the page indicator sits on, right-aligned,
-  no wider than its text or the page less its margins, and in the page's
-  own colour once the header leads somewhere. A long name can still run
-  under a display cutout: Silica 4.4's own QML does nothing about one,
-  and what a 5.x device reports in `Screen.topCutout` comes in a shape
-  this tree could not read in three attempts, so the notch is left for
-  another day.
-- **Adding a profile is a dialog over a relay list.** A name and a
-  chatmail relay are all a profile needs, so `AddProfileDialog` asks for
-  exactly those, the way Silica asks a question: a `ComboBox` of public
-  relays (the curated list in parla, github.com/trufae/parla, one picked
-  at random each time so profiles spread over it) and a field for a
-  custom one that takes over while it is filled. Accepting goes to
-  `ProfileSetupPage`, which asks the core and shows the progress; cancel
-  and failure both go back to the dialog with what was typed. Silica
-  makes a dialog's accept destination the moment the dialog is on screen,
-  so it can be peeked at, so the setup page starts nothing on creation:
-  the dialog fills it in through `acceptDestinationInstance` on accept,
-  and it asks the core once it is the page on screen. The core takes
-  `dcaccount:` with a bare domain, so the payload is built here without
-  a URL. Logging in to an
-  existing mailbox is gone with the page that offered it: most Delta Chat
-  users never type an IMAP password, and the shim method stays for the
-  day a settings page wants it.
-- **QR codes are text with a picture on.** The invite the core hands out
-  is drawn as a code by `QrCode`, and a code the camera sees is read back
-  to text by `QrScanner` and handed to the same path a pasted link takes
-  -- `check_qr`, then `secure_join` or `add_transport_from_qr` -- so
-  nothing here reads a payload. Both pictures are files: `grabToImage` is
-  the one way QML on Qt 5.6 hands a viewfinder's pixels to anything, and
-  a `.pgm` path makes Qt write a header and bytes that need no image
-  crate to read; the code shown is a PGM the shim writes to the cache
-  directory for an `Image`, because a `Canvas` is drawn into the window's
-  GL context, which the platform takes from an app in the background, and
-  it came back blank. Both crates are pure Rust under the 1.75 floor,
-  with the image dependency off. The scanner does not take its page
-  down once it has read a code: Silica drops any stack operation asked
-  for while a transition runs, so the page's own navigation -- the chat
-  the invite led to -- landed during the pop and was lost. It waits, and
-  the chat replaces the page. Focus is the scanner's job, not the
-  platform's: Sailfish has no scanning API for third parties (the stock
-  camera reads codes on its own, behind no interface), and a `Camera`
-  left to itself gave a viewfinder too soft for any code, so the view
-  runs it in video mode with continuous
-  autofocus, asks for a focus search every couple of seconds while
-  nothing has been read, and focuses on a tapped point.
-- **The server is supervised.** Its event stream ending is the app's only
-  notice that the core has gone -- a phone reclaiming memory kills it and
-  says nothing -- so that is where the next one is started, with a backoff
-  that resets after a healthy run, and IO resumed for whatever accounts were
-  running. Twelve failures without a healthy run in between is a core that
-  will not start, which the app says rather than retrying forever.
-- **A profile's settings are on the profile; the app's are on the
-  settings page.** The picture, the name, the bio, the read-receipt
-  switch, the address, the way to the invite and what the relay says
-  about the mailbox are `ProfilePage`, reached from the profile's row on
-  the profiles page, and laid out as parla's profile dialog is
-  (github.com/trufae/parla): a dot and the band in words for the
-  connection, a bar for the mailbox that is there before the relay has
-  said anything, and under it what is used, what is left and what there
-  is, read off the core's own report (`connectivity.rs`); the bar is
-  drawn by the page, the width of the text around it, since Silica's
-  own sits well inside its margins. The three
-  settings that belong to no profile -- how Markdown is drawn, whether
-  links go out with their tracking parameters, how large an attachment
-  arrives unasked -- are `SettingsPage`, in the chat list's pull-down.
-  They live in dconf under `/apps/harbour-postivene/`, behind
-  `Settings.qml`, a singleton every page reads and the settings page
-  writes, so a change reaches every open page and outlives the app. (They
-  were briefly a page in the system's Settings app, which never appeared
-  on a device: the entry that puts a page there is outside Harbour's
-  paths and turned out to need more than that entry.) The download limit
-  is the one the core has to be told: it is per account there, so
-  `DeltaChatCore` writes it to every account when it is set and again
-  whenever the account list is read, which is how a profile added later
-  gets it.
-- **A name is a name until its badge is tapped.** The reader's own name
-  on the profile page, a contact's on theirs and a group's on its page
-  are one control, `EditableName.qml`: the name centred under the
-  picture, wearing the picture's own edit badge at the bottom right of
-  the text; a tap turns it into a field where the name was, with a line
-  under it saying what the field means, and the badge into a tick at the
-  end of what is typed (measured with the field's font, since the field
-  centres its text and says nothing about its width) that puts the name
-  back. The page puts it back on the way out too, so a contact left with
-  no given name shows the name they chose, not an empty field. The field
-  is what the page reads and saves, the way it did when the field stood
-  on its own; a group's cannot be saved blank, and goes back to the name
-  the group has. The conversation's header follows a rename through its
-  own model -- `Chat` re-reads the chat's name on `ChatModified` and
-  `ContactsChanged` -- rather than through whichever page did the
-  renaming, which is what left it showing the old name until the chat
-  was reopened.
-- **Leaving a group is asked about on a page.** `LeaveGroupDialog`, with
-  the platform's accept and cancel at the top, rather than a countdown
-  on the pull-down that a thumb already moving could miss. The group
-  page does the leaving on `accepted`, and finishes the dialog's own
-  transition before popping to the chat, since Silica drops a stack
-  operation asked for during one. Adding members is a row at the end of
-  the member list, shaped like a member with a plus for a picture;
-  removing a picture is in the pull-down on the group and profile pages,
-  and only while there is one.
-- **Markdown is rendered here, and rendered safely.** Sailfish's Qt 5.6
-  has no Markdown of its own, so `markdown.rs` turns the subset people
-  type -- emphasis, strikethrough, code, headings, links -- into
-  `Text.StyledText`, with every character of the message escaped and the
-  only tags the ones it wrote: a tracking pixel in a message body stays a
-  string of angle brackets, which is the whole reason every label in the
-  app is pinned to plain text. Both renderings are made once per fetched
-  row, in the shim, so switching the setting is a change of binding. With
-  the setting off the body is shown as written; taken out, its words
-  alone. Links are anchors, followed on a tap and on nothing else, and
-  only web and mail ones. `links.rs` is the other half of the setting
-  pair: with the switch on, known tracking parameters come out of the
-  links in a message on the way to the core, so the reader's own bubble
-  shows what went out. The rules are parla's.
-- **A message the download limit held back offers its rest.** The core
-  keeps only the header of a message over the limit and marks it
-  `Available`; the row says so and a tap asks for the rest
-  (`download_full_message`), which the core announces as the message
-  changing. Nothing here decides what to fetch.
-- **Deleting one profile leaves the others' countdowns alone.** Silica's
-  remorse timer lives on the row, and reloading the account list with a
-  reset destroyed every row and every timer with it -- reported as only
-  the first of two deletions happening. `refresh_accounts` reconciles the
-  rows in place instead, the way the chat list does.
-- **Both directions of an invite are one page.** `QrPage`, in the chat
-  list's pull-down as "QR code" and behind the profile page's "Show
-  invite code": a switch at the top, the way an inline view switcher
-  works on the desktop, between this profile's invite drawn as a code
-  and the scanner for someone else's, drawn the way Silica's own tab bar
-  draws one, with the profile the code belongs to named above the code.
-  The scanner (`ScanView.qml`, the one file that names a `Camera`,
-  loaded by URL so a device without one loses that side and not the
-  page) has a button under the viewfinder
-  for the link the code would carry, typed or pasted -- a panel over the
-  viewfinder rather than a dialog, because a dialog's own pop is the
-  transition the page's navigation would land in and be dropped by.
-  "New group" is in the same pull-down, and its page is the group's own
-  page before the group exists: the picture with its badge, the name,
-  the reader among the members, and the way to more of them at the end
-  of the list. The picker it opens is the one an existing group opens,
-  handed a stand-in that answers the same two questions (who is in, whom
-  to add), with a search field at the top for a long contact list; what
-  is chosen is held on the page and handed to the core in one go. The
-  new-chat page is the known contacts and nothing else.
-- **A chat can be marked unread, and a profile shows what is.** The
-  row's menu offers "Mark as unread" on a chat with nothing unread: the
-  core's `markfresh_chat`, which puts the chat's newest incoming message
-  back to unread, so the chat counts one until it is opened. The
-  profiles page draws the chat list's badge on each profile, from the
-  core's `get_fresh_msgs` -- the figure the reference clients put on
-  their account switchers, which leaves muted chats out -- re-read on
-  every event that could have moved it and changed on the row in place.
-- **A disappearing-messages duration is said in words whatever it is.**
-  The reference clients' nine choices, up to a year, and any other value
-  another client set said in the largest unit that fits it: a year set
-  from a desktop showed as "After 31536000 second(s)" before the list had
-  a year on it.
-- **A contact can be given a name here.** `change_contact_name`, with the
-  core's own rule for a blank one: an empty name puts the contact back to
-  what they call themselves, which is what the field shows behind the
-  text. Pinned against the real core.
-- **Saving an attachment is one copy.** What a chat holds lives in the
-  core's blob directory and goes with the app; Save to device copies it
-  into the folder the platform names -- `StandardPaths.pictures`,
-  `StandardPaths.videos` -- under the name the sender gave it, and a
-  number when that name is taken.
 
 ## Platform baseline
 
@@ -438,83 +65,6 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   `$XDG_DATA_HOME/postivene/postivene/accounts` (`POSTIVENE_ACCOUNTS_DIR`
   overrides).
 
-## What works
-
-Upstream's release binaries are statically linked against musl, so no
-Sailfish-specific core build is needed; `scripts/fetch-rpc-server.sh`
-fetches v2.59.0 sha256-pinned, and the wire shapes are verified against
-the real binary offline.
-
-On top of that: the chat list (unread badges, timestamps, avatars,
-encryption/pin/mute marks, context menu, search across chats/contacts/
-messages, archive, contact requests, multiple profiles with their own
-pictures), a page per profile (picture, name, bio, address, read receipts,
-the way to the invite, and what the relay and the phone say about it),
-groups (created, and then renamed, given a picture, added to, removed
-from and left), a contact page beside each one-to-one chat with a name of
-the reader's own for the contact, disappearing messages, the
-conversation view (bubbles, quotes, delivery marks, day separators, reply/copy/delete/
-resend, reactions -- six quick ones in a row's menu, and a tap on any chip
-already on a message to answer it in kind, one per person as the reference
-clients have it -- Markdown drawn or taken out or left as written, a page
-of history at a time, and every kind of attachment the core classifies: photos and
-stickers inline, GIFs over a still poster that play three times when new
-and on a tap otherwise, a video's poster frame
-from the platform thumbnailer, voice and audio played where they sit, a
-shared contact as a card, everything else named and sized; pictures and
-video saved to the device from their own pages; a message the download
-limit held back fetched on a tap), adding a
-profile on a chosen chatmail relay through the core's current transport
-API, `secure_join` invites in both directions -- as links typed or
-pasted, and as QR codes drawn and scanned, into the chat -- encryption
-indicators, the four app-wide settings on the settings page (Markdown,
-tracking parameters out of sent links, the auto-download limit, and how
-much a notification gives away), a chat marked unread and unread badges
-on the profiles, notifications, and the cover.
-
-Notifications are the platform's: one per chat under the app's name and
-icon, counting up as a chat keeps talking, taken down when the chat is
-read, and opening the chat on a tap -- the tap comes back over D-Bus, on
-the name Sailjail derives from the desktop file (`postivene.postivene`),
-which `Notifier` owns through a `DBusAdaptor`. What one says is the
-reader's choice, since the lock screen shows it to whoever is looking:
-who wrote and what, who wrote, or only that something arrived.
-
-The cover is laid out as the platform's own covers are: "Delta" with
-"Messages" under it top left, and the count of unread messages top right,
-large, a zero included. Under that, three states. Nobody yet -- no chat
-but the one with oneself and the core's own -- and it says "No messages".
-People and nothing new: their avatars in grey in a staggered grid, every
-other row shifted half a cell and cut off at both edges, the few repeated
-to fill it. Something new: whoever wrote lit up in their own colours
-where they stand in the grid, once each. Every profile counts: the cover
-keeps one `ChatList` per configured profile, and the people come out of
-each as one JSON list (`cover_people`), which is how the grid can be laid
-out in a pass and repeated to fill.
-
-An arrival is announced by the chat list model once the row carrying
-its preview has been read back -- and by whichever refresh lands, not
-the one the `IncomingMsg` started: the core follows every message with a
-`ChatlistItemChanged` within the same millisecond, which makes that
-first answer stale before it arrives. Announcing only on it meant no
-notification ever, which the fake core now reproduces.
-
-The app speaks every language Sailfish OS ships in: forty catalogs under
-`translations/`, one per language the platform's Language setting offers,
-compiled by `lrelease` at build time and loaded at startup for the locale
-the system starts the app under, with the English one -- there for its
-plural forms -- standing in for a language that has none. The loading is
-the one `cpp!` block in
-the tree -- `QTranslator` is not bound by qmetaobject -- and the one
-`unsafe` outside the tests, kept to `postivene-app/src/translations.rs`.
-`ci/packaging-lint.sh` regenerates and compiles every catalog, and
-`tests/translation_catalogs.rs` fails on a string left untranslated in
-any of them.
-
-Packaging is real: `mb2` builds produce `harbour-postivene-0.1.0-<release>.aarch64.rpm`,
-and `.github/workflows/rpm.yml` builds it unattended on a GitHub runner in
-about six minutes.
-
 ## What is missing
 
 In order of what matters:
@@ -524,52 +74,16 @@ In order of what matters:
    validator runs against each built RPM. One blocker remains, and it is not
    fixable here: the bundled `deltachat-rpc-server` is a second ELF
    executable, which Harbour permits nowhere.
-
-   Of the three ways to hold the core, each is blocked differently.
-   `libdeltachat.so` would satisfy the rule, but upstream is deprecating
-   it. The `deltachat-jsonrpc` crate is its supported replacement, but
-   needs Rust 1.89 where the SDK ships 1.75, and Rust will not link output
-   from two compiler versions. The subprocess we use is the one upstream
-   recommends. So the next move is to put the case to Jolla rather than to
-   engineer around them.
-
-   The QtWidgets blocker is gone: `third_party/qmetaobject` is upstream
-   plus a three-line patch swapping `QApplication` for `QGuiApplication`,
-   and `ci/vendor-check.sh` proves the copy is exactly that.
-
-   Also unproven: a run under `sailjail` on a device, exercising every
-   permission-dependent path. Store assets and a privacy policy are not
-   started.
-2. **A background service, and suspend handling.** Messages arrive only
-   while the app is running, which is the one thing standing between this
-   and a client someone could rely on. Notifications inherit the same limit.
-   Minimised to the cover is covered -- nothing tears the event loop down,
-   and `Notifier` is built around the app being behind something else --
-   but closed or rebooted is not, and cannot be for a Harbour package:
-   a systemd user unit and a D-Bus activation file both live outside the
-   four paths Harbour allows. `harbour-whisperfish` ships its own service
-   under `%if %{without harbour}` for exactly this reason. So this is the
-   same conversation with Jolla as the bundled server, not a thing to
-   engineer around.
-
-   Restarting `deltachat-rpc-server` after it dies is done: see the
-   architecture note above.
-3. **Blocking** outside a request; a media grid on the group and contact
-   pages; add-as-second-device and restore-from-backup, which are now the
-   only ways an existing profile could arrive, the mailbox login page
-   having gone; parla's "discover relays from contacts" on the add-profile
-   dialog, and its per-conversation storage breakdown behind the quota bar.
-4. **Message polish**: avatars on bubbles, an unread divider, and a way
+2. **Blocking** outside a request; a media grid on the group and contact
+   pages; add-as-second-device and restore-from-backup.
+3. **Message polish**: avatars on bubbles, an unread divider, and a way
    to react with an emoji the quick row does not offer.
-5. **Recording a voice message, and taking a picture.** Sending every
+4. **Recording a voice message, and taking a picture.** Sending every
    kind of attachment works; making one does not. QML has no audio
    recorder on Qt 5.6 -- `harbour-whisperfish` wrote its own against
    gstreamer -- so a voice note needs native code, an `unsafe` exception
    and the `Microphone` permission. The camera is already granted for the
    QR scanner, so a picture is the smaller step.
-6. **Running a webxdc app.** Sending one already works and the conversation
-   names it honestly; running it needs `Sailfish.WebView`, the `WebView`
-   permission and the webxdc bridge.
-
-Also open: no `sfdk` or OBS build specifically, since CI drives `mb2` 
-directly; icons are placeholders.
+5. **Running a webxdc app.** Sending one already works, but is not shown in
+   the GUI; running it needs `Sailfish.WebView`, the `WebView` permission
+   and the webxdc bridge.

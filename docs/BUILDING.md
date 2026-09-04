@@ -76,57 +76,6 @@ first time, and `deny` wants the advisory database.
 
 Aspiration, tracked not gated: test volume exceeds source volume.
 
-### Wait for the thing, not the clock
-
-The Qt tests schedule steps with `single_shot` at fixed seconds. That is a
-bet that the work is done by then, and under a loaded `make check` it is not
-always: `chat_model` failed about one run in three that way, asserting on
-calls that had simply not been made yet.
-
-Where a step depends on work finishing, wait for the work. A repeating
-`Timer` in the probe that checks the condition and acts once is the pattern
-— `chat_model.rs` and `qml_naming.rs` both do this — with `single_shot` left
-as a backstop that reads results and quits. The other Qt tests still
-schedule on the clock and should move over as they are touched.
-
-## Profiling memory on a device
-
-The app sits at 250--400 MB resident on a phone, and the first question
-is which of the two processes it is. `POSTIVENE_MEMORY_LOG` answers it:
-
-```
-$ POSTIVENE_MEMORY_LOG=5 /usr/bin/harbour-postivene
-memory: app 138 MiB resident, core 61 MiB
-memory: app 212 MiB resident, core 62 MiB
-```
-
-A line every five seconds with the resident size of the app and of the
-`deltachat-rpc-server` it spawned, read from `/proc`. Run it from a
-terminal on the phone (the launcher does not pass environment through
-the invoker), and drive the app while it prints: open the chat list,
-open a chat with pictures, scroll a long one, open a picture full
-screen, minimise to the cover. The number that moves with the action is
-the one to look at.
-
-What each side is made of, and how to look closer:
-
-- **The app** is Qt: every decoded picture on screen is a texture, and a
-  texture is width times height times four bytes whatever the file
-  weighed -- a phone screenshot is 20 MB decoded. `sourceSize` on an
-  `Image` is what bounds that; a row that decodes at the file's own size
-  rather than the row's is the usual leak-shaped growth. `QSG_INFO=1` on
-  the same command line has the scene graph say what it allocates, and
-  `QML_DISABLE_DISK_CACHE=1` takes the QML cache out of the picture.
-- **The core** is upstream's: SQLite's page cache, the accounts'
-  in-memory state, and the tokio runtime. It is the same binary the
-  desktop client and the Android app run, so a core that grows without
-  bound is a bug to take upstream with the log that shows it.
-- **Proportional sizes.** `VmRSS` counts shared pages -- Qt's libraries,
-  the GL driver -- in full for each process. For the true cost, `smem
-  -P harbour` on the phone, or `grep Pss /proc/<pid>/smaps_rollup` for
-  either pid, gives the proportional figure; the log's numbers are for
-  spotting the movement, not the total.
-
 ## Translations
 
 The strings are the `qsTr()` calls in `qml/`; `translations/postivene.ts`
@@ -159,8 +108,7 @@ every string with as many plural forms as that language has.
 One sentence where one will do. A comment states what is true now and why.
 It is not a changelog, a bug report, or a story about how the code got here
 — that belongs in git history. Delete a comment rather than update it into a
-history of its own subject. If the reasoning needs a paragraph, it is a note
-in `docs/` and the comment is a pointer to it.
+history of its own subject.
 
 ## Packaging: the supported path
 
@@ -235,50 +183,3 @@ Landmines encoded in `rpm/harbour-postivene.spec`, each found the hard way:
   starting `LANG=C`, which rpm reads as a tag. Host rpm 4.18 leaves comments
   alone and had parsed the same file through an entire successful build.
   `ci/packaging-lint.sh` checks for this directly.
-
-`i486` packages exclude the bundled server: upstream publishes no 32-bit x86
-musl binary.
-
-## Building without network access
-
-OBS and Chum build offline. Vendor the crates and switch the spec over:
-
-```sh
-scripts/vendor-crates.sh
-sfdk build -- --with vendor
-```
-
-with the `[source.crates-io] replace-with = "vendored-sources"` stanza
-`cargo vendor` prints installed as `rust/.cargo/config.toml` -- beside the
-workspace, where `%build` now runs cargo from, since cargo finds its
-config by working directory and not by manifest.
-Add `-n` (`--no-pull-build-requires`) and rpmbuild's `--nodeps` to `mb2` to
-skip BuildRequires resolution.
-
-Stock SDK targets ship **no rust at all**, so an environment that cannot
-reach the Jolla repos must also graft in the standard-library rlibs that
-`rust-std-static` would provide: the tooling's own i686 std copied into the
-target *and its `.default` snapshot* (mb2 builds against the snapshot), plus
-a target std built from source with **the tooling's own rustc**. Do not
-substitute rustup's std for the same version — Jolla's compiler reports
-`1.75.0-nightly (82e1608df)` against upstream's `1.75.0 (82e1608df)`, same
-commit but a different release string, and rustc rejects the rlibs with
-`E0514`. Unpack `rust-src-1.75.0` into the tooling and build a dummy crate
-with `-Zbuild-std=std,panic_unwind` and `RUSTC_BOOTSTRAP=1`; its final link
-fails on the tooling's i686 linker, which is fine — the rlibs under
-`target/<triple>/release/deps/` are what get installed.
-
-## What the builds have proven
-
-Verified on the produced package, not just the build log: the app binary
-is an aarch64 pie executable linked against the target's Qt 5.6.3 with a
-highest requirement of `GLIBC_2.29`; the bundled server survives rpm's strip
-pass and still answers `--version` → `2.59.0` and passes the full
-`real_server` suite under `qemu-aarch64`; and `rpm -qlp` shows every file
-where `qml_dir()` and the rpc-server lookup expect it. Those builds predate
-the Harbour rename and produced `postivene`, not `harbour-postivene`;
-nothing else about them changed. They also linked `libQt5Widgets.so.5`,
-which `HARBOUR.md` explains is a blocker.
-
-Not proven: Silica's real rendering, notifications, background sync and suspend
-stay out of reach of `make check` entirely — see `PROJECT.md`.

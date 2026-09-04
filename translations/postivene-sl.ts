@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>Povlecite navzdol, da začnete novega</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>Nastavitve</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>Koda QR</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Nova skupina</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>Označi kot neprebrano</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>Po 1 minuti</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>Po 5 minutah</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>Po 30 minutah</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>Po 1 uri</translation>
     </message>
@@ -309,26 +317,44 @@
         <translation>Po 1 tednu</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>Po 5 tednih</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>Izginjajoča sporočila</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>Po %n sekundi</numerusform>
-            <numerusform>Po %n sekundah</numerusform>
-            <numerusform>Po %n sekundah</numerusform>
-            <numerusform>Po %n sekundah</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>Velja za vse člane tega klepeta; sporočila lahko še vedno kopirajo, shranjujejo in posredujejo.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>Po 1 letu</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>Po %1 letih</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>Po %1 tednih</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>Po %1 dneh</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>Po %1 urah</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>Po %1 minutah</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>Po 1 sekundi</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>Po %1 sekundah</translation>
     </message>
 </context>
 <context>
@@ -357,85 +383,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>Nikoli</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>Do 256 kB</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>Do 512 kB</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>Do 1 MB</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>Do 2 MB</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>Do 5 MB</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>Vedno</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>Sporočila</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>Kako je prikazano sporočilo, napisano z *zvezdicami* in `krativci`.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>Izrisano: krepko, ležeče, povezave</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>Odstranjeno: samo besede</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>Kot je napisano</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>Samodejno prenesi priloge</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>Večje počakajo, dokler jih ne zahtevate. Velja za vsak profil in za sporočila, ki prispejo od zdaj naprej.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>Povezave</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>Odstrani sledenje iz povezav</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>Znani parametri sledenja – ID-ji klikov, oznake kampanj, račun tistega, ki deli – se odstranijo iz povezav v sporočilih, ki jih pošljete. Preostanek povezave ostane, kot je bil.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -444,10 +391,6 @@
     <message>
         <source>Leave group</source>
         <translation>Zapusti skupino</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>Zapuščanje skupine</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -483,32 +426,29 @@
         <source>Removing</source>
         <translation>Odstranjevanje</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Ime vidijo vsi v skupini</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>Klepet</translation>
+        <source>Leave group</source>
+        <translation>Zapusti skupino</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>Skeniraj kodo QR</translation>
+        <source>Leave</source>
+        <translation>Zapusti</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>Povabilo</translation>
+        <source>Cancel</source>
+        <translation>Prekliči</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>Naj nekdo skenira to kodo ali pa mu pošljite povezavo. Če želite nekoga dodati iz njegove kode, povlecite navzdol.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>Pridobivanje...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>Kopiraj povezavo povabila</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>Zapustim %1? Njenih sporočil ne boste več prejemali, nazaj pa vas lahko doda le član.</translation>
     </message>
 </context>
 <context>
@@ -542,14 +482,6 @@
         <translation>Klepet</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>Nova skupina</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>Nov stik</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>Nov klepet</translation>
     </message>
@@ -562,8 +494,8 @@
         <translation>Ni še stikov</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>Povlecite navzdol, da skenirate povabilo nekoga</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>Skenirajte povabilo nekoga s seznama klepetov: Koda QR</translation>
     </message>
 </context>
 <context>
@@ -608,18 +540,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>Povezano</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>Povezano, pošiljanje in prejemanje</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>Povezovanje</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>Ni povezave</translation>
     </message>
@@ -628,20 +548,12 @@
         <translation>Preverjanje povezave</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>Preveri povezavo</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>Profil</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>Odstrani sliko</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>Ime</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -683,6 +595,31 @@
     <message>
         <source>Saved</source>
         <translation>Shranjeno</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>Povezano in posodobljeno</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>Povezano, pošiljanje ali sinhronizacija sporočil</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>Povezovanje s posrednikom</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>%1 porabljeno · %2 prosto od %3</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>Posrednik še ni sporočil svoje kvote</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>Ime na vsakem sporočilu, ki ga pošljete</translation>
     </message>
 </context>
 <context>
@@ -732,6 +669,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Klepet</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>Koda QR</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>Moja koda</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>Skeniraj</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>Naj nekdo skenira to kodo ali pa mu pošljite povezavo.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>Pridobivanje...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>Kopiraj povezavo povabila</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>Kamera na tej napravi ni na voljo.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -739,14 +711,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>Vnesite povezavo povabila</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>Skeniraj kodo QR</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -761,8 +729,8 @@
         <translation>Ali pa usmerite kamero v kodo</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>Usmerite kamero v povabilo ali v kodo strežnika chatmail. Povlecite navzdol, da namesto tega vnesete povezavo.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>Usmerite kamero v kodo povabila nekoga</translation>
     </message>
 </context>
 <context>
@@ -786,6 +754,85 @@
     <message>
         <source>Nothing found</source>
         <translation>Ni zadetkov</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>Nikoli</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>Do 256 kB</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>Do 512 kB</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>Do 1 MB</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>Do 2 MB</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>Do 5 MB</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Vedno</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Nastavitve</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Sporočila</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>Kako je prikazano sporočilo, napisano z *zvezdicami* in `krativci`.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>Izrisano: krepko, ležeče, povezave</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>Odstranjeno: samo besede</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>Kot je napisano</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>Samodejno prenesi priloge</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>Večje počakajo, dokler jih ne zahtevate. Velja za vsak profil in za sporočila, ki prispejo od zdaj naprej.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Povezave</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>Odstrani sledenje iz povezav</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>Znani parametri sledenja – ID-ji klikov, oznake kampanj, račun tistega, ki deli – se odstranijo iz povezav v sporočilih, ki jih pošljete. Preostanek povezave ostane, kot je bil.</translation>
     </message>
 </context>
 <context>

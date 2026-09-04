@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>Kéo xuống để bắt đầu</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>Cài đặt</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>Mã QR</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Nhóm mới</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>Đánh dấu chưa đọc</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>Sau 1 phút</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>Sau 5 phút</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>Sau 30 phút</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>Sau 1 giờ</translation>
     </message>
@@ -309,23 +317,44 @@
         <translation>Sau 1 tuần</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>Sau 5 tuần</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>Tin nhắn tự hủy</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>Sau %n giây</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>Áp dụng cho mọi thành viên của cuộc trò chuyện này; họ vẫn có thể sao chép, lưu và chuyển tiếp tin nhắn.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>Sau 1 năm</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>Sau %1 năm</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>Sau %1 tuần</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>Sau %1 ngày</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>Sau %1 giờ</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>Sau %1 phút</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>Sau 1 giây</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>Sau %1 giây</translation>
     </message>
 </context>
 <context>
@@ -351,85 +380,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>Không bao giờ</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>Tối đa 256 kB</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>Tối đa 512 kB</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>Tối đa 1 MB</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>Tối đa 2 MB</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>Tối đa 5 MB</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>Luôn luôn</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>Tin nhắn</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>Cách hiển thị tin nhắn được viết với *dấu sao* và `dấu huyền`.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>Định dạng: đậm, nghiêng, liên kết</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>Lược bỏ: chỉ còn chữ</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>Như đã viết</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>Tự động tải tệp đính kèm</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>Tệp lớn hơn sẽ chờ đến khi bạn yêu cầu. Áp dụng cho mọi hồ sơ và các tin nhắn đến từ bây giờ.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>Liên kết</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>Gỡ theo dõi khỏi liên kết</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>Các tham số theo dõi đã biết – mã nhấp chuột, thẻ chiến dịch, tài khoản người chia sẻ – được gỡ khỏi các liên kết trong tin nhắn bạn gửi. Phần còn lại của liên kết được giữ nguyên.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -438,10 +388,6 @@
     <message>
         <source>Leave group</source>
         <translation>Rời nhóm</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>Đang rời nhóm</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -474,32 +420,29 @@
         <source>Removing</source>
         <translation>Đang xóa</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Mọi người trong nhóm đều thấy tên</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>Trò chuyện</translation>
+        <source>Leave group</source>
+        <translation>Rời nhóm</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>Quét mã QR</translation>
+        <source>Leave</source>
+        <translation>Rời</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>Lời mời</translation>
+        <source>Cancel</source>
+        <translation>Hủy</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>Để ai đó quét mã này, hoặc gửi cho họ liên kết. Để thêm ai đó từ mã của họ, kéo xuống.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>Đang lấy...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>Sao chép liên kết mời</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>Rời %1? Bạn sẽ không nhận tin nhắn của nhóm nữa, và chỉ một thành viên mới có thể thêm bạn lại.</translation>
     </message>
 </context>
 <context>
@@ -533,14 +476,6 @@
         <translation>Trò chuyện</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>Nhóm mới</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>Liên hệ mới</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>Cuộc trò chuyện mới</translation>
     </message>
@@ -553,8 +488,8 @@
         <translation>Chưa có liên hệ nào</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>Kéo xuống để quét lời mời của ai đó</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>Quét lời mời của ai đó từ danh sách trò chuyện: Mã QR</translation>
     </message>
 </context>
 <context>
@@ -599,18 +534,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>Đã kết nối</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>Đã kết nối, đang gửi và nhận</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>Đang kết nối</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>Chưa kết nối</translation>
     </message>
@@ -619,20 +542,12 @@
         <translation>Đang kiểm tra kết nối</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>Kiểm tra kết nối</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>Hồ sơ</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>Gỡ ảnh</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>Tên</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -674,6 +589,31 @@
     <message>
         <source>Saved</source>
         <translation>Đã lưu</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>Đã kết nối và cập nhật</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>Đã kết nối, đang gửi hoặc đồng bộ tin nhắn</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>Đang kết nối tới máy chuyển tiếp</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>Đã dùng %1 · còn %2 trên %3</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>Máy chuyển tiếp chưa báo hạn mức</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>Tên trên mỗi tin nhắn bạn gửi</translation>
     </message>
 </context>
 <context>
@@ -723,6 +663,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Trò chuyện</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>Mã QR</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>Mã của tôi</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>Quét</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>Để ai đó quét mã này, hoặc gửi cho họ liên kết.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>Đang lấy...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>Sao chép liên kết mời</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>Máy ảnh không khả dụng trên thiết bị này.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -730,14 +705,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>Nhập liên kết mời</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>Quét mã QR</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -752,8 +723,8 @@
         <translation>Hoặc hướng máy ảnh vào mã</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>Hướng máy ảnh vào lời mời hoặc mã máy chủ chatmail. Kéo xuống để nhập liên kết thay vào đó.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>Hướng máy ảnh vào mã mời của ai đó</translation>
     </message>
 </context>
 <context>
@@ -777,6 +748,85 @@
     <message>
         <source>Nothing found</source>
         <translation>Không tìm thấy gì</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>Không bao giờ</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>Tối đa 256 kB</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>Tối đa 512 kB</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>Tối đa 1 MB</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>Tối đa 2 MB</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>Tối đa 5 MB</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Luôn luôn</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Cài đặt</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Tin nhắn</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>Cách hiển thị tin nhắn được viết với *dấu sao* và `dấu huyền`.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>Định dạng: đậm, nghiêng, liên kết</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>Lược bỏ: chỉ còn chữ</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>Như đã viết</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>Tự động tải tệp đính kèm</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>Tệp lớn hơn sẽ chờ đến khi bạn yêu cầu. Áp dụng cho mọi hồ sơ và các tin nhắn đến từ bây giờ.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Liên kết</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>Gỡ theo dõi khỏi liên kết</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>Các tham số theo dõi đã biết – mã nhấp chuột, thẻ chiến dịch, tài khoản người chia sẻ – được gỡ khỏi các liên kết trong tin nhắn bạn gửi. Phần còn lại của liên kết được giữ nguyên.</translation>
     </message>
 </context>
 <context>

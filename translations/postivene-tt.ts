@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>Башлау өчен аска тартыгыз</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>Көйләүләр</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR-код</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Яңа төркем</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>Укылмаган дип билгеләргә</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>1 минуттан соң</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>5 минуттан соң</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>30 минуттан соң</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>1 сәгатьтән соң</translation>
     </message>
@@ -309,23 +317,44 @@
         <translation>1 атнадан соң</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>5 атнадан соң</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>Юкка чыга торган хәбәрләр</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>%n секундтан соң</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>Бу чатның барлык әгъзаларына кагыла; алар хәбәрләрне барыбер күчерә, саклый һәм җибәрә ала.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>1 елдан соң</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>%1 елдан соң</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>%1 атнадан соң</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>%1 көннән соң</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>%1 сәгатьтән соң</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>%1 минуттан соң</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>1 секундтан соң</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>%1 секундтан соң</translation>
     </message>
 </context>
 <context>
@@ -351,85 +380,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>Беркайчан да</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>256 кБ кадәр</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>512 кБ кадәр</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>1 МБ кадәр</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>2 МБ кадәр</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>5 МБ кадәр</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>Һәрвакыт</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>Хәбәрләр</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>*Йолдызчыклар* һәм `кире куштырнаклар` белән язылган хәбәр ничек күрсәтелә.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>Бизәлгән: калын, курсив, сылтамалар</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>Алынган: сүзләр генә</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>Язылганча</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>Кушымталарны автоматик йөкләргә</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>Зуррак файллар сез сорагангача көтә. Һәр профильгә һәм моннан соң килгән хәбәрләргә кагыла.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>Сылтамалар</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>Сылтамалардан күзәтүне алырга</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>Билгеле күзәтү параметрлары — басу идентификаторлары, кампания тамгалары, уртаклашучының хисабы — сез җибәргән хәбәрләрдәге сылтамалардан алына. Сылтаманың калган өлеше булганча кала.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -438,10 +388,6 @@
     <message>
         <source>Leave group</source>
         <translation>Төркемнән чыгарга</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>Төркемнән чыгу</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -474,32 +420,29 @@
         <source>Removing</source>
         <translation>Чыгарыла</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Исемне төркемдәге һәркем күрә</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>Чат</translation>
+        <source>Leave group</source>
+        <translation>Төркемнән чыгарга</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>QR-кодны сканерларга</translation>
+        <source>Leave</source>
+        <translation>Чыгарга</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>Чакыру</translation>
+        <source>Cancel</source>
+        <translation>Баш тартырга</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>Кемгәдер бу кодны сканерлатыгыз яки сылтаманы җибәрегез. Кемнедер аның коды буенча өстәр өчен аска тартыгыз.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>Алына...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>Чакыру сылтамасын күчереп алырга</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>%1 төркеменнән чыгаргамы? Аның хәбәрләрен башка алмаячаксыз, һәм сезне кире бары тик әгъза гына өсти ала.</translation>
     </message>
 </context>
 <context>
@@ -533,14 +476,6 @@
         <translation>Чат</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>Яңа төркем</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>Яңа контакт</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>Яңа чат</translation>
     </message>
@@ -553,8 +488,8 @@
         <translation>Контактлар әлегә юк</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>Кемнеңдер чакыруын сканерлау өчен аска тартыгыз</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>Кемнеңдер чакыруын чатлар исемлегеннән сканерлагыз: QR-код</translation>
     </message>
 </context>
 <context>
@@ -599,18 +534,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>Тоташкан</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>Тоташкан, җибәрә һәм ала</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>Тоташу</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>Тоташмаган</translation>
     </message>
@@ -619,20 +542,12 @@
         <translation>Элемтә тикшерелә</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>Элемтәне тикшерергә</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>Профиль</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>Рәсемне алырга</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>Исем</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -674,6 +589,31 @@
     <message>
         <source>Saved</source>
         <translation>Сакланды</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>Тоташкан һәм яңартылган</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>Тоташкан, хәбәрләр җибәрә яки синхронлаштыра</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>Релега тоташу</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>%1 кулланылган · %3 эчендә %2 калган</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>Реле үз квотасын әле хәбәр итмәде</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>Сез җибәргән һәр хәбәрдәге исем</translation>
     </message>
 </context>
 <context>
@@ -723,6 +663,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Чат</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR-код</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>Минем кодым</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>Сканерларга</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>Кемгәдер бу кодны сканерларга бирегез яки аңа сылтаманы җибәрегез.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>Алына...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>Чакыру сылтамасын күчереп алырга</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>Бу җайланмада камера юк.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -730,14 +705,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>Чакыру сылтамасын кертергә</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>QR-кодны сканерларга</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -752,8 +723,8 @@
         <translation>Яки камераны кодка юнәлтегез</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>Камераны чакыруга яки chatmail серверы кодына юнәлтегез. Аның урынына сылтама кертер өчен аска тартыгыз.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>Камераны кемнеңдер чакыру кодына юнәлтегез</translation>
     </message>
 </context>
 <context>
@@ -777,6 +748,85 @@
     <message>
         <source>Nothing found</source>
         <translation>Бернәрсә дә табылмады</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>Беркайчан да</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>256 кБ кадәр</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>512 кБ кадәр</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>1 МБ кадәр</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>2 МБ кадәр</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>5 МБ кадәр</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Һәрвакыт</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Көйләүләр</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Хәбәрләр</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>*Йолдызчыклар* һәм `кире куштырнаклар` белән язылган хәбәр ничек күрсәтелә.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>Бизәлгән: калын, курсив, сылтамалар</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>Алынган: сүзләр генә</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>Язылганча</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>Кушымталарны автоматик йөкләргә</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>Зуррак файллар сез сорагангача көтә. Һәр профильгә һәм моннан соң килгән хәбәрләргә кагыла.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Сылтамалар</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>Сылтамалардан күзәтүне алырга</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>Билгеле күзәтү параметрлары — басу идентификаторлары, кампания тамгалары, уртаклашучының хисабы — сез җибәргән хәбәрләрдәге сылтамалардан алына. Сылтаманың калган өлеше булганча кала.</translation>
     </message>
 </context>
 <context>

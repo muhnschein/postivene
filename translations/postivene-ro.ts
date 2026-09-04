@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>Trage în jos pentru a începe una</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>Setări</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>Cod QR</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Grup nou</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>Marchează ca necitit</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>După 1 minut</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>După 5 minute</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>După 30 de minute</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>După 1 oră</translation>
     </message>
@@ -309,25 +317,44 @@
         <translation>După 1 săptămână</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>După 5 săptămâni</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>Mesaje care dispar</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>După %n secundă</numerusform>
-            <numerusform>După %n secunde</numerusform>
-            <numerusform>După %n de secunde</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>Se aplică tuturor membrilor acestei conversații; ei pot în continuare să copieze, să salveze și să redirecționeze mesaje.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>După 1 an</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>După %1 ani</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>După %1 săptămâni</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>După %1 zile</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>După %1 ore</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>După %1 de minute</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>După 1 secundă</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>După %1 de secunde</translation>
     </message>
 </context>
 <context>
@@ -355,85 +382,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>Niciodată</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>Până la 256 kB</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>Până la 512 kB</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>Până la 1 MB</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>Până la 2 MB</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>Până la 5 MB</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>Întotdeauna</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>Mesaje</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>Cum este afișat un mesaj scris cu *asteriscuri* și `accente grave`.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>Formatat: aldin, cursiv, linkuri</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>Eliminat: doar cuvintele</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>Așa cum a fost scris</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>Descarcă atașamentele automat</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>Cele mai mari așteaptă până le ceri. Se aplică fiecărui profil și mesajelor care sosesc de acum înainte.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>Linkuri</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>Elimină urmărirea din linkuri</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>Parametrii de urmărire cunoscuți – ID-uri de clic, etichete de campanie, contul celui care distribuie – sunt eliminați din linkurile din mesajele pe care le trimiți. Restul linkului rămâne așa cum era.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -442,10 +390,6 @@
     <message>
         <source>Leave group</source>
         <translation>Părăsește grupul</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>Se părăsește grupul</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -480,32 +424,29 @@
         <source>Removing</source>
         <translation>Se elimină</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Toți cei din grup văd numele</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>Conversație</translation>
+        <source>Leave group</source>
+        <translation>Părăsește grupul</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>Scanează codul QR</translation>
+        <source>Leave</source>
+        <translation>Părăsește</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>Invitație</translation>
+        <source>Cancel</source>
+        <translation>Anulează</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>Lasă pe cineva să scaneze acest cod sau trimite-i linkul. Pentru a adăuga pe cineva din codul său, trage în jos.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>Se preia...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>Copiază linkul de invitație</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>Părăsești %1? Nu vei mai primi mesajele sale, iar doar un membru te poate adăuga înapoi.</translation>
     </message>
 </context>
 <context>
@@ -539,14 +480,6 @@
         <translation>Conversație</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>Grup nou</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>Contact nou</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>Conversație nouă</translation>
     </message>
@@ -559,8 +492,8 @@
         <translation>Niciun contact încă</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>Trage în jos pentru a scana invitația cuiva</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>Scanează invitația cuiva din lista de conversații: Cod QR</translation>
     </message>
 </context>
 <context>
@@ -605,18 +538,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>Conectat</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>Conectat, se trimite și se primește</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>Se conectează</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>Neconectat</translation>
     </message>
@@ -625,20 +546,12 @@
         <translation>Se verifică conexiunea</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>Verifică conexiunea</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>Profil</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>Elimină imaginea</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>Nume</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -680,6 +593,31 @@
     <message>
         <source>Saved</source>
         <translation>Salvat</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>Conectat și la zi</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>Conectat, se trimit sau se sincronizează mesaje</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>Se conectează la releu</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>%1 folosit · %2 liber din %3</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>Releul nu și-a raportat încă cota</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>Numele de pe fiecare mesaj pe care îl trimiți</translation>
     </message>
 </context>
 <context>
@@ -729,6 +667,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Conversație</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>Cod QR</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>Codul meu</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>Scanează</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>Lasă pe cineva să scaneze acest cod sau trimite-i linkul.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>Se preia...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>Copiază linkul de invitație</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>Camera nu este disponibilă pe acest dispozitiv.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -736,14 +709,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>Introdu linkul de invitație</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>Scanează codul QR</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -758,8 +727,8 @@
         <translation>Sau îndreaptă camera spre cod</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>Îndreaptă camera spre o invitație sau spre un cod de server chatmail. Trage în jos pentru a introduce în schimb un link.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>Îndreaptă camera spre codul de invitație al cuiva</translation>
     </message>
 </context>
 <context>
@@ -783,6 +752,85 @@
     <message>
         <source>Nothing found</source>
         <translation>Nu s-a găsit nimic</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>Niciodată</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>Până la 256 kB</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>Până la 512 kB</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>Până la 1 MB</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>Până la 2 MB</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>Până la 5 MB</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Întotdeauna</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Setări</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Mesaje</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>Cum este afișat un mesaj scris cu *asteriscuri* și `accente grave`.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>Formatat: aldin, cursiv, linkuri</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>Eliminat: doar cuvintele</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>Așa cum a fost scris</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>Descarcă atașamentele automat</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>Cele mai mari așteaptă până le ceri. Se aplică fiecărui profil și mesajelor care sosesc de acum înainte.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Linkuri</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>Elimină urmărirea din linkuri</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>Parametrii de urmărire cunoscuți – ID-uri de clic, etichete de campanie, contul celui care distribuie – sunt eliminați din linkurile din mesajele pe care le trimiți. Restul linkului rămâne așa cum era.</translation>
     </message>
 </context>
 <context>

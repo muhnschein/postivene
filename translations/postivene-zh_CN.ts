@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>下拉以开始一个</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>设置</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>二维码</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>新群组</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>标为未读</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>1 分钟后</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>5 分钟后</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>30 分钟后</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>1 小时后</translation>
     </message>
@@ -309,23 +317,44 @@
         <translation>1 周后</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>5 周后</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>阅后即焚消息</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>%n 秒后</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>对本聊天的所有成员生效；他们仍可复制、保存和转发消息。</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>1 年后</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>%1 年后</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>%1 周后</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>%1 天后</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>%1 小时后</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>%1 分钟后</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>1 秒后</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>%1 秒后</translation>
     </message>
 </context>
 <context>
@@ -351,85 +380,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>从不</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>最多 256 kB</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>最多 512 kB</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>最多 1 MB</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>最多 2 MB</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>最多 5 MB</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>总是</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>消息</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>用*星号*和`反引号`写的消息如何显示。</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>渲染：粗体、斜体、链接</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>去除：只保留文字</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>按原样</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>自动下载附件</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>更大的附件会等到你请求时再下载。适用于所有个人资料以及从现在起收到的消息。</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>链接</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>去除链接中的跟踪参数</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>已知的跟踪参数（点击 ID、营销活动标签、分享者账号）会从你发送的消息的链接中去除。链接的其余部分保持原样。</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -438,10 +388,6 @@
     <message>
         <source>Leave group</source>
         <translation>退出群组</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>正在退出群组</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -474,32 +420,29 @@
         <source>Removing</source>
         <translation>正在移除</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>群组中的每个人都能看到该名称</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>聊天</translation>
+        <source>Leave group</source>
+        <translation>退出群组</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>扫描二维码</translation>
+        <source>Leave</source>
+        <translation>退出</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>邀请</translation>
+        <source>Cancel</source>
+        <translation>取消</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>让对方扫描此码，或把链接发给对方。要通过对方的二维码添加对方，请下拉。</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>正在获取...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>复制邀请链接</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>退出 %1？你将不再收到它的消息，并且只有成员才能把你重新加回来。</translation>
     </message>
 </context>
 <context>
@@ -533,14 +476,6 @@
         <translation>聊天</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>新群组</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>新联系人</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>新聊天</translation>
     </message>
@@ -553,8 +488,8 @@
         <translation>还没有联系人</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>下拉以扫描对方的邀请</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>从聊天列表扫描对方的邀请：二维码</translation>
     </message>
 </context>
 <context>
@@ -599,18 +534,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>已连接</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>已连接，正在收发</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>正在连接</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>未连接</translation>
     </message>
@@ -619,20 +542,12 @@
         <translation>正在检查连接</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>检查连接</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>个人资料</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>移除图片</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>名字</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -674,6 +589,31 @@
     <message>
         <source>Saved</source>
         <translation>已保存</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>已连接，一切最新</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>已连接，正在发送或同步消息</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>正在连接中继</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>已用 %1 · 剩余 %2，共 %3</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>中继尚未报告其配额</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>你发送的每条消息上显示的名字</translation>
     </message>
 </context>
 <context>
@@ -723,6 +663,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>聊天</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>二维码</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>我的二维码</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>扫描</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>让对方扫描此二维码，或将链接发给对方。</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>正在获取...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>复制邀请链接</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>此设备上相机不可用。</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -730,14 +705,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>输入邀请链接</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>扫描二维码</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -752,8 +723,8 @@
         <translation>或将相机对准二维码</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>将相机对准邀请或 chatmail 服务器的二维码。下拉可改为输入链接。</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>将相机对准对方的邀请码</translation>
     </message>
 </context>
 <context>
@@ -777,6 +748,85 @@
     <message>
         <source>Nothing found</source>
         <translation>未找到任何内容</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>从不</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>最多 256 kB</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>最多 512 kB</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>最多 1 MB</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>最多 2 MB</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>最多 5 MB</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>总是</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>设置</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>消息</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>用*星号*和`反引号`写的消息如何显示。</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>渲染：粗体、斜体、链接</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>去除：只保留文字</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>按原样</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>自动下载附件</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>更大的附件会等到你请求时再下载。适用于所有个人资料以及从现在起收到的消息。</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>链接</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>去除链接中的跟踪参数</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>已知的跟踪参数（点击 ID、营销活动标签、分享者账号）会从你发送的消息的链接中去除。链接的其余部分保持原样。</translation>
     </message>
 </context>
 <context>

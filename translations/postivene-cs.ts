@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>Stažením dolů nějaký založíte</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>Nastavení</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR kód</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Nová skupina</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>Označit jako nepřečtené</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>Po 1 minutě</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>Po 5 minutách</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>Po 30 minutách</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>Po 1 hodině</translation>
     </message>
@@ -309,25 +317,44 @@
         <translation>Po 1 týdnu</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>Po 5 týdnech</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>Mizející zprávy</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>Po %n sekundě</numerusform>
-            <numerusform>Po %n sekundách</numerusform>
-            <numerusform>Po %n sekundách</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>Platí pro všechny členy tohoto chatu; zprávy mohou stále kopírovat, ukládat a přeposílat.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>Po 1 roce</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>Po %1 letech</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>Po %1 týdnech</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>Po %1 dnech</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>Po %1 hodinách</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>Po %1 minutách</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>Po 1 sekundě</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>Po %1 sekundách</translation>
     </message>
 </context>
 <context>
@@ -355,85 +382,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>Nikdy</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>Do 256 kB</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>Do 512 kB</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>Do 1 MB</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>Do 2 MB</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>Do 5 MB</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>Vždy</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>Zprávy</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>Jak se zobrazí zpráva napsaná s *hvězdičkami* a `zpětnými apostrofy`.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>Vykreslené: tučně, kurzíva, odkazy</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>Odstraněné: jen slova</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>Jak bylo napsáno</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>Automaticky stahovat přílohy</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>Větší počkají, dokud si o ně neřeknete. Platí pro každý profil a pro zprávy, které přijdou od této chvíle.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>Odkazy</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>Odstranit sledování z odkazů</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>Známé sledovací parametry – ID kliknutí, značky kampaní, účet sdílejícího – se z odkazů ve vašich odesílaných zprávách odstraní. Zbytek odkazu zůstane, jak byl.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -442,10 +390,6 @@
     <message>
         <source>Leave group</source>
         <translation>Opustit skupinu</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>Opouštění skupiny</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -480,32 +424,29 @@
         <source>Removing</source>
         <translation>Odebírání</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Jméno vidí všichni ve skupině</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>Chat</translation>
+        <source>Leave group</source>
+        <translation>Opustit skupinu</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>Naskenovat QR kód</translation>
+        <source>Leave</source>
+        <translation>Opustit</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>Pozvánka</translation>
+        <source>Cancel</source>
+        <translation>Zrušit</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>Nechte někoho naskenovat tento kód, nebo mu pošlete odkaz. Chcete-li někoho přidat z jeho kódu, stáhněte dolů.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>Načítá se...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>Kopírovat odkaz pozvánky</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>Opustit %1? Přestanou vám chodit její zprávy a zpět vás může přidat jen člen.</translation>
     </message>
 </context>
 <context>
@@ -539,14 +480,6 @@
         <translation>Chat</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>Nová skupina</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>Nový kontakt</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>Nový chat</translation>
     </message>
@@ -559,8 +492,8 @@
         <translation>Zatím žádné kontakty</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>Stažením dolů naskenujete něčí pozvánku</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>Naskenujte něčí pozvánku ze seznamu chatů: QR kód</translation>
     </message>
 </context>
 <context>
@@ -605,18 +538,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>Připojeno</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>Připojeno, odesílá a přijímá</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>Připojování</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>Nepřipojeno</translation>
     </message>
@@ -625,20 +546,12 @@
         <translation>Kontroluje se spojení</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>Zkontrolovat spojení</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>Profil</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>Odstranit obrázek</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>Jméno</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -680,6 +593,31 @@
     <message>
         <source>Saved</source>
         <translation>Uloženo</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>Připojeno, vše aktuální</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>Připojeno, odesílá nebo synchronizuje zprávy</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>Připojování k relay</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>Využito %1 · zbývá %2 z %3</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>Relay zatím nenahlásil svou kvótu</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>Jméno na každé zprávě, kterou pošlete</translation>
     </message>
 </context>
 <context>
@@ -729,6 +667,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Chat</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR kód</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>Můj kód</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>Skenovat</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>Nechte někoho naskenovat tento kód, nebo mu pošlete odkaz.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>Načítá se...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>Kopírovat odkaz pozvánky</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>Fotoaparát není na tomto zařízení k dispozici.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -736,14 +709,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>Zadat odkaz pozvánky</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>Naskenovat QR kód</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -758,8 +727,8 @@
         <translation>Nebo namiřte fotoaparát na kód</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>Namiřte fotoaparát na pozvánku nebo na kód chatmail serveru. Stažením dolů místo toho zadáte odkaz.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>Namiřte fotoaparát na něčí kód pozvánky</translation>
     </message>
 </context>
 <context>
@@ -783,6 +752,85 @@
     <message>
         <source>Nothing found</source>
         <translation>Nic nenalezeno</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>Nikdy</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>Do 256 kB</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>Do 512 kB</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>Do 1 MB</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>Do 2 MB</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>Do 5 MB</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Vždy</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Nastavení</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Zprávy</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>Jak se zobrazí zpráva napsaná s *hvězdičkami* a `zpětnými apostrofy`.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>Vykreslené: tučně, kurzíva, odkazy</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>Odstraněné: jen slova</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>Jak bylo napsáno</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>Automaticky stahovat přílohy</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>Větší počkají, dokud si o ně neřeknete. Platí pro každý profil a pro zprávy, které přijdou od této chvíle.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Odkazy</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>Odstranit sledování z odkazů</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>Známé sledovací parametry – ID kliknutí, značky kampaní, účet sdílejícího – se z odkazů ve vašich odesílaných zprávách odstraní. Zbytek odkazu zůstane, jak byl.</translation>
     </message>
 </context>
 <context>

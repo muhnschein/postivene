@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>Başlatmak için aşağı çekin</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>Ayarlar</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR kodu</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Yeni grup</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>Okunmadı olarak işaretle</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>1 dakika sonra</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>5 dakika sonra</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>30 dakika sonra</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>1 saat sonra</translation>
     </message>
@@ -309,23 +317,44 @@
         <translation>1 hafta sonra</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>5 hafta sonra</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>Kaybolan mesajlar</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>%n saniye sonra</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>Bu sohbetin tüm üyeleri için geçerlidir; mesajları yine de kopyalayabilir, kaydedebilir ve iletebilirler.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>1 yıl sonra</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>%1 yıl sonra</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>%1 hafta sonra</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>%1 gün sonra</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>%1 saat sonra</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>%1 dakika sonra</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>1 saniye sonra</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>%1 saniye sonra</translation>
     </message>
 </context>
 <context>
@@ -351,85 +380,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>Hiçbir zaman</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>256 kB&apos;a kadar</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>512 kB&apos;a kadar</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>1 MB&apos;a kadar</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>2 MB&apos;a kadar</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>5 MB&apos;a kadar</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>Her zaman</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>Mesajlar</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>*Yıldız* ve `ters tırnak` ile yazılmış bir mesajın nasıl gösterileceği.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>Biçimli: kalın, italik, bağlantılar</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>Ayıklanmış: yalnızca sözcükler</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>Yazıldığı gibi</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>Ekleri otomatik indir</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>Daha büyükleri siz isteyene kadar bekler. Her profil ve bundan sonra gelen mesajlar için geçerlidir.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>Bağlantılar</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>Bağlantılardan izlemeyi kaldır</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>Bilinen izleme parametreleri – tıklama kimlikleri, kampanya etiketleri, paylaşanın hesabı – gönderdiğiniz mesajlardaki bağlantılardan çıkarılır. Bağlantının geri kalanı olduğu gibi bırakılır.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -438,10 +388,6 @@
     <message>
         <source>Leave group</source>
         <translation>Gruptan ayrıl</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>Gruptan ayrılınıyor</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -474,32 +420,29 @@
         <source>Removing</source>
         <translation>Çıkarılıyor</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Adı gruptaki herkes görür</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>Sohbet</translation>
+        <source>Leave group</source>
+        <translation>Gruptan ayrıl</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>QR kodu tara</translation>
+        <source>Leave</source>
+        <translation>Ayrıl</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>Davet</translation>
+        <source>Cancel</source>
+        <translation>İptal</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>Birinin bu kodu taramasını sağlayın ya da bağlantıyı gönderin. Birini kendi kodundan eklemek için aşağı çekin.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>Alınıyor...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>Davet bağlantısını kopyala</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>%1 grubundan ayrılınsın mı? Mesajlarını artık almazsınız ve sizi yalnızca bir üye geri ekleyebilir.</translation>
     </message>
 </context>
 <context>
@@ -533,14 +476,6 @@
         <translation>Sohbet</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>Yeni grup</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>Yeni kişi</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>Yeni sohbet</translation>
     </message>
@@ -553,8 +488,8 @@
         <translation>Henüz kişi yok</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>Birinin davetini taramak için aşağı çekin</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>Sohbet listesinden birinin davetini tarayın: QR kodu</translation>
     </message>
 </context>
 <context>
@@ -599,18 +534,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>Bağlı</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>Bağlı, gönderiyor ve alıyor</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>Bağlanıyor</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>Bağlı değil</translation>
     </message>
@@ -619,20 +542,12 @@
         <translation>Bağlantı denetleniyor</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>Bağlantıyı denetle</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>Profil</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>Resmi kaldır</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>Ad</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -674,6 +589,31 @@
     <message>
         <source>Saved</source>
         <translation>Kaydedildi</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>Bağlı ve güncel</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>Bağlı, mesaj gönderiyor veya eşitliyor</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>Aktarıcıya bağlanıyor</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>%3 içinden %1 kullanıldı · %2 kaldı</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>Aktarıcı kotasını henüz bildirmedi</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>Gönderdiğiniz her mesajdaki ad</translation>
     </message>
 </context>
 <context>
@@ -723,6 +663,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Sohbet</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR kodu</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>Kodum</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>Tara</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>Birinin bu kodu taramasına izin verin ya da ona bağlantıyı gönderin.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>Alınıyor...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>Davet bağlantısını kopyala</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>Kamera bu cihazda kullanılamıyor.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -730,14 +705,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>Davet bağlantısını gir</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>QR kodu tara</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -752,8 +723,8 @@
         <translation>Ya da kamerayı koda doğrultun</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>Kamerayı bir davete veya bir chatmail sunucu koduna doğrultun. Bunun yerine bağlantı girmek için aşağı çekin.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>Kamerayı birinin davet koduna doğrultun</translation>
     </message>
 </context>
 <context>
@@ -777,6 +748,85 @@
     <message>
         <source>Nothing found</source>
         <translation>Hiçbir şey bulunamadı</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>Hiçbir zaman</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>256 kB&apos;a kadar</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>512 kB&apos;a kadar</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>1 MB&apos;a kadar</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>2 MB&apos;a kadar</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>5 MB&apos;a kadar</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Her zaman</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Ayarlar</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Mesajlar</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>*Yıldız* ve `ters tırnak` ile yazılmış bir mesajın nasıl gösterileceği.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>Biçimli: kalın, italik, bağlantılar</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>Ayıklanmış: yalnızca sözcükler</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>Yazıldığı gibi</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>Ekleri otomatik indir</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>Daha büyükleri siz isteyene kadar bekler. Her profil ve bundan sonra gelen mesajlar için geçerlidir.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Bağlantılar</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>Bağlantılardan izlemeyi kaldır</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>Bilinen izleme parametreleri – tıklama kimlikleri, kampanya etiketleri, paylaşanın hesabı – gönderdiğiniz mesajlardaki bağlantılardan çıkarılır. Bağlantının geri kalanı olduğu gibi bırakılır.</translation>
     </message>
 </context>
 <context>

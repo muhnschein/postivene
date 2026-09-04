@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>Τραβήξτε προς τα κάτω για να ξεκινήσετε μία</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>Ρυθμίσεις</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>Κωδικός QR</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Νέα ομάδα</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>Σήμανση ως μη αναγνωσμένο</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>Μετά από 1 λεπτό</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>Μετά από 5 λεπτά</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>Μετά από 30 λεπτά</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>Μετά από 1 ώρα</translation>
     </message>
@@ -309,24 +317,44 @@
         <translation>Μετά από 1 εβδομάδα</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>Μετά από 5 εβδομάδες</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>Μηνύματα που εξαφανίζονται</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>Μετά από %n δευτερόλεπτο</numerusform>
-            <numerusform>Μετά από %n δευτερόλεπτα</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>Ισχύει για όλα τα μέλη αυτής της συνομιλίας· μπορούν ακόμη να αντιγράφουν, να αποθηκεύουν και να προωθούν μηνύματα.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>Μετά από 1 έτος</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>Μετά από %1 έτη</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>Μετά από %1 εβδομάδες</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>Μετά από %1 ημέρες</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>Μετά από %1 ώρες</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>Μετά από %1 λεπτά</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>Μετά από 1 δευτερόλεπτο</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>Μετά από %1 δευτερόλεπτα</translation>
     </message>
 </context>
 <context>
@@ -353,85 +381,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>Ποτέ</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>Έως 256 kB</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>Έως 512 kB</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>Έως 1 MB</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>Έως 2 MB</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>Έως 5 MB</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>Πάντα</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>Μηνύματα</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>Πώς εμφανίζεται ένα μήνυμα γραμμένο με *αστερίσκους* και `ανάποδους τόνους`.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>Μορφοποιημένο: έντονα, πλάγια, σύνδεσμοι</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>Αφαιρεμένο: μόνο οι λέξεις</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>Όπως γράφτηκε</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>Αυτόματη λήψη συνημμένων</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>Τα μεγαλύτερα περιμένουν μέχρι να τα ζητήσετε. Ισχύει για κάθε προφίλ και για τα μηνύματα που φτάνουν από εδώ και πέρα.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>Σύνδεσμοι</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>Αφαίρεση παρακολούθησης από τους συνδέσμους</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>Οι γνωστές παράμετροι παρακολούθησης – αναγνωριστικά κλικ, ετικέτες καμπάνιας, ο λογαριασμός όποιου κοινοποιεί – αφαιρούνται από τους συνδέσμους στα μηνύματα που στέλνετε. Ο υπόλοιπος σύνδεσμος μένει όπως ήταν.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -440,10 +389,6 @@
     <message>
         <source>Leave group</source>
         <translation>Αποχώρηση από την ομάδα</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>Αποχώρηση από την ομάδα σε εξέλιξη</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -477,32 +422,29 @@
         <source>Removing</source>
         <translation>Αφαίρεση σε εξέλιξη</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Όλοι στην ομάδα βλέπουν το όνομα</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>Συνομιλία</translation>
+        <source>Leave group</source>
+        <translation>Αποχώρηση από την ομάδα</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>Σάρωση κωδικού QR</translation>
+        <source>Leave</source>
+        <translation>Αποχώρηση</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>Πρόσκληση</translation>
+        <source>Cancel</source>
+        <translation>Ακύρωση</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>Αφήστε κάποιον να σαρώσει αυτόν τον κωδικό ή στείλτε του τον σύνδεσμο. Για να προσθέσετε κάποιον από τον κωδικό του, τραβήξτε προς τα κάτω.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>Λήψη...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>Αντιγραφή συνδέσμου πρόσκλησης</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>Αποχώρηση από %1; Θα πάψετε να λαμβάνετε τα μηνύματά της, και μόνο ένα μέλος μπορεί να σας προσθέσει ξανά.</translation>
     </message>
 </context>
 <context>
@@ -536,14 +478,6 @@
         <translation>Συνομιλία</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>Νέα ομάδα</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>Νέα επαφή</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>Νέα συνομιλία</translation>
     </message>
@@ -556,8 +490,8 @@
         <translation>Δεν υπάρχουν ακόμη επαφές</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>Τραβήξτε προς τα κάτω για να σαρώσετε την πρόσκληση κάποιου</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>Σαρώστε την πρόσκληση κάποιου από τη λίστα συνομιλιών: Κωδικός QR</translation>
     </message>
 </context>
 <context>
@@ -602,18 +536,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>Συνδεδεμένο</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>Συνδεδεμένο, αποστολή και λήψη</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>Σύνδεση</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>Χωρίς σύνδεση</translation>
     </message>
@@ -622,20 +544,12 @@
         <translation>Έλεγχος της σύνδεσης</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>Έλεγχος σύνδεσης</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>Προφίλ</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>Αφαίρεση εικόνας</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>Όνομα</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -677,6 +591,31 @@
     <message>
         <source>Saved</source>
         <translation>Αποθηκεύτηκε</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>Συνδεδεμένο και ενημερωμένο</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>Συνδεδεμένο, αποστολή ή συγχρονισμός μηνυμάτων</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>Σύνδεση με τον αναμεταδότη</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>%1 σε χρήση · %2 ελεύθερα από %3</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>Ο αναμεταδότης δεν έχει αναφέρει ακόμη το όριό του</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>Το όνομα σε κάθε μήνυμα που στέλνετε</translation>
     </message>
 </context>
 <context>
@@ -726,6 +665,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Συνομιλία</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>Κωδικός QR</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>Ο κωδικός μου</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>Σάρωση</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>Αφήστε κάποιον να σαρώσει αυτόν τον κωδικό ή στείλτε του τον σύνδεσμο.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>Λήψη...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>Αντιγραφή συνδέσμου πρόσκλησης</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>Η κάμερα δεν είναι διαθέσιμη σε αυτή τη συσκευή.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -733,14 +707,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>Εισαγωγή συνδέσμου πρόσκλησης</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>Σάρωση κωδικού QR</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -755,8 +725,8 @@
         <translation>Ή στρέψτε την κάμερα στον κωδικό</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>Στρέψτε την κάμερα σε μια πρόσκληση ή σε έναν κωδικό διακομιστή chatmail. Τραβήξτε προς τα κάτω για να εισαγάγετε αντ&apos; αυτού έναν σύνδεσμο.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>Στρέψτε την κάμερα στον κωδικό πρόσκλησης κάποιου</translation>
     </message>
 </context>
 <context>
@@ -780,6 +750,85 @@
     <message>
         <source>Nothing found</source>
         <translation>Δεν βρέθηκε τίποτα</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>Ποτέ</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>Έως 256 kB</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>Έως 512 kB</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>Έως 1 MB</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>Έως 2 MB</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>Έως 5 MB</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Πάντα</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Ρυθμίσεις</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Μηνύματα</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>Πώς εμφανίζεται ένα μήνυμα γραμμένο με *αστερίσκους* και `ανάποδους τόνους`.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>Μορφοποιημένο: έντονα, πλάγια, σύνδεσμοι</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>Αφαιρεμένο: μόνο οι λέξεις</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>Όπως γράφτηκε</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>Αυτόματη λήψη συνημμένων</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>Τα μεγαλύτερα περιμένουν μέχρι να τα ζητήσετε. Ισχύει για κάθε προφίλ και για τα μηνύματα που φτάνουν από εδώ και πέρα.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Σύνδεσμοι</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>Αφαίρεση παρακολούθησης από τους συνδέσμους</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>Οι γνωστές παράμετροι παρακολούθησης – αναγνωριστικά κλικ, ετικέτες καμπάνιας, ο λογαριασμός όποιου κοινοποιεί – αφαιρούνται από τους συνδέσμους στα μηνύματα που στέλνετε. Ο υπόλοιπος σύνδεσμος μένει όπως ήταν.</translation>
     </message>
 </context>
 <context>

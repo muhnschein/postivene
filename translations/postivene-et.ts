@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>Alustamiseks tõmba alla</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>Seaded</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR-kood</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Uus grupp</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>Märgi lugemata</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>1 minuti pärast</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>5 minuti pärast</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>30 minuti pärast</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>1 tunni pärast</translation>
     </message>
@@ -309,24 +317,44 @@
         <translation>1 nädala pärast</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>5 nädala pärast</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>Kaduvad sõnumid</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>%n sekundi pärast</numerusform>
-            <numerusform>%n sekundi pärast</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>Kehtib kõigile selle vestluse liikmetele; nad saavad sõnumeid endiselt kopeerida, salvestada ja edastada.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>1 aasta pärast</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>%1 aasta pärast</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>%1 nädala pärast</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>%1 päeva pärast</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>%1 tunni pärast</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>%1 minuti pärast</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>1 sekundi pärast</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>%1 sekundi pärast</translation>
     </message>
 </context>
 <context>
@@ -353,85 +381,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>Mitte kunagi</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>Kuni 256 kB</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>Kuni 512 kB</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>Kuni 1 MB</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>Kuni 2 MB</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>Kuni 5 MB</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>Alati</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>Sõnumid</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>Kuidas näidatakse sõnumit, mis on kirjutatud *tärnide* ja `graavistega`.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>Vormindatult: rasvane, kaldkiri, lingid</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>Eemaldatult: ainult sõnad</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>Nagu kirjutatud</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>Laadi manused automaatselt alla</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>Suuremad ootavad, kuni sa neid küsid. Kehtib igale profiilile ja nüüdsest saabuvatele sõnumitele.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>Lingid</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>Eemalda linkidest jälgimine</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>Teadaolevad jälgimisparameetrid – klõpsu ID-d, kampaaniasildid, jagaja konto – eemaldatakse sinu saadetud sõnumite linkidest. Ülejäänud link jääb nii, nagu oli.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -440,10 +389,6 @@
     <message>
         <source>Leave group</source>
         <translation>Lahku grupist</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>Lahkun grupist</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -477,32 +422,29 @@
         <source>Removing</source>
         <translation>Eemaldan</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Nime näevad kõik grupis</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>Vestlus</translation>
+        <source>Leave group</source>
+        <translation>Lahku grupist</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>Skanni QR-kood</translation>
+        <source>Leave</source>
+        <translation>Lahku</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>Kutse</translation>
+        <source>Cancel</source>
+        <translation>Loobu</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>Lase kellelgi see kood skannida või saada talle link. Kellegi lisamiseks tema koodi järgi tõmba alla.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>Toon...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>Kopeeri kutselink</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>Kas lahkuda grupist %1? Sa ei saa enam selle sõnumeid ja tagasi saab sind lisada ainult liige.</translation>
     </message>
 </context>
 <context>
@@ -536,14 +478,6 @@
         <translation>Vestlus</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>Uus grupp</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>Uus kontakt</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>Uus vestlus</translation>
     </message>
@@ -556,8 +490,8 @@
         <translation>Kontakte pole veel</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>Kellegi kutse skannimiseks tõmba alla</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>Skanni kellegi kutse vestluste loendist: QR-kood</translation>
     </message>
 </context>
 <context>
@@ -602,18 +536,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>Ühendatud</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>Ühendatud, saadab ja võtab vastu</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>Ühendan</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>Pole ühendatud</translation>
     </message>
@@ -622,20 +544,12 @@
         <translation>Kontrollin ühendust</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>Kontrolli ühendust</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>Profiil</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>Eemalda pilt</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>Nimi</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -677,6 +591,31 @@
     <message>
         <source>Saved</source>
         <translation>Salvestatud</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>Ühendatud ja ajakohane</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>Ühendatud, saadab või sünkroonib sõnumeid</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>Ühendan releega</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>%1 kasutusel · %2 vaba, kokku %3</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>Relee pole oma mahupiirangut veel teatanud</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>Nimi igal sõnumil, mille saadad</translation>
     </message>
 </context>
 <context>
@@ -726,6 +665,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Vestlus</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR-kood</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>Minu kood</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>Skanni</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>Lase kellelgi see kood skannida või saada talle link.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>Toon...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>Kopeeri kutselink</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>Kaamera pole selles seadmes saadaval.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -733,14 +707,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>Sisesta kutselink</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>Skanni QR-kood</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -755,8 +725,8 @@
         <translation>Või suuna kaamera koodile</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>Suuna kaamera kutsele või chatmail-serveri koodile. Lingi sisestamiseks tõmba hoopis alla.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>Suuna kaamera kellegi kutsekoodile</translation>
     </message>
 </context>
 <context>
@@ -780,6 +750,85 @@
     <message>
         <source>Nothing found</source>
         <translation>Midagi ei leitud</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>Mitte kunagi</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>Kuni 256 kB</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>Kuni 512 kB</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>Kuni 1 MB</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>Kuni 2 MB</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>Kuni 5 MB</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Alati</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Seaded</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Sõnumid</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>Kuidas näidatakse sõnumit, mis on kirjutatud *tärnide* ja `graavistega`.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>Vormindatult: rasvane, kaldkiri, lingid</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>Eemaldatult: ainult sõnad</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>Nagu kirjutatud</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>Laadi manused automaatselt alla</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>Suuremad ootavad, kuni sa neid küsid. Kehtib igale profiilile ja nüüdsest saabuvatele sõnumitele.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Lingid</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>Eemalda linkidest jälgimine</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>Teadaolevad jälgimisparameetrid – klõpsu ID-d, kampaaniasildid, jagaja konto – eemaldatakse sinu saadetud sõnumite linkidest. Ülejäänud link jääb nii, nagu oli.</translation>
     </message>
 </context>
 <context>

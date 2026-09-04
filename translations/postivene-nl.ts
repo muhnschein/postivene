@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>Trek omlaag om er een te beginnen</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>Instellingen</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR-code</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Nieuwe groep</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>Markeren als ongelezen</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>Na 1 minuut</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>Na 5 minuten</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>Na 30 minuten</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>Na 1 uur</translation>
     </message>
@@ -309,24 +317,44 @@
         <translation>Na 1 week</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>Na 5 weken</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>Verdwijnende berichten</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>Na %n seconde</numerusform>
-            <numerusform>Na %n seconden</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>Geldt voor alle leden van deze chat; ze kunnen berichten nog steeds kopiëren, opslaan en doorsturen.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>Na 1 jaar</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>Na %1 jaar</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>Na %1 weken</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>Na %1 dagen</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>Na %1 uur</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>Na %1 minuten</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>Na 1 seconde</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>Na %1 seconden</translation>
     </message>
 </context>
 <context>
@@ -353,85 +381,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>Nooit</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>Tot 256 kB</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>Tot 512 kB</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>Tot 1 MB</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>Tot 2 MB</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>Tot 5 MB</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>Altijd</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>Berichten</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>Hoe een bericht met *sterretjes* en `backticks` wordt getoond.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>Opgemaakt: vet, cursief, links</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>Weggehaald: alleen de woorden</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>Zoals geschreven</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>Bijlagen automatisch downloaden</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>Grotere wachten tot je erom vraagt. Geldt voor elk profiel en voor berichten die vanaf nu binnenkomen.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>Links</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>Tracking uit links verwijderen</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>Bekende trackingparameters – klik-id&apos;s, campagnetags, het account van de deler – worden uit de links in je verzonden berichten gehaald. De rest van de link blijft zoals hij was.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -440,10 +389,6 @@
     <message>
         <source>Leave group</source>
         <translation>Groep verlaten</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>Groep wordt verlaten</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -477,32 +422,29 @@
         <source>Removing</source>
         <translation>Wordt verwijderd</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Iedereen in de groep ziet de naam</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>Chat</translation>
+        <source>Leave group</source>
+        <translation>Groep verlaten</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>QR-code scannen</translation>
+        <source>Leave</source>
+        <translation>Verlaten</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>Uitnodiging</translation>
+        <source>Cancel</source>
+        <translation>Annuleren</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>Laat iemand deze code scannen, of stuur de link. Trek omlaag om iemand via zijn of haar code toe te voegen.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>Ophalen...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>Uitnodigingslink kopiëren</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>%1 verlaten? Je ontvangt de berichten ervan niet meer, en alleen een lid kan je weer toevoegen.</translation>
     </message>
 </context>
 <context>
@@ -536,14 +478,6 @@
         <translation>Chat</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>Nieuwe groep</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>Nieuw contact</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>Nieuwe chat</translation>
     </message>
@@ -556,8 +490,8 @@
         <translation>Nog geen contacten</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>Trek omlaag om iemands uitnodiging te scannen</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>Scan iemands uitnodiging vanuit de chatlijst: QR-code</translation>
     </message>
 </context>
 <context>
@@ -602,18 +536,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>Verbonden</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>Verbonden, verzenden en ontvangen</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>Verbinden</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>Niet verbonden</translation>
     </message>
@@ -622,20 +544,12 @@
         <translation>Verbinding wordt gecontroleerd</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>Verbinding controleren</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>Profiel</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>Afbeelding verwijderen</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>Naam</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -677,6 +591,31 @@
     <message>
         <source>Saved</source>
         <translation>Opgeslagen</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>Verbonden en bijgewerkt</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>Verbonden, berichten worden verzonden of gesynchroniseerd</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>Verbinden met de relay</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>%1 gebruikt · %2 vrij van %3</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>De relay heeft zijn quotum nog niet gemeld</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>De naam op elk bericht dat je verstuurt</translation>
     </message>
 </context>
 <context>
@@ -726,6 +665,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Chat</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR-code</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>Mijn code</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>Scannen</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>Laat iemand deze code scannen, of stuur diegene de link.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>Ophalen...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>Uitnodigingslink kopiëren</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>De camera is op dit apparaat niet beschikbaar.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -733,14 +707,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>Uitnodigingslink invoeren</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>QR-code scannen</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -755,8 +725,8 @@
         <translation>Of richt de camera op de code</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>Richt de camera op een uitnodiging of een chatmail-servercode. Trek omlaag om in plaats daarvan een link in te voeren.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>Richt de camera op iemands uitnodigingscode</translation>
     </message>
 </context>
 <context>
@@ -780,6 +750,85 @@
     <message>
         <source>Nothing found</source>
         <translation>Niets gevonden</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>Nooit</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>Tot 256 kB</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>Tot 512 kB</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>Tot 1 MB</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>Tot 2 MB</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>Tot 5 MB</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Altijd</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Instellingen</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Berichten</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>Hoe een bericht met *sterretjes* en `backticks` wordt getoond.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>Opgemaakt: vet, cursief, links</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>Weggehaald: alleen de woorden</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>Zoals geschreven</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>Bijlagen automatisch downloaden</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>Grotere wachten tot je erom vraagt. Geldt voor elk profiel en voor berichten die vanaf nu binnenkomen.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Links</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>Tracking uit links verwijderen</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>Bekende trackingparameters – klik-id&apos;s, campagnetags, het account van de deler – worden uit de links in je verzonden berichten gehaald. De rest van de link blijft zoals hij was.</translation>
     </message>
 </context>
 <context>

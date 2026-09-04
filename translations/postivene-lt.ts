@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>Patraukite žemyn, kad pradėtumėte</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>Nustatymai</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR kodas</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Nauja grupė</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>Žymėti kaip neskaitytą</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>Po 1 minutės</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>Po 5 minučių</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>Po 30 minučių</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>Po 1 valandos</translation>
     </message>
@@ -309,25 +317,44 @@
         <translation>Po 1 savaitės</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>Po 5 savaičių</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>Išnykstančios žinutės</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>Po %n sekundės</numerusform>
-            <numerusform>Po %n sekundžių</numerusform>
-            <numerusform>Po %n sekundžių</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>Taikoma visiems šio pokalbio nariams; jie vis tiek gali kopijuoti, išsaugoti ir persiųsti žinutes.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>Po 1 metų</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>Po %1 metų</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>Po %1 savaičių</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>Po %1 dienų</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>Po %1 valandų</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>Po %1 minučių</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>Po 1 sekundės</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>Po %1 sekundžių</translation>
     </message>
 </context>
 <context>
@@ -355,85 +382,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>Niekada</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>Iki 256 kB</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>Iki 512 kB</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>Iki 1 MB</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>Iki 2 MB</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>Iki 5 MB</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>Visada</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>Žinutės</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>Kaip rodoma žinutė, parašyta su *žvaigždutėmis* ir `atvirkštiniais apostrofais`.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>Suformatuota: pusjuodis, kursyvas, nuorodos</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>Pašalinta: tik žodžiai</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>Kaip parašyta</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>Automatiškai atsisiųsti priedus</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>Didesni laukia, kol jų paprašysite. Taikoma kiekvienam profiliui ir nuo šiol gaunamoms žinutėms.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>Nuorodos</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>Šalinti sekimą iš nuorodų</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>Žinomi sekimo parametrai – paspaudimų ID, kampanijų žymos, besidalijančiojo paskyra – pašalinami iš nuorodų jūsų siunčiamose žinutėse. Likusi nuorodos dalis paliekama tokia, kokia buvo.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -442,10 +390,6 @@
     <message>
         <source>Leave group</source>
         <translation>Palikti grupę</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>Paliekama grupė</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -480,32 +424,29 @@
         <source>Removing</source>
         <translation>Šalinama</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Pavadinimą mato visi grupėje</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>Pokalbis</translation>
+        <source>Leave group</source>
+        <translation>Palikti grupę</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>Nuskaityti QR kodą</translation>
+        <source>Leave</source>
+        <translation>Palikti</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>Kvietimas</translation>
+        <source>Cancel</source>
+        <translation>Atšaukti</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>Leiskite kam nors nuskaityti šį kodą arba nusiųskite nuorodą. Norėdami pridėti ką nors pagal jo kodą, patraukite žemyn.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>Gaunama...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>Kopijuoti kvietimo nuorodą</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>Palikti %1? Nebegausite jos žinučių, o grąžinti jus galės tik narys.</translation>
     </message>
 </context>
 <context>
@@ -539,14 +480,6 @@
         <translation>Pokalbis</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>Nauja grupė</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>Naujas kontaktas</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>Naujas pokalbis</translation>
     </message>
@@ -559,8 +492,8 @@
         <translation>Kontaktų dar nėra</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>Patraukite žemyn, kad nuskaitytumėte kieno nors kvietimą</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>Nuskaitykite kieno nors kvietimą iš pokalbių sąrašo: QR kodas</translation>
     </message>
 </context>
 <context>
@@ -605,18 +538,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>Prisijungta</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>Prisijungta, siunčiama ir gaunama</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>Jungiamasi</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>Neprisijungta</translation>
     </message>
@@ -625,20 +546,12 @@
         <translation>Tikrinamas ryšys</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>Tikrinti ryšį</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>Profilis</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>Pašalinti paveikslėlį</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>Vardas</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -680,6 +593,31 @@
     <message>
         <source>Saved</source>
         <translation>Išsaugota</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>Prisijungta, viskas atnaujinta</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>Prisijungta, siunčiamos arba sinchronizuojamos žinutės</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>Jungiamasi prie retransliatoriaus</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>Užimta %1 · liko %2 iš %3</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>Retransliatorius dar nepranešė savo kvotos</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>Vardas ant kiekvienos jūsų siunčiamos žinutės</translation>
     </message>
 </context>
 <context>
@@ -729,6 +667,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Pokalbis</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR kodas</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>Mano kodas</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>Nuskaityti</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>Leiskite kam nors nuskaityti šį kodą arba nusiųskite jam nuorodą.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>Gaunama...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>Kopijuoti kvietimo nuorodą</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>Šiame įrenginyje kamera nepasiekiama.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -736,14 +709,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>Įvesti kvietimo nuorodą</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>Nuskaityti QR kodą</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -758,8 +727,8 @@
         <translation>Arba nukreipkite kamerą į kodą</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>Nukreipkite kamerą į kvietimą arba į chatmail serverio kodą. Patraukite žemyn, kad vietoj to įvestumėte nuorodą.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>Nukreipkite kamerą į kieno nors kvietimo kodą</translation>
     </message>
 </context>
 <context>
@@ -783,6 +752,85 @@
     <message>
         <source>Nothing found</source>
         <translation>Nieko nerasta</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>Niekada</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>Iki 256 kB</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>Iki 512 kB</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>Iki 1 MB</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>Iki 2 MB</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>Iki 5 MB</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Visada</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Nustatymai</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Žinutės</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>Kaip rodoma žinutė, parašyta su *žvaigždutėmis* ir `atvirkštiniais apostrofais`.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>Suformatuota: pusjuodis, kursyvas, nuorodos</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>Pašalinta: tik žodžiai</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>Kaip parašyta</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>Automatiškai atsisiųsti priedus</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>Didesni laukia, kol jų paprašysite. Taikoma kiekvienam profiliui ir nuo šiol gaunamoms žinutėms.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Nuorodos</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>Šalinti sekimą iš nuorodų</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>Žinomi sekimo parametrai – paspaudimų ID, kampanijų žymos, besidalijančiojo paskyra – pašalinami iš nuorodų jūsų siunčiamose žinutėse. Likusi nuorodos dalis paliekama tokia, kokia buvo.</translation>
     </message>
 </context>
 <context>

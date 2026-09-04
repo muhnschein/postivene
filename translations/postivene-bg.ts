@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>Дръпнете надолу, за да започнете</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>Настройки</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR код</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Нова група</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>Отбелязване като непрочетено</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>След 1 минута</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>След 5 минути</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>След 30 минути</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>След 1 час</translation>
     </message>
@@ -309,24 +317,44 @@
         <translation>След 1 седмица</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>След 5 седмици</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>Изчезващи съобщения</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>След %n секунда</numerusform>
-            <numerusform>След %n секунди</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>Важи за всички членове на този чат; те все още могат да копират, запазват и препращат съобщения.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>След 1 година</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>След %1 години</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>След %1 седмици</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>След %1 дни</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>След %1 часа</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>След %1 минути</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>След 1 секунда</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>След %1 секунди</translation>
     </message>
 </context>
 <context>
@@ -353,85 +381,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>Никога</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>До 256 kB</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>До 512 kB</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>До 1 MB</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>До 2 MB</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>До 5 MB</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>Винаги</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>Съобщения</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>Как се показва съобщение, написано със *звездички* и `обратни кавички`.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>Оформено: удебелен, курсив, връзки</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>Премахнато: само думите</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>Както е написано</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>Автоматично изтегляне на прикачените файлове</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>По-големите чакат, докато не ги поискате. Важи за всеки профил и за съобщенията, които пристигат отсега нататък.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>Връзки</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>Премахване на проследяването от връзките</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>Известните параметри за проследяване – идентификатори на кликвания, етикети на кампании, акаунтът на споделящия – се премахват от връзките в съобщенията, които изпращате. Останалата част от връзката се оставя както е.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -440,10 +389,6 @@
     <message>
         <source>Leave group</source>
         <translation>Напускане на групата</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>Групата се напуска</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -477,32 +422,29 @@
         <source>Removing</source>
         <translation>Премахва се</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Всички в групата виждат името</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>Чат</translation>
+        <source>Leave group</source>
+        <translation>Напускане на групата</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>Сканиране на QR код</translation>
+        <source>Leave</source>
+        <translation>Напускане</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>Покана</translation>
+        <source>Cancel</source>
+        <translation>Отказ</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>Оставете някого да сканира този код или му изпратете връзката. За да добавите някого от неговия код, дръпнете надолу.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>Получаване...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>Копиране на връзката за покана</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>Да напуснете %1? Ще спрете да получавате съобщенията ѝ, а само член може да ви добави обратно.</translation>
     </message>
 </context>
 <context>
@@ -536,14 +478,6 @@
         <translation>Чат</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>Нова група</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>Нов контакт</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>Нов чат</translation>
     </message>
@@ -556,8 +490,8 @@
         <translation>Все още няма контакти</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>Дръпнете надолу, за да сканирате нечия покана</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>Сканирайте нечия покана от списъка с чатове: QR код</translation>
     </message>
 </context>
 <context>
@@ -602,18 +536,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>Свързано</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>Свързано, изпраща и получава</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>Свързване</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>Няма връзка</translation>
     </message>
@@ -622,20 +544,12 @@
         <translation>Проверява се връзката</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>Проверка на връзката</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>Профил</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>Премахване на изображението</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>Име</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -677,6 +591,31 @@
     <message>
         <source>Saved</source>
         <translation>Запазено</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>Свързано и актуално</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>Свързано, изпраща или синхронизира съобщения</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>Свързване с релея</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>%1 използвани · %2 свободни от %3</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>Релеят още не е съобщил квотата си</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>Името върху всяко съобщение, което изпращате</translation>
     </message>
 </context>
 <context>
@@ -726,6 +665,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Чат</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR код</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>Моят код</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>Сканиране</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>Оставете някой да сканира този код или му изпратете връзката.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>Получаване...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>Копиране на връзката за покана</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>Камерата не е налична на това устройство.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -733,14 +707,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>Въвеждане на връзка за покана</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>Сканиране на QR код</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -755,8 +725,8 @@
         <translation>Или насочете камерата към кода</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>Насочете камерата към покана или към код на chatmail сървър. Дръпнете надолу, за да въведете връзка вместо това.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>Насочете камерата към нечий код за покана</translation>
     </message>
 </context>
 <context>
@@ -780,6 +750,85 @@
     <message>
         <source>Nothing found</source>
         <translation>Нищо не е намерено</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>Никога</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>До 256 kB</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>До 512 kB</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>До 1 MB</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>До 2 MB</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>До 5 MB</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Винаги</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Настройки</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Съобщения</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>Как се показва съобщение, написано със *звездички* и `обратни кавички`.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>Оформено: удебелен, курсив, връзки</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>Премахнато: само думите</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>Както е написано</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>Автоматично изтегляне на прикачените файлове</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>По-големите чакат, докато не ги поискате. Важи за всеки профил и за съобщенията, които пристигат отсега нататък.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Връзки</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>Премахване на проследяването от връзките</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>Известните параметри за проследяване – идентификатори на кликвания, етикети на кампании, акаунтът на споделящия – се премахват от връзките в съобщенията, които изпращате. Останалата част от връзката се оставя както е.</translation>
     </message>
 </context>
 <context>

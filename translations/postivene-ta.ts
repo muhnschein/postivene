@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>தொடங்க கீழே இழுக்கவும்</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>அமைப்புகள்</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR குறியீடு</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>புதிய குழு</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>படிக்காததாகக் குறி</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>1 நிமிடத்திற்குப் பிறகு</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>5 நிமிடங்களுக்குப் பிறகு</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>30 நிமிடங்களுக்குப் பிறகு</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>1 மணிநேரத்திற்குப் பிறகு</translation>
     </message>
@@ -309,24 +317,44 @@
         <translation>1 வாரத்திற்குப் பிறகு</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>5 வாரங்களுக்குப் பிறகு</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>மறையும் செய்திகள்</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>%n வினாடிக்குப் பிறகு</numerusform>
-            <numerusform>%n வினாடிகளுக்குப் பிறகு</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>இந்த அரட்டையின் எல்லா உறுப்பினர்களுக்கும் பொருந்தும்; அவர்கள் இன்னும் செய்திகளை நகலெடுக்கவும், சேமிக்கவும், முன்னனுப்பவும் முடியும்.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>1 ஆண்டுக்குப் பிறகு</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>%1 ஆண்டுகளுக்குப் பிறகு</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>%1 வாரங்களுக்குப் பிறகு</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>%1 நாட்களுக்குப் பிறகு</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>%1 மணிநேரத்திற்குப் பிறகு</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>%1 நிமிடங்களுக்குப் பிறகு</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>1 வினாடிக்குப் பிறகு</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>%1 வினாடிகளுக்குப் பிறகு</translation>
     </message>
 </context>
 <context>
@@ -353,85 +381,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>ஒருபோதும் இல்லை</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>256 kB வரை</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>512 kB வரை</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>1 MB வரை</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>2 MB வரை</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>5 MB வரை</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>எப்போதும்</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>செய்திகள்</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>*நட்சத்திரங்கள்* மற்றும் `பின்சாய்வுக் குறிகள்` கொண்டு எழுதப்பட்ட செய்தி எப்படிக் காட்டப்படும்.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>வடிவமைக்கப்பட்டது: தடித்த, சாய்ந்த, இணைப்புகள்</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>நீக்கப்பட்டது: சொற்கள் மட்டும்</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>எழுதியபடியே</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>இணைப்புகளைத் தானாகப் பதிவிறக்கு</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>பெரியவை நீங்கள் கேட்கும் வரை காத்திருக்கும். ஒவ்வொரு சுயவிவரத்திற்கும், இனி வரும் செய்திகளுக்கும் பொருந்தும்.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>இணைப்புகள்</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>இணைப்புகளிலிருந்து கண்காணிப்பை நீக்கு</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>அறியப்பட்ட கண்காணிப்பு அளவுருக்கள் – கிளிக் ஐடிகள், பிரச்சாரக் குறிச்சொற்கள், பகிர்ந்தவரின் கணக்கு – நீங்கள் அனுப்பும் செய்திகளின் இணைப்புகளிலிருந்து நீக்கப்படும். இணைப்பின் மீதி இருந்தபடியே விடப்படும்.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -440,10 +389,6 @@
     <message>
         <source>Leave group</source>
         <translation>குழுவிலிருந்து வெளியேறு</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>குழுவிலிருந்து வெளியேறுகிறது</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -477,32 +422,29 @@
         <source>Removing</source>
         <translation>நீக்கப்படுகிறது</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>குழுவில் உள்ள அனைவரும் பெயரைப் பார்க்கிறார்கள்</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>அரட்டை</translation>
+        <source>Leave group</source>
+        <translation>குழுவிலிருந்து வெளியேறு</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>QR குறியீட்டை ஸ்கேன் செய்</translation>
+        <source>Leave</source>
+        <translation>வெளியேறு</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>அழைப்பு</translation>
+        <source>Cancel</source>
+        <translation>ரத்துசெய்</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>யாரையாவது இந்தக் குறியீட்டை ஸ்கேன் செய்ய விடவும், அல்லது அவர்களுக்கு இணைப்பை அனுப்பவும். ஒருவரை அவரது குறியீட்டிலிருந்து சேர்க்க கீழே இழுக்கவும்.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>பெறப்படுகிறது...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>அழைப்பு இணைப்பை நகலெடு</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>%1 குழுவிலிருந்து வெளியேறவா? அதன் செய்திகள் இனி உங்களுக்கு வராது, ஒரு உறுப்பினர் மட்டுமே உங்களை மீண்டும் சேர்க்க முடியும்.</translation>
     </message>
 </context>
 <context>
@@ -536,14 +478,6 @@
         <translation>அரட்டை</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>புதிய குழு</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>புதிய தொடர்பு</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>புதிய அரட்டை</translation>
     </message>
@@ -556,8 +490,8 @@
         <translation>இன்னும் தொடர்புகள் இல்லை</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>ஒருவரின் அழைப்பை ஸ்கேன் செய்ய கீழே இழுக்கவும்</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>அரட்டைப் பட்டியலிலிருந்து ஒருவரின் அழைப்பை ஸ்கேன் செய்யவும்: QR குறியீடு</translation>
     </message>
 </context>
 <context>
@@ -602,18 +536,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>இணைக்கப்பட்டது</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>இணைக்கப்பட்டது, அனுப்பியும் பெற்றும் வருகிறது</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>இணைக்கப்படுகிறது</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>இணைக்கப்படவில்லை</translation>
     </message>
@@ -622,20 +544,12 @@
         <translation>இணைப்பு சரிபார்க்கப்படுகிறது</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>இணைப்பைச் சரிபார்</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>சுயவிவரம்</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>படத்தை நீக்கு</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>பெயர்</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -677,6 +591,31 @@
     <message>
         <source>Saved</source>
         <translation>சேமிக்கப்பட்டது</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>இணைக்கப்பட்டது, புதுப்பித்த நிலையில் உள்ளது</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>இணைக்கப்பட்டது, செய்திகளை அனுப்புகிறது அல்லது ஒத்திசைக்கிறது</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>ரிலேயுடன் இணைக்கப்படுகிறது</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>%3-இல் %1 பயன்படுத்தப்பட்டது · %2 மீதம்</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>ரிலே தனது ஒதுக்கீட்டை இன்னும் தெரிவிக்கவில்லை</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>நீங்கள் அனுப்பும் ஒவ்வொரு செய்தியிலும் உள்ள பெயர்</translation>
     </message>
 </context>
 <context>
@@ -726,6 +665,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>அரட்டை</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR குறியீடு</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>என் குறியீடு</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>ஸ்கேன் செய்</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>இந்தக் குறியீட்டை யாரையாவது ஸ்கேன் செய்ய விடுங்கள், அல்லது அவர்களுக்கு இணைப்பை அனுப்புங்கள்.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>பெறப்படுகிறது...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>அழைப்பு இணைப்பை நகலெடு</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>இந்தச் சாதனத்தில் கேமரா கிடைக்கவில்லை.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -733,14 +707,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>அழைப்பு இணைப்பை உள்ளிடு</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>QR குறியீட்டை ஸ்கேன் செய்</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -755,8 +725,8 @@
         <translation>அல்லது கேமராவைக் குறியீட்டின் மீது காட்டவும்</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>கேமராவை ஒரு அழைப்பின் மீதோ chatmail சேவையகக் குறியீட்டின் மீதோ காட்டவும். அதற்குப் பதிலாக இணைப்பை உள்ளிட கீழே இழுக்கவும்.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>கேமராவை ஒருவரின் அழைப்புக் குறியீட்டின் மீது காட்டவும்</translation>
     </message>
 </context>
 <context>
@@ -780,6 +750,85 @@
     <message>
         <source>Nothing found</source>
         <translation>எதுவும் கிடைக்கவில்லை</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>ஒருபோதும் இல்லை</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>256 kB வரை</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>512 kB வரை</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>1 MB வரை</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>2 MB வரை</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>5 MB வரை</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>எப்போதும்</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>அமைப்புகள்</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>செய்திகள்</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>*நட்சத்திரங்கள்* மற்றும் `பின்சாய்வுக் குறிகள்` கொண்டு எழுதப்பட்ட செய்தி எப்படிக் காட்டப்படும்.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>வடிவமைக்கப்பட்டது: தடித்த, சாய்ந்த, இணைப்புகள்</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>நீக்கப்பட்டது: சொற்கள் மட்டும்</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>எழுதியபடியே</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>இணைப்புகளைத் தானாகப் பதிவிறக்கு</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>பெரியவை நீங்கள் கேட்கும் வரை காத்திருக்கும். ஒவ்வொரு சுயவிவரத்திற்கும், இனி வரும் செய்திகளுக்கும் பொருந்தும்.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>இணைப்புகள்</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>இணைப்புகளிலிருந்து கண்காணிப்பை நீக்கு</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>அறியப்பட்ட கண்காணிப்பு அளவுருக்கள் – கிளிக் ஐடிகள், பிரச்சாரக் குறிச்சொற்கள், பகிர்ந்தவரின் கணக்கு – நீங்கள் அனுப்பும் செய்திகளின் இணைப்புகளிலிருந்து நீக்கப்படும். இணைப்பின் மீதி இருந்தபடியே விடப்படும்.</translation>
     </message>
 </context>
 <context>

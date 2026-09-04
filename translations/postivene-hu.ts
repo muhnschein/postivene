@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>Húzza le az indításhoz</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>Beállítások</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR-kód</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Új csoport</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>Megjelölés olvasatlanként</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>1 perc után</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>5 perc után</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>30 perc után</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>1 óra után</translation>
     </message>
@@ -309,23 +317,44 @@
         <translation>1 hét után</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>5 hét után</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>Eltűnő üzenetek</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>%n másodperc után</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>A csevegés minden tagjára érvényes; az üzeneteket továbbra is másolhatják, menthetik és továbbíthatják.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>1 év után</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>%1 év után</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>%1 hét után</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>%1 nap után</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>%1 óra után</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>%1 perc után</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>1 másodperc után</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>%1 másodperc után</translation>
     </message>
 </context>
 <context>
@@ -351,85 +380,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>Soha</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>Legfeljebb 256 kB</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>Legfeljebb 512 kB</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>Legfeljebb 1 MB</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>Legfeljebb 2 MB</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>Legfeljebb 5 MB</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>Mindig</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>Üzenetek</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>Hogyan jelenjen meg a *csillagokkal* és `visszaperjelekkel` írt üzenet.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>Megjelenítve: félkövér, dőlt, hivatkozások</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>Eltávolítva: csak a szavak</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>Ahogy írták</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>Mellékletek automatikus letöltése</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>A nagyobbak megvárják, amíg kéri őket. Minden profilra és a mostantól érkező üzenetekre vonatkozik.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>Hivatkozások</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>Követés eltávolítása a hivatkozásokból</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>Az ismert követési paraméterek – kattintásazonosítók, kampánycímkék, a megosztó fiókja – kikerülnek az elküldött üzenetek hivatkozásaiból. A hivatkozás többi része marad, ahogy volt.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -438,10 +388,6 @@
     <message>
         <source>Leave group</source>
         <translation>Kilépés a csoportból</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>Kilépés a csoportból folyamatban</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -474,32 +420,29 @@
         <source>Removing</source>
         <translation>Eltávolítás folyamatban</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>A nevet a csoport minden tagja látja</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>Csevegés</translation>
+        <source>Leave group</source>
+        <translation>Kilépés a csoportból</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>QR-kód beolvasása</translation>
+        <source>Leave</source>
+        <translation>Kilépés</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>Meghívó</translation>
+        <source>Cancel</source>
+        <translation>Mégse</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>Olvastassa be valakivel ezt a kódot, vagy küldje el neki a hivatkozást. Ha valakit a kódja alapján szeretne hozzáadni, húzza le.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>Lekérés...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>Meghívó hivatkozás másolása</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>Kilép innen: %1? Nem kapja többé az üzeneteit, és csak egy tag veheti vissza.</translation>
     </message>
 </context>
 <context>
@@ -533,14 +476,6 @@
         <translation>Csevegés</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>Új csoport</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>Új névjegy</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>Új csevegés</translation>
     </message>
@@ -553,8 +488,8 @@
         <translation>Még nincs névjegy</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>Húzza le valaki meghívójának beolvasásához</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>Olvassa be valaki meghívóját a csevegéslistából: QR-kód</translation>
     </message>
 </context>
 <context>
@@ -599,18 +534,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>Kapcsolódva</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>Kapcsolódva, küldés és fogadás</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>Kapcsolódás</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>Nincs kapcsolat</translation>
     </message>
@@ -619,20 +542,12 @@
         <translation>Kapcsolat ellenőrzése folyamatban</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>Kapcsolat ellenőrzése</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>Profil</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>Kép eltávolítása</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>Név</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -674,6 +589,31 @@
     <message>
         <source>Saved</source>
         <translation>Mentve</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>Kapcsolódva, naprakész</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>Kapcsolódva, üzenetek küldése vagy szinkronizálása</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>Kapcsolódás a közvetítőhöz</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>%1 használt · %2 szabad, összesen %3</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>A közvetítő még nem jelentette a kvótáját</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>A név minden elküldött üzenetén</translation>
     </message>
 </context>
 <context>
@@ -723,6 +663,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Csevegés</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR-kód</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>Saját kód</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>Beolvasás</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>Olvastassa be valakivel ezt a kódot, vagy küldje el neki a hivatkozást.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>Lekérés...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>Meghívó hivatkozás másolása</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>A kamera nem érhető el ezen az eszközön.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -730,14 +705,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>Meghívó hivatkozás megadása</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>QR-kód beolvasása</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -752,8 +723,8 @@
         <translation>Vagy irányítsa a kamerát a kódra</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>Irányítsa a kamerát egy meghívóra vagy egy chatmail-kiszolgáló kódjára. Húzza le, ha inkább hivatkozást adna meg.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>Irányítsa a kamerát valaki meghívókódjára</translation>
     </message>
 </context>
 <context>
@@ -777,6 +748,85 @@
     <message>
         <source>Nothing found</source>
         <translation>Nincs találat</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>Soha</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>Legfeljebb 256 kB</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>Legfeljebb 512 kB</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>Legfeljebb 1 MB</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>Legfeljebb 2 MB</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>Legfeljebb 5 MB</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Mindig</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Beállítások</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Üzenetek</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>Hogyan jelenjen meg a *csillagokkal* és `visszaperjelekkel` írt üzenet.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>Megjelenítve: félkövér, dőlt, hivatkozások</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>Eltávolítva: csak a szavak</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>Ahogy írták</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>Mellékletek automatikus letöltése</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>A nagyobbak megvárják, amíg kéri őket. Minden profilra és a mostantól érkező üzenetekre vonatkozik.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Hivatkozások</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>Követés eltávolítása a hivatkozásokból</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>Az ismert követési paraméterek – kattintásazonosítók, kampánycímkék, a megosztó fiókja – kikerülnek az elküldött üzenetek hivatkozásaiból. A hivatkozás többi része marad, ahogy volt.</translation>
     </message>
 </context>
 <context>

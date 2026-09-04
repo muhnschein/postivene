@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>Dra ned for å starte en</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>Innstillinger</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR-kode</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Ny gruppe</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>Merk som ulest</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>Etter 1 minutt</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>Etter 5 minutter</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>Etter 30 minutter</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>Etter 1 time</translation>
     </message>
@@ -309,24 +317,44 @@
         <translation>Etter 1 uke</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>Etter 5 uker</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>Forsvinnende meldinger</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>Etter %n sekund</numerusform>
-            <numerusform>Etter %n sekunder</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>Gjelder alle medlemmer i denne chatten; de kan fortsatt kopiere, lagre og videresende meldinger.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>Etter 1 år</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>Etter %1 år</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>Etter %1 uker</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>Etter %1 dager</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>Etter %1 timer</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>Etter %1 minutter</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>Etter 1 sekund</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>Etter %1 sekunder</translation>
     </message>
 </context>
 <context>
@@ -353,85 +381,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>Aldri</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>Opptil 256 kB</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>Opptil 512 kB</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>Opptil 1 MB</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>Opptil 2 MB</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>Opptil 5 MB</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>Alltid</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>Meldinger</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>Hvordan en melding skrevet med *stjerner* og `backticks` vises.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>Vist: fet, kursiv, lenker</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>Fjernet: bare ordene</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>Som skrevet</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>Last ned vedlegg automatisk</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>Større venter til du ber om dem. Gjelder alle profiler og meldinger som kommer fra nå av.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>Lenker</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>Fjern sporing fra lenker</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>Kjente sporingsparametere – klikk-ID-er, kampanjemerker, delerens konto – fjernes fra lenkene i meldingene du sender. Resten av lenken blir som den var.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -440,10 +389,6 @@
     <message>
         <source>Leave group</source>
         <translation>Forlat gruppe</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>Forlater gruppen</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -477,32 +422,29 @@
         <source>Removing</source>
         <translation>Fjerner</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Alle i gruppen ser navnet</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>Chat</translation>
+        <source>Leave group</source>
+        <translation>Forlat gruppe</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>Skann QR-kode</translation>
+        <source>Leave</source>
+        <translation>Forlat</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>Invitasjon</translation>
+        <source>Cancel</source>
+        <translation>Avbryt</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>La noen skanne denne koden, eller send dem lenken. Dra ned for å legge til noen ut fra koden deres.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>Henter...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>Kopier invitasjonslenke</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>Forlate %1? Du slutter å motta meldingene derfra, og bare et medlem kan legge deg til igjen.</translation>
     </message>
 </context>
 <context>
@@ -536,14 +478,6 @@
         <translation>Chat</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>Ny gruppe</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>Ny kontakt</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>Ny chat</translation>
     </message>
@@ -556,8 +490,8 @@
         <translation>Ingen kontakter ennå</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>Dra ned for å skanne noens invitasjon</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>Skann noens invitasjon fra chatlisten: QR-kode</translation>
     </message>
 </context>
 <context>
@@ -602,18 +536,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>Tilkoblet</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>Tilkoblet, sender og mottar</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>Kobler til</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>Ikke tilkoblet</translation>
     </message>
@@ -622,20 +544,12 @@
         <translation>Sjekker forbindelsen</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>Sjekk forbindelsen</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>Profil</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>Fjern bilde</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>Navn</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -677,6 +591,31 @@
     <message>
         <source>Saved</source>
         <translation>Lagret</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>Tilkoblet og oppdatert</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>Tilkoblet, sender eller synkroniserer meldinger</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>Kobler til reléet</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>%1 brukt · %2 igjen av %3</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>Reléet har ikke meldt kvoten sin ennå</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>Navnet på hver melding du sender</translation>
     </message>
 </context>
 <context>
@@ -726,6 +665,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Chat</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR-kode</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>Min kode</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>Skann</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>La noen skanne denne koden, eller send dem lenken.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>Henter...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>Kopier invitasjonslenke</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>Kameraet er ikke tilgjengelig på denne enheten.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -733,14 +707,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>Skriv inn invitasjonslenke</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>Skann QR-kode</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -755,8 +725,8 @@
         <translation>Eller rett kameraet mot koden</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>Rett kameraet mot en invitasjon eller en chatmail-tjenerkode. Dra ned for å skrive inn en lenke i stedet.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>Rett kameraet mot noens invitasjonskode</translation>
     </message>
 </context>
 <context>
@@ -780,6 +750,85 @@
     <message>
         <source>Nothing found</source>
         <translation>Ingenting funnet</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>Aldri</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>Opptil 256 kB</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>Opptil 512 kB</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>Opptil 1 MB</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>Opptil 2 MB</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>Opptil 5 MB</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Alltid</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Innstillinger</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Meldinger</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>Hvordan en melding skrevet med *stjerner* og `backticks` vises.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>Vist: fet, kursiv, lenker</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>Fjernet: bare ordene</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>Som skrevet</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>Last ned vedlegg automatisk</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>Større venter til du ber om dem. Gjelder alle profiler og meldinger som kommer fra nå av.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Lenker</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>Fjern sporing fra lenker</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>Kjente sporingsparametere – klikk-ID-er, kampanjemerker, delerens konto – fjernes fra lenkene i meldingene du sender. Resten av lenken blir som den var.</translation>
     </message>
 </context>
 <context>

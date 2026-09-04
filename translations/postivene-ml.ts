@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>തുടങ്ങാൻ താഴേക്ക് വലിക്കുക</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>ക്രമീകരണങ്ങൾ</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR കോഡ്</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>പുതിയ ഗ്രൂപ്പ്</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>വായിക്കാത്തതായി അടയാളപ്പെടുത്തുക</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>1 മിനിറ്റിനു ശേഷം</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>5 മിനിറ്റിനു ശേഷം</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>30 മിനിറ്റിനു ശേഷം</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>1 മണിക്കൂറിനു ശേഷം</translation>
     </message>
@@ -309,24 +317,44 @@
         <translation>1 ആഴ്ചയ്ക്കു ശേഷം</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>5 ആഴ്ചയ്ക്കു ശേഷം</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>അപ്രത്യക്ഷമാകുന്ന സന്ദേശങ്ങൾ</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>%n സെക്കൻഡിനു ശേഷം</numerusform>
-            <numerusform>%n സെക്കൻഡിനു ശേഷം</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>ഈ ചാറ്റിലെ എല്ലാ അംഗങ്ങൾക്കും ബാധകം; അവർക്ക് ഇപ്പോഴും സന്ദേശങ്ങൾ പകർത്താനും സംരക്ഷിക്കാനും ഫോർവേഡ് ചെയ്യാനും കഴിയും.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>1 വർഷത്തിനു ശേഷം</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>%1 വർഷത്തിനു ശേഷം</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>%1 ആഴ്ചയ്ക്കു ശേഷം</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>%1 ദിവസത്തിനു ശേഷം</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>%1 മണിക്കൂറിനു ശേഷം</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>%1 മിനിറ്റിനു ശേഷം</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>1 സെക്കൻഡിനു ശേഷം</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>%1 സെക്കൻഡിനു ശേഷം</translation>
     </message>
 </context>
 <context>
@@ -353,85 +381,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>ഒരിക്കലും വേണ്ട</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>256 kB വരെ</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>512 kB വരെ</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>1 MB വരെ</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>2 MB വരെ</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>5 MB വരെ</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>എപ്പോഴും</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>സന്ദേശങ്ങൾ</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>*നക്ഷത്രങ്ങളും* `ബാക്ക്ടിക്കുകളും` ഉപയോഗിച്ച് എഴുതിയ സന്ദേശം എങ്ങനെ കാണിക്കണം.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>അലങ്കരിച്ചത്: ബോൾഡ്, ഇറ്റാലിക്, ലിങ്കുകൾ</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>നീക്കിയത്: വാക്കുകൾ മാത്രം</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>എഴുതിയതുപോലെ</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>അറ്റാച്ച്‌മെന്റുകൾ സ്വയമേവ ഡൗൺലോഡ് ചെയ്യുക</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>വലുതായവ നിങ്ങൾ ആവശ്യപ്പെടുന്നതുവരെ കാത്തിരിക്കും. എല്ലാ പ്രൊഫൈലുകൾക്കും ഇനി മുതൽ വരുന്ന സന്ദേശങ്ങൾക്കും ബാധകം.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>ലിങ്കുകൾ</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>ലിങ്കുകളിൽ നിന്ന് ട്രാക്കിംഗ് നീക്കുക</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>അറിയപ്പെടുന്ന ട്രാക്കിംഗ് പാരാമീറ്ററുകൾ – ക്ലിക്ക് ഐഡികൾ, കാമ്പെയ്ൻ ടാഗുകൾ, പങ്കിടുന്നയാളുടെ അക്കൗണ്ട് – നിങ്ങൾ അയയ്ക്കുന്ന സന്ദേശങ്ങളിലെ ലിങ്കുകളിൽ നിന്ന് നീക്കം ചെയ്യുന്നു. ലിങ്കിന്റെ ബാക്കി ഭാഗം അതേപടി നിലനിൽക്കും.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -440,10 +389,6 @@
     <message>
         <source>Leave group</source>
         <translation>ഗ്രൂപ്പ് വിടുക</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>ഗ്രൂപ്പ് വിടുന്നു</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -477,32 +422,29 @@
         <source>Removing</source>
         <translation>നീക്കുന്നു</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>ഗ്രൂപ്പിലുള്ള എല്ലാവരും പേര് കാണുന്നു</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>ചാറ്റ്</translation>
+        <source>Leave group</source>
+        <translation>ഗ്രൂപ്പ് വിടുക</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>QR കോഡ് സ്കാൻ ചെയ്യുക</translation>
+        <source>Leave</source>
+        <translation>വിടുക</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>ക്ഷണം</translation>
+        <source>Cancel</source>
+        <translation>റദ്ദാക്കുക</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>ആരെയെങ്കിലും ഈ കോഡ് സ്കാൻ ചെയ്യാൻ അനുവദിക്കുക, അല്ലെങ്കിൽ അവർക്ക് ലിങ്ക് അയയ്ക്കുക. ഒരാളെ അവരുടെ കോഡിൽ നിന്ന് ചേർക്കാൻ താഴേക്ക് വലിക്കുക.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>ലഭ്യമാക്കുന്നു...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>ക്ഷണ ലിങ്ക് പകർത്തുക</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>%1 വിടണോ? അതിന്റെ സന്ദേശങ്ങൾ നിങ്ങൾക്ക് ലഭിക്കാതാകും, ഒരു അംഗത്തിനു മാത്രമേ നിങ്ങളെ തിരികെ ചേർക്കാനാകൂ.</translation>
     </message>
 </context>
 <context>
@@ -536,14 +478,6 @@
         <translation>ചാറ്റ്</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>പുതിയ ഗ്രൂപ്പ്</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>പുതിയ കോൺടാക്റ്റ്</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>പുതിയ ചാറ്റ്</translation>
     </message>
@@ -556,8 +490,8 @@
         <translation>ഇതുവരെ കോൺടാക്റ്റുകളില്ല</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>ഒരാളുടെ ക്ഷണം സ്കാൻ ചെയ്യാൻ താഴേക്ക് വലിക്കുക</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>ചാറ്റ് പട്ടികയിൽ നിന്ന് ഒരാളുടെ ക്ഷണം സ്കാൻ ചെയ്യുക: QR കോഡ്</translation>
     </message>
 </context>
 <context>
@@ -602,18 +536,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>കണക്റ്റ് ചെയ്തു</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>കണക്റ്റ് ചെയ്തു, അയയ്ക്കുകയും സ്വീകരിക്കുകയും ചെയ്യുന്നു</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>കണക്റ്റ് ചെയ്യുന്നു</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>കണക്റ്റ് ചെയ്തിട്ടില്ല</translation>
     </message>
@@ -622,20 +544,12 @@
         <translation>കണക്ഷൻ പരിശോധിക്കുന്നു</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>കണക്ഷൻ പരിശോധിക്കുക</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>പ്രൊഫൈൽ</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>ചിത്രം നീക്കുക</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>പേര്</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -677,6 +591,31 @@
     <message>
         <source>Saved</source>
         <translation>സംരക്ഷിച്ചു</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>കണക്റ്റ് ചെയ്തു, കാലികമാണ്</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>കണക്റ്റ് ചെയ്തു, സന്ദേശങ്ങൾ അയയ്ക്കുകയോ സമന്വയിപ്പിക്കുകയോ ചെയ്യുന്നു</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>റിലേയിലേക്ക് കണക്റ്റ് ചെയ്യുന്നു</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>%3-ൽ %1 ഉപയോഗിച്ചു · %2 ബാക്കി</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>റിലേ അതിന്റെ ക്വോട്ട ഇതുവരെ അറിയിച്ചിട്ടില്ല</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>നിങ്ങൾ അയയ്ക്കുന്ന ഓരോ സന്ദേശത്തിലുമുള്ള പേര്</translation>
     </message>
 </context>
 <context>
@@ -726,6 +665,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>ചാറ്റ്</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR കോഡ്</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>എന്റെ കോഡ്</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>സ്കാൻ ചെയ്യുക</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>ആരെയെങ്കിലും ഈ കോഡ് സ്കാൻ ചെയ്യാൻ അനുവദിക്കുക, അല്ലെങ്കിൽ അവർക്ക് ലിങ്ക് അയയ്ക്കുക.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>ലഭ്യമാക്കുന്നു...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>ക്ഷണ ലിങ്ക് പകർത്തുക</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>ഈ ഉപകരണത്തിൽ ക്യാമറ ലഭ്യമല്ല.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -733,14 +707,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>ക്ഷണ ലിങ്ക് നൽകുക</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>QR കോഡ് സ്കാൻ ചെയ്യുക</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -755,8 +725,8 @@
         <translation>അല്ലെങ്കിൽ ക്യാമറ കോഡിലേക്ക് തിരിക്കുക</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>ക്യാമറ ഒരു ക്ഷണത്തിലേക്കോ chatmail സെർവർ കോഡിലേക്കോ തിരിക്കുക. പകരം ലിങ്ക് നൽകാൻ താഴേക്ക് വലിക്കുക.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>ക്യാമറ ഒരാളുടെ ക്ഷണ കോഡിലേക്ക് തിരിക്കുക</translation>
     </message>
 </context>
 <context>
@@ -780,6 +750,85 @@
     <message>
         <source>Nothing found</source>
         <translation>ഒന്നും കണ്ടെത്തിയില്ല</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>ഒരിക്കലും വേണ്ട</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>256 kB വരെ</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>512 kB വരെ</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>1 MB വരെ</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>2 MB വരെ</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>5 MB വരെ</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>എപ്പോഴും</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>ക്രമീകരണങ്ങൾ</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>സന്ദേശങ്ങൾ</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>*നക്ഷത്രങ്ങളും* `ബാക്ക്ടിക്കുകളും` ഉപയോഗിച്ച് എഴുതിയ സന്ദേശം എങ്ങനെ കാണിക്കണം.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>അലങ്കരിച്ചത്: ബോൾഡ്, ഇറ്റാലിക്, ലിങ്കുകൾ</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>നീക്കിയത്: വാക്കുകൾ മാത്രം</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>എഴുതിയതുപോലെ</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>അറ്റാച്ച്‌മെന്റുകൾ സ്വയമേവ ഡൗൺലോഡ് ചെയ്യുക</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>വലുതായവ നിങ്ങൾ ആവശ്യപ്പെടുന്നതുവരെ കാത്തിരിക്കും. എല്ലാ പ്രൊഫൈലുകൾക്കും ഇനി മുതൽ വരുന്ന സന്ദേശങ്ങൾക്കും ബാധകം.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>ലിങ്കുകൾ</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>ലിങ്കുകളിൽ നിന്ന് ട്രാക്കിംഗ് നീക്കുക</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>അറിയപ്പെടുന്ന ട്രാക്കിംഗ് പാരാമീറ്ററുകൾ – ക്ലിക്ക് ഐഡികൾ, കാമ്പെയ്ൻ ടാഗുകൾ, പങ്കിടുന്നയാളുടെ അക്കൗണ്ട് – നിങ്ങൾ അയയ്ക്കുന്ന സന്ദേശങ്ങളിലെ ലിങ്കുകളിൽ നിന്ന് നീക്കം ചെയ്യുന്നു. ലിങ്കിന്റെ ബാക്കി ഭാഗം അതേപടി നിലനിൽക്കും.</translation>
     </message>
 </context>
 <context>

@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>Aloita uusi vetämällä alas</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>Asetukset</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR-koodi</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Uusi ryhmä</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>Merkitse lukemattomaksi</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>1 minuutin kuluttua</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>5 minuutin kuluttua</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>30 minuutin kuluttua</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>1 tunnin kuluttua</translation>
     </message>
@@ -309,24 +317,44 @@
         <translation>1 viikon kuluttua</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>5 viikon kuluttua</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>Katoavat viestit</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>%n sekunnin kuluttua</numerusform>
-            <numerusform>%n sekunnin kuluttua</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>Koskee kaikkia tämän keskustelun jäseniä; he voivat silti kopioida, tallentaa ja välittää viestejä.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>1 vuoden kuluttua</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>%1 vuoden kuluttua</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>%1 viikon kuluttua</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>%1 päivän kuluttua</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>%1 tunnin kuluttua</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>%1 minuutin kuluttua</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>1 sekunnin kuluttua</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>%1 sekunnin kuluttua</translation>
     </message>
 </context>
 <context>
@@ -353,85 +381,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>Ei koskaan</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>Enintään 256 kt</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>Enintään 512 kt</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>Enintään 1 Mt</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>Enintään 2 Mt</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>Enintään 5 Mt</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>Aina</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>Viestit</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>Miten *tähdillä* ja `gravis-merkeillä` kirjoitettu viesti näytetään.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>Muotoiltuna: lihavointi, kursiivi, linkit</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>Poistettuna: vain sanat</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>Kuten kirjoitettu</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>Lataa liitteet automaattisesti</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>Suuremmat odottavat, kunnes pyydät niitä. Koskee kaikkia profiileja ja tästä lähtien saapuvia viestejä.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>Linkit</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>Poista seuranta linkeistä</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>Tunnetut seurantaparametrit – klikkaustunnisteet, kampanjatunnisteet, jakajan tili – poistetaan lähettämiesi viestien linkeistä. Linkin loppuosa jää ennalleen.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -440,10 +389,6 @@
     <message>
         <source>Leave group</source>
         <translation>Poistu ryhmästä</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>Poistutaan ryhmästä</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -477,32 +422,29 @@
         <source>Removing</source>
         <translation>Poistetaan</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Kaikki ryhmässä näkevät nimen</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>Keskustelu</translation>
+        <source>Leave group</source>
+        <translation>Poistu ryhmästä</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>Lue QR-koodi</translation>
+        <source>Leave</source>
+        <translation>Poistu</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>Kutsu</translation>
+        <source>Cancel</source>
+        <translation>Peruuta</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>Anna jonkun lukea tämä koodi tai lähetä hänelle linkki. Lisää joku hänen koodistaan vetämällä alas.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>Haetaan...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>Kopioi kutsulinkki</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>Poistutaanko ryhmästä %1? Et saa enää sen viestejä, ja vain jäsen voi lisätä sinut takaisin.</translation>
     </message>
 </context>
 <context>
@@ -536,14 +478,6 @@
         <translation>Keskustelu</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>Uusi ryhmä</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>Uusi yhteystieto</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>Uusi keskustelu</translation>
     </message>
@@ -556,8 +490,8 @@
         <translation>Ei vielä yhteystietoja</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>Lue jonkun kutsu vetämällä alas</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>Lue jonkun kutsu keskusteluluettelosta: QR-koodi</translation>
     </message>
 </context>
 <context>
@@ -602,18 +536,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>Yhdistetty</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>Yhdistetty, lähettää ja vastaanottaa</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>Yhdistetään</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>Ei yhteyttä</translation>
     </message>
@@ -622,20 +544,12 @@
         <translation>Tarkistetaan yhteyttä</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>Tarkista yhteys</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>Profiili</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>Poista kuva</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>Nimi</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -677,6 +591,31 @@
     <message>
         <source>Saved</source>
         <translation>Tallennettu</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>Yhdistetty ja ajan tasalla</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>Yhdistetty, lähettää tai synkronoi viestejä</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>Yhdistetään välittäjään</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>%1 käytössä · %2 jäljellä, yhteensä %3</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>Välittäjä ei ole vielä ilmoittanut kiintiötään</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>Nimi jokaisessa lähettämässäsi viestissä</translation>
     </message>
 </context>
 <context>
@@ -726,6 +665,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Keskustelu</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR-koodi</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>Oma koodi</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>Lue koodi</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>Anna jonkun lukea tämä koodi tai lähetä hänelle linkki.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>Haetaan...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>Kopioi kutsulinkki</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>Kamera ei ole käytettävissä tällä laitteella.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -733,14 +707,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>Anna kutsulinkki</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>Lue QR-koodi</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -755,8 +725,8 @@
         <translation>Tai osoita kameralla koodia</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>Osoita kameralla kutsua tai chatmail-palvelimen koodia. Anna sen sijaan linkki vetämällä alas.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>Osoita kameralla jonkun kutsukoodia</translation>
     </message>
 </context>
 <context>
@@ -780,6 +750,85 @@
     <message>
         <source>Nothing found</source>
         <translation>Ei löytynyt mitään</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>Ei koskaan</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>Enintään 256 kt</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>Enintään 512 kt</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>Enintään 1 Mt</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>Enintään 2 Mt</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>Enintään 5 Mt</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Aina</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Asetukset</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Viestit</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>Miten *tähdillä* ja `gravis-merkeillä` kirjoitettu viesti näytetään.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>Muotoiltuna: lihavointi, kursiivi, linkit</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>Poistettuna: vain sanat</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>Kuten kirjoitettu</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>Lataa liitteet automaattisesti</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>Suuremmat odottavat, kunnes pyydät niitä. Koskee kaikkia profiileja ja tästä lähtien saapuvia viestejä.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Linkit</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>Poista seuranta linkeistä</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>Tunnetut seurantaparametrit – klikkaustunnisteet, kampanjatunnisteet, jakajan tili – poistetaan lähettämiesi viestien linkeistä. Linkin loppuosa jää ennalleen.</translation>
     </message>
 </context>
 <context>

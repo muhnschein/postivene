@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>શરૂ કરવા નીચે ખેંચો</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>સેટિંગ્સ</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR કોડ</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>નવું જૂથ</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>ન વાંચેલ તરીકે નિશાન કરો</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>1 મિનિટ પછી</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>5 મિનિટ પછી</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>30 મિનિટ પછી</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>1 કલાક પછી</translation>
     </message>
@@ -309,24 +317,44 @@
         <translation>1 અઠવાડિયા પછી</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>5 અઠવાડિયા પછી</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>ગાયબ થતા સંદેશ</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>%n સેકન્ડ પછી</numerusform>
-            <numerusform>%n સેકન્ડ પછી</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>આ ચેટના બધા સભ્યોને લાગુ; તેઓ હજી પણ સંદેશ કૉપિ, સાચવી અને ફોરવર્ડ કરી શકે છે.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>1 વર્ષ પછી</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>%1 વર્ષ પછી</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>%1 અઠવાડિયા પછી</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>%1 દિવસ પછી</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>%1 કલાક પછી</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>%1 મિનિટ પછી</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>1 સેકન્ડ પછી</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>%1 સેકન્ડ પછી</translation>
     </message>
 </context>
 <context>
@@ -353,85 +381,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>ક્યારેય નહીં</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>256 kB સુધી</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>512 kB સુધી</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>1 MB સુધી</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>2 MB સુધી</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>5 MB સુધી</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>હંમેશા</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>સંદેશ</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>*તારા* અને `બૅકટિક` વડે લખેલો સંદેશ કેવી રીતે બતાવવો.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>સજાવેલ: બોલ્ડ, ત્રાંસુ, લિંક</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>કાઢી નાખેલ: ફક્ત શબ્દો</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>જેમ લખ્યું તેમ</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>જોડાણો આપોઆપ ડાઉનલોડ કરો</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>મોટાં જોડાણો તમે માગો ત્યાં સુધી રાહ જુએ છે. દરેક પ્રોફાઇલ અને હવેથી આવતા સંદેશને લાગુ.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>લિંક</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>લિંકમાંથી ટ્રૅકિંગ દૂર કરો</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>જાણીતા ટ્રૅકિંગ પેરામીટર – ક્લિક આઈડી, ઝુંબેશ ટૅગ, શેર કરનારનું ખાતું – તમે મોકલેલા સંદેશની લિંકમાંથી દૂર થાય છે. બાકીની લિંક જેમ હતી તેમ રહે છે.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -440,10 +389,6 @@
     <message>
         <source>Leave group</source>
         <translation>જૂથ છોડો</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>જૂથ છોડાઈ રહ્યું છે</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -477,32 +422,29 @@
         <source>Removing</source>
         <translation>દૂર કરવામાં આવે છે</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>જૂથમાં બધા નામ જુએ છે</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>ચેટ</translation>
+        <source>Leave group</source>
+        <translation>જૂથ છોડો</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>QR કોડ સ્કૅન કરો</translation>
+        <source>Leave</source>
+        <translation>છોડો</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>આમંત્રણ</translation>
+        <source>Cancel</source>
+        <translation>રદ કરો</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>કોઈને આ કોડ સ્કૅન કરવા દો, અથવા તેમને લિંક મોકલો. કોઈને તેમના કોડ પરથી ઉમેરવા નીચે ખેંચો.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>લાવવામાં આવે છે...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>આમંત્રણ લિંક કૉપિ કરો</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>%1 છોડવું છે? તમને તેના સંદેશા મળવાનું બંધ થશે, અને માત્ર કોઈ સભ્ય જ તમને પાછા ઉમેરી શકશે.</translation>
     </message>
 </context>
 <context>
@@ -536,14 +478,6 @@
         <translation>ચેટ</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>નવું જૂથ</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>નવો સંપર્ક</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>નવી ચેટ</translation>
     </message>
@@ -556,8 +490,8 @@
         <translation>હજી કોઈ સંપર્ક નથી</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>કોઈનું આમંત્રણ સ્કૅન કરવા નીચે ખેંચો</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>ચેટ સૂચિમાંથી કોઈનું આમંત્રણ સ્કૅન કરો: QR કોડ</translation>
     </message>
 </context>
 <context>
@@ -602,18 +536,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>જોડાયેલ</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>જોડાયેલ, મોકલી અને મેળવી રહ્યું છે</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>જોડાઈ રહ્યું છે</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>જોડાયેલ નથી</translation>
     </message>
@@ -622,20 +544,12 @@
         <translation>જોડાણ તપાસાઈ રહ્યું છે</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>જોડાણ તપાસો</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>પ્રોફાઇલ</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>ચિત્ર દૂર કરો</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>નામ</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -677,6 +591,31 @@
     <message>
         <source>Saved</source>
         <translation>સાચવ્યું</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>જોડાયેલ અને અદ્યતન</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>જોડાયેલ, સંદેશા મોકલી કે સમન્વયિત કરી રહ્યું છે</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>રિલે સાથે જોડાઈ રહ્યું છે</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>%3માંથી %1 વપરાયેલ · %2 બાકી</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>રિલેએ હજી તેનો ક્વોટા જણાવ્યો નથી</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>તમે મોકલો છો તે દરેક સંદેશા પરનું નામ</translation>
     </message>
 </context>
 <context>
@@ -726,6 +665,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>ચેટ</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR કોડ</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>મારો કોડ</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>સ્કૅન કરો</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>કોઈને આ કોડ સ્કૅન કરવા દો, અથવા તેમને લિંક મોકલો.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>લાવવામાં આવે છે...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>આમંત્રણ લિંક કૉપિ કરો</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>આ ઉપકરણ પર કૅમેરા ઉપલબ્ધ નથી.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -733,14 +707,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>આમંત્રણ લિંક દાખલ કરો</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>QR કોડ સ્કૅન કરો</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -755,8 +725,8 @@
         <translation>અથવા કૅમેરા કોડ તરફ રાખો</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>કૅમેરા આમંત્રણ અથવા chatmail સર્વર કોડ તરફ રાખો. તેના બદલે લિંક દાખલ કરવા નીચે ખેંચો.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>કૅમેરા કોઈના આમંત્રણ કોડ તરફ રાખો</translation>
     </message>
 </context>
 <context>
@@ -780,6 +750,85 @@
     <message>
         <source>Nothing found</source>
         <translation>કંઈ મળ્યું નહીં</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>ક્યારેય નહીં</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>256 kB સુધી</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>512 kB સુધી</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>1 MB સુધી</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>2 MB સુધી</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>5 MB સુધી</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>હંમેશા</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>સેટિંગ્સ</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>સંદેશ</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>*તારા* અને `બૅકટિક` વડે લખેલો સંદેશ કેવી રીતે બતાવવો.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>સજાવેલ: બોલ્ડ, ત્રાંસુ, લિંક</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>કાઢી નાખેલ: ફક્ત શબ્દો</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>જેમ લખ્યું તેમ</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>જોડાણો આપોઆપ ડાઉનલોડ કરો</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>મોટાં જોડાણો તમે માગો ત્યાં સુધી રાહ જુએ છે. દરેક પ્રોફાઇલ અને હવેથી આવતા સંદેશને લાગુ.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>લિંક</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>લિંકમાંથી ટ્રૅકિંગ દૂર કરો</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>જાણીતા ટ્રૅકિંગ પેરામીટર – ક્લિક આઈડી, ઝુંબેશ ટૅગ, શેર કરનારનું ખાતું – તમે મોકલેલા સંદેશની લિંકમાંથી દૂર થાય છે. બાકીની લિંક જેમ હતી તેમ રહે છે.</translation>
     </message>
 </context>
 <context>

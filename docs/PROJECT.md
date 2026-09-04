@@ -470,29 +470,20 @@ In order of what matters:
 
    Restarting `deltachat-rpc-server` after it dies is done: see the
    architecture note above.
-3. **Translating the page in the Settings app.** The catalogs carry
-   `GeneralSettingsPage`'s strings, but that page runs inside
-   `jolla-settings`, which loads catalogs of its own from
-   `/usr/share/translations` and nothing from an app's directory -- so
-   the three settings there are shown in English whatever the phone's
-   language. Shipping a catalog where the Settings app looks is one more
-   path Harbour does not allow, on top of the entry file already waived,
-   and whether the Settings app would load it is not something the tree
-   can prove. Left as is until a device says which.
-4. **Blocking** outside a request; a media grid on the group and contact
+3. **Blocking** outside a request; a media grid on the group and contact
    pages; add-as-second-device and restore-from-backup, which are now the
    only ways an existing profile could arrive, the mailbox login page
    having gone; parla's "discover relays from contacts" on the add-profile
    dialog, and its per-conversation storage breakdown behind the quota bar.
-5. **Message polish**: avatars on bubbles, an unread divider, and a way
+4. **Message polish**: avatars on bubbles, an unread divider, and a way
    to react with an emoji the quick row does not offer.
-6. **Recording a voice message, and taking a picture.** Sending every
+5. **Recording a voice message, and taking a picture.** Sending every
    kind of attachment works; making one does not. QML has no audio
    recorder on Qt 5.6 -- `harbour-whisperfish` wrote its own against
    gstreamer -- so a voice note needs native code, an `unsafe` exception
    and the `Microphone` permission. The camera is already granted for the
    QR scanner, so a picture is the smaller step.
-7. **Running a webxdc app.** Sending one already works and the conversation
+6. **Running a webxdc app.** Sending one already works and the conversation
    names it honestly; running it needs `Sailfish.WebView`, the `WebView`
    permission and the webxdc bridge.
 

@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>ప్రారంభించడానికి కిందికి లాగండి</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>సెట్టింగ్‌లు</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR కోడ్</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>కొత్త గుంపు</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>చదవనట్లు గుర్తించు</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>1 నిమిషం తర్వాత</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>5 నిమిషాల తర్వాత</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>30 నిమిషాల తర్వాత</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>1 గంట తర్వాత</translation>
     </message>
@@ -309,24 +317,44 @@
         <translation>1 వారం తర్వాత</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>5 వారాల తర్వాత</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>అదృశ్యమయ్యే సందేశాలు</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>%n సెకను తర్వాత</numerusform>
-            <numerusform>%n సెకన్ల తర్వాత</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>ఈ చాట్‌లోని సభ్యులందరికీ వర్తిస్తుంది; వారు ఇప్పటికీ సందేశాలను కాపీ చేయవచ్చు, సేవ్ చేయవచ్చు, ఫార్వర్డ్ చేయవచ్చు.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>1 సంవత్సరం తర్వాత</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>%1 సంవత్సరాల తర్వాత</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>%1 వారాల తర్వాత</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>%1 రోజుల తర్వాత</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>%1 గంటల తర్వాత</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>%1 నిమిషాల తర్వాత</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>1 సెకను తర్వాత</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>%1 సెకన్ల తర్వాత</translation>
     </message>
 </context>
 <context>
@@ -353,85 +381,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>ఎప్పుడూ కాదు</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>256 kB వరకు</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>512 kB వరకు</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>1 MB వరకు</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>2 MB వరకు</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>5 MB వరకు</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>ఎల్లప్పుడూ</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>సందేశాలు</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>*నక్షత్రాలు* మరియు `బ్యాక్‌టిక్‌లు`తో రాసిన సందేశం ఎలా చూపబడుతుంది.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>అలంకరించినది: బోల్డ్, ఇటాలిక్, లింక్‌లు</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>తీసివేసినది: పదాలు మాత్రమే</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>రాసినట్లుగానే</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>జోడింపులను ఆటోమేటిక్‌గా డౌన్‌లోడ్ చేయి</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>పెద్దవి మీరు అడిగే వరకు వేచి ఉంటాయి. ప్రతి ప్రొఫైల్‌కు, ఇప్పటి నుండి వచ్చే సందేశాలకు వర్తిస్తుంది.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>లింక్‌లు</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>లింక్‌ల నుండి ట్రాకింగ్ తీసివేయి</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>తెలిసిన ట్రాకింగ్ పారామితులు – క్లిక్ ఐడీలు, ప్రచార ట్యాగ్‌లు, పంచుకున్నవారి ఖాతా – మీరు పంపే సందేశాల్లోని లింక్‌ల నుండి తీసివేయబడతాయి. లింక్‌లోని మిగిలిన భాగం ఉన్నట్లే ఉంటుంది.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -440,10 +389,6 @@
     <message>
         <source>Leave group</source>
         <translation>గుంపు నుండి నిష్క్రమించు</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>గుంపు నుండి నిష్క్రమిస్తోంది</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -477,32 +422,29 @@
         <source>Removing</source>
         <translation>తీసివేస్తోంది</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>గుంపులో అందరూ పేరును చూస్తారు</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>చాట్</translation>
+        <source>Leave group</source>
+        <translation>గుంపు నుండి నిష్క్రమించు</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>QR కోడ్ స్కాన్ చేయి</translation>
+        <source>Leave</source>
+        <translation>నిష్క్రమించు</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>ఆహ్వానం</translation>
+        <source>Cancel</source>
+        <translation>రద్దు చేయి</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>ఎవరినైనా ఈ కోడ్‌ను స్కాన్ చేయనివ్వండి, లేదా వారికి లింక్ పంపండి. ఎవరినైనా వారి కోడ్ నుండి చేర్చడానికి కిందికి లాగండి.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>తెస్తోంది...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>ఆహ్వాన లింక్‌ను కాపీ చేయి</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>%1 నుండి నిష్క్రమించాలా? దాని సందేశాలు మీకు ఇక రావు, మరియు ఒక సభ్యుడు మాత్రమే మిమ్మల్ని తిరిగి చేర్చగలరు.</translation>
     </message>
 </context>
 <context>
@@ -536,14 +478,6 @@
         <translation>చాట్</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>కొత్త గుంపు</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>కొత్త పరిచయం</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>కొత్త చాట్</translation>
     </message>
@@ -556,8 +490,8 @@
         <translation>ఇంకా పరిచయాలు లేవు</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>ఎవరిదైనా ఆహ్వానాన్ని స్కాన్ చేయడానికి కిందికి లాగండి</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>చాట్ జాబితా నుండి ఎవరిదైనా ఆహ్వానాన్ని స్కాన్ చేయండి: QR కోడ్</translation>
     </message>
 </context>
 <context>
@@ -602,18 +536,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>కనెక్ట్ అయింది</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>కనెక్ట్ అయింది, పంపుతోంది మరియు అందుకుంటోంది</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>కనెక్ట్ అవుతోంది</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>కనెక్ట్ కాలేదు</translation>
     </message>
@@ -622,20 +544,12 @@
         <translation>కనెక్షన్ తనిఖీ చేస్తోంది</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>కనెక్షన్ తనిఖీ చేయి</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>ప్రొఫైల్</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>చిత్రాన్ని తీసివేయి</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>పేరు</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -677,6 +591,31 @@
     <message>
         <source>Saved</source>
         <translation>సేవ్ చేయబడింది</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>కనెక్ట్ అయింది, తాజాగా ఉంది</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>కనెక్ట్ అయింది, సందేశాలను పంపుతోంది లేదా సింక్ చేస్తోంది</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>రిలేకు కనెక్ట్ అవుతోంది</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>%3లో %1 వాడబడింది · %2 మిగిలింది</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>రిలే తన కోటాను ఇంకా తెలియజేయలేదు</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>మీరు పంపే ప్రతి సందేశంపై ఉండే పేరు</translation>
     </message>
 </context>
 <context>
@@ -726,6 +665,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>చాట్</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR కోడ్</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>నా కోడ్</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>స్కాన్ చేయి</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>ఎవరైనా ఈ కోడ్‌ను స్కాన్ చేయనివ్వండి, లేదా వారికి లింక్ పంపండి.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>తెస్తోంది...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>ఆహ్వాన లింక్‌ను కాపీ చేయి</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>ఈ పరికరంలో కెమెరా అందుబాటులో లేదు.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -733,14 +707,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>ఆహ్వాన లింక్ నమోదు చేయి</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>QR కోడ్ స్కాన్ చేయి</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -755,8 +725,8 @@
         <translation>లేదా కెమెరాను కోడ్ వైపు చూపండి</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>కెమెరాను ఆహ్వానం లేదా chatmail సర్వర్ కోడ్ వైపు చూపండి. బదులుగా లింక్ నమోదు చేయడానికి కిందికి లాగండి.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>కెమెరాను ఎవరిదైనా ఆహ్వాన కోడ్ వైపు చూపండి</translation>
     </message>
 </context>
 <context>
@@ -780,6 +750,85 @@
     <message>
         <source>Nothing found</source>
         <translation>ఏమీ దొరకలేదు</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>ఎప్పుడూ కాదు</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>256 kB వరకు</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>512 kB వరకు</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>1 MB వరకు</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>2 MB వరకు</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>5 MB వరకు</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>ఎల్లప్పుడూ</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>సెట్టింగ్‌లు</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>సందేశాలు</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>*నక్షత్రాలు* మరియు `బ్యాక్‌టిక్‌లు`తో రాసిన సందేశం ఎలా చూపబడుతుంది.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>అలంకరించినది: బోల్డ్, ఇటాలిక్, లింక్‌లు</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>తీసివేసినది: పదాలు మాత్రమే</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>రాసినట్లుగానే</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>జోడింపులను ఆటోమేటిక్‌గా డౌన్‌లోడ్ చేయి</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>పెద్దవి మీరు అడిగే వరకు వేచి ఉంటాయి. ప్రతి ప్రొఫైల్‌కు, ఇప్పటి నుండి వచ్చే సందేశాలకు వర్తిస్తుంది.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>లింక్‌లు</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>లింక్‌ల నుండి ట్రాకింగ్ తీసివేయి</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>తెలిసిన ట్రాకింగ్ పారామితులు – క్లిక్ ఐడీలు, ప్రచార ట్యాగ్‌లు, పంచుకున్నవారి ఖాతా – మీరు పంపే సందేశాల్లోని లింక్‌ల నుండి తీసివేయబడతాయి. లింక్‌లోని మిగిలిన భాగం ఉన్నట్లే ఉంటుంది.</translation>
     </message>
 </context>
 <context>

@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>Trascina verso il basso per iniziarne una</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>Impostazioni</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>Codice QR</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Nuovo gruppo</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>Segna come non letta</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>Dopo 1 minuto</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>Dopo 5 minuti</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>Dopo 30 minuti</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>Dopo 1 ora</translation>
     </message>
@@ -309,24 +317,44 @@
         <translation>Dopo 1 settimana</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>Dopo 5 settimane</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>Messaggi a scomparsa</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>Dopo %n secondo</numerusform>
-            <numerusform>Dopo %n secondi</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>Vale per tutti i membri di questa chat; possono comunque copiare, salvare e inoltrare i messaggi.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>Dopo 1 anno</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>Dopo %1 anni</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>Dopo %1 settimane</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>Dopo %1 giorni</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>Dopo %1 ore</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>Dopo %1 minuti</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>Dopo 1 secondo</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>Dopo %1 secondi</translation>
     </message>
 </context>
 <context>
@@ -353,85 +381,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>Mai</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>Fino a 256 kB</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>Fino a 512 kB</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>Fino a 1 MB</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>Fino a 2 MB</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>Fino a 5 MB</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>Sempre</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>Messaggi</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>Come viene mostrato un messaggio scritto con *asterischi* e `accenti gravi`.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>Resi: grassetto, corsivo, link</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>Rimossi: solo le parole</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>Come scritto</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>Scarica automaticamente gli allegati</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>Quelli più grandi aspettano finché non li richiedi. Vale per ogni profilo e per i messaggi che arrivano da ora in poi.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>Link</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>Rimuovi il tracciamento dai link</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>I parametri di tracciamento noti – ID di clic, tag di campagna, l&apos;account di chi condivide – vengono tolti dai link nei messaggi che invii. Il resto del link resta com&apos;era.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -440,10 +389,6 @@
     <message>
         <source>Leave group</source>
         <translation>Abbandona il gruppo</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>Abbandono del gruppo</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -477,32 +422,29 @@
         <source>Removing</source>
         <translation>Rimozione</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Tutti nel gruppo vedono il nome</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>Chat</translation>
+        <source>Leave group</source>
+        <translation>Abbandona il gruppo</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>Scansiona codice QR</translation>
+        <source>Leave</source>
+        <translation>Abbandona</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>Invito</translation>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>Fai scansionare questo codice a qualcuno, o mandagli il link. Per aggiungere qualcuno dal suo codice, trascina verso il basso.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>Recupero...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>Copia link di invito</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>Abbandonare %1? Non riceverai più i suoi messaggi, e solo un membro potrà aggiungerti di nuovo.</translation>
     </message>
 </context>
 <context>
@@ -536,14 +478,6 @@
         <translation>Chat</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>Nuovo gruppo</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>Nuovo contatto</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>Nuova chat</translation>
     </message>
@@ -556,8 +490,8 @@
         <translation>Ancora nessun contatto</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>Trascina verso il basso per scansionare l&apos;invito di qualcuno</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>Scansiona l&apos;invito di qualcuno dall&apos;elenco delle chat: Codice QR</translation>
     </message>
 </context>
 <context>
@@ -602,18 +536,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>Connesso</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>Connesso, invio e ricezione in corso</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>Connessione in corso</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>Non connesso</translation>
     </message>
@@ -622,20 +544,12 @@
         <translation>Verifica della connessione</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>Verifica connessione</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>Profilo</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>Rimuovi immagine</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>Nome</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -677,6 +591,31 @@
     <message>
         <source>Saved</source>
         <translation>Salvato</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>Connesso e aggiornato</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>Connesso, invio o sincronizzazione dei messaggi in corso</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>Connessione al relay in corso</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>%1 usati · %2 liberi su %3</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>Il relay non ha ancora comunicato la sua quota</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>Il nome su ogni messaggio che invii</translation>
     </message>
 </context>
 <context>
@@ -726,6 +665,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Chat</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>Codice QR</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>Il mio codice</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>Scansiona</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>Fai scansionare questo codice a qualcuno, oppure inviagli il link.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>Recupero...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>Copia link di invito</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>La fotocamera non è disponibile su questo dispositivo.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -733,14 +707,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>Inserisci link di invito</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>Scansiona codice QR</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -755,8 +725,8 @@
         <translation>Oppure punta la fotocamera sul codice</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>Punta la fotocamera su un invito o su un codice di server chatmail. Trascina verso il basso per inserire invece un link.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>Punta la fotocamera sul codice di invito di qualcuno</translation>
     </message>
 </context>
 <context>
@@ -780,6 +750,85 @@
     <message>
         <source>Nothing found</source>
         <translation>Nessun risultato</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>Mai</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>Fino a 256 kB</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>Fino a 512 kB</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>Fino a 1 MB</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>Fino a 2 MB</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>Fino a 5 MB</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Sempre</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Impostazioni</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Messaggi</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>Come viene mostrato un messaggio scritto con *asterischi* e `accenti gravi`.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>Resi: grassetto, corsivo, link</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>Rimossi: solo le parole</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>Come scritto</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>Scarica automaticamente gli allegati</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>Quelli più grandi aspettano finché non li richiedi. Vale per ogni profilo e per i messaggi che arrivano da ora in poi.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Link</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>Rimuovi il tracciamento dai link</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>I parametri di tracciamento noti – ID di clic, tag di campagna, l&apos;account di chi condivide – vengono tolti dai link nei messaggi che invii. Il resto del link resta com&apos;era.</translation>
     </message>
 </context>
 <context>

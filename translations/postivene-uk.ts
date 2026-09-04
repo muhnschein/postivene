@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>Потягніть вниз, щоб почати</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>Налаштування</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR-код</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Нова група</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>Позначити непрочитаним</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>Через 1 хвилину</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>Через 5 хвилин</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>Через 30 хвилин</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>Через 1 годину</translation>
     </message>
@@ -309,25 +317,44 @@
         <translation>Через 1 тиждень</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>Через 5 тижнів</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>Зникаючі повідомлення</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>Через %n секунду</numerusform>
-            <numerusform>Через %n секунди</numerusform>
-            <numerusform>Через %n секунд</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>Діє для всіх учасників цього чату; вони й далі можуть копіювати, зберігати та пересилати повідомлення.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>Через 1 рік</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>Через %1 р.</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>Через %1 тиж.</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>Через %1 дн.</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>Через %1 год.</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>Через %1 хв.</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>Через 1 секунду</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>Через %1 сек.</translation>
     </message>
 </context>
 <context>
@@ -355,85 +382,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>Ніколи</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>До 256 кБ</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>До 512 кБ</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>До 1 МБ</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>До 2 МБ</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>До 5 МБ</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>Завжди</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>Повідомлення</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>Як показувати повідомлення, написане із *зірочками* та `зворотними лапками`.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>Оформлено: жирний, курсив, посилання</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>Прибрано: лише слова</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>Як написано</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>Автоматично завантажувати вкладення</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>Більші чекають, доки ви їх не запитаєте. Діє для всіх профілів і для повідомлень, що надходять відтепер.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>Посилання</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>Прибирати відстеження з посилань</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>Відомі параметри відстеження — ідентифікатори кліків, мітки кампаній, обліковий запис того, хто поділився — прибираються з посилань у ваших надісланих повідомленнях. Решта посилання лишається як є.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -442,10 +390,6 @@
     <message>
         <source>Leave group</source>
         <translation>Покинути групу</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>Вихід із групи</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -480,32 +424,29 @@
         <source>Removing</source>
         <translation>Видалення</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Назву бачать усі в групі</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>Чат</translation>
+        <source>Leave group</source>
+        <translation>Покинути групу</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>Сканувати QR-код</translation>
+        <source>Leave</source>
+        <translation>Покинути</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>Запрошення</translation>
+        <source>Cancel</source>
+        <translation>Скасувати</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>Дайте комусь відсканувати цей код або надішліть посилання. Щоб додати когось за його кодом, потягніть вниз.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>Отримання...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>Копіювати посилання-запрошення</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>Покинути %1? Ви перестанете отримувати її повідомлення, і повернути вас зможе лише учасник.</translation>
     </message>
 </context>
 <context>
@@ -539,14 +480,6 @@
         <translation>Чат</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>Нова група</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>Новий контакт</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>Новий чат</translation>
     </message>
@@ -559,8 +492,8 @@
         <translation>Контактів ще немає</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>Потягніть вниз, щоб відсканувати чиєсь запрошення</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>Відскануйте чиєсь запрошення зі списку чатів: QR-код</translation>
     </message>
 </context>
 <context>
@@ -605,18 +538,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>Під&apos;єднано</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>Під&apos;єднано, надсилання та отримання</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>Під&apos;єднання</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>Немає з&apos;єднання</translation>
     </message>
@@ -625,20 +546,12 @@
         <translation>Перевірка з&apos;єднання</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>Перевірити з&apos;єднання</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>Профіль</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>Видалити зображення</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>Ім&apos;я</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -680,6 +593,31 @@
     <message>
         <source>Saved</source>
         <translation>Збережено</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>Під&apos;єднано, все актуально</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>Під&apos;єднано, надсилання або синхронізація повідомлень</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>Під&apos;єднання до релею</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>Зайнято %1 · вільно %2 з %3</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>Релей ще не повідомив свою квоту</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>Ім&apos;я на кожному повідомленні, яке ви надсилаєте</translation>
     </message>
 </context>
 <context>
@@ -729,6 +667,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Чат</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR-код</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>Мій код</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>Сканувати</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>Дайте комусь відсканувати цей код або надішліть йому посилання.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>Отримання...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>Копіювати посилання-запрошення</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>Камера недоступна на цьому пристрої.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -736,14 +709,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>Ввести посилання-запрошення</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>Сканувати QR-код</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -758,8 +727,8 @@
         <translation>Або наведіть камеру на код</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>Наведіть камеру на запрошення або на код chatmail-сервера. Потягніть вниз, щоб натомість ввести посилання.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>Наведіть камеру на чийсь код запрошення</translation>
     </message>
 </context>
 <context>
@@ -783,6 +752,85 @@
     <message>
         <source>Nothing found</source>
         <translation>Нічого не знайдено</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>Ніколи</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>До 256 кБ</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>До 512 кБ</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>До 1 МБ</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>До 2 МБ</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>До 5 МБ</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Завжди</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Налаштування</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Повідомлення</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>Як показувати повідомлення, написане із *зірочками* та `зворотними лапками`.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>Оформлено: жирний, курсив, посилання</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>Прибрано: лише слова</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>Як написано</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>Автоматично завантажувати вкладення</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>Більші чекають, доки ви їх не запитаєте. Діє для всіх профілів і для повідомлень, що надходять відтепер.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Посилання</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>Прибирати відстеження з посилань</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>Відомі параметри відстеження — ідентифікатори кліків, мітки кампаній, обліковий запис того, хто поділився — прибираються з посилань у ваших надісланих повідомленнях. Решта посилання лишається як є.</translation>
     </message>
 </context>
 <context>

@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>Velciet uz leju, lai sāktu</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>Iestatījumi</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR kods</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Jauna grupa</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>Atzīmēt kā nelasītu</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>Pēc 1 minūtes</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>Pēc 5 minūtēm</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>Pēc 30 minūtēm</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>Pēc 1 stundas</translation>
     </message>
@@ -309,25 +317,44 @@
         <translation>Pēc 1 nedēļas</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>Pēc 5 nedēļām</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>Pazūdošās ziņas</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>Pēc %n sekundes</numerusform>
-            <numerusform>Pēc %n sekundēm</numerusform>
-            <numerusform>Pēc %n sekundēm</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>Attiecas uz visiem šīs sarunas dalībniekiem; viņi joprojām var kopēt, saglabāt un pārsūtīt ziņas.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>Pēc 1 gada</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>Pēc %1 gadiem</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>Pēc %1 nedēļām</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>Pēc %1 dienām</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>Pēc %1 stundām</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>Pēc %1 minūtēm</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>Pēc 1 sekundes</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>Pēc %1 sekundēm</translation>
     </message>
 </context>
 <context>
@@ -355,85 +382,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>Nekad</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>Līdz 256 kB</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>Līdz 512 kB</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>Līdz 1 MB</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>Līdz 2 MB</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>Līdz 5 MB</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>Vienmēr</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>Ziņas</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>Kā tiek rādīta ziņa, kas rakstīta ar *zvaigznītēm* un `gravjiem`.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>Noformēts: treknraksts, slīpraksts, saites</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>Noņemts: tikai vārdi</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>Kā rakstīts</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>Automātiski lejupielādēt pielikumus</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>Lielākie gaida, līdz tos pieprasāt. Attiecas uz katru profilu un uz ziņām, kas pienāk no šī brīža.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>Saites</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>Noņemt izsekošanu no saitēm</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>Zināmie izsekošanas parametri – klikšķu ID, kampaņu birkas, kopīgotāja konts – tiek izņemti no saitēm jūsu sūtītajās ziņās. Pārējā saites daļa paliek, kāda bija.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -442,10 +390,6 @@
     <message>
         <source>Leave group</source>
         <translation>Pamest grupu</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>Pamet grupu</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -480,32 +424,29 @@
         <source>Removing</source>
         <translation>Izņem</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Nosaukumu redz visi grupā</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>Saruna</translation>
+        <source>Leave group</source>
+        <translation>Pamest grupu</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>Skenēt QR kodu</translation>
+        <source>Leave</source>
+        <translation>Pamest</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>Ielūgums</translation>
+        <source>Cancel</source>
+        <translation>Atcelt</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>Ļaujiet kādam noskenēt šo kodu vai nosūtiet saiti. Lai pievienotu kādu pēc viņa koda, velciet uz leju.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>Ielādē...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>Kopēt ielūguma saiti</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>Pamest %1? Jūs vairs nesaņemsiet tās ziņas, un atpakaļ jūs var pievienot tikai dalībnieks.</translation>
     </message>
 </context>
 <context>
@@ -539,14 +480,6 @@
         <translation>Saruna</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>Jauna grupa</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>Jauns kontakts</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>Jauna saruna</translation>
     </message>
@@ -559,8 +492,8 @@
         <translation>Vēl nav kontaktu</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>Velciet uz leju, lai noskenētu kāda ielūgumu</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>Skenējiet kāda ielūgumu no sarunu saraksta: QR kods</translation>
     </message>
 </context>
 <context>
@@ -605,18 +538,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>Savienots</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>Savienots, sūta un saņem</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>Savienojas</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>Nav savienojuma</translation>
     </message>
@@ -625,20 +546,12 @@
         <translation>Pārbauda savienojumu</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>Pārbaudīt savienojumu</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>Profils</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>Noņemt attēlu</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>Vārds</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -680,6 +593,31 @@
     <message>
         <source>Saved</source>
         <translation>Saglabāts</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>Savienots un aktuāls</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>Savienots, sūta vai sinhronizē ziņas</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>Savienojas ar releju</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>%1 izmantoti · %2 brīvi no %3</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>Relejs vēl nav ziņojis savu kvotu</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>Vārds uz katras jūsu sūtītās ziņas</translation>
     </message>
 </context>
 <context>
@@ -729,6 +667,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Saruna</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR kods</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>Mans kods</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>Skenēt</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>Ļaujiet kādam noskenēt šo kodu vai nosūtiet viņam saiti.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>Ielādē...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>Kopēt ielūguma saiti</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>Kamera šajā ierīcē nav pieejama.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -736,14 +709,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>Ievadīt ielūguma saiti</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>Skenēt QR kodu</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -758,8 +727,8 @@
         <translation>Vai pavērsiet kameru pret kodu</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>Pavērsiet kameru pret ielūgumu vai chatmail servera kodu. Velciet uz leju, lai tā vietā ievadītu saiti.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>Pavērsiet kameru pret kāda ielūguma kodu</translation>
     </message>
 </context>
 <context>
@@ -783,6 +752,85 @@
     <message>
         <source>Nothing found</source>
         <translation>Nekas nav atrasts</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>Nekad</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>Līdz 256 kB</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>Līdz 512 kB</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>Līdz 1 MB</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>Līdz 2 MB</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>Līdz 5 MB</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Vienmēr</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Iestatījumi</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Ziņas</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>Kā tiek rādīta ziņa, kas rakstīta ar *zvaigznītēm* un `gravjiem`.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>Noformēts: treknraksts, slīpraksts, saites</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>Noņemts: tikai vārdi</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>Kā rakstīts</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>Automātiski lejupielādēt pielikumus</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>Lielākie gaida, līdz tos pieprasāt. Attiecas uz katru profilu un uz ziņām, kas pienāk no šī brīža.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Saites</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>Noņemt izsekošanu no saitēm</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>Zināmie izsekošanas parametri – klikšķu ID, kampaņu birkas, kopīgotāja konts – tiek izņemti no saitēm jūsu sūtītajās ziņās. Pārējā saites daļa paliek, kāda bija.</translation>
     </message>
 </context>
 <context>

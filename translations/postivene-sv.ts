@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>Dra ner för att starta en</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>Inställningar</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR-kod</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Ny grupp</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>Markera som oläst</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>Efter 1 minut</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>Efter 5 minuter</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>Efter 30 minuter</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>Efter 1 timme</translation>
     </message>
@@ -309,24 +317,44 @@
         <translation>Efter 1 vecka</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>Efter 5 veckor</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>Försvinnande meddelanden</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>Efter %n sekund</numerusform>
-            <numerusform>Efter %n sekunder</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>Gäller alla medlemmar i den här chatten; de kan fortfarande kopiera, spara och vidarebefordra meddelanden.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>Efter 1 år</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>Efter %1 år</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>Efter %1 veckor</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>Efter %1 dagar</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>Efter %1 timmar</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>Efter %1 minuter</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>Efter 1 sekund</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>Efter %1 sekunder</translation>
     </message>
 </context>
 <context>
@@ -353,85 +381,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>Aldrig</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>Upp till 256 kB</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>Upp till 512 kB</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>Upp till 1 MB</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>Upp till 2 MB</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>Upp till 5 MB</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>Alltid</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>Meddelanden</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>Hur ett meddelande skrivet med *stjärnor* och `grava accenter` visas.</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>Ritat: fet, kursiv, länkar</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>Borttaget: bara orden</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>Som skrivet</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>Hämta bilagor automatiskt</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>Större väntar tills du ber om dem. Gäller varje profil och meddelanden som kommer från och med nu.</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>Länkar</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>Ta bort spårning från länkar</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>Kända spårningsparametrar – klick-id:n, kampanjtaggar, delarens konto – tas bort från länkarna i meddelandena du skickar. Resten av länken lämnas som den var.</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -440,10 +389,6 @@
     <message>
         <source>Leave group</source>
         <translation>Lämna grupp</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>Lämnar gruppen</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -477,32 +422,29 @@
         <source>Removing</source>
         <translation>Tar bort</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Alla i gruppen ser namnet</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>Chatt</translation>
+        <source>Leave group</source>
+        <translation>Lämna grupp</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>Skanna QR-kod</translation>
+        <source>Leave</source>
+        <translation>Lämna</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>Inbjudan</translation>
+        <source>Cancel</source>
+        <translation>Avbryt</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>Låt någon skanna den här koden, eller skicka länken. Dra ner för att lägga till någon från deras kod.</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>Hämtar...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>Kopiera inbjudningslänk</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>Lämna %1? Du slutar få dess meddelanden, och bara en medlem kan lägga till dig igen.</translation>
     </message>
 </context>
 <context>
@@ -536,14 +478,6 @@
         <translation>Chatt</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>Ny grupp</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>Ny kontakt</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>Ny chatt</translation>
     </message>
@@ -556,8 +490,8 @@
         <translation>Inga kontakter än</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>Dra ner för att skanna någons inbjudan</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>Skanna någons inbjudan från chattlistan: QR-kod</translation>
     </message>
 </context>
 <context>
@@ -602,18 +536,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>Ansluten</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>Ansluten, skickar och tar emot</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>Ansluter</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>Inte ansluten</translation>
     </message>
@@ -622,20 +544,12 @@
         <translation>Kontrollerar anslutningen</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>Kontrollera anslutning</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>Profil</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>Ta bort bild</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>Namn</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -677,6 +591,31 @@
     <message>
         <source>Saved</source>
         <translation>Sparat</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>Ansluten och uppdaterad</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>Ansluten, skickar eller synkroniserar meddelanden</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>Ansluter till relät</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>%1 använt · %2 kvar av %3</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>Relät har inte rapporterat sin kvot ännu</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>Namnet på varje meddelande du skickar</translation>
     </message>
 </context>
 <context>
@@ -726,6 +665,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Chatt</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR-kod</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>Min kod</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>Skanna</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>Låt någon skanna den här koden, eller skicka länken.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>Hämtar...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>Kopiera inbjudningslänk</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>Kameran är inte tillgänglig på den här enheten.</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -733,14 +707,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>Ange inbjudningslänk</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>Skanna QR-kod</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -755,8 +725,8 @@
         <translation>Eller rikta kameran mot koden</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>Rikta kameran mot en inbjudan eller en chatmail-serverkod. Dra ner för att ange en länk i stället.</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>Rikta kameran mot någons inbjudningskod</translation>
     </message>
 </context>
 <context>
@@ -780,6 +750,85 @@
     <message>
         <source>Nothing found</source>
         <translation>Inget hittades</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>Aldrig</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>Upp till 256 kB</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>Upp till 512 kB</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>Upp till 1 MB</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>Upp till 2 MB</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>Upp till 5 MB</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Alltid</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Inställningar</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Meddelanden</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>Hur ett meddelande skrivet med *stjärnor* och `grava accenter` visas.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>Ritat: fet, kursiv, länkar</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>Borttaget: bara orden</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>Som skrivet</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>Hämta bilagor automatiskt</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>Större väntar tills du ber om dem. Gäller varje profil och meddelanden som kommer från och med nu.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Länkar</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>Ta bort spårning från länkar</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>Kända spårningsparametrar – klick-id:n, kampanjtaggar, delarens konto – tas bort från länkarna i meddelandena du skickar. Resten av länken lämnas som den var.</translation>
     </message>
 </context>
 <context>

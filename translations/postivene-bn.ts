@@ -165,6 +165,22 @@
         <source>Pull down to start one</source>
         <translation>শুরু করতে নিচে টানুন</translation>
     </message>
+    <message>
+        <source>Settings</source>
+        <translation>সেটিংস</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR কোড</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>নতুন গ্রুপ</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>অপঠিত বলে চিহ্নিত করুন</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -289,14 +305,6 @@
         <translation>1 মিনিট পরে</translation>
     </message>
     <message>
-        <source>After 5 minutes</source>
-        <translation>5 মিনিট পরে</translation>
-    </message>
-    <message>
-        <source>After 30 minutes</source>
-        <translation>30 মিনিট পরে</translation>
-    </message>
-    <message>
         <source>After 1 hour</source>
         <translation>1 ঘণ্টা পরে</translation>
     </message>
@@ -309,24 +317,44 @@
         <translation>1 সপ্তাহ পরে</translation>
     </message>
     <message>
-        <source>After 5 weeks</source>
-        <translation>5 সপ্তাহ পরে</translation>
-    </message>
-    <message>
         <source>Disappearing messages</source>
         <translation>অদৃশ্য হওয়া বার্তা</translation>
-    </message>
-    <message numerus="yes">
-        <source>After %n second(s)</source>
-        <extracomment>A disappearing-messages duration not among the offered ones. %n is seconds.</extracomment>
-        <translation>
-            <numerusform>%n সেকেন্ড পরে</numerusform>
-            <numerusform>%n সেকেন্ড পরে</numerusform>
-        </translation>
     </message>
     <message>
         <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
         <translation>এই চ্যাটের সব সদস্যের জন্য প্রযোজ্য; তারা এখনও বার্তা কপি, সংরক্ষণ ও ফরওয়ার্ড করতে পারবে।</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>1 বছর পরে</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>%1 বছর পরে</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>%1 সপ্তাহ পরে</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>%1 দিন পরে</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>%1 ঘণ্টা পরে</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>%1 মিনিট পরে</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>1 সেকেন্ড পরে</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>%1 সেকেন্ড পরে</translation>
     </message>
 </context>
 <context>
@@ -353,85 +381,6 @@
     </message>
 </context>
 <context>
-    <name>GeneralSettingsPage</name>
-    <message>
-        <source>Never</source>
-        <translation>কখনও না</translation>
-    </message>
-    <message>
-        <source>Up to 256 kB</source>
-        <translation>সর্বোচ্চ 256 kB</translation>
-    </message>
-    <message>
-        <source>Up to 512 kB</source>
-        <translation>সর্বোচ্চ 512 kB</translation>
-    </message>
-    <message>
-        <source>Up to 1 MB</source>
-        <translation>সর্বোচ্চ 1 MB</translation>
-    </message>
-    <message>
-        <source>Up to 2 MB</source>
-        <translation>সর্বোচ্চ 2 MB</translation>
-    </message>
-    <message>
-        <source>Up to 5 MB</source>
-        <translation>সর্বোচ্চ 5 MB</translation>
-    </message>
-    <message>
-        <source>Always</source>
-        <translation>সবসময়</translation>
-    </message>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>বার্তা</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>How a message written with *stars* and `backticks` is shown.</source>
-        <translation>*তারকা* ও `ব্যাকটিক` দিয়ে লেখা বার্তা কীভাবে দেখানো হবে।</translation>
-    </message>
-    <message>
-        <source>Drawn: bold, italics, links</source>
-        <translation>সাজানো: বোল্ড, ইটালিক, লিংক</translation>
-    </message>
-    <message>
-        <source>Taken out: the words only</source>
-        <translation>বাদ দেওয়া: শুধু শব্দ</translation>
-    </message>
-    <message>
-        <source>As written</source>
-        <translation>যেমন লেখা হয়েছে</translation>
-    </message>
-    <message>
-        <source>Auto-download attachments</source>
-        <translation>সংযুক্তি স্বয়ংক্রিয়ভাবে ডাউনলোড করুন</translation>
-    </message>
-    <message>
-        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
-        <translation>বড়গুলো আপনি না চাওয়া পর্যন্ত অপেক্ষা করে। প্রতিটি প্রোফাইল এবং এখন থেকে আসা বার্তার জন্য প্রযোজ্য।</translation>
-    </message>
-    <message>
-        <source>Links</source>
-        <translation>লিংক</translation>
-    </message>
-    <message>
-        <source>Remove tracking from links</source>
-        <translation>লিংক থেকে ট্র্যাকিং সরান</translation>
-    </message>
-    <message>
-        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
-        <translation>পরিচিত ট্র্যাকিং প্যারামিটার – ক্লিক আইডি, ক্যাম্পেইন ট্যাগ, শেয়ারকারীর অ্যাকাউন্ট – আপনার পাঠানো বার্তার লিংক থেকে সরিয়ে দেওয়া হয়। লিংকের বাকি অংশ যেমন ছিল তেমনই থাকে।</translation>
-    </message>
-</context>
-<context>
     <name>GroupPage</name>
     <message>
         <source>Saved</source>
@@ -440,10 +389,6 @@
     <message>
         <source>Leave group</source>
         <translation>গ্রুপ ছাড়ুন</translation>
-    </message>
-    <message>
-        <source>Leaving group</source>
-        <translation>গ্রুপ ছাড়া হচ্ছে</translation>
     </message>
     <message>
         <source>Add members</source>
@@ -477,32 +422,29 @@
         <source>Removing</source>
         <translation>সরানো হচ্ছে</translation>
     </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>গ্রুপের সবাই নামটি দেখতে পায়</translation>
+    </message>
 </context>
 <context>
-    <name>InvitePage</name>
+    <name>LeaveGroupDialog</name>
     <message>
-        <source>Chat</source>
-        <translation>চ্যাট</translation>
+        <source>Leave group</source>
+        <translation>গ্রুপ ছাড়ুন</translation>
     </message>
     <message>
-        <source>Scan QR code</source>
-        <translation>QR কোড স্ক্যান করুন</translation>
+        <source>Leave</source>
+        <translation>ছাড়ুন</translation>
     </message>
     <message>
-        <source>Invite</source>
-        <translation>আমন্ত্রণ</translation>
+        <source>Cancel</source>
+        <translation>বাতিল</translation>
     </message>
     <message>
-        <source>Let someone scan this code, or send them the link. To add someone from their code, pull down.</source>
-        <translation>কাউকে এই কোডটি স্ক্যান করতে দিন, বা তাকে লিংকটি পাঠান। কারও কোড থেকে তাকে যোগ করতে নিচে টানুন।</translation>
-    </message>
-    <message>
-        <source>Fetching...</source>
-        <translation>আনা হচ্ছে...</translation>
-    </message>
-    <message>
-        <source>Copy Invite Link</source>
-        <translation>আমন্ত্রণ লিংক কপি করুন</translation>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>%1 ছাড়বেন? আপনি আর এর বার্তা পাবেন না, আর শুধু একজন সদস্যই আপনাকে আবার যোগ করতে পারবে।</translation>
     </message>
 </context>
 <context>
@@ -536,14 +478,6 @@
         <translation>চ্যাট</translation>
     </message>
     <message>
-        <source>New group</source>
-        <translation>নতুন গ্রুপ</translation>
-    </message>
-    <message>
-        <source>New contact</source>
-        <translation>নতুন পরিচিতি</translation>
-    </message>
-    <message>
         <source>New chat</source>
         <translation>নতুন চ্যাট</translation>
     </message>
@@ -556,8 +490,8 @@
         <translation>এখনও কোনো পরিচিতি নেই</translation>
     </message>
     <message>
-        <source>Pull down to scan someone&apos;s invite</source>
-        <translation>কারও আমন্ত্রণ স্ক্যান করতে নিচে টানুন</translation>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>চ্যাট তালিকা থেকে কারও আমন্ত্রণ স্ক্যান করুন: QR কোড</translation>
     </message>
 </context>
 <context>
@@ -602,18 +536,6 @@
 <context>
     <name>ProfilePage</name>
     <message>
-        <source>Connected</source>
-        <translation>সংযুক্ত</translation>
-    </message>
-    <message>
-        <source>Connected, sending and receiving</source>
-        <translation>সংযুক্ত, পাঠানো ও গ্রহণ চলছে</translation>
-    </message>
-    <message>
-        <source>Connecting</source>
-        <translation>সংযোগ করা হচ্ছে</translation>
-    </message>
-    <message>
         <source>Not connected</source>
         <translation>সংযুক্ত নয়</translation>
     </message>
@@ -622,20 +544,12 @@
         <translation>সংযোগ পরীক্ষা করা হচ্ছে</translation>
     </message>
     <message>
-        <source>Check connection</source>
-        <translation>সংযোগ পরীক্ষা করুন</translation>
-    </message>
-    <message>
         <source>Profile</source>
         <translation>প্রোফাইল</translation>
     </message>
     <message>
         <source>Remove picture</source>
         <translation>ছবি সরান</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation>নাম</translation>
     </message>
     <message>
         <source>Your name</source>
@@ -677,6 +591,31 @@
     <message>
         <source>Saved</source>
         <translation>সংরক্ষিত</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>সংযুক্ত এবং হালনাগাদ</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>সংযুক্ত, বার্তা পাঠানো বা সিঙ্ক করা হচ্ছে</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>রিলের সাথে সংযোগ করা হচ্ছে</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>%3-এর মধ্যে %1 ব্যবহৃত · %2 বাকি</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>রিলে এখনও তার কোটা জানায়নি</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>আপনার পাঠানো প্রতিটি বার্তায় যে নাম থাকে</translation>
     </message>
 </context>
 <context>
@@ -726,6 +665,41 @@
     </message>
 </context>
 <context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>চ্যাট</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR কোড</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>আমার কোড</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>স্ক্যান</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>কাউকে এই কোডটি স্ক্যান করতে দিন, বা তাকে লিংকটি পাঠান।</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>আনা হচ্ছে...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>আমন্ত্রণ লিংক কপি করুন</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>এই ডিভাইসে ক্যামেরা পাওয়া যাচ্ছে না।</translation>
+    </message>
+</context>
+<context>
     <name>ReplyBar</name>
     <message>
         <source>Replying to %1</source>
@@ -733,14 +707,10 @@
     </message>
 </context>
 <context>
-    <name>ScanPage</name>
+    <name>ScanView</name>
     <message>
         <source>Enter invite link</source>
         <translation>আমন্ত্রণ লিংক লিখুন</translation>
-    </message>
-    <message>
-        <source>Scan QR code</source>
-        <translation>QR কোড স্ক্যান করুন</translation>
     </message>
     <message>
         <source>Invite link</source>
@@ -755,8 +725,8 @@
         <translation>অথবা ক্যামেরা কোডের দিকে ধরুন</translation>
     </message>
     <message>
-        <source>Point the camera at an invite or a chatmail server code. Pull down to enter a link instead.</source>
-        <translation>ক্যামেরা একটি আমন্ত্রণ বা chatmail সার্ভার কোডের দিকে ধরুন। এর বদলে লিংক লিখতে নিচে টানুন।</translation>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>কারও আমন্ত্রণ কোডের দিকে ক্যামেরা ধরুন</translation>
     </message>
 </context>
 <context>
@@ -780,6 +750,85 @@
     <message>
         <source>Nothing found</source>
         <translation>কিছু পাওয়া যায়নি</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>কখনও না</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>সর্বোচ্চ 256 kB</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>সর্বোচ্চ 512 kB</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>সর্বোচ্চ 1 MB</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>সর্বোচ্চ 2 MB</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>সর্বোচ্চ 5 MB</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>সবসময়</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>সেটিংস</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>বার্তা</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>*তারকা* ও `ব্যাকটিক` দিয়ে লেখা বার্তা কীভাবে দেখানো হবে।</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>সাজানো: বোল্ড, ইটালিক, লিংক</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>বাদ দেওয়া: শুধু শব্দ</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>যেমন লেখা হয়েছে</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>সংযুক্তি স্বয়ংক্রিয়ভাবে ডাউনলোড করুন</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>বড়গুলো আপনি না চাওয়া পর্যন্ত অপেক্ষা করে। প্রতিটি প্রোফাইল এবং এখন থেকে আসা বার্তার জন্য প্রযোজ্য।</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>লিংক</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>লিংক থেকে ট্র্যাকিং সরান</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>পরিচিত ট্র্যাকিং প্যারামিটার – ক্লিক আইডি, ক্যাম্পেইন ট্যাগ, শেয়ারকারীর অ্যাকাউন্ট – আপনার পাঠানো বার্তার লিংক থেকে সরিয়ে দেওয়া হয়। লিংকের বাকি অংশ যেমন ছিল তেমনই থাকে।</translation>
     </message>
 </context>
 <context>

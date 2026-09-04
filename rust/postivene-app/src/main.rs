@@ -10,6 +10,7 @@ use std::path::PathBuf;
 use postivene_shim::DeltaChatCore;
 use qmetaobject::*;
 
+mod frames;
 mod memory_log;
 mod translations;
 
@@ -79,6 +80,11 @@ fn main() {
     let main_qml = qml_dir().join("postivene.qml");
     view.set_source(QString::from(main_qml.to_string_lossy().into_owned()));
     view.show();
+    // The developer view counts the frames the window presents; the
+    // connection needs the window, which exists once it is shown.
+    if !frames::hook() {
+        eprintln!("frames: no window to count on");
+    }
     view.engine().exec();
 
     // The window is gone; so should the server be, by our hand rather

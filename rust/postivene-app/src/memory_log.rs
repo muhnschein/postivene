@@ -42,36 +42,16 @@ fn report() -> String {
     format!("memory: app {app} resident, core {core}")
 }
 
-/// `VmRSS` of `/proc/<pid>/status`, in whole MiB.
+/// `VmRSS` of `/proc/<pid>/status`, in whole MiB. The developer view's
+/// recorder reads the same line, and more; this is the one-line version.
 fn resident_mib(pid: &str) -> Option<u64> {
     let status = std::fs::read_to_string(format!("/proc/{pid}/status")).ok()?;
-    resident_kib(&status).map(|kib| kib / 1024)
-}
-
-/// The `VmRSS:` line of a `/proc/<pid>/status`, in KiB.
-fn resident_kib(status: &str) -> Option<u64> {
-    status
-        .lines()
-        .find_map(|line| line.strip_prefix("VmRSS:"))
-        .and_then(|rest| rest.split_whitespace().next())
-        .and_then(|kib| kib.parse().ok())
+    postivene_shim::recorder::status_kib(&status, "VmRSS").map(|kib| kib / 1024)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn the_resident_size_is_read_off_the_status_file() {
-        let status =
-            "Name:\tharbour-postivene\nVmPeak:\t  912000 kB\nVmRSS:\t  262144 kB\nThreads:\t9\n";
-        assert_eq!(resident_kib(status), Some(262_144));
-        assert_eq!(
-            resident_kib("Name:\tx\nThreads:\t1\n"),
-            None,
-            "a status without VmRSS (a zombie's) must not read as zero"
-        );
-    }
 
     #[test]
     fn this_process_has_a_resident_size() {

@@ -28,6 +28,7 @@ mod models;
 mod prefetch;
 mod profile;
 mod qr;
+pub mod recorder;
 mod runtime;
 mod saver;
 mod search;
@@ -40,6 +41,7 @@ pub use crate::core::{server_path, server_pid, shutdown, DeltaChatCore, BUNDLED_
 pub use crate::prefetch::ChatPrefetch;
 pub use crate::profile::Profile;
 pub use crate::qr::{QrCode, QrScanner};
+pub use crate::recorder::DevRecorder;
 pub use crate::saver::FileSaver;
 pub use crate::search::SearchResults;
 
@@ -66,10 +68,11 @@ pub fn register_qml_types() {
     let Ok(info) = std::ffi::CStr::from_bytes_with_nul(b"ChatInfo\0") else {
         return;
     };
-    let (Ok(qr_code), Ok(qr_scanner), Ok(saver)) = (
+    let (Ok(qr_code), Ok(qr_scanner), Ok(saver), Ok(recorder)) = (
         std::ffi::CStr::from_bytes_with_nul(b"QrCode\0"),
         std::ffi::CStr::from_bytes_with_nul(b"QrScanner\0"),
         std::ffi::CStr::from_bytes_with_nul(b"FileSaver\0"),
+        std::ffi::CStr::from_bytes_with_nul(b"DevRecorder\0"),
     ) else {
         return;
     };
@@ -83,6 +86,7 @@ pub fn register_qml_types() {
     qmetaobject::qml_register_type::<QrCode>(uri, 1, 0, qr_code);
     qmetaobject::qml_register_type::<QrScanner>(uri, 1, 0, qr_scanner);
     qmetaobject::qml_register_type::<FileSaver>(uri, 1, 0, saver);
+    qmetaobject::qml_register_type::<DevRecorder>(uri, 1, 0, recorder);
 }
 pub use models::{
     AccountItem, ChatListItem, ChatListModel, ContactItem, ContactListModel, MessageListItem,

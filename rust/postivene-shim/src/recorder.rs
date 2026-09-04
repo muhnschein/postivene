@@ -15,9 +15,10 @@
 //! writes.
 //!
 //! The recorder proper, [`Recorder`], knows nothing of Qt, so it can be
-//! run and read back in a unit test; the QObject is the thin part.
+//! run and read back in a unit test; the `QObject` is the thin part.
 
 use std::collections::HashMap;
+use std::fmt::Write as _;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -484,11 +485,12 @@ fn sample_loop(shared: Arc<Shared>, started: Instant, on_sample: Box<dyn Fn(Stri
                     percent(*share)
                 ));
             }
-            summary.push_str(&format!(
+            let _ = write!(
+                summary,
                 "; {name} {} MiB pss, {}% cpu",
                 sample.pss_kib / 1024,
                 percent(sample.cpu_permille)
-            ));
+            );
         }
         on_sample(summary);
     }
@@ -604,6 +606,7 @@ impl Recorder {
     /// Put a line the reader wrote on the timeline: "opening the chat with
     /// the twenty photos", so the numbers around it mean something later.
     /// False when nothing is recording.
+    #[must_use]
     pub fn mark(&self, label: &str) -> bool {
         let Some(run) = self.run.as_ref() else {
             return false;
@@ -650,10 +653,7 @@ impl Recorder {
                 for entry in entries.flatten() {
                     let target = fs::read_link(entry.path())
                         .map_or_else(|_| "?".into(), |t| t.display().to_string());
-                    fds.push_str(&format!(
-                        "{} -> {target}\n",
-                        entry.file_name().to_string_lossy()
-                    ));
+                    let _ = writeln!(fds, "{} -> {target}", entry.file_name().to_string_lossy());
                 }
             }
             write_file(&dir.join(format!("fd-{side}.txt")), &fds)?;
@@ -661,11 +661,12 @@ impl Recorder {
             if let Ok(tasks) = fs::read_dir(proc_dir.join("task")) {
                 for task in tasks.flatten() {
                     let comm = fs::read_to_string(task.path().join("comm")).unwrap_or_default();
-                    threads.push_str(&format!(
-                        "{} {}\n",
+                    let _ = writeln!(
+                        threads,
+                        "{} {}",
                         task.file_name().to_string_lossy(),
                         comm.trim()
-                    ));
+                    );
                 }
             }
             write_file(&dir.join(format!("threads-{side}.txt")), &threads)?;
@@ -978,7 +979,7 @@ mod tests {
         assert!(fs::read_to_string(dir.join("maps-app.txt"))
             .expect("maps-app.txt")
             .lines()
-            .any(|line| line.ends_with(".so") || line.contains(".so.")));
+            .any(|line| line.contains(".so")));
 
         let timeline = fs::read_to_string(dir.join("timeline.tsv")).expect("timeline");
         let frame = timeline

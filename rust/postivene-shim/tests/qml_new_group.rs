@@ -1,7 +1,7 @@
 //! Making a group: named, pictured and peopled on one page, and handed to
 //! the core in one go.
 //!
-//! The page mirrors the group's own (qml_group_page.rs), so what is
+//! The page mirrors the group's own (`qml_group_page.rs`), so what is
 //! checked is the same shape: the reader among the members from the
 //! start, whoever the picker hands back drawn as a member, and creating
 //! refused until there is a name. The regression this file began as is
@@ -248,6 +248,7 @@ fn the_new_group_page_makes_the_group_it_shows() {
 
 /// The page refused an unnamed group, showed the members it was handed,
 /// and made the group with its name, its members and its picture.
+#[allow(clippy::too_many_lines)]
 fn assert_outcome(
     steps: &[(&str, String)],
     navigation: &str,

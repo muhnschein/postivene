@@ -67,6 +67,7 @@ const PROBE_QML: &str = r"
 ";
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn a_cover_with_only_oneself_and_the_device_says_there_are_no_messages() {
     let temp =
         std::env::temp_dir().join(format!("postivene-qml-cover-empty-{}", std::process::id()));

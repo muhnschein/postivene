@@ -3,7 +3,7 @@
 //! Two of its three states, on the fake core's two chats: the grid of
 //! everyone in grey while nothing is new, and whoever wrote drawn large
 //! and in colour, with the count, once something is. The third state --
-//! nobody yet -- is qml_cover_empty.rs, since it takes a core seeded
+//! nobody yet -- is `qml_cover_empty.rs`, since it takes a core seeded
 //! differently.
 
 // Qt harness: needs `unsafe` for `env::set_var` before Qt starts
@@ -25,7 +25,7 @@ use qmetaobject::*;
 
 mod common;
 
-/// Loads the cover at a size, since the stub CoverBackground has none of
+/// Loads the cover at a size, since the stub `CoverBackground` has none of
 /// its own, and reads it back.
 pub const PROBE_QML: &str = r"
     import QtQuick 2.0

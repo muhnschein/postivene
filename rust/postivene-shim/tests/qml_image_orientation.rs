@@ -196,18 +196,19 @@ fn assert_outcome(steps: &[(&str, String)]) {
          {context}"
     );
 
-    assert_eq!(
-        value("decoded-width"),
-        "8",
-        "the picture was decoded at its stored size rather than the size it \
+    // Twice as high as it is wide, whatever the size: the row bounds the
+    // decode with `sourceSize`, and the host's Qt (5.15) scales a picture
+    // to fit that bound in both directions, where the device's (5.6) only
+    // ever scales down. The turn is what is being checked, and it shows
+    // in the shape either way.
+    let width: f64 = value("decoded-width").parse().unwrap_or(0.0);
+    let height: f64 = value("decoded-height").parse().unwrap_or(0.0);
+    assert!(
+        width > 0.0 && (height - 2.0 * width).abs() < 0.01,
+        "the picture was decoded at its stored shape rather than the shape it \
          is meant to be seen at: `autoTransform` is what reads the \
          orientation tag, and without it a photo taken in portrait lies on \
          its side. {context}"
-    );
-    assert_eq!(
-        value("decoded-height"),
-        "16",
-        "the picture was decoded at its stored size. {context}"
     );
 
     // 160 wide, twice as high as it is wide once turned.

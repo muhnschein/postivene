@@ -25,7 +25,10 @@ Item {
 
     /// The reader asked to open the attachment. The URL rather than the
     /// path: the encoding it needs is already done once, in the preview.
-    signal openRequested(url fileUrl, string fileName, string viewType)
+    /// `previewWidth` is how wide the picture was drawn here, so a page
+    /// opening it full screen can start from the same decode.
+    signal openRequested(url fileUrl, string fileName, string viewType,
+                         real previewWidth)
     /// The reader asked for the rest of a message the core holds only
     /// the header of.
     signal downloadRequested()
@@ -78,6 +81,8 @@ Item {
     property string viewType: "Text"
     property int imageWidth: 0
     property int imageHeight: 0
+    /// A message the reader has not seen before; see AttachmentPreview.
+    property bool isNew: false
     // A shared contact, parsed by the core.
     property string vcardName: ""
     property string vcardAddr: ""
@@ -300,6 +305,7 @@ Item {
             viewType: root.viewType
             imageWidth: root.imageWidth
             imageHeight: root.imageHeight
+            isNew: root.isNew
             vcardName: root.vcardName
             vcardAddr: root.vcardAddr
             vcardColor: root.vcardColor
@@ -308,7 +314,8 @@ Item {
             // opening an attachment means is a page's decision, and a
             // delegate cannot push one.
             onOpenRequested: root.openRequested(attachment.fileUrl,
-                                                root.fileName, root.viewType)
+                                                root.fileName, root.viewType,
+                                                attachment.contentWidth)
         }
 
         Label {

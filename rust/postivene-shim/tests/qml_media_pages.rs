@@ -138,6 +138,12 @@ const PROBE_QML: &str = r"
             if (!item) { return 'missing:' + name }
             return '' + item[property]
         }
+        /// How wide an image asks to be decoded.
+        function decodeWidthOf(name) {
+            var item = findIn(loader.item, name)
+            if (!item) { return 'missing:' + name }
+            return '' + item.sourceSize.width
+        }
         function setOn(name, property, value) {
             var item = findIn(loader.item, name)
             if (!item) { return 'missing:' + name }
@@ -209,6 +215,7 @@ fn pictures_and_video_open_here_and_everything_else_goes_to_the_system() {
     // Resolved once: each closure below takes what it needs by value.
     let picture_page = common::page_url_in(&tree, "PicturePage.qml");
     let gif_page = picture_page.clone();
+    let row_page = picture_page.clone();
     let video_page = common::page_url_in(&tree, "VideoPage.qml");
     single_shot(Duration::from_secs(1), move || unsafe {
         (*steps_ptr).push((
@@ -301,6 +308,52 @@ fn pictures_and_video_open_here_and_everything_else_goes_to_the_system() {
                 "flagOf",
                 QString::from("fullAnimation"),
                 QString::from("visible")
+            ),
+        ));
+    });
+
+    // Opened from a row, still transitioning in: the row's own decode is
+    // asked for at the row's width, and the full picture waits for the
+    // page to be in place.
+    let from_row = png_url.clone();
+    single_shot(Duration::from_millis(5500), move || unsafe {
+        let mut properties = QVariantMap::default();
+        properties.insert("fileUrl".into(), QString::from(from_row.clone()).into());
+        properties.insert("viewType".into(), QString::from("Image").into());
+        properties.insert("previewWidth".into(), 421.into());
+        properties.insert("status".into(), 1.into());
+        (*steps_ptr).push((
+            "arriving",
+            call!("load", QString::from(row_page.clone()), properties),
+        ));
+        (*steps_ptr).push((
+            "arriving-preview-width",
+            call!("decodeWidthOf", QString::from("previewPicture")),
+        ));
+        (*steps_ptr).push((
+            "arriving-preview-source",
+            call!(
+                "flagOf",
+                QString::from("previewPicture"),
+                QString::from("source")
+            ),
+        ));
+        (*steps_ptr).push((
+            "arriving-full-source",
+            call!(
+                "flagOf",
+                QString::from("fullPicture"),
+                QString::from("source")
+            ),
+        ));
+        // The transition ends.
+        (*steps_ptr).push(("arrived", call!("set", QString::from("status"), 2)));
+        (*steps_ptr).push((
+            "arrived-full-source",
+            call!(
+                "flagOf",
+                QString::from("fullPicture"),
+                QString::from("source")
             ),
         ));
     });
@@ -473,6 +526,34 @@ fn assert_outcome(steps: &[(&str, String)], navigation: &str) {
         value("gif-animated"),
         "true",
         "a GIF was shown as a still. {context}"
+    );
+
+    assert_eq!(
+        value("arriving"),
+        "ok",
+        "the picture page did not load mid-transition. {context}"
+    );
+    assert_eq!(
+        number("arriving-preview-width"),
+        421,
+        "the page did not ask for the picture at the width the row drew \
+         it, which is the size Qt has it cached at: a second decode \
+         behind the transition instead of none. {context}"
+    );
+    assert!(
+        value("arriving-preview-source").ends_with("dot.png"),
+        "the row's decode is not what the page shows while it arrives. \
+         {context}"
+    );
+    assert_eq!(
+        value("arriving-full-source"),
+        "",
+        "the full picture was decoded during the transition, which is the \
+         stutter on opening one. {context}"
+    );
+    assert!(
+        value("arrived-full-source").ends_with("dot.png"),
+        "the full picture never loaded once the page was in place. {context}"
     );
 
     assert_eq!(

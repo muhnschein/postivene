@@ -88,7 +88,8 @@ SilicaListView {
     signal forwardRequested(int messageId)
     /// The reader tapped an attachment. What opening it means -- a page
     /// here, or handing it to another app -- is the page's decision.
-    signal openRequested(url fileUrl, string fileName, string viewType)
+    signal openRequested(url fileUrl, string fileName, string viewType,
+                         real previewWidth)
     /// The reader asked for the rest of a message the download limit
     /// held back.
     signal downloadRequested(int messageId)
@@ -111,6 +112,12 @@ SilicaListView {
         // already told the page the reader is at the newest message.
         root.cancelFlick()
         root.held = false
+        // A held row is let go of as well. Coming back from a picture
+        // holds the row the reader left on for a while, and a hold is
+        // re-applied on every change to the content -- so a jump made
+        // inside that while went to the end and was put straight back on
+        // the next row measured, with the button already gone.
+        root.releaseRow()
         root.stickToBottom = true
         root.missedCount = 0
         toEnd.restart()
@@ -175,12 +182,25 @@ SilicaListView {
         fillRows.restart()
     }
 
+    // Where the view was before this change, so a move can be told from
+    // the content growing under a view that has not moved.
+    property real lastContentY: 0
+
     onContentYChanged: {
+        var movedUp = root.contentY < root.lastContentY
+        root.lastContentY = root.contentY
         // While the page is away nobody is scrolling, so anything moving
         // the view is the list losing its place rather than the reader
-        // choosing to.
-        if (root.away && root.pendingRow >= 0) {
-            root.putBack()
+        // choosing to: put it back in the same turn, before a frame of
+        // the wrong place is drawn.
+        if (root.away) {
+            if (root.pendingRow >= 0) {
+                root.putBack()
+            } else if (root.stickToBottom && !root.restoring) {
+                root.restoring = true
+                root.positionViewAtEnd()
+                root.restoring = false
+            }
             return
         }
         // Scrolling through rows that are all still placeholders does not
@@ -188,15 +208,24 @@ SilicaListView {
         // other -- so without this the reader can walk into a screenful of
         // blanks and nothing ever asks for them.
         fillRows.restart()
-        // Something has moved the view a long way from the newest message
-        // without touching it: the system's own scroll-to-top, which is how
-        // one gets to the beginning of a chat. Following would notice the
-        // next row being measured and haul the reader straight back down,
-        // which is being thrown to the newest message a moment after asking
-        // for the oldest. A drag or a flick is excluded by `held`, a jump
-        // this component made by `pendingRow`, and the chat still opening
-        // by `reachedEnd`.
-        if (root.reachedEnd && root.stickToBottom && !root.held
+        // Something has moved the view up, a long way from the newest
+        // message, without touching it: the system's own scroll-to-top,
+        // which is how one gets to the beginning of a chat. Following would
+        // notice the next row being measured and haul the reader straight
+        // back down, which is being thrown to the newest message a moment
+        // after asking for the oldest. A drag or a flick is excluded by
+        // `held`, a jump this component made by `pendingRow`, and the chat
+        // still opening by `reachedEnd`.
+        //
+        // Only a move *up*. The view moves down on its own for the other
+        // reason as well: the last row growing as its picture decodes, or
+        // the view clamping to an end that has just moved. Neither is the
+        // reader leaving, and taking them for it was how a tall picture at
+        // the end of a chat came to be shown from its top -- the view was
+        // put at the end of the row as it stood, the row grew, and the
+        // move that would have followed it down had been switched off by
+        // the one before.
+        if (movedUp && root.reachedEnd && root.stickToBottom && !root.held
                 && !root.restoring && root.pendingRow < 0 && !root.nearBottom) {
             root.stickToBottom = false
         }
@@ -320,16 +349,17 @@ SilicaListView {
     function rememberPlace() {
         root.rememberedFollowing = root.stickToBottom
         root.rememberedRow = root.rowNear(root.height / 2)
+        // Armed, not merely written down. Putting the view back when the
+        // page returns is too late: the list is reset while the page is
+        // away, and a frame showing the top of the chat is painted before
+        // anything gets round to correcting it -- which is the flash of
+        // the oldest messages, followed by being yanked back, that this
+        // had left behind. Armed, the reset is undone in the same turn it
+        // happens and no wrong frame is ever drawn. A view that was
+        // following is armed too, and goes back to the end rather than
+        // to a row.
+        root.away = true
         if (root.rememberedRow >= 0 && !root.rememberedFollowing) {
-            // Armed, not merely written down. Putting the view back when
-            // the page returns is too late: the list is reset while the
-            // page is away, and a frame showing the top of the chat is
-            // painted before anything gets round to correcting it -- which
-            // is the flash of the oldest messages, followed by being
-            // yanked back, that this had left behind. Armed, the reset is
-            // undone in the same turn it happens and no wrong frame is
-            // ever drawn.
-            root.away = true
             root.pendingRow = root.rememberedRow
             holdDeadline.stop()
         }
@@ -601,11 +631,13 @@ SilicaListView {
             viewType: model.view_type
             imageWidth: model.image_width
             imageHeight: model.image_height
+            isNew: model.is_new
             vcardName: model.vcard_name
             vcardAddr: model.vcard_addr
             vcardColor: model.vcard_color
             reactions: model.reactions
-            onOpenRequested: root.openRequested(fileUrl, fileName, viewType)
+            onOpenRequested: root.openRequested(fileUrl, fileName, viewType,
+                                                previewWidth)
             onDownloadRequested: root.downloadRequested(model.message_id)
             onReactionRequested: root.reactionRequested(model.message_id, emoji)
         }

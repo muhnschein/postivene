@@ -7,9 +7,10 @@
 //! collapse the row. `real_server.rs` pins that the core really does leave
 //! them blank: no dimensions for a GIF, no duration for a sound file.
 //!
-//! A real 1x1 PNG and a real 1x1 GIF are written to disk, because the
-//! fallback under test is "size the picture from the loaded image", and an
-//! image that does not load has no size to fall back to.
+//! A real 1x1 PNG and a real two-frame GIF are written to disk, because
+//! the fallback under test is "size the picture from the loaded image", and
+//! an image that does not load has no size to fall back to -- and because
+//! the GIF policy counts the movie going round, which takes a movie.
 
 // Qt harness: see qml_chat_list.rs.
 #![allow(
@@ -26,7 +27,8 @@ use qmetaobject::*;
 
 mod common;
 
-/// A 1x1 PNG and a 1x1 GIF, as `real_server.rs` sends to the core.
+/// A 1x1 PNG, as `real_server.rs` sends to the core, and a 2x2 GIF of two
+/// frames, 40 ms each, looping for ever: one colour, then the other.
 const ONE_PIXEL_PNG: &[u8] = &[
     0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
     0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
@@ -34,10 +36,13 @@ const ONE_PIXEL_PNG: &[u8] = &[
     0x00, 0x03, 0x01, 0x01, 0x00, 0xc9, 0xfe, 0x92, 0xef, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e,
     0x44, 0xae, 0x42, 0x60, 0x82,
 ];
-const ONE_PIXEL_GIF: &[u8] = &[
-    0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00, 0x80, 0x00, 0x00, 0xff, 0xff, 0xff,
-    0x00, 0x00, 0x00, 0x21, 0xf9, 0x04, 0x01, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x00, 0x00, 0x00, 0x01,
-    0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44, 0x01, 0x00, 0x3b,
+const TWO_FRAME_GIF: &[u8] = &[
+    0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x02, 0x00, 0x02, 0x00, 0x91, 0x00, 0x00, 0xff, 0xff, 0xff,
+    0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0xff, 0x21, 0xff, 0x0b, 0x4e, 0x45, 0x54, 0x53,
+    0x43, 0x41, 0x50, 0x45, 0x32, 0x2e, 0x30, 0x03, 0x01, 0x00, 0x00, 0x00, 0x21, 0xf9, 0x04, 0x00,
+    0x04, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x02, 0x00, 0x00, 0x02, 0x03,
+    0x4c, 0x92, 0x02, 0x00, 0x21, 0xf9, 0x04, 0x00, 0x04, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x00, 0x00,
+    0x00, 0x02, 0x00, 0x02, 0x00, 0x00, 0x02, 0x03, 0x94, 0xa4, 0x02, 0x00, 0x3b,
 ];
 
 const PROBE_QML: &str = r"
@@ -84,6 +89,12 @@ const PROBE_QML: &str = r"
             return item ? '' + item[property] : 'missing:' + name
         }
         function sizeOf(bytes) { return loader.item.readableSize(bytes) }
+        function replay() { loader.item.replay(); return 'ok' }
+        // Whether the mark that plays a stopped GIF is up.
+        function marked() {
+            var mark = findIn(loader.item, 'gifMark')
+            return mark ? '' + mark.visible : 'missing:gifMark'
+        }
     }
 ";
 
@@ -95,7 +106,7 @@ fn each_view_type_reaches_the_renderer_meant_for_it() {
     let png = temp.join("dot.png");
     let gif = temp.join("dot.gif");
     std::fs::write(&png, ONE_PIXEL_PNG).expect("write png");
-    std::fs::write(&gif, ONE_PIXEL_GIF).expect("write gif");
+    std::fs::write(&gif, TWO_FRAME_GIF).expect("write gif");
     let png = png.to_string_lossy().into_owned();
     let gif = gif.to_string_lossy().into_owned();
 
@@ -162,18 +173,31 @@ fn each_view_type_reaches_the_renderer_meant_for_it() {
     });
 
     single_shot(Duration::from_secs(3), move || unsafe {
+        // An old GIF: the still and the mark, and no movie.
         (*steps_ptr).push(("gif-showing", call!("showing")));
+        (*steps_ptr).push(("gif-marked", call!("marked")));
         (*steps_ptr).push(("gif-height", call!("get", QString::from("height"))));
-        (*steps_ptr).push(("video", show!("Video", "/tmp/clip.mp4", "clip.mp4")));
+        // The mark tapped: the movie, over the still, and the mark gone.
+        (*steps_ptr).push(("gif-replay", call!("replay")));
+        (*steps_ptr).push(("gif-replayed", call!("showing")));
+        (*steps_ptr).push(("gif-replayed-marked", call!("marked")));
     });
 
     single_shot(Duration::from_secs(4), move || unsafe {
+        // Three runs of 80 ms are long over: the movie has gone, and the
+        // mark is back.
+        (*steps_ptr).push(("gif-ran-showing", call!("showing")));
+        (*steps_ptr).push(("gif-ran-marked", call!("marked")));
+        (*steps_ptr).push(("video", show!("Video", "/tmp/clip.mp4", "clip.mp4")));
+    });
+
+    single_shot(Duration::from_secs(5), move || unsafe {
         (*steps_ptr).push(("video-showing", call!("showing")));
         (*steps_ptr).push(("video-height", call!("get", QString::from("height"))));
         (*steps_ptr).push(("voice", show!("Voice", "/tmp/note.mp3", "note.mp3")));
     });
 
-    single_shot(Duration::from_secs(5), move || unsafe {
+    single_shot(Duration::from_secs(6), move || unsafe {
         (*steps_ptr).push(("voice-showing", call!("showing")));
         (*steps_ptr).push((
             "voice-name",
@@ -195,7 +219,7 @@ fn each_view_type_reaches_the_renderer_meant_for_it() {
         ));
     });
 
-    single_shot(Duration::from_secs(6), move || unsafe {
+    single_shot(Duration::from_secs(7), move || unsafe {
         (*steps_ptr).push(("card-showing", call!("showing")));
         (*steps_ptr).push((
             "card-label",
@@ -208,7 +232,8 @@ fn each_view_type_reaches_the_renderer_meant_for_it() {
         ));
     });
 
-    single_shot(Duration::from_secs(7), move || unsafe {
+    let gif_for_new = gif.clone();
+    single_shot(Duration::from_secs(8), move || unsafe {
         (*steps_ptr).push(("xdc-showing", call!("showing")));
         (*steps_ptr).push((
             "xdc-label",
@@ -221,6 +246,30 @@ fn each_view_type_reaches_the_renderer_meant_for_it() {
         (*steps_ptr).push(("sizes", call!("sizeOf", 999)));
         (*steps_ptr).push(("sizes-mb", call!("sizeOf", 2_400_000)));
         (*steps_ptr).push(("sizes-none", call!("sizeOf", 0)));
+
+        // A picture the core sized and nothing has decoded -- the file is
+        // not even there -- takes its shape from the core's answer, so
+        // the row is the right height before the decode and does not
+        // move when it lands.
+        call!("set", QString::from("imageWidth"), 4);
+        call!("set", QString::from("imageHeight"), 3);
+        (*steps_ptr).push((
+            "reserved",
+            show!("Image", "/nowhere/to/be/found.jpg", "found.jpg"),
+        ));
+        (*steps_ptr).push(("reserved-height", call!("get", QString::from("height"))));
+
+        // A GIF that has just arrived plays by itself.
+        call!("set", QString::from("isNew"), true);
+        (*steps_ptr).push(("new-gif", show!("Gif", gif_for_new.as_str(), "dot.gif")));
+        (*steps_ptr).push(("new-gif-showing", call!("showing")));
+        (*steps_ptr).push(("new-gif-marked", call!("marked")));
+    });
+
+    single_shot(Duration::from_secs(9), move || unsafe {
+        // And stops by itself.
+        (*steps_ptr).push(("new-gif-ran-showing", call!("showing")));
+        (*steps_ptr).push(("new-gif-ran-marked", call!("marked")));
         (*engine_ptr).quit();
     });
 
@@ -231,6 +280,8 @@ fn each_view_type_reaches_the_renderer_meant_for_it() {
 
 /// What the run has to show for itself, out of the test body: what a Qt
 /// harness can do in one function is bounded.
+// One assertion per thing checked, in the order the steps ran.
+#[allow(clippy::too_many_lines)]
 fn assert_outcome(steps: &[(&str, String)]) {
     let value = |label: &str| {
         steps
@@ -256,9 +307,15 @@ fn assert_outcome(steps: &[(&str, String)]) {
     );
 
     // Exactly one renderer per kind. Two at once is the bug this is for.
+    // A GIF is the still alone until it is playing, and the movie is laid
+    // over the still while it is: the still is what sizes the row.
     for (label, expected) in [
         ("image-showing", "attachmentImage"),
-        ("gif-showing", "attachmentImage,attachmentAnimation"),
+        ("gif-showing", "attachmentImage"),
+        ("gif-replayed", "attachmentImage,attachmentAnimation"),
+        ("gif-ran-showing", "attachmentImage"),
+        ("new-gif-showing", "attachmentImage,attachmentAnimation"),
+        ("new-gif-ran-showing", "attachmentImage"),
         ("video-showing", "attachmentVideo"),
         ("voice-showing", "attachmentAudio"),
         ("card-showing", "attachmentVcard"),
@@ -288,6 +345,43 @@ fn assert_outcome(steps: &[(&str, String)]) {
         height("gif-height") > 0.0,
         "a GIF measured nothing, so a picture the core gave no dimensions \
          for collapses the row. {context}"
+    );
+    // A GIF from before plays only when asked; one that has just come in
+    // plays by itself. The mark is the ask, so it is up exactly when the
+    // movie is not.
+    assert_eq!(
+        value("gif-marked"),
+        "true",
+        "a GIF that is not playing carries no mark to play it. {context}"
+    );
+    assert_eq!(value("gif-replay"), "ok", "no replay. {context}");
+    assert_eq!(
+        value("gif-replayed-marked"),
+        "false",
+        "the mark stayed up over a playing GIF. {context}"
+    );
+    assert_eq!(
+        value("new-gif-marked"),
+        "false",
+        "a GIF that has just arrived was left waiting for a tap. {context}"
+    );
+    // Three runs and no more, counted from the movie going round.
+    for label in ["gif-ran-marked", "new-gif-ran-marked"] {
+        assert_eq!(
+            value(label),
+            "true",
+            "a GIF kept playing past its three runs, or the mark did not \
+             come back when it stopped ({label}). {context}"
+        );
+    }
+    // 540 wide at 4:3 is 405 high, from the core's dimensions alone: the
+    // file is not there to decode.
+    assert_eq!(value("reserved"), "ok", "no reserved picture. {context}");
+    assert!(
+        (height("reserved-height") - 405.0).abs() < 0.5,
+        "a picture the core sized was not measured from that size before \
+         it decoded, so the row changes height when it does and the list \
+         jumps under the reader. {context}"
     );
     assert!(
         height("video-height") > 0.0,

@@ -130,10 +130,12 @@ What can be done inside the process:
 - **Decode only what the core classified.** A message is drawn as an
   image only when the core's `viewType` says so, and never from a MIME
   type the sender chose -- already the case.
-- **Bound the decode.** `sourceSize` on every `Image` caps the pixels a
-  file can make the app allocate, which is both a memory bound and a
-  brake on decompression bombs. See the profiling notes in
-  docs/BUILDING.md; the same bound serves both.
+- **Bound the decode.** `sourceSize` on the row's picture and on the
+  full-screen page caps the pixels a file can make the app keep: a memory
+  bound, and a brake on decompression bombs as far as Qt's decoders
+  honour it -- JPEG scales as it decodes, PNG decodes in full and scales
+  after. See the profiling notes in docs/BUILDING.md; the same bound
+  serves both.
 - **Do not decode for strangers.** A chat that is still a contact
   request could draw its attachments as placeholders until it is
   accepted, so the first thing an unknown sender's file does is not run

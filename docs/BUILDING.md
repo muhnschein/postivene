@@ -89,24 +89,60 @@ Where a step depends on work finishing, wait for the work. A repeating
 as a backstop that reads results and quits. The other Qt tests still
 schedule on the clock and should move over as they are touched.
 
-## Profiling memory on a device
+## Profiling on a device
 
-The app sits at 250--400 MB resident on a phone, and the first question
-is which of the two processes it is. `POSTIVENE_MEMORY_LOG` answers it:
+A phone has none of the tools a workstation profiles with, so the app
+carries its own. The developer view is behind ten taps on the Settings
+page's title within three seconds. *Start recording* there, then use the
+app -- open a chat full of pictures, play a GIF, open one full screen,
+scroll a long chat -- and come back to *Mark* what you just did, take a
+*Memory snapshot*, or *Stop*. Everything lands in
+`~/Documents/postivene-recordings/<date-time>/`, which the sandbox's
+`UserDirs` grant lets the app write and an SSH session read:
 
-```
-$ POSTIVENE_MEMORY_LOG=5 /usr/bin/harbour-postivene
-memory: app 138 MiB resident, core 61 MiB
-memory: app 212 MiB resident, core 62 MiB
-```
+- `timeline.tsv`, one line a second per kind, tab-separated, the first
+  column milliseconds since the start. `frame`: frames the window
+  presented, beats of the main-thread heartbeat, and the longest gap of
+  each in the second, in ms -- a gap in the frames with none in the beats
+  is the render thread stalling, a gap in both is the main thread. `mem`,
+  per process (`app`, `core`): pid, resident, proportional (`Pss`),
+  anonymous, private dirty, all KiB, then threads, open file descriptors
+  and CPU as a percentage of one core. `thread`: the busiest threads of
+  each process by name -- `QSGRenderThread`, `QQmlThread`, a pooled
+  decoder -- with their share. `mark`: what you typed. `snapshot` and
+  `stop`.
+- `system.txt`: kernel, pids, seccomp mode and filter count, NoNewPrivs,
+  the capability sets, the LSM list, whether Landlock is enabled, built
+  in or absent, and the ptrace scope -- the facts `SECURITY.md` left to a
+  device.
+- `mounts.txt`, the sandbox's view of the filesystem, and
+  `maps-app.txt` / `maps-core.txt`, every file each process has mapped.
+- `snapshot-<n>/`: the full `smaps`, `status`, `maps`, open descriptors
+  and thread names of both processes at that moment. `smaps` is where a
+  memory question is answered: `Rss` per mapping, `[heap]` against
+  `/dev/kgsl-3d0` or `/dev/mali0` (GPU allocations, which show up nowhere
+  else) against the libraries.
+- `strace.sh`: the syscall list the app cannot make itself. The
+  sandbox's seccomp filter drops `ptrace`, so the tracer has to attach
+  from outside: `devel-su sh <recording>/strace.sh 60` on the phone
+  (`pkcon install strace` once) traces both processes for sixty seconds
+  and writes `syscalls-app.txt` and `syscalls-core.txt`, each the
+  distinct syscalls made with counts -- what a whitelist would have to
+  allow, recorded from the paths you drove meanwhile.
 
-A line every five seconds with the resident size of the app and of the
-`deltachat-rpc-server` it spawned, read from `/proc`. Run it from a
-terminal on the phone (the launcher does not pass environment through
-the invoker), and drive the app while it prints: open the chat list,
-open a chat with pictures, scroll a long one, open a picture full
-screen, minimise to the cover. The number that moves with the action is
-the one to look at.
+Reading it back: `grep -P '\tframe\t' timeline.tsv | awk -F'\t' '$5 > 40'`
+finds the seconds with a frame more than 40 ms late, `grep -P '\tmark\t'`
+says what was happening, and the `mem` lines either side say what it
+cost. The frame counter is the window's own `frameSwapped`, hooked from
+C++ in `postivene-app/src/frames.rs` because that signal fires on the
+render thread; the heartbeat is an animation the root window runs while
+recording, which also keeps the scene graph presenting a frame every
+refresh, so an idle screen does not read as a stall.
+
+The lighter tool is still there: `POSTIVENE_MEMORY_LOG=5
+/usr/bin/harbour-postivene` from a terminal on the phone prints the
+resident size of both processes every five seconds on stderr, for a
+first look with nothing to copy off.
 
 What each side is made of, and how to look closer:
 
@@ -122,10 +158,10 @@ What each side is made of, and how to look closer:
   desktop client and the Android app run, so a core that grows without
   bound is a bug to take upstream with the log that shows it.
 - **Proportional sizes.** `VmRSS` counts shared pages -- Qt's libraries,
-  the GL driver -- in full for each process. For the true cost, `smem
-  -P harbour` on the phone, or `grep Pss /proc/<pid>/smaps_rollup` for
-  either pid, gives the proportional figure; the log's numbers are for
-  spotting the movement, not the total.
+  the GL driver -- in full for each process. The recording's `Pss`
+  column is the proportional figure (`/proc/<pid>/smaps_rollup`, which
+  `smem` reads too); the resident numbers are for spotting the movement,
+  not the total.
 
 ## Translations
 

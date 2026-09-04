@@ -17,10 +17,7 @@
     unused_unsafe,
     clippy::borrow_as_ptr,
     clippy::disallowed_methods,
-    clippy::expect_used,
-    // qt_method! declarations must match the generated dispatcher's
-    // by-value parameters; see postivene-shim/src/lib.rs.
-    clippy::needless_pass_by_value
+    clippy::expect_used
 )]
 
 use std::time::Duration;
@@ -31,46 +28,30 @@ use serde_json::Value;
 
 mod common;
 
-/// Silica's `pageStack`, recorded rather than performed.
-#[derive(QObject, Default)]
-struct PageStackProbe {
-    base: qt_base_class!(trait QObject),
-    /// `push:Foo.qml|replace:Bar.qml|...`
-    log: qt_property!(QString; NOTIFY log_changed),
-    log_changed: qt_signal!(),
-    /// The chat the conversation was opened on.
-    chat_id: qt_property!(u32; NOTIFY log_changed),
-
-    push: qt_method!(fn(&mut self, page: QString, properties: QVariantMap)),
-    replace: qt_method!(fn(&mut self, page: QString, properties: QVariantMap)),
-}
-
-impl PageStackProbe {
-    fn note(&mut self, verb: &str, page: &QString, properties: &QVariantMap) {
-        let page = page.to_string();
-        let name = page.rsplit('/').next().unwrap_or(&page).to_string();
-        let current = self.log.to_string();
-        self.log = format!("{current}{verb}:{name}|").into();
-        if let Some(chat_id) =
-            i32::from_qvariant(properties.value(QString::from("chatId"), QVariant::default()))
-        {
-            self.chat_id = u32::try_from(chat_id).unwrap_or_default();
-        }
-        self.log_changed();
-    }
-
-    fn push(&mut self, page: QString, properties: QVariantMap) {
-        self.note("push", &page, &properties);
-    }
-
-    fn replace(&mut self, page: QString, properties: QVariantMap) {
-        self.note("replace", &page, &properties);
-    }
-}
-
+// Silica's `pageStack`, recorded rather than performed -- in QML rather
+// than as a QObject of the test's own. The page resolves the bare name
+// through the component that instantiated it, which is this one, so a
+// property of the root suffices; and a QObject derived here would carry
+// the generated dispatcher's pointer juggling into a file that only
+// reads back.
 const PROBE_QML: &str = r"
     import QtQuick 2.0
     Item {
+        property QtObject pageStack: QtObject {
+            /// `push:Foo.qml|replace:Bar.qml|...`
+            property string log: ''
+            /// The chat the conversation was opened on.
+            property int chatId: 0
+            function note(verb, page, properties) {
+                var name = ('' + page).split('/').pop()
+                log = log + verb + ':' + name + '|'
+                if (properties && properties.chatId !== undefined) {
+                    chatId = properties.chatId
+                }
+            }
+            function push(page, properties) { note('push', page, properties) }
+            function replace(page, properties) { note('replace', page, properties) }
+        }
         Loader { id: loader }
         function load(url, accountId) {
             loader.setSource('', {})
@@ -122,6 +103,8 @@ const PROBE_QML: &str = r"
             loader.item.picturePath = path
             return 'ok'
         }
+        function navigation() { return pageStack.log }
+        function openedChat() { return '' + pageStack.chatId }
     }
 ";
 
@@ -143,13 +126,11 @@ fn the_new_group_page_makes_the_group_it_shows() {
     postivene_shim::register_qml_types();
 
     let core_box = QObjectBox::new(DeltaChatCore::default());
-    let stack_box = QObjectBox::new(PageStackProbe::default());
     let mut engine = QmlEngine::new();
     engine.add_import_path(QString::from(
         common::stubs_dir().to_string_lossy().into_owned(),
     ));
     engine.set_object_property("core".into(), core_box.pinned());
-    engine.set_object_property("pageStack".into(), stack_box.pinned());
     engine.load_data(QByteArray::from(PROBE_QML));
 
     core_box
@@ -236,27 +217,22 @@ fn the_new_group_page_makes_the_group_it_shows() {
     });
 
     single_shot(Duration::from_secs(7), move || unsafe {
+        record!("navigation", call!("navigation"));
+        record!("opened", call!("openedChat"));
         (*engine_ptr).quit();
     });
 
     engine.exec();
 
-    let navigation = stack_box.pinned().borrow().log.to_string();
-    let chat_id = stack_box.pinned().borrow().chat_id;
-    assert_outcome(&steps, &navigation, chat_id, &common::calls(&journal));
+    assert_outcome(&steps, &common::calls(&journal));
 }
 
 /// The page refused an unnamed group, showed the members it was handed,
 /// and made the group with its name, its members and its picture.
 #[allow(clippy::too_many_lines)]
-fn assert_outcome(
-    steps: &[(&str, String)],
-    navigation: &str,
-    chat_id: u32,
-    calls: &[(String, Value)],
-) {
+fn assert_outcome(steps: &[(&str, String)], calls: &[(String, Value)]) {
     let names: Vec<&str> = calls.iter().map(|(name, _)| name.as_str()).collect();
-    let context = format!("steps: {steps:?}\nnavigation: {navigation}\ncalls: {names:?}");
+    let context = format!("steps: {steps:?}\ncalls: {names:?}");
     let value = |label: &str| {
         steps
             .iter()
@@ -264,6 +240,8 @@ fn assert_outcome(
             .map(|(_, value)| value.clone())
             .unwrap_or_default()
     };
+    let navigation = value("navigation");
+    let chat_id: u32 = value("opened").parse().unwrap_or(0);
 
     for label in ["load", "typed", "picture", "create"] {
         assert_eq!(value(label), "ok", "step {label} failed. {context}");

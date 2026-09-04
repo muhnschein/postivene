@@ -214,7 +214,11 @@ fn a_recording_started_from_the_page_lands_on_disk() {
         "false",
         "a mark can be made with nothing to put it on. {context}"
     );
-    assert_eq!(value("started"), "true", "the button did not start a recording. {context}");
+    assert_eq!(
+        value("started"),
+        "true",
+        "the button did not start a recording. {context}"
+    );
     assert_eq!(
         value("button"),
         "Stop recording",
@@ -227,7 +231,11 @@ fn a_recording_started_from_the_page_lands_on_disk() {
          {}. {context}",
         dir.display()
     );
-    assert_eq!(value("cleared"), "", "the mark field kept its text. {context}");
+    assert_eq!(
+        value("cleared"),
+        "",
+        "the mark field kept its text. {context}"
+    );
     assert!(
         value("status").starts_with("Snapshot in "),
         "the snapshot did not say where it went. {context}"
@@ -236,7 +244,11 @@ fn a_recording_started_from_the_page_lands_on_disk() {
         value("summary").contains("fps") && value("summary").contains("core"),
         "the live line does not carry the frames and the core. {context}"
     );
-    assert_eq!(value("stopped"), "false", "the button did not stop the recording. {context}");
+    assert_eq!(
+        value("stopped"),
+        "false",
+        "the button did not stop the recording. {context}"
+    );
 
     // What reached the disk.
     let system = std::fs::read_to_string(dir.join("system.txt")).expect("system.txt");
@@ -247,7 +259,10 @@ fn a_recording_started_from_the_page_lands_on_disk() {
         "strace.sh does not name both processes: {script}"
     );
     for file in ["mounts.txt", "maps-app.txt", "maps-core.txt"] {
-        assert!(dir.join(file).is_file(), "{file} was not written. {context}");
+        assert!(
+            dir.join(file).is_file(),
+            "{file} was not written. {context}"
+        );
     }
     let timeline = std::fs::read_to_string(dir.join("timeline.tsv")).expect("timeline.tsv");
     let beats: u64 = timeline
@@ -255,11 +270,28 @@ fn a_recording_started_from_the_page_lands_on_disk() {
         .filter(|line| line.split('\t').nth(1) == Some("frame"))
         .filter_map(|line| line.split('\t').nth(3)?.parse::<u64>().ok())
         .sum();
-    assert!(beats >= 7, "the heartbeat's seven beats were not all counted: {timeline}");
-    for needle in ["\tmem\tapp\t", "\tmem\tcore\t", "\tmark\topening the chat with the photos\n", "\tsnapshot\tsnapshot-1\n", "\tstop\n"] {
-        assert!(timeline.contains(needle), "the timeline lacks {needle:?}: {timeline}");
+    assert!(
+        beats >= 7,
+        "the heartbeat's seven beats were not all counted: {timeline}"
+    );
+    for needle in [
+        "\tmem\tapp\t",
+        "\tmem\tcore\t",
+        "\tmark\topening the chat with the photos\n",
+        "\tsnapshot\tsnapshot-1\n",
+        "\tstop\n",
+    ] {
+        assert!(
+            timeline.contains(needle),
+            "the timeline lacks {needle:?}: {timeline}"
+        );
     }
-    for file in ["smaps-app.txt", "smaps-core.txt", "fd-core.txt", "threads-app.txt"] {
+    for file in [
+        "smaps-app.txt",
+        "smaps-core.txt",
+        "fd-core.txt",
+        "threads-app.txt",
+    ] {
         assert!(
             std::fs::metadata(dir.join("snapshot-1").join(file)).map_or(0, |m| m.len()) > 0,
             "snapshot-1/{file} is missing or empty. {context}"

@@ -299,7 +299,8 @@ fn describe_seccomp(mode: Option<String>) -> String {
 pub fn system_report() -> String {
     let status = fs::read_to_string("/proc/self/status").unwrap_or_default();
     let field = |key: &str| status_text(&status, key).unwrap_or_else(|| "unknown".into());
-    let core = crate::core::server_pid().map_or_else(|| "not running".to_string(), |pid| pid.to_string());
+    let core =
+        crate::core::server_pid().map_or_else(|| "not running".to_string(), |pid| pid.to_string());
     let lsm = fs::read_to_string("/sys/kernel/security/lsm").unwrap_or_default();
     let kallsyms = fs::read_to_string("/proc/kallsyms").unwrap_or_default();
     [
@@ -307,7 +308,10 @@ pub fn system_report() -> String {
         format!("App pid: {}", std::process::id()),
         format!("Core pid: {core}"),
         format!("Uid: {}", field("Uid")),
-        format!("Seccomp: {}", describe_seccomp(status_text(&status, "Seccomp"))),
+        format!(
+            "Seccomp: {}",
+            describe_seccomp(status_text(&status, "Seccomp"))
+        ),
         format!(
             "Seccomp filters: {}",
             status_text(&status, "Seccomp_filters")
@@ -475,7 +479,10 @@ fn sample_loop(shared: Arc<Shared>, started: Instant, on_sample: Box<dyn Fn(Stri
                 percent(sample.cpu_permille)
             ));
             for (comm, share) in &sample.busiest {
-                shared.append(&format!("{at}\tthread\t{name}\t{comm}\t{}", percent(*share)));
+                shared.append(&format!(
+                    "{at}\tthread\t{name}\t{comm}\t{}",
+                    percent(*share)
+                ));
             }
             summary.push_str(&format!(
                 "; {name} {} MiB pss, {}% cpu",
@@ -541,7 +548,8 @@ impl Recorder {
         let dir = self
             .root
             .join(chrono::Local::now().format("%Y%m%d-%H%M%S").to_string());
-        fs::create_dir_all(&dir).map_err(|err| format!("cannot create {}: {err}", dir.display()))?;
+        fs::create_dir_all(&dir)
+            .map_err(|err| format!("cannot create {}: {err}", dir.display()))?;
 
         let app = std::process::id();
         let core = crate::core::server_pid();
@@ -602,7 +610,13 @@ impl Recorder {
         };
         let label: String = label
             .chars()
-            .map(|c| if c == '\t' || c == '\n' || c == '\r' { ' ' } else { c })
+            .map(|c| {
+                if c == '\t' || c == '\n' || c == '\r' {
+                    ' '
+                } else {
+                    c
+                }
+            })
             .collect();
         run.shared
             .append(&format!("{}\tmark\t{label}", elapsed_ms(run.started)));
@@ -621,7 +635,8 @@ impl Recorder {
         let number = run.shared.snapshots.fetch_add(1, Ordering::Relaxed) + 1;
         let name = format!("snapshot-{number}");
         let dir = run.dir.join(&name);
-        fs::create_dir_all(&dir).map_err(|err| format!("cannot create {}: {err}", dir.display()))?;
+        fs::create_dir_all(&dir)
+            .map_err(|err| format!("cannot create {}: {err}", dir.display()))?;
         for (side, pid) in watched() {
             let proc_dir = PathBuf::from("/proc").join(pid.to_string());
             // Read and written rather than copied: procfs files report a
@@ -635,7 +650,10 @@ impl Recorder {
                 for entry in entries.flatten() {
                     let target = fs::read_link(entry.path())
                         .map_or_else(|_| "?".into(), |t| t.display().to_string());
-                    fds.push_str(&format!("{} -> {target}\n", entry.file_name().to_string_lossy()));
+                    fds.push_str(&format!(
+                        "{} -> {target}\n",
+                        entry.file_name().to_string_lossy()
+                    ));
                 }
             }
             write_file(&dir.join(format!("fd-{side}.txt")), &fds)?;
@@ -748,7 +766,8 @@ impl DevRecorder {
             self.recorder = Some(Recorder::new(root));
         }
         // Just put there when it was not.
-        self.recorder.get_or_insert_with(|| Recorder::new(default_root()))
+        self.recorder
+            .get_or_insert_with(|| Recorder::new(default_root()))
     }
 
     fn set_status(&mut self, text: String) {
@@ -860,8 +879,16 @@ mod tests {
     fn cpu_is_the_share_of_one_core_since_the_last_reading() {
         let mut clocks = Clocks::new();
         let second = Duration::from_secs(1);
-        assert_eq!(permille(&mut clocks, (1, 0), 100, second), 0, "nothing to compare with yet");
-        assert_eq!(permille(&mut clocks, (1, 0), 150, second), 500, "50 ticks of 100 in a second");
+        assert_eq!(
+            permille(&mut clocks, (1, 0), 100, second),
+            0,
+            "nothing to compare with yet"
+        );
+        assert_eq!(
+            permille(&mut clocks, (1, 0), 150, second),
+            500,
+            "50 ticks of 100 in a second"
+        );
         assert_eq!(
             permille(&mut clocks, (1, 0), 350, Duration::from_secs(2)),
             1000,
@@ -877,7 +904,10 @@ mod tests {
         let symbols = "0000000000000000 T landlock_create_ruleset\n0000000000000000 t other\n";
         assert!(describe_landlock("lockdown,capability,landlock,yama", "").starts_with("enabled"));
         assert!(describe_landlock("capability,yama", symbols).starts_with("built into"));
-        assert_eq!(describe_landlock("capability,yama", "0 T nothing\n"), "not in this kernel");
+        assert_eq!(
+            describe_landlock("capability,yama", "0 T nothing\n"),
+            "not in this kernel"
+        );
         assert!(describe_landlock("", "").starts_with("unknown"));
         assert!(describe_seccomp(Some("2".into())).starts_with("2 (filter"));
         // Whatever this machine is, the report has a line for it.
@@ -893,7 +923,10 @@ mod tests {
         assert!(script.contains("CORE=\"5678\"\n"));
         assert!(script.contains("-p \"$APP\""));
         let alone = strace_script(Path::new("/r"), 1, None);
-        assert!(alone.contains("CORE=\"\"\n"), "no core is an empty CORE, which the script skips");
+        assert!(
+            alone.contains("CORE=\"\"\n"),
+            "no core is an empty CORE, which the script skips"
+        );
     }
 
     #[test]
@@ -902,13 +935,18 @@ mod tests {
         let _ = fs::remove_dir_all(&root);
         let mut recorder = Recorder::new(root.clone());
         assert!(!recorder.is_recording());
-        assert!(!recorder.mark("nothing"), "a mark with no recording has nowhere to go");
+        assert!(
+            !recorder.mark("nothing"),
+            "a mark with no recording has nowhere to go"
+        );
 
         let summaries = Arc::new(Mutex::new(Vec::new()));
         let seen = Arc::clone(&summaries);
         let dir = recorder
             .start(Box::new(move |line| {
-                seen.lock().unwrap_or_else(PoisonError::into_inner).push(line);
+                seen.lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .push(line);
             }))
             .expect("start");
         assert!(recorder.is_recording());
@@ -951,7 +989,10 @@ mod tests {
         assert_eq!(fields[2], "3", "three frames were noted: {frame}");
         assert_eq!(fields[3], "2", "two beats were noted: {frame}");
         assert!(
-            timeline.lines().any(|line| line.starts_with(|c: char| c.is_ascii_digit()) && line.contains("\tmem\tapp\t")),
+            timeline
+                .lines()
+                .any(|line| line.starts_with(|c: char| c.is_ascii_digit())
+                    && line.contains("\tmem\tapp\t")),
             "no memory sample for the app: {timeline}"
         );
         assert!(
@@ -961,7 +1002,12 @@ mod tests {
         assert!(timeline.contains("\tsnapshot\tsnapshot-1\n"), "{timeline}");
         assert!(timeline.contains("\tstop\n"), "{timeline}");
         assert_eq!(snapshot, dir.join("snapshot-1"));
-        for file in ["status-app.txt", "smaps-app.txt", "fd-app.txt", "threads-app.txt"] {
+        for file in [
+            "status-app.txt",
+            "smaps-app.txt",
+            "fd-app.txt",
+            "threads-app.txt",
+        ] {
             assert!(
                 fs::metadata(snapshot.join(file)).map_or(0, |m| m.len()) > 0,
                 "{file} is missing or empty"
@@ -969,7 +1015,9 @@ mod tests {
         }
         let summaries = summaries.lock().unwrap_or_else(PoisonError::into_inner);
         assert!(
-            summaries.iter().any(|line| line.contains("fps") && line.contains("app")),
+            summaries
+                .iter()
+                .any(|line| line.contains("fps") && line.contains("app")),
             "no live summary reached the callback: {summaries:?}"
         );
         let _ = fs::remove_dir_all(&root);

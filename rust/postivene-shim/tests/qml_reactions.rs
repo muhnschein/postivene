@@ -1,5 +1,6 @@
-//! Reactions as the conversation draws them: chips on the message, ours
-//! lit, and the quick-reaction row at the top of a row's menu.
+//! Reactions as the conversation draws them: chips hung off the bubble's
+//! inside bottom corner, ours lit, and the quick-reaction row at the top
+//! of a row's menu.
 //!
 //! The delegate and the list are loaded on their own, as the other QML
 //! tests load them: the page cannot be loaded headlessly.
@@ -216,6 +217,30 @@ fn reactions_are_chips_on_the_message_and_a_row_in_its_menu() {
             "row-y",
             call!("get", QString::from("reactionRow"), QString::from("y"))
         );
+        record!(
+            "row-height",
+            call!("get", QString::from("reactionRow"), QString::from("height"))
+        );
+        record!(
+            "row-x",
+            call!("get", QString::from("reactionRow"), QString::from("x"))
+        );
+        record!(
+            "row-width",
+            call!("get", QString::from("reactionRow"), QString::from("width"))
+        );
+        record!(
+            "bubble-x",
+            call!("get", QString::from("bubble"), QString::from("x"))
+        );
+        record!(
+            "bubble-width",
+            call!("get", QString::from("bubble"), QString::from("width"))
+        );
+        record!(
+            "bubble-height",
+            call!("get", QString::from("bubble"), QString::from("height"))
+        );
         record!("tap", call!("tapChip", 1));
         record!("chip-raised", call!("raisedSignal"));
         call!("set", QString::from("reactions"), QString::from(""));
@@ -303,11 +328,32 @@ fn assert_outcome(steps: &[(&str, String)]) {
         bare > 0.0 && reacted > bare,
         "the row does not grow for its reactions (bare {bare}, reacted {reacted}). {context}"
     );
-    let row_y: f64 = value("row-y").parse().unwrap_or(-1.0);
-    let footer_y: f64 = value("footer-y").parse().unwrap_or(-1.0);
+    // The strip hangs off the bubble: below the footer, which is the
+    // bubble's last line, straddling the bubble's bottom edge, and at the
+    // inside corner -- the right-hand one for a message from someone
+    // else, whose bubble sits on the left.
+    let number = |label: &str| value(label).parse::<f64>().unwrap_or(-1.0);
+    let (row_y, row_height) = (number("row-y"), number("row-height"));
+    let (row_x, row_width) = (number("row-x"), number("row-width"));
+    let footer_y = number("footer-y");
+    let (bubble_x, bubble_width, bubble_height) = (
+        number("bubble-x"),
+        number("bubble-width"),
+        number("bubble-height"),
+    );
     assert!(
-        row_y >= 0.0 && footer_y > row_y,
-        "the footer does not sit below the reactions (strip {row_y}, footer {footer_y}). {context}"
+        row_y > footer_y && row_y < bubble_height && row_y + row_height > bubble_height,
+        "the strip does not straddle the bubble's bottom edge below the footer \
+         (strip {row_y}+{row_height}, footer {footer_y}, bubble {bubble_height}). {context}"
+    );
+    // Inside the bubble, ending at its right-hand padding rather than
+    // starting at its left-hand one.
+    let bubble_right = bubble_x + bubble_width;
+    let row_right = row_x + row_width;
+    assert!(
+        row_x > bubble_x && row_right < bubble_right && bubble_right - row_right < 16.0,
+        "the strip is not at the bubble's inside corner for an incoming message \
+         (strip {row_x}..{row_right}, bubble {bubble_x}..{bubble_right}). {context}"
     );
     assert_eq!(
         value("chip-raised"),

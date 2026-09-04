@@ -106,6 +106,10 @@ BuildRequires:  desktop-file-utils
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5Qml)
 BuildRequires:  pkgconfig(Qt5Quick)
+# QAudioRecorder, for the voice recorder (postivene-shim/src/recorder.rs).
+# The runtime package it links, qt5-qtmultimedia, is one rpm derives from
+# the binary itself; Harbour allows it.
+BuildRequires:  pkgconfig(Qt5Multimedia)
 # lrelease, which compiles the translation catalogs in %%build.
 BuildRequires:  qt5-qttools-linguist
 

@@ -72,6 +72,17 @@
     </message>
 </context>
 <context>
+    <name>CapturePage</name>
+    <message>
+        <source>Photo</source>
+        <translation>照片</translation>
+    </message>
+    <message>
+        <source>Video</source>
+        <translation>视频</translation>
+    </message>
+</context>
+<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
@@ -104,10 +115,6 @@
     <message>
         <source>Search chats</source>
         <translation>搜索聊天</translation>
-    </message>
-    <message>
-        <source>Search</source>
-        <translation>搜索</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -188,6 +195,10 @@
     <message>
         <source>Mark as unread</source>
         <translation>标为未读</translation>
+    </message>
+    <message>
+        <source>Search chats, contacts and messages</source>
+        <translation>搜索聊天、联系人和消息</translation>
     </message>
 </context>
 <context>
@@ -908,6 +919,14 @@
     <message>
         <source>Save to device</source>
         <translation>保存到设备</translation>
+    </message>
+</context>
+<context>
+    <name>VoiceBar</name>
+    <message>
+        <source>Recording %1</source>
+        <extracomment>Shown while a voice message records. %1 is the time so far, such as &quot;0:07&quot;.</extracomment>
+        <translation>正在录音 %1</translation>
     </message>
 </context>
 <context>

@@ -10,16 +10,14 @@ import Sailfish.Silica 1.0
  * one-handed reach right -- the choices appear directly under the thumb
  * that opened them.
  *
- * Four choices, one per library the sandbox grants: the gallery, the video
- * library, the music library, and the file system for everything else. The
- * media ones are not redundant with the file picker -- they browse the
- * index rather than the filesystem, which is how anyone actually finds a
- * photo taken last Tuesday.
- *
- * No camera entry until the app asks for the Camera permission, which
- * harbour-postivene.desktop deliberately does not, and no voice recorder:
- * QML has no audio recorder on Qt 5.6, so that needs native code
- * (docs/HARBOUR.md, docs/PROJECT.md).
+ * Five choices: the camera, and one per library the sandbox grants --
+ * the gallery, the video library, the music library, and the file system
+ * for everything else. The media ones are not redundant with the file
+ * picker -- they browse the index rather than the filesystem, which is
+ * how anyone actually finds a photo taken last Tuesday. The camera is at
+ * the top, nearest the thumb: a picture taken now is the commonest thing
+ * to send. A voice message is not here: it is the microphone where the
+ * send button is, on the page.
  *
  * Nothing is opened here. The page that owns the pageStack pushes the
  * pickers, the way ConversationPage already handles forwarding -- which
@@ -30,6 +28,8 @@ Item {
 
     /// Whether the tray is showing.
     property bool open: false
+    /// A picture or a video, taken now.
+    signal cameraRequested()
     signal photoRequested()
     signal videoRequested()
     signal audioRequested()
@@ -83,6 +83,15 @@ Item {
             id: choices
             anchors.centerIn: parent
             spacing: Theme.paddingSmall
+
+            IconButton {
+                objectName: "attachCamera"
+                icon.source: "image://theme/icon-m-camera"
+                onClicked: {
+                    root.close()
+                    root.cameraRequested()
+                }
+            }
 
             IconButton {
                 objectName: "attachPhoto"

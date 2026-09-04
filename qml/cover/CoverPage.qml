@@ -137,6 +137,9 @@ CoverBackground {
             rightMargin: Theme.paddingMedium
         }
 
+        // Wrapped rather than faded: a cover is narrow, and the word
+        // for "Messages" is a long one in several of the languages the
+        // app speaks. The grid starts under whatever this comes to.
         Label {
             id: brand
             objectName: "brand"
@@ -144,7 +147,7 @@ CoverBackground {
             text: "Delta"
             color: Theme.highlightColor
             font.pixelSize: Theme.fontSizeMedium
-            truncationMode: TruncationMode.Fade
+            wrapMode: Text.Wrap
         }
 
         Label {
@@ -153,7 +156,7 @@ CoverBackground {
             text: qsTr("Messages")
             color: Theme.secondaryHighlightColor
             font.pixelSize: Theme.fontSizeExtraSmall
-            truncationMode: TruncationMode.Fade
+            wrapMode: Text.Wrap
         }
     }
 

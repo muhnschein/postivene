@@ -356,6 +356,25 @@ async fn offline_round_trip_against_real_core() {
         "unexpected account shape: {ours:?}"
     );
 
+    // Which profile the app comes back to, as DeltaChatCore::refresh_accounts
+    // and select_account speak it: the core selects an account it has just
+    // added on its own, `select_account` takes the id bare, and
+    // `get_selected_account_id` answers with the id or null -- an
+    // `Option<u32>`, which is the shape the shim decodes.
+    let selected: Option<u32> = client
+        .call_unit("get_selected_account_id")
+        .await
+        .expect("get_selected_account_id");
+    assert_eq!(
+        selected,
+        Some(account_id),
+        "the core did not select the account it had just added"
+    );
+    client
+        .call::<_, ()>("select_account", (account_id,))
+        .await
+        .expect("select_account");
+
     // QR classification, as DeltaChatCore::check_qr consumes it. A
     // DCACCOUNT: code is parsed purely locally (no network): expect
     // kind "account" (camelCase variant tag) with snake_case fields.
@@ -694,6 +713,45 @@ async fn offline_round_trip_against_real_core() {
 
     let tone = std::env::temp_dir().join("postivene-real-server-tone.wav");
     std::fs::write(&tone, one_second_wav()).expect("write wav");
+
+    // A voice message, as ChatMessages::send_voice sends one: `send_msg`
+    // with a MessageData naming the view type, since the core would
+    // classify the same file as Audio on its own (below). Answers with the
+    // id alone, and the row read back carries the type asked for.
+    let voice_id: u32 = client
+        .call(
+            "send_msg",
+            (
+                sender_id,
+                saved,
+                serde_json::json!({
+                    "file": tone.to_string_lossy(),
+                    "viewtype": "Voice",
+                    "quotedMessageId": Option::<u32>::None,
+                }),
+            ),
+        )
+        .await
+        .expect("send_msg with a Voice view type");
+    let voices: std::collections::HashMap<u32, Value> = client
+        .call("get_messages", (sender_id, vec![voice_id]))
+        .await
+        .expect("get_messages for the voice message");
+    assert_eq!(
+        voices[&voice_id].get("viewType").and_then(Value::as_str),
+        Some("Voice"),
+        "the core did not keep the Voice view type send_msg asked for: {:?}",
+        voices[&voice_id]
+    );
+    assert!(
+        voices[&voice_id]
+            .get("file")
+            .and_then(Value::as_str)
+            .is_some_and(|file| !file.is_empty()),
+        "the voice message lost its file: {:?}",
+        voices[&voice_id]
+    );
+
     let sent_tone = send_file(&client, sender_id, saved, &tone, "tone.wav").await;
     assert_eq!(
         sent_tone.get("viewType").and_then(Value::as_str),

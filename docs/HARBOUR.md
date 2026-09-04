@@ -292,9 +292,14 @@ removed from the store even after approval. Not an option.
 4. Exercise every permission-dependent path under the sandbox: the
    profile picture picker needs both `Pictures` and `MediaIndexing`, the
    attach button's four pickers need `UserDirs` for anything outside
-   `~/Pictures`, and playing a voice message needs `Audio`. Send one of
-   each kind -- photo, video, sound, document -- and open what arrives at
-   the other end.
+   `~/Pictures`, playing a voice message needs `Audio`, recording one --
+   and the sound on a video taken in the app -- needs `Microphone`, and
+   the camera page needs `Camera`. Send one of each kind -- photo, video,
+   sound, document -- and open what arrives at the other end; take a
+   picture, a video and a voice message in the app and send those too.
+   The recorder picks a codec from what GStreamer offers (Opus in Ogg
+   first); the microphone button is not shown at all when it finds none,
+   which is the state the headless tests see.
 5. Delete the cache directory while the app runs; confirm nothing breaks.
 6. Kill `deltachat-rpc-server` from a terminal while the app is open. The
    banner should say it is reconnecting and then clear itself, and messages

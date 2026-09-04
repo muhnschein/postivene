@@ -31,8 +31,9 @@ jobs:
       - run: sudo apt-get update
       # qml-module-qtquick2 is the QtQuick runtime plugin, which the -dev
       # packages do not pull in. qttools5-dev-tools is lrelease, which the
-      # app's translation test compiles a catalog with.
-      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qtdeclarative5-dev-tools qml-module-qtquick2 qml-module-qtgraphicaleffects qttools5-dev-tools
+      # app's translation test compiles a catalog with. qtmultimedia5-dev
+      # is QAudioRecorder, which the shim's voice recorder is built on.
+      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qtmultimedia5-dev qtdeclarative5-dev-tools qml-module-qtquick2 qml-module-qtgraphicaleffects qttools5-dev-tools
       - run: rustc --version && cargo --version
       - run: cd rust && cargo fmt --all --check
       - run: cd rust && cargo clippy --workspace --all-targets -- -D warnings
@@ -52,7 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: sudo apt-get update
-      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev
+      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qtmultimedia5-dev
       - run: rustup toolchain install 1.75.0 --profile minimal
       # Warnings are denied by the workspace lints table, not RUSTFLAGS:
       # see rust/Cargo.toml.
@@ -69,7 +70,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: sudo apt-get update
       # real_core drives the shim through a QML probe.
-      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qml-module-qtquick2 qml-module-qtgraphicaleffects
+      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qtmultimedia5-dev qml-module-qtquick2 qml-module-qtgraphicaleffects
       # Checksum-pinned on the wheel and the extracted binary.
       - run: ./scripts/fetch-rpc-server.sh
       - run: cd rust && cargo test -p deltachat-jsonrpc --test real_server
@@ -109,7 +110,7 @@ jobs:
       - run: sudo apt-get update
       # rpm for rpmspec (the %files layout), file for the icons, binutils
       # for the binary's symbols.
-      - run: sudo apt-get install -y rpm file binutils qtbase5-dev qtdeclarative5-dev
+      - run: sudo apt-get install -y rpm file binutils qtbase5-dev qtdeclarative5-dev qtmultimedia5-dev
       # The bundled server is one of the files the package installs, so
       # the layout check cannot judge it while it is absent.
       - run: ./scripts/fetch-rpc-server.sh

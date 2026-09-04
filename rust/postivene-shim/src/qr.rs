@@ -117,18 +117,20 @@ pub(crate) fn decode_grey(grey: &Grey) -> Option<String> {
 
 /// A file of the given name in the app's own cache directory, which is
 /// inside the sandbox grant: where a viewfinder frame goes for decoding,
-/// and where a code goes to be shown.
-fn cache_file(name: &str) -> Result<std::path::PathBuf, String> {
+/// where a code goes to be shown, and where a capture waits to be sent
+/// (`capture.rs`). `name` may carry a directory, which is made too.
+pub(crate) fn cache_file(name: &str) -> Result<std::path::PathBuf, String> {
     let base = std::env::var("XDG_CACHE_HOME")
         .map(std::path::PathBuf::from)
         .or_else(|_| {
             std::env::var("HOME").map(|home| std::path::PathBuf::from(home).join(".cache"))
         })
         .map_err(|_| "neither XDG_CACHE_HOME nor HOME is set".to_string())?;
-    let dir = base.join("postivene/postivene");
-    std::fs::create_dir_all(&dir)
+    let path = base.join("postivene/postivene").join(name);
+    let dir = path.parent().unwrap_or(&path);
+    std::fs::create_dir_all(dir)
         .map_err(|err| format!("cannot create cache dir {}: {err}", dir.display()))?;
-    Ok(dir.join(name))
+    Ok(path)
 }
 
 /// Pixels per module in the file a code is shown from. Enough that a

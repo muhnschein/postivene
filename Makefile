@@ -5,12 +5,14 @@
 # time it runs, and `deny` wants the advisory database.
 #
 # Qt5 packages (Debian/Ubuntu):
-#   apt install qtbase5-dev qtdeclarative5-dev qtdeclarative5-dev-tools \
-#               qml-module-qtquick2 qttools5-dev-tools
+#   apt install qtbase5-dev qtdeclarative5-dev qtmultimedia5-dev \
+#               qtdeclarative5-dev-tools qml-module-qtquick2 \
+#               qttools5-dev-tools
 #
 # qml-module-qtquick2 is the QtQuick runtime plugin, which the -dev
 # packages omit; qttools5-dev-tools is lupdate and lrelease, for the
-# catalogs, and the app's own test compiles one.
+# catalogs, and the app's own test compiles one; qtmultimedia5-dev is
+# QAudioRecorder, which the shim's voice recorder is built on.
 
 .PHONY: check test lint fmt qml-lint packaging-lint lockfile-lint doc-lint \
         msrv deny integration harbour vendor-check fetch-server \

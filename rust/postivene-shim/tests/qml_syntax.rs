@@ -713,7 +713,7 @@ fn qualified_uses(code: &str) -> Vec<(usize, String)> {
 #[test]
 fn qml_reads_no_name_that_is_not_there() {
     // What QML puts in scope without the file saying so.
-    const IN_SCOPE: [&str; 17] = [
+    const IN_SCOPE: [&str; 18] = [
         // Grouped properties, and properties of the element being
         // configured read without qualifying them.
         "anchors",
@@ -721,6 +721,8 @@ fn qml_reads_no_name_that_is_not_there() {
         "icon",
         "text",
         "parent",
+        // A Rectangle's outline: the capture page's shutter wears one.
+        "border",
         // An Item's own texture, and the effect drawn from it: Avatar
         // takes the colour out of a picture through one.
         "layer",

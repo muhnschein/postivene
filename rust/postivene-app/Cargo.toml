@@ -9,7 +9,8 @@ description = "Binary that wires DeltaChatCore + the chat/message list models in
 
 [dependencies]
 postivene-shim = { path = "../postivene-shim" }
-qmetaobject = "0.2"
+# Without its `log` bridge; see postivene-shim/Cargo.toml.
+qmetaobject = { version = "0.2", default-features = false }
 # The one `cpp!` block in the tree: src/translations.rs, which installs a
 # QTranslator, a class qmetaobject does not bind. Same versions as the
 # vendored qmetaobject's, so nothing new reaches Cargo.lock.

@@ -72,6 +72,17 @@
     </message>
 </context>
 <context>
+    <name>CapturePage</name>
+    <message>
+        <source>Photo</source>
+        <translation>Foto</translation>
+    </message>
+    <message>
+        <source>Video</source>
+        <translation>Video</translation>
+    </message>
+</context>
+<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
@@ -104,10 +115,6 @@
     <message>
         <source>Search chats</source>
         <translation>Cerca chat</translation>
-    </message>
-    <message>
-        <source>Search</source>
-        <translation>Cerca</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -188,6 +195,10 @@
     <message>
         <source>Mark as unread</source>
         <translation>Segna come non letta</translation>
+    </message>
+    <message>
+        <source>Search chats, contacts and messages</source>
+        <translation>Cerca chat, contatti e messaggi</translation>
     </message>
 </context>
 <context>
@@ -912,6 +923,14 @@
     <message>
         <source>Save to device</source>
         <translation>Salva sul dispositivo</translation>
+    </message>
+</context>
+<context>
+    <name>VoiceBar</name>
+    <message>
+        <source>Recording %1</source>
+        <extracomment>Shown while a voice message records. %1 is the time so far, such as &quot;0:07&quot;.</extracomment>
+        <translation>Registrazione %1</translation>
     </message>
 </context>
 <context>

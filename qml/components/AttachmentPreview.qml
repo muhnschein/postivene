@@ -55,8 +55,11 @@ Item {
     /// How wide the bubble lets this be.
     property real contentWidth: 0
 
-    /// The reader asked to open this in whatever handles it.
-    signal openRequested()
+    /// A long press landed on one of the small controls here -- the
+    /// play button, the mark on a GIF -- which take the press for
+    /// themselves. The row's menu is what a long press means anywhere on
+    /// a message, so the control passes it on rather than swallowing it.
+    signal menuRequested()
 
     readonly property bool hasFile: root.filePath.length > 0
     // Encoded, not concatenated: attachments are named by whoever sent
@@ -85,6 +88,13 @@ Item {
     /// The text the fallback row shows, so the bubble can measure it
     /// without reaching inside here for the label.
     readonly property string genericText: generic.text
+    /// Whether a tap on the message opens this: a picture, a video, or a
+    /// file for another app. A sound plays where it sits, and a shared
+    /// contact is drawn rather than opened. The tap itself is the row's:
+    /// nothing here takes a press, so a long press anywhere on the
+    /// message -- the picture included -- reaches the row's menu.
+    readonly property bool openable: root.hasFile
+                                     && (root.isPicture || root.isVideo || generic.visible)
 
     /// `Audio.PlayingState`, written as its value.
     ///
@@ -251,13 +261,9 @@ Item {
             }
         }
 
-        MouseArea {
-            anchors.fill: parent
-            onClicked: root.openRequested()
-        }
-
-        // The mark on a GIF that is not playing. Over the tap that opens
-        // the picture, so a tap on the mark plays it here instead.
+        // The mark on a GIF that is not playing. Its own tap, so a tap
+        // on the mark plays the movie here rather than opening the
+        // picture; a long press on it still goes to the row's menu.
         Rectangle {
             id: gifMark
             objectName: "gifMark"
@@ -281,13 +287,14 @@ Item {
             MouseArea {
                 anchors.fill: parent
                 onClicked: root.replay()
+                onPressAndHold: root.menuRequested()
             }
         }
     }
 
     // A video: the platform thumbnailer's poster frame, with a play mark
-    // over it. Tapping hands it to whatever plays video, rather than
-    // building a player here.
+    // over it. A tap on the row opens it on the video page; nothing here
+    // takes the press.
     Item {
         id: video
         objectName: "attachmentVideo"
@@ -333,11 +340,6 @@ Item {
                 text: "▶"
             }
         }
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: root.openRequested()
-        }
     }
 
     // A voice message or a music file, played where it sits. The core
@@ -380,6 +382,7 @@ Item {
                     player.play()
                 }
             }
+            onPressAndHold: root.menuRequested()
         }
 
         Label {
@@ -501,8 +504,9 @@ Item {
     }
 
     // Everything else that has a file: named, sized, and handed to the
-    // system on a tap. Webxdc apps land here -- Postivene cannot run one,
-    // and a row that pretended otherwise would be worse than this.
+    // system on a tap on the row. Webxdc apps land here -- Postivene
+    // cannot run one, and a row that pretended otherwise would be worse
+    // than this.
     Label {
         id: generic
         objectName: "attachmentLabel"
@@ -527,11 +531,6 @@ Item {
             var name = root.fileName.length > 0 ? root.fileName : root.filePath
             var size = root.readableSize(root.fileBytes)
             return mark + " " + name + (size.length > 0 ? " (" + size + ")" : "")
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: root.openRequested()
         }
     }
 }

@@ -9,8 +9,23 @@ use serde_json::{json, Value};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::sync::Mutex;
 
-#[tokio::main]
-async fn main() {
+fn main() {
+    // By hand rather than `#[tokio::main]`, which is the `macros` feature
+    // and a proc-macro crate the app's own build does not need.
+    let runtime = match tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+    {
+        Ok(runtime) => runtime,
+        Err(err) => {
+            eprintln!("fake server: cannot build a runtime: {err}");
+            std::process::exit(1);
+        }
+    };
+    runtime.block_on(serve());
+}
+
+async fn serve() {
     let stdin = tokio::io::stdin();
     let mut lines = BufReader::new(stdin).lines();
     let stdout = Arc::new(Mutex::new(tokio::io::stdout()));

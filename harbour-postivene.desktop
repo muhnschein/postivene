@@ -33,14 +33,15 @@ Categories=Network;InstantMessaging;
 # profile picture was found to need on a real device.
 #
 # Audio is for playing a voice message or a sound file in the conversation,
-# which goes through PulseAudio. Nothing here records: QML has no audio
-# recorder on Qt 5.6, so Microphone stays off until there is something to
-# use it.
+# which goes through PulseAudio. Microphone is for recording one
+# (VoiceBar.qml, over the shim's VoiceRecorder), and for the sound track
+# of a video taken in the app.
 #
-# Camera is for the QR scanner: an invite or a chatmail server code held
-# up to the phone. ScanPage.qml is the only file that opens it, and only
-# while it is the page on screen.
+# Camera is for the QR scanner -- an invite or a chatmail server code held
+# up to the phone -- and for a picture or a video taken to send.
+# ScanView.qml and CapturePage.qml are the only files that open it, and
+# only while they are on screen.
 [X-Sailjail]
-Permissions=Internet;Pictures;MediaIndexing;UserDirs;Audio;Camera
+Permissions=Internet;Pictures;MediaIndexing;UserDirs;Audio;Microphone;Camera
 OrganizationName=postivene
 ApplicationName=postivene

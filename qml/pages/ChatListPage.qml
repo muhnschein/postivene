@@ -170,7 +170,17 @@ Page {
         }
     }
 
-    Component.onCompleted: core.refresh_accounts()
+    Component.onCompleted: {
+        core.refresh_accounts()
+        // Whichever profile this list shows is the one the app comes
+        // back to next time: the core keeps the choice on disk. Said
+        // here rather than where the switch is made, because every way
+        // to a profile -- resuming, switching, adding one -- ends on
+        // this page. The archived list is the same profile's.
+        if (!page.archived) {
+            core.select_account(page.accountId)
+        }
+    }
 
     // One flickable for the whole page, owning the pulley.
     //
@@ -283,7 +293,11 @@ Page {
                 // no way to clear the field and get the list back.
                 visible: !page.archived || chats.count > 0
                          || searchField.text.length > 0
-                placeholderText: page.archived ? qsTr("Search chats") : qsTr("Search")
+                // Every search field says what it searches, in the same
+                // shape; this one searches all three kinds and says so.
+                placeholderText: page.archived
+                                 ? qsTr("Search chats")
+                                 : qsTr("Search chats, contacts and messages")
                 onTextChanged: searchDebounce.restart()
             }
         }

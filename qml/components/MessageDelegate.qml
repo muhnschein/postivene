@@ -36,6 +36,25 @@ Item {
     /// or take it off again when it is already theirs. The model decides
     /// which; the row only says what was tapped.
     signal reactionRequested(string emoji)
+    /// A long press landed on a control that takes presses for itself --
+    /// a chip, the download offer, the play button -- and the row's menu
+    /// is what a long press means anywhere on a message.
+    signal menuRequested()
+
+    /// What a tap on the message does. The row's own tap, not one of the
+    /// attachment's: a picture with a tap area of its own took the press
+    /// away from the row, so a long press on it never reached the menu,
+    /// and a tap just off it did nothing. The whole message is one
+    /// surface now -- a tap opens what there is to open, a long press
+    /// opens the menu -- and the two cannot fight over a pixel.
+    function tapped() {
+        if (attachment.openable) {
+            root.openRequested(attachment.fileUrl, root.fileName, root.viewType,
+                               attachment.contentWidth)
+        } else if (root.canDownload) {
+            root.downloadRequested()
+        }
+    }
 
     property string messageText: ""
     /// The reactions on this message, as the shim hands them over: a JSON
@@ -108,6 +127,9 @@ Item {
     /// could not fetch: something to say, and mostly something to tap.
     readonly property bool heldBack: root.downloadState.length > 0
                                      && root.downloadState !== "Done"
+    /// The two states the rest of a message can be asked for in.
+    readonly property bool canDownload: root.downloadState === "Available"
+                                        || root.downloadState === "Failure"
 
     // A bubble is as wide as its content, up to most of the screen. The
     // widths come off unconstrained copies of the text: measuring the real
@@ -121,7 +143,11 @@ Item {
                  attachment.wantsFullWidth && root.hasFile ? root.maxWidth : 0,
                  Theme.itemSizeSmall))
 
-    height: (root.isInfo ? infoLabel.height : bubble.height) + 2 * Theme.paddingSmall
+    // The chips hang half below the bubble, and that half is the row's
+    // to make room for: without it they draw over the next message.
+    height: (root.isInfo ? infoLabel.height : bubble.height)
+            + (reactionRow.visible ? reactionRow.height / 2 : 0)
+            + 2 * Theme.paddingSmall
 
     // Where the next part goes: right below the last one that is there,
     // with a gap only when both are.
@@ -239,6 +265,7 @@ Item {
             x: Theme.paddingMedium
             y: root.below(senderLabel, visible)
             width: root.contentWidth
+            wrapMode: Text.Wrap
             font.pixelSize: Theme.fontSizeExtraSmall
             font.italic: true
             color: Theme.secondaryColor
@@ -309,13 +336,8 @@ Item {
             vcardName: root.vcardName
             vcardAddr: root.vcardAddr
             vcardColor: root.vcardColor
-            // Passed up rather than acted on, which is what the comment
-            // above always said and what this row now actually does: what
-            // opening an attachment means is a page's decision, and a
-            // delegate cannot push one.
-            onOpenRequested: root.openRequested(attachment.fileUrl,
-                                                root.fileName, root.viewType,
-                                                attachment.contentWidth)
+            // A long press on one of its own controls is the row's menu.
+            onMenuRequested: root.menuRequested()
         }
 
         Label {
@@ -362,84 +384,9 @@ Item {
 
             MouseArea {
                 anchors.fill: parent
-                enabled: root.downloadState === "Available"
-                         || root.downloadState === "Failure"
+                enabled: root.canDownload
                 onClicked: root.downloadRequested()
-            }
-        }
-
-        // Who reacted with what, one chip per emoji, ours lit. Laid out by
-        // hand rather than in a Row, for the reason at the top of the
-        // file: each chip sits after the ones before it, and reads their
-        // widths so a chip that grows pushes the rest along. One line,
-        // clipped: a message with more distinct reactions than fit is
-        // rare enough that the last of them can go unseen.
-        Item {
-            id: reactionRow
-            objectName: "reactionRow"
-            visible: root.reactionList.length > 0
-            x: Theme.paddingMedium
-            y: root.below(downloadLabel, visible)
-            width: root.contentWidth
-            // A line of the chip font plus the chip's own padding.
-            height: visible ? reactionMetric.height + 2 * Theme.paddingSmall : 0
-            clip: true
-
-            /// The room the chips take in a row: their text, each one's
-            /// padding, and the gaps between them.
-            readonly property real wantedWidth:
-                root.reactionList.length === 0 ? 0
-                : reactionMetric.implicitWidth
-                  + root.reactionList.length * 2 * Theme.paddingMedium
-                  + (root.reactionList.length - 1) * Theme.paddingSmall
-
-            Repeater {
-                id: reactionRepeater
-                objectName: "reactionRepeater"
-                model: root.reactionList
-
-                Rectangle {
-                    objectName: "reactionChip"
-                    /// Whether this is the reader's own reaction.
-                    readonly property bool mine: modelData.self === true
-                    /// The emoji, for the tap to name.
-                    readonly property string emoji: modelData.emoji
-                    // After every chip before it. Reading their widths is
-                    // what makes this follow them: the repeater builds
-                    // chips in order, so each one it asks for is there.
-                    x: {
-                        var at = 0
-                        for (var i = 0; i < index; i++) {
-                            var earlier = reactionRepeater.itemAt(i)
-                            if (earlier) {
-                                at += earlier.width + Theme.paddingSmall
-                            }
-                        }
-                        return at
-                    }
-                    width: chipLabel.implicitWidth + 2 * Theme.paddingMedium
-                    height: reactionRow.height
-                    radius: height / 2
-                    color: mine ? Theme.rgba(Theme.highlightColor, 0.35)
-                                : Theme.rgba(Theme.primaryColor, 0.1)
-
-                    Label {
-                        id: chipLabel
-                        objectName: "chipLabel"
-                        anchors.centerIn: parent
-                        font.pixelSize: Theme.fontSizeSmall
-                        color: Theme.primaryColor
-                        // The emoji is whatever the other end sent, and
-                        // the core does not check that it is one.
-                        textFormat: Text.PlainText
-                        text: root.chipText(modelData)
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: root.reactionRequested(emoji)
-                    }
-                }
+                onPressAndHold: root.menuRequested()
             }
         }
 
@@ -449,7 +396,7 @@ Item {
             id: footerLabel
             objectName: "footerLabel"
             x: Theme.paddingMedium
-            y: root.below(reactionRow, true)
+            y: root.below(downloadLabel, true)
             width: root.contentWidth
             horizontalAlignment: Text.AlignRight
             font.pixelSize: Theme.fontSizeExtraSmall
@@ -457,6 +404,94 @@ Item {
             text: (root.showPadlock ? "" : "✉ ")
                   + Qt.formatTime(new Date(root.sentAt * 1000), "hh:mm")
                   + (root.isOutgoing ? " " + Format.stateMark(root.deliveryState) : "")
+        }
+    }
+
+    // Who reacted with what, one chip per emoji, ours lit. Hung off the
+    // bubble's bottom corner rather than laid out inside it -- the
+    // inside corner, towards the middle of the screen, the way the
+    // reference clients hang theirs: half over the bubble and half
+    // below it, so a reaction reads as something put on the message
+    // rather than a line of it. Laid out by hand rather than in a Row,
+    // for the reason at the top of the file: each chip sits after the
+    // ones before it, and reads their widths so a chip that grows
+    // pushes the rest along. One line, clipped: a message with more
+    // distinct reactions than fit is rare enough that the last of them
+    // can go unseen.
+    Item {
+        id: reactionRow
+        objectName: "reactionRow"
+        visible: !root.isInfo && root.reactionList.length > 0
+        // Inside the bubble's own padding, at the corner nearest the
+        // middle of the screen.
+        x: root.isOutgoing ? bubble.x + Theme.paddingMedium
+                           : bubble.x + bubble.width - width - Theme.paddingMedium
+        y: bubble.height - height / 2
+        // Never wider than the bubble, which sizes itself to fit the
+        // chips where it can.
+        width: Math.min(wantedWidth, root.contentWidth)
+        // A line of the chip font plus the chip's own padding.
+        height: visible ? reactionMetric.height + 2 * Theme.paddingSmall : 0
+        clip: true
+
+        /// The room the chips take in a row: their text, each one's
+        /// padding, and the gaps between them.
+        readonly property real wantedWidth:
+            root.reactionList.length === 0 ? 0
+            : reactionMetric.implicitWidth
+              + root.reactionList.length * 2 * Theme.paddingMedium
+              + (root.reactionList.length - 1) * Theme.paddingSmall
+
+        Repeater {
+            id: reactionRepeater
+            objectName: "reactionRepeater"
+            model: root.reactionList
+
+            Rectangle {
+                objectName: "reactionChip"
+                /// Whether this is the reader's own reaction.
+                readonly property bool mine: modelData.self === true
+                /// The emoji, for the tap to name.
+                readonly property string emoji: modelData.emoji
+                // After every chip before it. Reading their widths is
+                // what makes this follow them: the repeater builds
+                // chips in order, so each one it asks for is there.
+                x: {
+                    var at = 0
+                    for (var i = 0; i < index; i++) {
+                        var earlier = reactionRepeater.itemAt(i)
+                        if (earlier) {
+                            at += earlier.width + Theme.paddingSmall
+                        }
+                    }
+                    return at
+                }
+                width: chipLabel.implicitWidth + 2 * Theme.paddingMedium
+                height: reactionRow.height
+                radius: height / 2
+                // Nearly solid: a chip straddles the bubble's edge, and
+                // a translucent one would change colour halfway down.
+                color: mine ? Theme.rgba(Theme.highlightBackgroundColor, 0.9)
+                            : Theme.rgba(Theme.highlightDimmerColor, 0.9)
+
+                Label {
+                    id: chipLabel
+                    objectName: "chipLabel"
+                    anchors.centerIn: parent
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.primaryColor
+                    // The emoji is whatever the other end sent, and
+                    // the core does not check that it is one.
+                    textFormat: Text.PlainText
+                    text: root.chipText(modelData)
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: root.reactionRequested(emoji)
+                    onPressAndHold: root.menuRequested()
+                }
+            }
         }
     }
 }

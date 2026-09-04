@@ -51,6 +51,13 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   away from CFFI. The OpenRPC spec is the interface contract.
 - **Core events run off the main thread**, marshalled to the Qt main thread
   via queued signals.
+- **What is made on the phone is made by the platform.** A picture or a
+  video comes from QML's `Camera`; a voice message from `QAudioRecorder`,
+  which QML on Qt 5.6 does not offer and the shim reaches through the
+  tree's second `cpp!` block (`BUILDING.md`). Either waits in the app's
+  cache directory until the core has copied it, and is sent as any other
+  file -- a voice message with the core's `Voice` view type, the one kind
+  the core has to be told.
 
 ## Platform baseline
 
@@ -78,12 +85,6 @@ In order of what matters:
    pages; add-as-second-device and restore-from-backup.
 3. **Message polish**: avatars on bubbles, an unread divider, and a way
    to react with an emoji the quick row does not offer.
-4. **Recording a voice message, and taking a picture.** Sending every
-   kind of attachment works; making one does not. QML has no audio
-   recorder on Qt 5.6 -- `harbour-whisperfish` wrote its own against
-   gstreamer -- so a voice note needs native code, an `unsafe` exception
-   and the `Microphone` permission. The camera is already granted for the
-   QR scanner, so a picture is the smaller step.
-5. **Running a webxdc app.** Sending one already works, but is not shown in
+4. **Running a webxdc app.** Sending one already works, but is not shown in
    the GUI; running it needs `Sailfish.WebView`, the `WebView` permission
    and the webxdc bridge.

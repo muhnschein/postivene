@@ -72,6 +72,17 @@
     </message>
 </context>
 <context>
+    <name>CapturePage</name>
+    <message>
+        <source>Photo</source>
+        <translation>Nuotrauka</translation>
+    </message>
+    <message>
+        <source>Video</source>
+        <translation>Vaizdo įrašas</translation>
+    </message>
+</context>
+<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
@@ -104,10 +115,6 @@
     <message>
         <source>Search chats</source>
         <translation>Ieškoti pokalbių</translation>
-    </message>
-    <message>
-        <source>Search</source>
-        <translation>Ieškoti</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -188,6 +195,10 @@
     <message>
         <source>Mark as unread</source>
         <translation>Žymėti kaip neskaitytą</translation>
+    </message>
+    <message>
+        <source>Search chats, contacts and messages</source>
+        <translation>Ieškoti pokalbių, kontaktų ir žinučių</translation>
     </message>
 </context>
 <context>
@@ -916,6 +927,14 @@
     <message>
         <source>Save to device</source>
         <translation>Išsaugoti įrenginyje</translation>
+    </message>
+</context>
+<context>
+    <name>VoiceBar</name>
+    <message>
+        <source>Recording %1</source>
+        <extracomment>Shown while a voice message records. %1 is the time so far, such as &quot;0:07&quot;.</extracomment>
+        <translation>Įrašoma %1</translation>
     </message>
 </context>
 <context>

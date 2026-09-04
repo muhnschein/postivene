@@ -551,6 +551,11 @@ SilicaListView {
         contentHeight: dayHeading.height
                        + (model.loaded ? body.height : Theme.itemSizeExtraSmall)
 
+        // One surface: a tap opens whatever the message has to open, a
+        // long press opens the menu, wherever on the row either lands.
+        // The row is what takes the press, so the two cannot fight.
+        onClicked: body.tapped()
+
         /// The date this row's day starts under, on the first row of each
         /// day and nowhere else.
         ///
@@ -640,6 +645,10 @@ SilicaListView {
                                                 previewWidth)
             onDownloadRequested: root.downloadRequested(model.message_id)
             onReactionRequested: root.reactionRequested(model.message_id, emoji)
+            // A long press on a chip, the download offer or a play
+            // button: those take the press for themselves, and hand the
+            // long one back to the row it means.
+            onMenuRequested: messageRow.openMenu()
         }
     }
 

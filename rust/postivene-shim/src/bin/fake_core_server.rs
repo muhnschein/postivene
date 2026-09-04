@@ -30,6 +30,10 @@ struct Account {
 #[derive(Default)]
 struct State {
     accounts: Vec<Account>,
+    /// The profile the app last said it was showing. The real core keeps
+    /// it on disk, selects a newly added account itself, and falls back
+    /// to the first that is left when the selected one is removed.
+    selected: Option<u32>,
     /// Events waiting to be handed out by `get_next_event_batch`.
     events: VecDeque<Value>,
     /// Message ids per chat, oldest first. Seeded on first use.
@@ -75,6 +79,9 @@ struct State {
     /// core keeps one list per contact, and the list this account sends
     /// replaces whatever it had there before.
     reactions: std::collections::BTreeMap<u32, std::collections::BTreeMap<u32, Vec<String>>>,
+    /// The file and view type of a message sent with `send_msg`, so
+    /// `get_messages` can say what was sent.
+    sent_files: std::collections::BTreeMap<u32, (Value, String)>,
 }
 
 impl State {
@@ -455,9 +462,24 @@ fn delay(var: &str) -> std::time::Duration {
     )
 }
 
+fn main() {
+    // By hand rather than `#[tokio::main]`, which is the `macros` feature
+    // and a proc-macro crate the app's own build does not need.
+    let runtime = match tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+    {
+        Ok(runtime) => runtime,
+        Err(err) => {
+            eprintln!("fake server: cannot build a runtime: {err}");
+            std::process::exit(1);
+        }
+    };
+    runtime.block_on(serve());
+}
+
 #[allow(clippy::too_many_lines)]
-#[tokio::main]
-async fn main() {
+async fn serve() {
     let state = Arc::new(Mutex::new(State::default()));
     let stdout = Arc::new(Mutex::new(tokio::io::stdout()));
 
@@ -532,6 +554,9 @@ async fn main() {
                     let gone = positional(0).as_u64().unwrap_or(0);
                     let gone = u32::try_from(gone).unwrap_or(0);
                     state.accounts.retain(|account| account.id != gone);
+                    if state.selected == Some(gone) {
+                        state.selected = state.accounts.first().map(|account| account.id);
+                    }
                     ok(&id, &Value::Null)
                 }
                 "add_account" => {
@@ -541,7 +566,22 @@ async fn main() {
                         id: next,
                         configured: false,
                     });
+                    state.selected = Some(next);
                     ok(&id, &json!(next))
+                }
+                "select_account" => {
+                    let mut state = state.lock().await;
+                    let chosen = account_id();
+                    if state.accounts.iter().any(|account| account.id == chosen) {
+                        state.selected = Some(chosen);
+                        ok(&id, &Value::Null)
+                    } else {
+                        err(&id, "account not found")
+                    }
+                }
+                "get_selected_account_id" => {
+                    let state = state.lock().await;
+                    ok(&id, &json!(state.selected))
                 }
                 "set_config" => {
                     let account = positional(0)
@@ -636,6 +676,7 @@ async fn main() {
                     ok(&id, &json!(ids))
                 }
                 "start_io"
+                | "start_io_for_all_accounts"
                 | "stop_ongoing_process"
                 | "markseen_msgs"
                 | "set_chat_visibility"
@@ -1263,6 +1304,13 @@ async fn main() {
                         let mut message = message_object(msg);
                         let chat = u32::try_from(msg).map_or(0, |msg| state.chat_of(msg));
                         message["chatId"] = json!(chat);
+                        if let Some((file, view_type)) =
+                            u32::try_from(msg).ok().and_then(|msg| state.sent_files.get(&msg))
+                        {
+                            message["file"] = file.clone();
+                            message["viewType"] = json!(view_type);
+                            message["fromId"] = json!(SELF);
+                        }
                         let fetched =
                             u32::try_from(msg).is_ok_and(|msg| state.downloaded.contains(&msg));
                         message["downloadState"] = json!(if held_back == Some(msg) && !fetched {
@@ -1360,6 +1408,33 @@ async fn main() {
                                  "viewType": view_type}
                             ]),
                         )
+                    }
+                }
+                // The other send: a MessageData object, which is how a view
+                // type the core would not pick itself -- a voice message
+                // -- is asked for. Answers with the id alone; the row is
+                // fetched afterwards, and `get_messages` names the type
+                // the send asked for.
+                "send_msg" => {
+                    let account = account_id();
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let data = positional(2);
+                    let file = data.get("file").cloned().unwrap_or(Value::Null);
+                    let view_type = data
+                        .get("viewtype")
+                        .and_then(Value::as_str)
+                        .unwrap_or("Text")
+                        .to_string();
+                    if file.is_null() {
+                        err(&id, "send_msg without a file is not what the app sends")
+                    } else {
+                        let mut state = state.lock().await;
+                        let msg = state.add_message(account, chat);
+                        state.sent_files.insert(msg, (file, view_type));
+                        ok(&id, &json!(msg))
                     }
                 }
                 "get_next_event_batch" => {

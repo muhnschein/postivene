@@ -231,6 +231,11 @@ pub struct ChatMessages {
     /// into its blob directory, and sends -- so the picked file is free to
     /// go away afterwards.
     pub send_file: qt_method!(fn(&mut self, text: QString, file_path: QString)),
+    /// Send a recording as a voice message: the core's `Voice` view type,
+    /// which is what draws it as one at the other end rather than as a
+    /// music file. The core decides the type from the file otherwise, and
+    /// a recording is a sound file like any other to it.
+    pub send_voice: qt_method!(fn(&mut self, file_path: QString)),
     /// Mark every unread message now loaded as read. Called when the
     /// reader reaches the newest message.
     pub mark_seen_all: qt_method!(fn(&mut self)),
@@ -621,7 +626,19 @@ impl ChatMessages {
 
         match kind.as_str() {
             // New or changed content: take in what we do not have yet.
-            "IncomingMsg" | "MsgsChanged" | "MsgDeleted" => self.sync_rows(),
+            "IncomingMsg" | "MsgDeleted" => self.sync_rows(),
+            // The same, and one message re-read when the event names
+            // one. A download the limit held back lands as this event
+            // with the message's id and nothing else different: the id
+            // list is as it was, so a sync alone found nothing to do and
+            // the row said "Downloading…" until the chat was opened
+            // again. An edit made on another device arrives the same way.
+            "MsgsChanged" => {
+                self.sync_rows();
+                if let Some(message_id) = json::u32_opt(&payload, "msgId").filter(|id| *id != 0) {
+                    self.refresh_one(message_id);
+                }
+            }
             // The core dropped events it could not queue, so what this
             // model holds may already be wrong in ways no later event will
             // mention. Start again rather than patch.
@@ -1136,8 +1153,19 @@ impl ChatMessages {
         self.send_message(self.outgoing_text(&text.to_string()), Some((path, name)));
     }
 
+    /// Send a recording as a voice message.
+    pub fn send_voice(&mut self, file_path: QString) {
+        let path = local_path(&file_path.to_string());
+        if path.is_empty() {
+            self.error(QString::from("no recording to send"));
+            return;
+        }
+        self.send_message(String::new(), Some((path, String::new())));
+    }
+
     /// The one send. `file` is the path the core should attach and the name
-    /// the recipient should see.
+    /// the recipient should see -- an empty name for a voice message,
+    /// which is not named for anyone.
     fn send_message(&mut self, text: String, file: Option<(String, String)>) {
         // One at a time. The UI disables its button too, but the guard
         // belongs here: the button is not the only way in, and the model is
@@ -1198,14 +1226,44 @@ impl ChatMessages {
             }
         });
 
+        // A file with no name is a voice message: the one kind the core
+        // has to be told, since to it a recording is a sound file like any
+        // other. It takes the shape `send_msg` takes and `misc_send_msg`
+        // does not, and answers with the id alone, so the row is fetched
+        // the way every other row is.
+        let voice = matches!(&file, Some((_, name)) if name.is_empty());
         let (path, name) = file.unzip();
         runtime.spawn(async move {
-            // misc_send_msg params: account, chat, text, file, filename,
-            // location, quoted_message_id. Pinned against the real core by
-            // deltachat-jsonrpc/tests/real_server.rs, which sends one of
-            // each.
-            let result = rpc
-                .call::<_, (u32, serde_json::Value)>(
+            let result = if voice {
+                // send_msg params: account, chat, MessageData -- camelCase
+                // fields, the view type by its variant name. Pinned
+                // against the real core by
+                // deltachat-jsonrpc/tests/real_server.rs.
+                let data = serde_json::json!({
+                    "file": path,
+                    "viewtype": "Voice",
+                    "quotedMessageId": (quoted != 0).then_some(quoted),
+                });
+                match rpc
+                    .call::<_, u32>("send_msg", (account_id, chat_id, data))
+                    .await
+                {
+                    Ok(message_id) => fetch_messages(&rpc, account_id, &[message_id])
+                        .await
+                        .and_then(|items| {
+                            items
+                                .into_iter()
+                                .next()
+                                .ok_or_else(|| "the core lost the voice message".to_string())
+                        }),
+                    Err(err) => Err(err.to_string()),
+                }
+            } else {
+                // misc_send_msg params: account, chat, text, file, filename,
+                // location, quoted_message_id. Pinned against the real core by
+                // deltachat-jsonrpc/tests/real_server.rs, which sends one of
+                // each.
+                rpc.call::<_, (u32, serde_json::Value)>(
                     "misc_send_msg",
                     (
                         account_id,
@@ -1221,7 +1279,8 @@ impl ChatMessages {
                 )
                 .await
                 .map(|(message_id, message)| row_from(message_id, &message))
-                .map_err(|err| err.to_string());
+                .map_err(|err| err.to_string())
+            };
             done(result);
         });
     }

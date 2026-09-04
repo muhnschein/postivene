@@ -26,7 +26,12 @@ Page {
         // The reader's setting, from the settings page: known tracking
         // parameters come out of links on the way out.
         clean_links: Settings.cleanLinks === true
-        onError: page.errorMessage = message
+        onError: {
+            page.errorMessage = message
+            // A voice message that could not be sent is still on the
+            // phone for nothing.
+            page.dropVoice()
+        }
         // Sending is its own answer to "have I read this": go to the
         // message just sent rather than counting it as one that was missed.
         onSent: {
@@ -37,7 +42,13 @@ Page {
             page.storeDraft()
             page.replyBody = ""
             page.replyAuthor = ""
+            // A capture -- a picture taken here, a voice message -- has
+            // been copied by the core and is not needed any more. A
+            // file picked from a library is not a capture, and is left
+            // where it was.
+            captures.discard(page.attachmentPath)
             page.attachmentPath = ""
+            page.dropVoice()
             listView.jumpToNewest()
         }
         onArrived: listView.noteArrivals(count)
@@ -220,13 +231,42 @@ Page {
     // can still be cancelled, and so a caption can be typed after choosing.
     function attach(path) {
         if (path && path.length > 0) {
+            // A capture that is replaced before it is sent is not going
+            // anywhere.
+            captures.discard(page.attachmentPath)
             page.attachmentPath = path
         }
     }
 
+    // Where a picture taken here, or a voice message, waits to be sent;
+    // this page is what takes it back afterwards.
+    Captures {
+        id: captures
+        objectName: "captures"
+    }
+
+    // Cancelling a capture throws the file away; cancelling a picked
+    // file leaves it where it was.
+    function dropAttachment() {
+        captures.discard(page.attachmentPath)
+        page.attachmentPath = ""
+    }
+
+    /// The voice message on its way to the core, until the core has
+    /// answered: it goes straight from the recorder to the send, never
+    /// through the attachment bar, so it is remembered here to be
+    /// discarded afterwards.
+    property string pendingVoice: ""
+
+    function dropVoice() {
+        captures.discard(page.pendingVoice)
+        page.pendingVoice = ""
+    }
+
     // Pushed by URL and connected to, the way forwarding pushes
     // ChatPickerPage: the picker pages are the only files that name a
-    // `Sailfish.Pickers` type, so a type that is not there costs one
+    // `Sailfish.Pickers` type, and the capture page and the scanner the
+    // only ones that name a Camera, so a type that is not there costs one
     // button rather than the whole conversation.
     function pickWith(pageName) {
         var picker = pageStack.push(Qt.resolvedUrl(pageName))
@@ -410,7 +450,7 @@ Page {
         }
         filePath: page.attachmentPath
         fileName: page.attachmentName
-        onCancelled: page.attachmentPath = ""
+        onCancelled: page.dropAttachment()
     }
 
     // Says what just happened where the page has no state for it, such as
@@ -429,6 +469,16 @@ Page {
         onDismissed: notice.text = ""
     }
 
+    // What the send button does: the text and the file when there is
+    // either, and a voice message otherwise. The microphone stands where
+    // send does because it is what send means for an empty field, the
+    // way the other clients have it -- and a tap on it turns the row
+    // into the recording strip, where the same button sends.
+    readonly property bool hasSomethingToSend:
+        textField.text.trim().length > 0 || page.attachmentPath.length > 0
+    readonly property bool offersVoice:
+        voiceBar.available && !page.hasSomethingToSend
+
     Row {
         id: inputRow
         anchors {
@@ -441,9 +491,26 @@ Page {
         }
         spacing: Theme.paddingSmall
 
+        // The recording, where the field was, while there is one.
+        VoiceBar {
+            id: voiceBar
+            objectName: "voiceBar"
+            width: parent.width - sendButton.width
+            anchors.verticalCenter: sendButton.verticalCenter
+            onRecorded: {
+                page.errorMessage = ""
+                page.pendingVoice = path
+                messages.send_voice(path)
+            }
+            onFailed: page.errorMessage = message
+        }
+
+        // Both step aside while a voice message records: a Row lays out
+        // only what is visible, so the strip takes their room.
         TextField {
             id: textField
             objectName: "messageField"
+            visible: !voiceBar.recording
             width: parent.width - attachButton.width - sendButton.width
             //: Message field placeholder. Also the prompt for the caption
             //: on a message that is carrying a file.
@@ -460,6 +527,8 @@ Page {
         AttachButton {
             id: attachButton
             objectName: "attachButton"
+            visible: !voiceBar.recording
+            onCameraRequested: page.pickWith("CapturePage.qml")
             onPhotoRequested: page.pickWith("AttachPhotoPage.qml")
             onVideoRequested: page.pickWith("AttachVideoPage.qml")
             onAudioRequested: page.pickWith("AttachAudioPage.qml")
@@ -470,16 +539,21 @@ Page {
             id: sendButton
             objectName: "sendButton"
             // Hidden rather than greyed while a send is in flight: the
-            // indicator takes its place, so the row keeps its shape.
-            icon.source: messages.sending ? "" : "image://theme/icon-m-send"
+            // indicator takes its place, so the row keeps its shape. The
+            // microphone when there is nothing to send but a voice.
+            icon.source: messages.sending ? ""
+                         : page.offersVoice && !voiceBar.recording
+                           ? "image://theme/icon-m-mic"
+                           : "image://theme/icon-m-send"
             // A file on its own is a message; an empty field with nothing
-            // attached is not, and neither is one holding only spaces.
+            // attached is not, and neither is one holding only spaces --
+            // unless the button is the microphone, which a tap starts.
             // And nothing is sendable twice: copying a large video into
             // the core's blob directory takes long enough for a second
             // tap to land, and that sent the whole thing again.
             enabled: !messages.sending
-                     && (textField.text.trim().length > 0
-                         || page.attachmentPath.length > 0)
+                     && (page.hasSomethingToSend || page.offersVoice
+                         || voiceBar.recording)
             onClicked: page.sendCurrentText()
 
             BusyIndicator {
@@ -521,6 +595,16 @@ Page {
         // button is disabled meanwhile; this says so a third time because
         // EnterKey reaches here without going through the button.
         if (messages.sending) {
+            return
+        }
+        // A recording under way is what the button sends; the microphone
+        // starts one.
+        if (voiceBar.recording) {
+            voiceBar.send()
+            return
+        }
+        if (page.offersVoice) {
+            voiceBar.start()
             return
         }
         // The bars are cleared from `onSent`, with the model's own copy:

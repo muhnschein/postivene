@@ -72,6 +72,17 @@
     </message>
 </context>
 <context>
+    <name>CapturePage</name>
+    <message>
+        <source>Photo</source>
+        <translation>ছবি</translation>
+    </message>
+    <message>
+        <source>Video</source>
+        <translation>ভিডিও</translation>
+    </message>
+</context>
+<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
@@ -104,10 +115,6 @@
     <message>
         <source>Search chats</source>
         <translation>চ্যাট খুঁজুন</translation>
-    </message>
-    <message>
-        <source>Search</source>
-        <translation>খুঁজুন</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -188,6 +195,10 @@
     <message>
         <source>Mark as unread</source>
         <translation>অপঠিত বলে চিহ্নিত করুন</translation>
+    </message>
+    <message>
+        <source>Search chats, contacts and messages</source>
+        <translation>চ্যাট, পরিচিতি ও বার্তা খুঁজুন</translation>
     </message>
 </context>
 <context>
@@ -912,6 +923,14 @@
     <message>
         <source>Save to device</source>
         <translation>ডিভাইসে সংরক্ষণ করুন</translation>
+    </message>
+</context>
+<context>
+    <name>VoiceBar</name>
+    <message>
+        <source>Recording %1</source>
+        <extracomment>Shown while a voice message records. %1 is the time so far, such as &quot;0:07&quot;.</extracomment>
+        <translation>রেকর্ড হচ্ছে %1</translation>
     </message>
 </context>
 <context>

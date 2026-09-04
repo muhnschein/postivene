@@ -8,6 +8,9 @@ Item {
     property bool menuOpen: false
     property var menu
     signal clicked()
+    // Silica opens the row's context menu on a long press, and offers
+    // this for anything that took the press itself and wants the same.
+    function openMenu() { menuOpen = true }
 
     // Silica counts down before acting, and runs the action anyway if it is
     // destroyed while the countdown is still going (RemorseItem's own

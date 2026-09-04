@@ -300,6 +300,15 @@ impl RpcClient {
         lock(&self.stderr_tail).clone()
     }
 
+    /// The server's process id, while it is running. What a memory
+    /// profile of the core reads `/proc/<pid>` by.
+    #[must_use]
+    pub fn pid(&self) -> Option<u32> {
+        lock(&self.child)
+            .as_ref()
+            .and_then(tokio::process::Child::id)
+    }
+
     /// Terminate the child process and wait for the reader/writer tasks to
     /// finish. Safe to call even if the process has already exited.
     ///

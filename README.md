@@ -33,6 +33,18 @@ itself *never* touches a mail server or a key.
 
 See the non-goals in [`docs/PROJECT.md`](docs/PROJECT.md) for more information.
 
+## Bug reports
+
+Report anything that goes wrong with postivene **here**, in this
+repository's issues -- not to the Delta Chat project. postivene bundles
+upstream's `deltachat-rpc-server` and talks to it over JSON-RPC, so a
+crash, a message that does not arrive or a chat that draws wrongly is
+ours to look at first: it is far more likely to be this app's
+handling than the core's, and when it does turn out to be the core's,
+we take it upstream with what they need to reproduce it. Please do not
+file postivene bugs against Delta Chat's own trackers; they cannot see
+what this app does with their core.
+
 ## Documentation
 
 - [`docs/PROJECT.md`](docs/PROJECT.md) — project scope and explicit non-goals,
@@ -41,6 +53,8 @@ current implementation status, and what is missing
 how a device RPM is built
 - [`docs/HARBOUR.md`](docs/HARBOUR.md) — Jolla's store rules, how CI gates
 them, and the two that still block submission
+- [`docs/SECURITY.md`](docs/SECURITY.md) — what guards the app, and the
+evaluation of seccomp, Landlock and sandboxed media decoding
 
 ## Building
 

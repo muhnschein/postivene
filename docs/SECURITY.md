@@ -26,10 +26,12 @@ reasoning is not redone the next time.
   text as `PlainText` (pinned by `tests/qml_syntax.rs`), Markdown through
   its own renderer, links opened by the platform. Webxdc apps are not run
   (docs/PROJECT.md).
-- **No unsafe outside one file** in the app's own code
-  (`unsafe_code = "deny"` in the workspace lints; the one allowance is
-  `postivene-app/src/translations.rs`). The vendored `qmetaobject` is
-  upstream plus a three-line patch, proven by `ci/vendor-check.sh`.
+- **No unsafe outside two files** in the app's own code
+  (`unsafe_code = "deny"` in the workspace lints; the allowances are
+  `postivene-app/src/translations.rs` and `postivene-app/src/frames.rs`,
+  each one `cpp!` block that calls a Qt class qmetaobject does not bind).
+  The vendored `qmetaobject` is upstream plus a three-line patch, proven
+  by `ci/vendor-check.sh`.
 
 ## seccomp-bpf, with a whitelist generated in CI
 

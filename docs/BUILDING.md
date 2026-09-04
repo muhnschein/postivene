@@ -22,12 +22,14 @@ Workspace-level, so a bare `cargo clippy` fails the way CI does:
 outside tests, `missing_docs` and `unsafe_code` denied.
 
 `unsafe_code` is deny rather than forbid because the Qt harness tests need
-`env::set_var` before Qt initialises, and because one thing the app does
-has no safe binding: installing a `QTranslator`, which qmetaobject does
-not wrap. That is the one `cpp!` block in the tree, in
-`postivene-app/src/translations.rs`, and the C++ build step in that
-crate's `build.rs` exists for it alone. Every exception is at the
-narrowest scope and says why.
+`env::set_var` before Qt initialises, and because two things the app does
+have no safe binding: installing a `QTranslator`, which qmetaobject does
+not wrap, and hearing the window's `frameSwapped`, which fires on the
+render thread where no QML handler may run. Those are the two `cpp!`
+blocks in the tree, `postivene-app/src/translations.rs` and
+`postivene-app/src/frames.rs`, and the C++ build step in that crate's
+`build.rs` exists for them alone. Every exception is at the narrowest
+scope and says why.
 
 `rust/clippy.toml` bans two methods that have already caused device-only
 failures: `tokio::runtime::Runtime::new` (must go through `CoreRuntime`) and

@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>Inga kontakter att lägga till</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>Sök kontakter</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>Ingen matchar</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,12 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>Inga nya meddelanden</translation>
+        <source>No messages</source>
+        <translation>Inga meddelanden</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Meddelanden</translation>
     </message>
 </context>
 <context>
@@ -513,8 +525,39 @@
         <translation>Gruppnamn</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>Inga kontakter att lägga till än</translation>
+        <source>Remove picture</source>
+        <translation>Ta bort bild</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Alla i gruppen ser namnet</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n medlem</numerusform>
+            <numerusform>%n medlemmar</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>Ta bort från grupp</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>Lägg till medlemmar</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n nytt meddelande</numerusform>
+            <numerusform>%n nya meddelanden</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -829,6 +872,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>Kända spårningsparametrar – klick-id:n, kampanjtaggar, delarens konto – tas bort från länkarna i meddelandena du skickar. Resten av länken lämnas som den var.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>Aviseringar</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>Ett nytt meddelande visar</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>På låsskärmen och i aviseringsområdet. Chatten det kommer från öppnas ändå med ett tryck.</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>Vem som skrev, och vad</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>Vem som skrev</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>Bara att något har kommit</translation>
     </message>
 </context>
 <context>

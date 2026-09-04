@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>Pole kontakte, keda lisada</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>Otsi kontakte</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>Keegi ei sobi</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,12 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>Uusi sõnumeid pole</translation>
+        <source>No messages</source>
+        <translation>Sõnumeid pole</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Sõnumid</translation>
     </message>
 </context>
 <context>
@@ -513,8 +525,39 @@
         <translation>Grupi nimi</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>Pole veel kontakte, keda lisada</translation>
+        <source>Remove picture</source>
+        <translation>Eemalda pilt</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Nime näevad kõik grupis</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n liige</numerusform>
+            <numerusform>%n liiget</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>Eemalda grupist</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>Lisa liikmeid</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n uus sõnum</numerusform>
+            <numerusform>%n uut sõnumit</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -829,6 +872,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>Teadaolevad jälgimisparameetrid – klõpsu ID-d, kampaaniasildid, jagaja konto – eemaldatakse sinu saadetud sõnumite linkidest. Ülejäänud link jääb nii, nagu oli.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>Teavitused</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>Uus sõnum näitab</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>Lukustuskuval ja teavituste alal. Vestlus, kust see tuli, avaneb puudutusel igal juhul.</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>Kes kirjutas ja mida</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>Kes kirjutas</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>Ainult et midagi saabus</translation>
     </message>
 </context>
 <context>

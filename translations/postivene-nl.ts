@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>Geen contacten om toe te voegen</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>Contacten zoeken</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>Niemand komt overeen</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,12 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>Geen nieuwe berichten</translation>
+        <source>No messages</source>
+        <translation>Geen berichten</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Berichten</translation>
     </message>
 </context>
 <context>
@@ -513,8 +525,39 @@
         <translation>Groepsnaam</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>Nog geen contacten om toe te voegen</translation>
+        <source>Remove picture</source>
+        <translation>Afbeelding verwijderen</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Iedereen in de groep ziet de naam</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n lid</numerusform>
+            <numerusform>%n leden</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>Uit groep verwijderen</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>Leden toevoegen</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n nieuw bericht</numerusform>
+            <numerusform>%n nieuwe berichten</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -829,6 +872,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>Bekende trackingparameters – klik-id&apos;s, campagnetags, het account van de deler – worden uit de links in je verzonden berichten gehaald. De rest van de link blijft zoals hij was.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>Meldingen</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>Een nieuw bericht toont</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>Op het vergrendelscherm en in het meldingengebied. De chat waar het vandaan komt, opent hoe dan ook met een tik.</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>Wie schreef, en wat</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>Wie schreef</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>Alleen dat er iets is binnengekomen</translation>
     </message>
 </context>
 <context>

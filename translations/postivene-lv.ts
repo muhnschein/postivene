@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>Nav pievienojamu kontaktu</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>Meklēt kontaktos</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>Neviens neatbilst</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,12 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>Nav jaunu ziņu</translation>
+        <source>No messages</source>
+        <translation>Nav ziņu</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Ziņas</translation>
     </message>
 </context>
 <context>
@@ -515,8 +527,41 @@
         <translation>Grupas nosaukums</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>Vēl nav pievienojamu kontaktu</translation>
+        <source>Remove picture</source>
+        <translation>Noņemt attēlu</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Nosaukumu redz visi grupā</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n dalībnieks</numerusform>
+            <numerusform>%n dalībnieki</numerusform>
+            <numerusform>%n dalībnieku</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>Izņemt no grupas</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>Pievienot dalībniekus</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n jauna ziņa</numerusform>
+            <numerusform>%n jaunas ziņas</numerusform>
+            <numerusform>%n jaunu ziņu</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -831,6 +876,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>Zināmie izsekošanas parametri – klikšķu ID, kampaņu birkas, kopīgotāja konts – tiek izņemti no saitēm jūsu sūtītajās ziņās. Pārējā saites daļa paliek, kāda bija.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>Paziņojumi</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>Jauna ziņa rāda</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>Bloķēšanas ekrānā un paziņojumu zonā. Saruna, no kuras tā ir, ar pieskārienu atveras jebkurā gadījumā.</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>Kas rakstīja, un ko</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>Kas rakstīja</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>Tikai to, ka kaut kas pienāca</translation>
     </message>
 </context>
 <context>

@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>जोड़ने के लिए कोई संपर्क नहीं</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>संपर्क खोजें</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>कोई मेल नहीं खाता</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,12 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>कोई नया संदेश नहीं</translation>
+        <source>No messages</source>
+        <translation>कोई संदेश नहीं</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>संदेश</translation>
     </message>
 </context>
 <context>
@@ -513,8 +525,39 @@
         <translation>समूह का नाम</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>जोड़ने के लिए अभी कोई संपर्क नहीं</translation>
+        <source>Remove picture</source>
+        <translation>चित्र हटाएँ</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>समूह में सभी नाम देखते हैं</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n सदस्य</numerusform>
+            <numerusform>%n सदस्य</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>समूह से हटाएँ</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>सदस्य जोड़ें</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n नया संदेश</numerusform>
+            <numerusform>%n नए संदेश</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -829,6 +872,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>ज्ञात ट्रैकिंग पैरामीटर – क्लिक आईडी, अभियान टैग, साझा करने वाले का खाता – आपके भेजे संदेशों के लिंक से हटा दिए जाते हैं। बाकी लिंक जैसा था वैसा रहता है।</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>सूचनाएँ</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>नया संदेश दिखाता है</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>लॉक स्क्रीन पर और सूचना क्षेत्र में। जिस चैट से है वह टैप करने पर वैसे भी खुलती है।</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>किसने लिखा, और क्या</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>किसने लिखा</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>सिर्फ़ यह कि कुछ आया है</translation>
     </message>
 </context>
 <context>

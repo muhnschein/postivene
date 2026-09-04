@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>Δεν υπάρχουν επαφές για προσθήκη</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>Αναζήτηση επαφών</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>Κανείς δεν ταιριάζει</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,12 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>Δεν υπάρχουν νέα μηνύματα</translation>
+        <source>No messages</source>
+        <translation>Κανένα μήνυμα</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Μηνύματα</translation>
     </message>
 </context>
 <context>
@@ -513,8 +525,39 @@
         <translation>Όνομα ομάδας</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>Δεν υπάρχουν ακόμη επαφές για προσθήκη</translation>
+        <source>Remove picture</source>
+        <translation>Αφαίρεση εικόνας</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Όλοι στην ομάδα βλέπουν το όνομα</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n μέλος</numerusform>
+            <numerusform>%n μέλη</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>Αφαίρεση από την ομάδα</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>Προσθήκη μελών</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n νέο μήνυμα</numerusform>
+            <numerusform>%n νέα μηνύματα</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -829,6 +872,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>Οι γνωστές παράμετροι παρακολούθησης – αναγνωριστικά κλικ, ετικέτες καμπάνιας, ο λογαριασμός όποιου κοινοποιεί – αφαιρούνται από τους συνδέσμους στα μηνύματα που στέλνετε. Ο υπόλοιπος σύνδεσμος μένει όπως ήταν.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>Ειδοποιήσεις</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>Ένα νέο μήνυμα δείχνει</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>Στην οθόνη κλειδώματος και στην περιοχή ειδοποιήσεων. Η συνομιλία από την οποία προέρχεται ανοίγει με ένα πάτημα έτσι κι αλλιώς.</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>Ποιος έγραψε, και τι</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>Ποιος έγραψε</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>Μόνο ότι κάτι έφτασε</translation>
     </message>
 </context>
 <context>

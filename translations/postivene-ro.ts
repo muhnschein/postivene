@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>Niciun contact de adăugat</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>Caută contacte</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>Nimeni nu se potrivește</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,12 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>Niciun mesaj nou</translation>
+        <source>No messages</source>
+        <translation>Niciun mesaj</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Mesaje</translation>
     </message>
 </context>
 <context>
@@ -515,8 +527,41 @@
         <translation>Numele grupului</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>Niciun contact de adăugat încă</translation>
+        <source>Remove picture</source>
+        <translation>Elimină imaginea</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Toți cei din grup văd numele</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n membru</numerusform>
+            <numerusform>%n membri</numerusform>
+            <numerusform>%n de membri</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>Elimină din grup</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>Adaugă membri</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n mesaj nou</numerusform>
+            <numerusform>%n mesaje noi</numerusform>
+            <numerusform>%n de mesaje noi</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -831,6 +876,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>Parametrii de urmărire cunoscuți – ID-uri de clic, etichete de campanie, contul celui care distribuie – sunt eliminați din linkurile din mesajele pe care le trimiți. Restul linkului rămâne așa cum era.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>Notificări</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>Un mesaj nou arată</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>Pe ecranul de blocare și în zona de notificări. Conversația din care vine se deschide oricum la o atingere.</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>Cine a scris, și ce</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>Cine a scris</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>Doar că a sosit ceva</translation>
     </message>
 </context>
 <context>

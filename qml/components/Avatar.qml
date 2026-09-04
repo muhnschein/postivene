@@ -21,11 +21,16 @@ Rectangle {
     property string ownColor
     /// Path to the picture, empty when there is none.
     property string picturePath
+    /// Drawn without its colour: grey behind the initial, the picture
+    /// desaturated. For the cover's grid of everyone, where colour is
+    /// kept for whoever has something new.
+    property bool monochrome: false
 
     width: Theme.itemSizeSmall
     height: width
     radius: width / 2
-    color: ownColor.length > 0 ? ownColor : Theme.highlightColor
+    color: avatar.monochrome ? Theme.rgba(Theme.primaryColor, 0.25)
+                             : ownColor.length > 0 ? ownColor : Theme.highlightColor
 
     Label {
         objectName: "avatarInitial"
@@ -70,5 +75,12 @@ Rectangle {
         // avatar does not change between those frames, so the result is
         // kept in a texture and reused until the picture does change.
         cached: true
+        // The colour taken out on the way to the screen, as a layer over
+        // the masked picture, so the mask and the desaturation are one
+        // texture rather than two effects drawn over each other.
+        layer.enabled: avatar.monochrome
+        layer.effect: Desaturate {
+            desaturation: 1.0
+        }
     }
 }

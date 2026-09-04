@@ -4,19 +4,22 @@ import "../components"
 import Postivene 1.0
 
 /*
- * Pick who to add to a group that already exists. The same picker as
- * naming a new group, less the name: everyone already in is greyed, and
- * so is anyone the core would refuse.
+ * Pick who to add to a group: everyone already in is greyed, and so is
+ * anyone the core would refuse. A search field at the top narrows the
+ * list, for the reader with more contacts than fit on a screen.
  *
  * The group is the page that opened this one's, handed in rather than
  * loaded again, and the adding is done on it -- so what it shows is
  * updated by the same reload that answers every other change to it.
+ * For a group that does not exist yet, NewGroupPage hands in a stand-in
+ * that answers the same two questions.
  */
 Page {
     id: page
 
     property int accountId
-    /// The ChatInfo being added to.
+    /// The group being added to: a ChatInfo, or NewGroupPage's stand-in
+    /// for one. Asked `is_member(contactId)` and told `add_members(ids)`.
     property var chat
     property string errorMessage: ""
     // Contact ids the user has ticked.
@@ -27,6 +30,15 @@ Page {
         objectName: "contacts"
         account_id: page.accountId
         onError: page.errorMessage = message
+    }
+
+    // A keystroke's worth of quiet before the core is asked, so typing
+    // a name is one search rather than one per letter.
+    Timer {
+        id: searchDebounce
+        objectName: "searchDebounce"
+        interval: 250
+        onTriggered: contacts.query = searchField.text.trim()
     }
 
     function toggle(contactId) {
@@ -100,6 +112,16 @@ Page {
                 title: qsTr("Add members")
             }
 
+            // Outside the list, for the reason NewChatPage documents: a
+            // field in a view's header moves with the rows under it.
+            SearchField {
+                id: searchField
+                objectName: "searchField"
+                width: parent.width
+                placeholderText: qsTr("Search contacts")
+                onTextChanged: searchDebounce.restart()
+            }
+
             Banner {
                 objectName: "errorBanner"
                 width: parent.width
@@ -157,7 +179,8 @@ Page {
 
             ViewPlaceholder {
                 enabled: contacts.count === 0
-                text: qsTr("No contacts to add")
+                text: searchField.text.trim().length > 0 ? qsTr("Nobody matches")
+                                                          : qsTr("No contacts to add")
             }
         }
     }

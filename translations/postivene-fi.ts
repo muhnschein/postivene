@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>Ei lisättäviä yhteystietoja</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>Hae yhteystiedoista</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>Ei osumia</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,12 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>Ei uusia viestejä</translation>
+        <source>No messages</source>
+        <translation>Ei viestejä</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Viestit</translation>
     </message>
 </context>
 <context>
@@ -513,8 +525,39 @@
         <translation>Ryhmän nimi</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>Ei vielä lisättäviä yhteystietoja</translation>
+        <source>Remove picture</source>
+        <translation>Poista kuva</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Kaikki ryhmässä näkevät nimen</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n jäsen</numerusform>
+            <numerusform>%n jäsentä</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>Poista ryhmästä</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>Lisää jäseniä</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n uusi viesti</numerusform>
+            <numerusform>%n uutta viestiä</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -829,6 +872,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>Tunnetut seurantaparametrit – klikkaustunnisteet, kampanjatunnisteet, jakajan tili – poistetaan lähettämiesi viestien linkeistä. Linkin loppuosa jää ennalleen.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>Ilmoitukset</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>Uusi viesti näyttää</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>Lukitusnäytöllä ja ilmoitusalueella. Keskustelu, josta se tuli, avautuu napautuksella joka tapauksessa.</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>Kuka kirjoitti, ja mitä</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>Kuka kirjoitti</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>Vain että jotain saapui</translation>
     </message>
 </context>
 <context>

@@ -73,6 +73,13 @@ pub struct ChatList {
     /// Muted chats are counted. Muting silences the announcement, not the
     /// arithmetic -- the badge on a muted chat behaves the same way.
     pub unread_total: qt_property!(u32; READ unread_total NOTIFY rows_changed),
+    /// The people behind the chats, for the cover to draw: every row but
+    /// the chat with oneself and the device chat, as a JSON array of
+    /// `{"chat_id", "name", "color", "avatar_path", "unread_count"}` in
+    /// the list's order. One string rather than the model: the cover
+    /// lays its grid out in one pass and repeats the few to fill it,
+    /// which a view over the rows cannot.
+    pub cover_people: qt_property!(QString; READ cover_people NOTIFY rows_changed),
     /// Emitted after any change to `rows`.
     pub rows_changed: qt_signal!(),
 
@@ -83,8 +90,10 @@ pub struct ChatList {
     /// landed -- announcing on the event itself would carry a preview from
     /// before the message. A muted chat is never announced: it still
     /// counts towards the badge, quietly, which is the whole point of
-    /// muting.
-    pub message_arrived: qt_signal!(chat_id: u32, chat_name: QString, preview: QString),
+    /// muting. `sender` is who wrote it as the row's summary names them:
+    /// a name in a group, and empty in a one-to-one chat, where the chat
+    /// is already named after them.
+    pub message_arrived: qt_signal!(chat_id: u32, chat_name: QString, sender: QString, preview: QString),
 
     /// Loading failed. The message is the core's own.
     pub error: qt_signal!(message: QString),
@@ -116,6 +125,17 @@ pub struct ChatList {
     /// Delete a chat and its messages on this device.
     pub delete_chat: qt_method!(fn(&mut self, chat_id: u32)),
 
+    /// Chats with an arrival not yet announced: the message landed, and
+    /// the row that will carry its preview has not been read back yet.
+    ///
+    /// Kept apart from the refresh that was started for it, because that
+    /// refresh is rarely the one that lands: the core follows every
+    /// `IncomingMsg` with a `ChatlistItemChanged` and a `ChatlistChanged`
+    /// within the same millisecond, each starting a newer refresh and
+    /// making the older answer stale (see `generation`). Whichever answer
+    /// is current announces what is waiting.
+    pending_announcements: HashSet<u32>,
+
     /// Counts refreshes, so a slow answer to an older question cannot land
     /// on top of a newer one.
     ///
@@ -140,6 +160,26 @@ impl ChatList {
             .borrow()
             .iter()
             .fold(0u32, |total, row| total.saturating_add(row.unread_count))
+    }
+
+    /// The people behind the chats, as JSON; see the property.
+    pub fn cover_people(&self) -> QString {
+        let people: Vec<serde_json::Value> = self
+            .rows
+            .borrow()
+            .iter()
+            .filter(|row| !row.is_self_talk && !row.is_device_talk)
+            .map(|row| {
+                json!({
+                    "chat_id": row.chat_id,
+                    "name": row.name.to_string(),
+                    "color": row.color.to_string(),
+                    "avatar_path": row.avatar_path.to_string(),
+                    "unread_count": row.unread_count,
+                })
+            })
+            .collect();
+        serde_json::Value::Array(people).to_string().into()
     }
 
     /// Set the account and reload if it changed.
@@ -344,6 +384,9 @@ impl ChatList {
         // A set, not a list: this is asked once per entry, and a long chat
         // list would otherwise make the scan quadratic.
         let known: HashSet<u32> = cached.iter().map(|row| row.chat_id).collect();
+        if let Some(chat_id) = announce {
+            self.pending_announcements.insert(chat_id);
+        }
 
         self.generation = self.generation.wrapping_add(1);
         let generation = self.generation;
@@ -374,17 +417,32 @@ impl ChatList {
                         reconcile(&mut rows, target);
                     }
                     this.borrow().rows_changed();
-                    if let Some(chat_id) = announce {
-                        let announcement = this
-                            .borrow()
-                            .rows
-                            .borrow()
+                    // Everything waiting to be announced, not only what
+                    // this refresh was started for: see the field.
+                    let waiting: Vec<u32> =
+                        this.borrow_mut().pending_announcements.drain().collect();
+                    let announcements: Vec<(u32, QString, QString, QString)> = {
+                        let this_ref = this.borrow();
+                        let rows = this_ref.rows.borrow();
+                        waiting
                             .iter()
-                            .find(|row| row.chat_id == chat_id && !row.is_muted)
-                            .map(|row| (row.name.clone(), row.preview.clone()));
-                        if let Some((name, preview)) = announcement {
-                            this.borrow().message_arrived(chat_id, name, preview);
-                        }
+                            .filter_map(|chat_id| {
+                                rows.iter()
+                                    .find(|row| row.chat_id == *chat_id && !row.is_muted)
+                                    .map(|row| {
+                                        (
+                                            *chat_id,
+                                            row.name.clone(),
+                                            row.preview_sender.clone(),
+                                            row.preview.clone(),
+                                        )
+                                    })
+                            })
+                            .collect()
+                    };
+                    for (chat_id, name, sender, preview) in announcements {
+                        this.borrow()
+                            .message_arrived(chat_id, name, sender, preview);
                     }
                 }
                 Err(err) => this.borrow().error(err.into()),
@@ -608,6 +666,8 @@ pub(crate) async fn chat_items(
                     is_pinned: json::flag(&item, "isPinned"),
                     is_muted: json::flag(&item, "isMuted"),
                     is_contact_request: json::flag(&item, "isContactRequest"),
+                    is_self_talk: json::flag(&item, "isSelfTalk"),
+                    is_device_talk: json::flag(&item, "isDeviceTalk"),
                     color: json::text(&item, "color"),
                     avatar_path: json::text(&item, "avatarPath"),
                 },

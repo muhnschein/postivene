@@ -77,6 +77,8 @@ Requires:   qt5-qtdeclarative-import-multimedia
 Requires:   qt5-qtgraphicaleffects
 Requires:   nemo-qml-plugin-notifications-qt5
 Requires:   nemo-qml-plugin-thumbnailer-qt5
+# Nemo.DBus, for the name a tapped notification calls back to.
+Requires:   nemo-qml-plugin-dbus-qt5
 # Nemo.Configuration, for the settings that belong to no profile: they
 # live in dconf, so a change on the settings page reaches every open page.
 Requires:   nemo-qml-plugin-configuration-qt5

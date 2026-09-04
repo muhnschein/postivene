@@ -782,6 +782,8 @@ async fn offline_round_trip_against_real_core() {
         "isPinned",
         "isMuted",
         "isContactRequest",
+        "isSelfTalk",
+        "isDeviceTalk",
         "color",
         "avatarPath",
     ] {
@@ -790,6 +792,61 @@ async fn offline_round_trip_against_real_core() {
             "the chat list row lost the {field} field: {row:?}"
         );
     }
+    // The chat with oneself says so, which is how the cover keeps it out
+    // of the people it draws; the group is nobody's self.
+    assert_eq!(
+        row.get("isSelfTalk").and_then(Value::as_bool),
+        Some(true),
+        "the saved-messages chat is not marked as the chat with oneself: {row:?}"
+    );
+    let group_items: std::collections::HashMap<u32, Value> = client
+        .call("get_chatlist_items_by_entries", (sender_id, vec![group]))
+        .await
+        .expect("get_chatlist_items_by_entries for the group");
+    assert_eq!(
+        group_items[&group]
+            .get("isSelfTalk")
+            .and_then(Value::as_bool),
+        Some(false),
+        "a group reads as the chat with oneself: {:?}",
+        group_items[&group]
+    );
+
+    // Who `get_contacts` lists. With listFlags 0 the account's own
+    // contact (DC_CONTACT_ID_SELF, 1) is left out; DC_GCL_ADD_SELF (2)
+    // appends it, and a query drops it again. The new-group page draws
+    // the reader among the members from the first, and the pickers from
+    // the second.
+    let contacts_plain: Vec<Value> = client
+        .call("get_contacts", (sender_id, 0, Option::<String>::None))
+        .await
+        .expect("get_contacts");
+    assert!(
+        !contacts_plain
+            .iter()
+            .any(|contact| contact.get("id").and_then(Value::as_u64) == Some(1)),
+        "get_contacts lists the account's own contact without being asked: {contacts_plain:?}"
+    );
+    let contacts_with_self: Vec<Value> = client
+        .call("get_contacts", (sender_id, 2, Option::<String>::None))
+        .await
+        .expect("get_contacts with DC_GCL_ADD_SELF");
+    assert_eq!(
+        contacts_with_self
+            .last()
+            .and_then(|contact| contact.get("id"))
+            .and_then(Value::as_u64),
+        Some(1),
+        "DC_GCL_ADD_SELF does not put the account's own contact last: {contacts_with_self:?}"
+    );
+    let contacts_searched: Vec<Value> = client
+        .call("get_contacts", (sender_id, 2, Some("zzz-nobody")))
+        .await
+        .expect("get_contacts with a query");
+    assert!(
+        contacts_searched.is_empty(),
+        "a query still lists the account's own contact: {contacts_searched:?}"
+    );
 
     // What the row's context menu does. Visibility is one method with the
     // core's own variant names, and muting takes a tagged duration.

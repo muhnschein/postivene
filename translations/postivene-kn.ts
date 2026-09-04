@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>ಸೇರಿಸಲು ಸಂಪರ್ಕಗಳಿಲ್ಲ</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>ಸಂಪರ್ಕಗಳನ್ನು ಹುಡುಕಿ</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>ಯಾರೂ ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,12 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>ಹೊಸ ಸಂದೇಶಗಳಿಲ್ಲ</translation>
+        <source>No messages</source>
+        <translation>ಸಂದೇಶಗಳಿಲ್ಲ</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>ಸಂದೇಶಗಳು</translation>
     </message>
 </context>
 <context>
@@ -513,8 +525,39 @@
         <translation>ಗುಂಪಿನ ಹೆಸರು</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>ಸೇರಿಸಲು ಇನ್ನೂ ಸಂಪರ್ಕಗಳಿಲ್ಲ</translation>
+        <source>Remove picture</source>
+        <translation>ಚಿತ್ರ ತೆಗೆದುಹಾಕಿ</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>ಗುಂಪಿನಲ್ಲಿರುವ ಎಲ್ಲರೂ ಹೆಸರನ್ನು ನೋಡುತ್ತಾರೆ</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n ಸದಸ್ಯ</numerusform>
+            <numerusform>%n ಸದಸ್ಯರು</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>ಗುಂಪಿನಿಂದ ತೆಗೆದುಹಾಕಿ</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>ಸದಸ್ಯರನ್ನು ಸೇರಿಸಿ</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n ಹೊಸ ಸಂದೇಶ</numerusform>
+            <numerusform>%n ಹೊಸ ಸಂದೇಶಗಳು</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -829,6 +872,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>ತಿಳಿದಿರುವ ಟ್ರ್ಯಾಕಿಂಗ್ ಪ್ಯಾರಾಮೀಟರ್‌ಗಳು – ಕ್ಲಿಕ್ ಐಡಿಗಳು, ಅಭಿಯಾನ ಟ್ಯಾಗ್‌ಗಳು, ಹಂಚಿಕೊಂಡವರ ಖಾತೆ – ನೀವು ಕಳುಹಿಸುವ ಸಂದೇಶಗಳ ಲಿಂಕ್‌ಗಳಿಂದ ತೆಗೆದುಹಾಕಲಾಗುತ್ತದೆ. ಲಿಂಕ್‌ನ ಉಳಿದ ಭಾಗ ಇದ್ದಂತೆಯೇ ಇರುತ್ತದೆ.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>ಅಧಿಸೂಚನೆಗಳು</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>ಹೊಸ ಸಂದೇಶ ತೋರಿಸುವುದು</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>ಲಾಕ್ ಪರದೆಯಲ್ಲಿ ಮತ್ತು ಅಧಿಸೂಚನೆ ಪ್ರದೇಶದಲ್ಲಿ. ಅದು ಬಂದ ಚಾಟ್ ಟ್ಯಾಪ್ ಮಾಡಿದಾಗ ಹೇಗಿದ್ದರೂ ತೆರೆಯುತ್ತದೆ.</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>ಯಾರು ಬರೆದರು, ಮತ್ತು ಏನು</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>ಯಾರು ಬರೆದರು</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>ಏನೋ ಬಂದಿದೆ ಎಂಬುದು ಮಾತ್ರ</translation>
     </message>
 </context>
 <context>

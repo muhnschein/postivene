@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>Nėra pridedamų kontaktų</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>Ieškoti kontaktų</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>Niekas neatitinka</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,12 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>Naujų žinučių nėra</translation>
+        <source>No messages</source>
+        <translation>Žinučių nėra</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Žinutės</translation>
     </message>
 </context>
 <context>
@@ -515,8 +527,41 @@
         <translation>Grupės pavadinimas</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>Pridedamų kontaktų dar nėra</translation>
+        <source>Remove picture</source>
+        <translation>Pašalinti paveikslėlį</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Pavadinimą mato visi grupėje</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n narys</numerusform>
+            <numerusform>%n nariai</numerusform>
+            <numerusform>%n narių</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>Pašalinti iš grupės</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>Pridėti narių</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n nauja žinutė</numerusform>
+            <numerusform>%n naujos žinutės</numerusform>
+            <numerusform>%n naujų žinučių</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -831,6 +876,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>Žinomi sekimo parametrai – paspaudimų ID, kampanijų žymos, besidalijančiojo paskyra – pašalinami iš nuorodų jūsų siunčiamose žinutėse. Likusi nuorodos dalis paliekama tokia, kokia buvo.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>Pranešimai</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>Nauja žinutė rodo</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>Užrakinimo ekrane ir pranešimų srityje. Pokalbis, iš kurio ji, palietus atsidaro bet kuriuo atveju.</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>Kas rašė ir ką</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>Kas rašė</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>Tik kad kažkas atėjo</translation>
     </message>
 </context>
 <context>

@@ -284,6 +284,17 @@ impl State {
             "contextId": account_id,
             "event": {"kind": "IncomingMsg", "chatId": chat_id, "msgId": id},
         }));
+        // The real core follows a message with this within the same
+        // millisecond (pinned with the vendored server: `MsgDelivered`,
+        // then `ChatlistItemChanged` for the chat), and with a
+        // `ChatlistChanged` besides when the order changed. A model that
+        // announced only on the refresh the first event started never
+        // announced at all, since the one behind it made that answer
+        // stale before it landed.
+        self.events.push_back(json!({
+            "contextId": account_id,
+            "event": {"kind": "ChatlistItemChanged", "chatId": chat_id},
+        }));
         id
     }
 
@@ -418,6 +429,21 @@ fn should_fail(value: &str) -> bool {
     value.contains("fail")
 }
 
+/// Chat ids named in `var`, comma-separated. Lets a test mark which of
+/// the seeded chats stand for something -- the chat with oneself, the
+/// device chat -- without a fixture for each.
+fn env_ids(var: &str) -> Vec<u64> {
+    std::env::var(var)
+        .ok()
+        .map(|value| {
+            value
+                .split(',')
+                .filter_map(|id| id.trim().parse().ok())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 /// A reply delay in milliseconds, from `var`. Lets a test fix the order in
 /// which two replies land.
 fn delay(var: &str) -> std::time::Duration {
@@ -484,7 +510,21 @@ async fn main() {
             let response = match method.as_str() {
                 "get_system_info" => ok(&id, &json!({"name": "fake-core-server"})),
                 "get_all_accounts" => {
-                    let list = state.lock().await.account_list();
+                    let mut state = state.lock().await;
+                    // Profiles a test wants there from the start, already
+                    // configured, named in POSTIVENE_FAKE_ACCOUNTS. The
+                    // onboarding tests leave it unset and start from none.
+                    if state.accounts.is_empty() {
+                        for account in env_ids("POSTIVENE_FAKE_ACCOUNTS") {
+                            if let Ok(account) = u32::try_from(account) {
+                                state.accounts.push(Account {
+                                    id: account,
+                                    configured: true,
+                                });
+                            }
+                        }
+                    }
+                    let list = state.account_list();
                     ok(&id, &list)
                 }
                 "remove_account" => {
@@ -635,8 +675,9 @@ async fn main() {
                 "get_contacts" => {
                     let mut state = state.lock().await;
                     state.seed_chats();
+                    let flags = positional(1).as_u64().unwrap_or(0);
                     let query = positional(2).as_str().unwrap_or_default().to_lowercase();
-                    let ids: Vec<u32> = state
+                    let mut ids: Vec<u32> = state
                         .contacts
                         .iter()
                         .filter(|(_, address)| {
@@ -644,6 +685,12 @@ async fn main() {
                         })
                         .map(|(contact, _)| *contact)
                         .collect();
+                    // DC_GCL_ADD_SELF puts the account's own contact last,
+                    // and only when nothing is being searched for -- as
+                    // the real core does, pinned in real_server.rs.
+                    if flags & 0x02 != 0 && query.is_empty() {
+                        ids.push(SELF);
+                    }
                     let contacts: Vec<Value> = ids
                         .iter()
                         .filter_map(|contact| state.contact_object(*contact))
@@ -1128,6 +1175,11 @@ async fn main() {
                                 "summaryStatus": if draft.is_some() { 19 } else { 0 },
                                 "freshMessageCounter": u32::from(fresh),
                                 "isEncrypted": true,
+                                // The chat with oneself and the core's
+                                // device chat, when a test names them:
+                                // what the cover leaves out of its grid.
+                                "isSelfTalk": env_ids("POSTIVENE_FAKE_SELF_TALK").contains(&chat),
+                                "isDeviceTalk": env_ids("POSTIVENE_FAKE_DEVICE_TALK").contains(&chat),
                                 // Chat 1 is pinned, so the ordinary list
                                 // has both kinds in it and a test can see
                                 // the two headings. The archived list

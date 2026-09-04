@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>沒有可新增的聯絡人</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>搜尋聯絡人</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>沒有相符的聯絡人</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,12 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>沒有新訊息</translation>
+        <source>No messages</source>
+        <translation>沒有訊息</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>訊息</translation>
     </message>
 </context>
 <context>
@@ -511,8 +523,37 @@
         <translation>群組名稱</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>還沒有可新增的聯絡人</translation>
+        <source>Remove picture</source>
+        <translation>移除圖片</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>群組中的每個人都看得到名稱</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n 位成員</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>從群組中移除</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>新增成員</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n 則新訊息</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -827,6 +868,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>已知的追蹤參數（點擊 ID、行銷活動標籤、分享者帳號）會從你傳送的訊息的連結中移除。連結的其餘部分維持原樣。</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>通知</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>新訊息顯示</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>在鎖定畫面和通知區域中。無論如何，點一下都會開啟它所屬的聊天。</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>誰寫的，以及寫了什麼</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>誰寫的</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>只顯示有訊息送達</translation>
     </message>
 </context>
 <context>

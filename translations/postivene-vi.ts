@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>Không có liên hệ nào để thêm</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>Tìm liên hệ</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>Không ai khớp</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,12 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>Không có tin nhắn mới</translation>
+        <source>No messages</source>
+        <translation>Không có tin nhắn</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Tin nhắn</translation>
     </message>
 </context>
 <context>
@@ -511,8 +523,37 @@
         <translation>Tên nhóm</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>Chưa có liên hệ nào để thêm</translation>
+        <source>Remove picture</source>
+        <translation>Gỡ ảnh</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Mọi người trong nhóm đều thấy tên</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n thành viên</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>Xóa khỏi nhóm</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>Thêm thành viên</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n tin nhắn mới</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -827,6 +868,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>Các tham số theo dõi đã biết – mã nhấp chuột, thẻ chiến dịch, tài khoản người chia sẻ – được gỡ khỏi các liên kết trong tin nhắn bạn gửi. Phần còn lại của liên kết được giữ nguyên.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>Thông báo</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>Tin nhắn mới hiển thị</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>Trên màn hình khóa và trong vùng thông báo. Cuộc trò chuyện nó đến từ sẽ mở khi chạm, dù thế nào.</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>Ai đã viết, và viết gì</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>Ai đã viết</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>Chỉ là có gì đó đã đến</translation>
     </message>
 </context>
 <context>

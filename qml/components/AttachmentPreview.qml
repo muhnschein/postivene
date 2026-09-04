@@ -193,8 +193,8 @@ Item {
         // and a phone's own photo is several times the width of its
         // screen; this is most of what a chat full of pictures costs in
         // memory, and the bound on what a crafted file can make the app
-        // allocate (docs/SECURITY.md). Only the width, so the height
-        // follows the picture's own shape.
+        // allocate. Only the width, so the height follows the picture's
+        // own shape.
         sourceSize.width: root.contentWidth
         // A camera reads its sensor out landscape however the phone is
         // held and writes which way to turn it into an EXIF tag rather

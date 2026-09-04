@@ -301,6 +301,10 @@
         <source>No messages</source>
         <translation>Хәбәрләр юк</translation>
     </message>
+    <message>
+        <source>Messages</source>
+        <translation>Хәбәрләр</translation>
+    </message>
 </context>
 <context>
     <name>DisappearingMessages</name>

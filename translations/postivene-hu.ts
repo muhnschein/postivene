@@ -301,6 +301,10 @@
         <source>No messages</source>
         <translation>Nincs üzenet</translation>
     </message>
+    <message>
+        <source>Messages</source>
+        <translation>Üzenetek</translation>
+    </message>
 </context>
 <context>
     <name>DisappearingMessages</name>

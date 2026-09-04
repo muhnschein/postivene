@@ -301,6 +301,10 @@
         <source>No messages</source>
         <translation>Κανένα μήνυμα</translation>
     </message>
+    <message>
+        <source>Messages</source>
+        <translation>Μηνύματα</translation>
+    </message>
 </context>
 <context>
     <name>DisappearingMessages</name>

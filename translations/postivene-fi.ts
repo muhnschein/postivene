@@ -301,6 +301,10 @@
         <source>No messages</source>
         <translation>Ei viestejä</translation>
     </message>
+    <message>
+        <source>Messages</source>
+        <translation>Viestit</translation>
+    </message>
 </context>
 <context>
     <name>DisappearingMessages</name>

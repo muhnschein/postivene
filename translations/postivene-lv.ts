@@ -301,6 +301,10 @@
         <source>No messages</source>
         <translation>Nav ziņu</translation>
     </message>
+    <message>
+        <source>Messages</source>
+        <translation>Ziņas</translation>
+    </message>
 </context>
 <context>
     <name>DisappearingMessages</name>

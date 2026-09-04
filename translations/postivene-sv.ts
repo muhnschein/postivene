@@ -301,6 +301,10 @@
         <source>No messages</source>
         <translation>Inga meddelanden</translation>
     </message>
+    <message>
+        <source>Messages</source>
+        <translation>Meddelanden</translation>
+    </message>
 </context>
 <context>
     <name>DisappearingMessages</name>

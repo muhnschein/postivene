@@ -301,6 +301,10 @@
         <source>No messages</source>
         <translation>Sem mensagens</translation>
     </message>
+    <message>
+        <source>Messages</source>
+        <translation>Mensagens</translation>
+    </message>
 </context>
 <context>
     <name>DisappearingMessages</name>

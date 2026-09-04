@@ -301,6 +301,10 @@
         <source>No messages</source>
         <translation>Žinučių nėra</translation>
     </message>
+    <message>
+        <source>Messages</source>
+        <translation>Žinutės</translation>
+    </message>
 </context>
 <context>
     <name>DisappearingMessages</name>

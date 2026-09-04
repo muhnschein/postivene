@@ -301,6 +301,10 @@
         <source>No messages</source>
         <translation>Mesaj yok</translation>
     </message>
+    <message>
+        <source>Messages</source>
+        <translation>Mesajlar</translation>
+    </message>
 </context>
 <context>
     <name>DisappearingMessages</name>

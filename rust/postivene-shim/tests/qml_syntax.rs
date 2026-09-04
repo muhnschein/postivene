@@ -125,7 +125,7 @@ fn delegates_bind_only_roles_their_models_have() {
     }
 
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let cases: [(&str, Vec<String>); 10] = [
+    let cases: [(&str, Vec<String>); 11] = [
         (
             "qml/components/ConversationList.qml",
             names_of::<postivene_shim::MessageListItem>(),
@@ -133,6 +133,12 @@ fn delegates_bind_only_roles_their_models_have() {
         (
             "qml/pages/ChatListPage.qml",
             names_of::<postivene_shim::ChatListItem>(),
+        ),
+        // One chat list per profile; the people themselves come out of
+        // those lists as JSON and are bound as `modelData`, not roles.
+        (
+            "qml/cover/CoverPage.qml",
+            names_of::<postivene_shim::AccountItem>(),
         ),
         (
             "qml/pages/ChatPickerPage.qml",

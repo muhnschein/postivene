@@ -301,6 +301,10 @@
         <source>No messages</source>
         <translation>செய்திகள் இல்லை</translation>
     </message>
+    <message>
+        <source>Messages</source>
+        <translation>செய்திகள்</translation>
+    </message>
 </context>
 <context>
     <name>DisappearingMessages</name>

@@ -429,14 +429,24 @@ which `Notifier` owns through a `DBusAdaptor`. What one says is the
 reader's choice, since the lock screen shows it to whoever is looking:
 who wrote and what, who wrote, or only that something arrived.
 
-The cover has three states. Nobody yet -- no chat but the one with
-oneself and the core's own -- and it says "No messages". People and
-nothing new: a grid of their avatars in grey, the few repeated to fill
-it. Something new: the same grid dimmed, whoever wrote drawn large over
-it in their own colours, and the count in the corner. "Delta" sits top
-left throughout. The people come out of the cover's own `ChatList` as
-one JSON list (`cover_people`), which is how the grid can be laid out in
-a pass and repeated to fill.
+The cover is laid out as the platform's own covers are: "Delta" with
+"Messages" under it top left, and the count of unread messages top right,
+large, a zero included. Under that, three states. Nobody yet -- no chat
+but the one with oneself and the core's own -- and it says "No messages".
+People and nothing new: their avatars in grey in a staggered grid, every
+other row shifted half a cell and cut off at both edges, the few repeated
+to fill it. Something new: whoever wrote lit up in their own colours
+where they stand in the grid, once each. Every profile counts: the cover
+keeps one `ChatList` per configured profile, and the people come out of
+each as one JSON list (`cover_people`), which is how the grid can be laid
+out in a pass and repeated to fill.
+
+An arrival is announced by the chat list model once the row carrying
+its preview has been read back -- and by whichever refresh lands, not
+the one the `IncomingMsg` started: the core follows every message with a
+`ChatlistItemChanged` within the same millisecond, which makes that
+first answer stale before it arrives. Announcing only on it meant no
+notification ever, which the fake core now reproduces.
 
 The app speaks every language Sailfish OS ships in: forty catalogs under
 `translations/`, one per language the platform's Language setting offers,

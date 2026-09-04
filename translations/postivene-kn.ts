@@ -301,6 +301,10 @@
         <source>No messages</source>
         <translation>ಸಂದೇಶಗಳಿಲ್ಲ</translation>
     </message>
+    <message>
+        <source>Messages</source>
+        <translation>ಸಂದೇಶಗಳು</translation>
+    </message>
 </context>
 <context>
     <name>DisappearingMessages</name>

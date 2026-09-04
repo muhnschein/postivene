@@ -301,6 +301,10 @@
         <source>No messages</source>
         <translation>Không có tin nhắn</translation>
     </message>
+    <message>
+        <source>Messages</source>
+        <translation>Tin nhắn</translation>
+    </message>
 </context>
 <context>
     <name>DisappearingMessages</name>

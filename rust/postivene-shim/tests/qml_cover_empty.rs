@@ -26,12 +26,8 @@ const PROBE_QML: &str = r"
     Item {
         Loader { id: loader }
         function load(url) {
-            loader.setSource(url, { accountId: 1, width: 240, height: 360 })
+            loader.setSource(url, { width: 240, height: 360 })
             return loader.status === Loader.Ready ? 'ok' : 'load-failed'
-        }
-        function setAccount(accountId) {
-            loader.item.accountId = accountId
-            return 'ok'
         }
         function findIn(node, name) {
             if (!node) { return null }
@@ -74,11 +70,12 @@ fn a_cover_with_only_oneself_and_the_device_says_there_are_no_messages() {
     std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
 
     // SAFETY: single-threaded test binary; set before Qt starts and before
-    // the server inherits them. The fake's two ordinary chats are made
-    // the chat with oneself and the device chat.
+    // the server inherits them. One configured profile, whose two chats
+    // are made the chat with oneself and the device chat.
     unsafe {
         std::env::set_var("QT_QPA_PLATFORM", "offscreen");
         std::env::set_var("POSTIVENE_ACCOUNTS_DIR", temp.join("accounts"));
+        std::env::set_var("POSTIVENE_FAKE_ACCOUNTS", "1");
         std::env::set_var("POSTIVENE_FAKE_SELF_TALK", "1");
         std::env::set_var("POSTIVENE_FAKE_DEVICE_TALK", "2");
     }
@@ -134,17 +131,13 @@ fn a_cover_with_only_oneself_and_the_device_says_there_are_no_messages() {
         record!("load", call!("load", QString::from(url)));
     });
 
-    single_shot(Duration::from_secs(2), move || unsafe {
-        call!("setAccount", 1);
-    });
-
     single_shot(Duration::from_secs(4), move || unsafe {
         record!("rows", call!("rows"));
         record!("empty-shown", get!("emptyLabel", "visible"));
         record!("empty-says", get!("emptyLabel", "text"));
         record!("empty-wraps", get!("emptyLabel", "wrapMode"));
         record!("grid", call!("count", QString::from("gridCell")));
-        record!("lifted", call!("count", QString::from("writerAvatar")));
+        record!("count-says", get!("unreadTotal", "text"));
         record!("brand", get!("brand", "text"));
         (*engine_ptr).quit();
     });
@@ -188,9 +181,9 @@ fn a_cover_with_only_oneself_and_the_device_says_there_are_no_messages() {
         "a grid is drawn from chats that are nobody. {context}"
     );
     assert_eq!(
-        value("lifted"),
+        value("count-says"),
         "0",
-        "someone is drawn large with nobody there. {context}"
+        "the count is not zero with nobody there. {context}"
     );
     assert_eq!(
         value("brand"),

@@ -301,6 +301,10 @@
         <source>No messages</source>
         <translation>沒有訊息</translation>
     </message>
+    <message>
+        <source>Messages</source>
+        <translation>訊息</translation>
+    </message>
 </context>
 <context>
     <name>DisappearingMessages</name>

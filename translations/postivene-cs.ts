@@ -301,6 +301,10 @@
         <source>No messages</source>
         <translation>Žádné zprávy</translation>
     </message>
+    <message>
+        <source>Messages</source>
+        <translation>Zprávy</translation>
+    </message>
 </context>
 <context>
     <name>DisappearingMessages</name>

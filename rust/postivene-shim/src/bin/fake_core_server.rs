@@ -284,6 +284,17 @@ impl State {
             "contextId": account_id,
             "event": {"kind": "IncomingMsg", "chatId": chat_id, "msgId": id},
         }));
+        // The real core follows a message with this within the same
+        // millisecond (pinned with the vendored server: `MsgDelivered`,
+        // then `ChatlistItemChanged` for the chat), and with a
+        // `ChatlistChanged` besides when the order changed. A model that
+        // announced only on the refresh the first event started never
+        // announced at all, since the one behind it made that answer
+        // stale before it landed.
+        self.events.push_back(json!({
+            "contextId": account_id,
+            "event": {"kind": "ChatlistItemChanged", "chatId": chat_id},
+        }));
         id
     }
 
@@ -499,7 +510,21 @@ async fn main() {
             let response = match method.as_str() {
                 "get_system_info" => ok(&id, &json!({"name": "fake-core-server"})),
                 "get_all_accounts" => {
-                    let list = state.lock().await.account_list();
+                    let mut state = state.lock().await;
+                    // Profiles a test wants there from the start, already
+                    // configured, named in POSTIVENE_FAKE_ACCOUNTS. The
+                    // onboarding tests leave it unset and start from none.
+                    if state.accounts.is_empty() {
+                        for account in env_ids("POSTIVENE_FAKE_ACCOUNTS") {
+                            if let Ok(account) = u32::try_from(account) {
+                                state.accounts.push(Account {
+                                    id: account,
+                                    configured: true,
+                                });
+                            }
+                        }
+                    }
+                    let list = state.account_list();
                     ok(&id, &list)
                 }
                 "remove_account" => {

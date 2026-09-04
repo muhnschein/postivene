@@ -125,6 +125,17 @@ pub struct ChatList {
     /// Delete a chat and its messages on this device.
     pub delete_chat: qt_method!(fn(&mut self, chat_id: u32)),
 
+    /// Chats with an arrival not yet announced: the message landed, and
+    /// the row that will carry its preview has not been read back yet.
+    ///
+    /// Kept apart from the refresh that was started for it, because that
+    /// refresh is rarely the one that lands: the core follows every
+    /// `IncomingMsg` with a `ChatlistItemChanged` and a `ChatlistChanged`
+    /// within the same millisecond, each starting a newer refresh and
+    /// making the older answer stale (see `generation`). Whichever answer
+    /// is current announces what is waiting.
+    pending_announcements: HashSet<u32>,
+
     /// Counts refreshes, so a slow answer to an older question cannot land
     /// on top of a newer one.
     ///
@@ -373,6 +384,9 @@ impl ChatList {
         // A set, not a list: this is asked once per entry, and a long chat
         // list would otherwise make the scan quadratic.
         let known: HashSet<u32> = cached.iter().map(|row| row.chat_id).collect();
+        if let Some(chat_id) = announce {
+            self.pending_announcements.insert(chat_id);
+        }
 
         self.generation = self.generation.wrapping_add(1);
         let generation = self.generation;
@@ -403,24 +417,32 @@ impl ChatList {
                         reconcile(&mut rows, target);
                     }
                     this.borrow().rows_changed();
-                    if let Some(chat_id) = announce {
-                        let announcement = this
-                            .borrow()
-                            .rows
-                            .borrow()
+                    // Everything waiting to be announced, not only what
+                    // this refresh was started for: see the field.
+                    let waiting: Vec<u32> =
+                        this.borrow_mut().pending_announcements.drain().collect();
+                    let announcements: Vec<(u32, QString, QString, QString)> = {
+                        let this_ref = this.borrow();
+                        let rows = this_ref.rows.borrow();
+                        waiting
                             .iter()
-                            .find(|row| row.chat_id == chat_id && !row.is_muted)
-                            .map(|row| {
-                                (
-                                    row.name.clone(),
-                                    row.preview_sender.clone(),
-                                    row.preview.clone(),
-                                )
-                            });
-                        if let Some((name, sender, preview)) = announcement {
-                            this.borrow()
-                                .message_arrived(chat_id, name, sender, preview);
-                        }
+                            .filter_map(|chat_id| {
+                                rows.iter()
+                                    .find(|row| row.chat_id == *chat_id && !row.is_muted)
+                                    .map(|row| {
+                                        (
+                                            *chat_id,
+                                            row.name.clone(),
+                                            row.preview_sender.clone(),
+                                            row.preview.clone(),
+                                        )
+                                    })
+                            })
+                            .collect()
+                    };
+                    for (chat_id, name, sender, preview) in announcements {
+                        this.borrow()
+                            .message_arrived(chat_id, name, sender, preview);
                     }
                 }
                 Err(err) => this.borrow().error(err.into()),

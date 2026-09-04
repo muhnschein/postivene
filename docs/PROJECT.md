@@ -167,6 +167,19 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   and gives no sign that it is not the top of the chat. That is where the
   gesture leaves the reader looking, so that is where the way to the real
   beginning goes.
+- **The phone is the profiler.** Ten taps on the Settings title within
+  three seconds open a developer view, and nothing else leads there. A
+  recording started from it writes, once a second, what the app and the
+  core weigh and do -- proportional memory, CPU by thread, frames the
+  window presented and the longest gap between them -- with the marks
+  typed while reproducing something, a full `smaps` on demand, the
+  kernel facts `SECURITY.md` left to a device, and a script that traces
+  both processes' syscalls from outside the sandbox, where a tracer has
+  to be. `DevRecorder` (`postivene-shim/src/recorder.rs`) belongs to the
+  root window so a recording outlives the page; the frame count is the
+  window's `frameSwapped`, hooked from C++ because it fires on the render
+  thread. English only, on purpose. `BUILDING.md` says how to read what
+  it writes.
 - **Drafts belong to the core, not the page.** `misc_set_draft` and
   `get_draft` keep what was typed and not sent, so it survives the app
   being closed rather than only the trip back to the chat list. It also
@@ -504,9 +517,10 @@ The app speaks every language Sailfish OS ships in: forty catalogs under
 compiled by `lrelease` at build time and loaded at startup for the locale
 the system starts the app under, with the English one -- there for its
 plural forms -- standing in for a language that has none. The loading is
-the one `cpp!` block in
-the tree -- `QTranslator` is not bound by qmetaobject -- and the one
-`unsafe` outside the tests, kept to `postivene-app/src/translations.rs`.
+one of the two `cpp!` blocks in the tree -- `QTranslator` is not bound by
+qmetaobject; the other hears the window's `frameSwapped` for the
+developer view -- and one of the two `unsafe` allowances outside the
+tests, `postivene-app/src/translations.rs` and `frames.rs`.
 `ci/packaging-lint.sh` regenerates and compiles every catalog, and
 `tests/translation_catalogs.rs` fails on a string left untranslated in
 any of them.

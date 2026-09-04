@@ -33,7 +33,7 @@ pub extern "C" fn postivene_note_frame() {
     postivene_shim::recorder::note_frame();
 }
 
-/// Connect to the first QQuickWindow the application has -- the view
+/// Connect to the first `QQuickWindow` the application has -- the view
 /// `main` showed -- and say whether there was one. Called after the view
 /// is shown; before that there is no window to find.
 pub fn hook() -> bool {

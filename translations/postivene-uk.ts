@@ -1,0 +1,871 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="uk">
+<context>
+    <name>AddMembersPage</name>
+    <message>
+        <source>Add to group</source>
+        <translation>Додати до групи</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>Додати учасників</translation>
+    </message>
+    <message>
+        <source>No contacts to add</source>
+        <translation>Немає контактів для додавання</translation>
+    </message>
+</context>
+<context>
+    <name>AddProfileDialog</name>
+    <message>
+        <source>Add profile</source>
+        <translation>Додати профіль</translation>
+    </message>
+    <message>
+        <source>Create</source>
+        <translation>Створити</translation>
+    </message>
+    <message>
+        <source>Pick a chatmail relay or enter a custom server. The server assigns the address; the encryption keys are made on this device.</source>
+        <translation>Виберіть chatmail-релей або вкажіть власний сервер. Сервер призначає адресу; ключі шифрування створюються на цьому пристрої.</translation>
+    </message>
+    <message>
+        <source>Your name</source>
+        <translation>Ваше ім&apos;я</translation>
+    </message>
+    <message>
+        <source>Relay</source>
+        <translation>Релей</translation>
+    </message>
+    <message>
+        <source>Custom server</source>
+        <translation>Власний сервер</translation>
+    </message>
+    <message>
+        <source>See &lt;a href=&quot;https://chatmail.at/relays&quot;&gt;chatmail.at/relays&lt;/a&gt; for the full list.</source>
+        <translation>Повний список — на &lt;a href=&quot;https://chatmail.at/relays&quot;&gt;chatmail.at/relays&lt;/a&gt;.</translation>
+    </message>
+</context>
+<context>
+    <name>AttachmentBar</name>
+    <message>
+        <source>Sending %1</source>
+        <extracomment>Shown above the message field once a file has been picked. %1 is the file name.</extracomment>
+        <translation>Надсилання %1</translation>
+    </message>
+</context>
+<context>
+    <name>AttachmentPreview</name>
+    <message>
+        <source>Voice message</source>
+        <extracomment>A recorded voice message, which has no useful file name.</extracomment>
+        <translation>Голосове повідомлення</translation>
+    </message>
+</context>
+<context>
+    <name>ChatListPage</name>
+    <message>
+        <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
+        <translation>Втрачено зв&apos;язок із ядром Delta Chat. Повторне під&apos;єднання...</translation>
+    </message>
+    <message>
+        <source>Lost the connection to the Delta Chat core. Restart Postivene.</source>
+        <translation>Втрачено зв&apos;язок із ядром Delta Chat. Перезапустіть Postivene.</translation>
+    </message>
+    <message>
+        <source>Profiles</source>
+        <translation>Профілі</translation>
+    </message>
+    <message>
+        <source>Archived chats</source>
+        <translation>Архівні чати</translation>
+    </message>
+    <message>
+        <source>New chat</source>
+        <translation>Новий чат</translation>
+    </message>
+    <message>
+        <source>Archived</source>
+        <translation>В архіві</translation>
+    </message>
+    <message>
+        <source>Chats</source>
+        <translation>Чати</translation>
+    </message>
+    <message>
+        <source>Search chats</source>
+        <translation>Пошук чатів</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Пошук</translation>
+    </message>
+    <message>
+        <source>Pinned</source>
+        <translation>Закріплені</translation>
+    </message>
+    <message>
+        <source>Other chats</source>
+        <translation>Інші чати</translation>
+    </message>
+    <message>
+        <source>Mark as read</source>
+        <translation>Позначити прочитаним</translation>
+    </message>
+    <message>
+        <source>Unpin</source>
+        <translation>Відкріпити</translation>
+    </message>
+    <message>
+        <source>Pin</source>
+        <translation>Закріпити</translation>
+    </message>
+    <message>
+        <source>Unmute</source>
+        <translation>Увімкнути сповіщення</translation>
+    </message>
+    <message>
+        <source>Mute</source>
+        <translation>Вимкнути сповіщення</translation>
+    </message>
+    <message>
+        <source>Accept</source>
+        <translation>Прийняти</translation>
+    </message>
+    <message>
+        <source>Block</source>
+        <translation>Заблокувати</translation>
+    </message>
+    <message>
+        <source>Archive</source>
+        <translation>В архів</translation>
+    </message>
+    <message>
+        <source>Unarchive</source>
+        <translation>З архіву</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Видалити</translation>
+    </message>
+    <message>
+        <source>Deleting</source>
+        <translation>Видалення</translation>
+    </message>
+    <message>
+        <source>No archived chats</source>
+        <translation>Архівних чатів немає</translation>
+    </message>
+    <message>
+        <source>No chats yet</source>
+        <translation>Чатів ще немає</translation>
+    </message>
+    <message>
+        <source>Pull down to start one</source>
+        <translation>Потягніть вниз, щоб почати</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Налаштування</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR-код</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Нова група</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>Позначити непрочитаним</translation>
+    </message>
+</context>
+<context>
+    <name>ChatPickerPage</name>
+    <message>
+        <source>Forward to</source>
+        <translation>Переслати в</translation>
+    </message>
+    <message>
+        <source>Search chats</source>
+        <translation>Пошук чатів</translation>
+    </message>
+    <message>
+        <source>No chats to forward to</source>
+        <translation>Немає чатів для пересилання</translation>
+    </message>
+</context>
+<context>
+    <name>ContactPage</name>
+    <message>
+        <source>Saved</source>
+        <translation>Збережено</translation>
+    </message>
+    <message>
+        <source>Contact</source>
+        <translation>Контакт</translation>
+    </message>
+    <message>
+        <source>Verified: end-to-end encrypted, and checked in person</source>
+        <translation>Перевірено: наскрізне шифрування, підтверджено особисто</translation>
+    </message>
+    <message>
+        <source>End-to-end encrypted</source>
+        <translation>Наскрізне шифрування</translation>
+    </message>
+    <message>
+        <source>Not encrypted: a plain email contact</source>
+        <translation>Без шифрування: звичайний контакт електронної пошти</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Ім&apos;я</translation>
+    </message>
+    <message>
+        <source>Leave blank to use the name they chose</source>
+        <translation>Залиште порожнім, щоб використати обране ним ім&apos;я</translation>
+    </message>
+</context>
+<context>
+    <name>ConversationList</name>
+    <message>
+        <source>Reply</source>
+        <translation>Відповісти</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Копіювати</translation>
+    </message>
+    <message>
+        <source>Forward</source>
+        <translation>Переслати</translation>
+    </message>
+    <message>
+        <source>Send again</source>
+        <translation>Надіслати ще раз</translation>
+    </message>
+    <message>
+        <source>Download</source>
+        <translation>Завантажити</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Видалити</translation>
+    </message>
+    <message>
+        <source>Deleting</source>
+        <translation>Видалення</translation>
+    </message>
+</context>
+<context>
+    <name>ConversationPage</name>
+    <message>
+        <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
+        <translation>Втрачено зв&apos;язок із ядром Delta Chat. Повторне під&apos;єднання...</translation>
+    </message>
+    <message>
+        <source>Lost the connection to the Delta Chat core. Restart Postivene.</source>
+        <translation>Втрачено зв&apos;язок із ядром Delta Chat. Перезапустіть Postivene.</translation>
+    </message>
+    <message>
+        <source>No messages yet</source>
+        <translation>Повідомлень ще немає</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>Скопійовано до буфера обміну</translation>
+    </message>
+    <message>
+        <source>Caption</source>
+        <extracomment>Message field placeholder. Also the prompt for the caption on a message that is carrying a file.</extracomment>
+        <translation>Підпис</translation>
+    </message>
+    <message>
+        <source>Message</source>
+        <translation>Повідомлення</translation>
+    </message>
+</context>
+<context>
+    <name>CoverPage</name>
+    <message>
+        <source>No new messages</source>
+        <translation>Нових повідомлень немає</translation>
+    </message>
+</context>
+<context>
+    <name>DisappearingMessages</name>
+    <message>
+        <source>Off</source>
+        <translation>Вимк.</translation>
+    </message>
+    <message>
+        <source>After 1 minute</source>
+        <translation>Через 1 хвилину</translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation>Через 1 годину</translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation>Через 1 день</translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation>Через 1 тиждень</translation>
+    </message>
+    <message>
+        <source>Disappearing messages</source>
+        <translation>Зникаючі повідомлення</translation>
+    </message>
+    <message>
+        <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
+        <translation>Діє для всіх учасників цього чату; вони й далі можуть копіювати, зберігати та пересилати повідомлення.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>Через 1 рік</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>Через %1 р.</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>Через %1 тиж.</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>Через %1 дн.</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>Через %1 год.</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>Через %1 хв.</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>Через 1 секунду</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>Через %1 сек.</translation>
+    </message>
+</context>
+<context>
+    <name>Format</name>
+    <message>
+        <source>now</source>
+        <translation>зараз</translation>
+    </message>
+    <message>
+        <source>%1 min</source>
+        <translation>%1 хв</translation>
+    </message>
+    <message>
+        <source>%1 h</source>
+        <translation>%1 год</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n day(s)</source>
+        <extracomment>How long ago a chat&apos;s last message was. %n is a count of days.</extracomment>
+        <translation>
+            <numerusform>%n день</numerusform>
+            <numerusform>%n дні</numerusform>
+            <numerusform>%n днів</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>GroupPage</name>
+    <message>
+        <source>Saved</source>
+        <translation>Збережено</translation>
+    </message>
+    <message>
+        <source>Leave group</source>
+        <translation>Покинути групу</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>Додати учасників</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>Група</translation>
+    </message>
+    <message>
+        <source>Remove picture</source>
+        <translation>Видалити зображення</translation>
+    </message>
+    <message>
+        <source>Group name</source>
+        <translation>Назва групи</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are.</extracomment>
+        <translation>
+            <numerusform>%n учасник</numerusform>
+            <numerusform>%n учасники</numerusform>
+            <numerusform>%n учасників</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>Видалити з групи</translation>
+    </message>
+    <message>
+        <source>Removing</source>
+        <translation>Видалення</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Назву бачать усі в групі</translation>
+    </message>
+</context>
+<context>
+    <name>LeaveGroupDialog</name>
+    <message>
+        <source>Leave group</source>
+        <translation>Покинути групу</translation>
+    </message>
+    <message>
+        <source>Leave</source>
+        <translation>Покинути</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Скасувати</translation>
+    </message>
+    <message>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>Покинути %1? Ви перестанете отримувати її повідомлення, і повернути вас зможе лише учасник.</translation>
+    </message>
+</context>
+<context>
+    <name>MessageDelegate</name>
+    <message>
+        <source>Forwarded</source>
+        <translation>Переслано</translation>
+    </message>
+    <message>
+        <source>Downloading…</source>
+        <translation>Завантаження…</translation>
+    </message>
+    <message>
+        <source>⬇ Download failed, tap to try again</source>
+        <translation>⬇ Завантажити не вдалося, торкніться, щоб повторити</translation>
+    </message>
+    <message>
+        <source>Cannot be decrypted</source>
+        <translation>Не вдається розшифрувати</translation>
+    </message>
+    <message>
+        <source>⬇ Download</source>
+        <extracomment>Fetches a message the auto-download limit held back.</extracomment>
+        <translation>⬇ Завантажити</translation>
+    </message>
+</context>
+<context>
+    <name>NewChatPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Чат</translation>
+    </message>
+    <message>
+        <source>New chat</source>
+        <translation>Новий чат</translation>
+    </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>Пошук контактів</translation>
+    </message>
+    <message>
+        <source>No contacts yet</source>
+        <translation>Контактів ще немає</translation>
+    </message>
+    <message>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>Відскануйте чиєсь запрошення зі списку чатів: QR-код</translation>
+    </message>
+</context>
+<context>
+    <name>NewGroupPage</name>
+    <message>
+        <source>Please name the group</source>
+        <translation>Дайте групі назву</translation>
+    </message>
+    <message>
+        <source>Create Group</source>
+        <translation>Створити групу</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>Нова група</translation>
+    </message>
+    <message>
+        <source>Group name</source>
+        <translation>Назва групи</translation>
+    </message>
+    <message>
+        <source>No contacts to add yet</source>
+        <translation>Поки немає контактів для додавання</translation>
+    </message>
+</context>
+<context>
+    <name>PicturePage</name>
+    <message>
+        <source>Saved to Pictures</source>
+        <translation>Збережено в Зображення</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>Відкрити в іншому застосунку</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>Зберегти на пристрій</translation>
+    </message>
+</context>
+<context>
+    <name>ProfilePage</name>
+    <message>
+        <source>Not connected</source>
+        <translation>Немає з&apos;єднання</translation>
+    </message>
+    <message>
+        <source>Checking the connection</source>
+        <translation>Перевірка з&apos;єднання</translation>
+    </message>
+    <message>
+        <source>Profile</source>
+        <translation>Профіль</translation>
+    </message>
+    <message>
+        <source>Remove picture</source>
+        <translation>Видалити зображення</translation>
+    </message>
+    <message>
+        <source>Your name</source>
+        <translation>Ваше ім&apos;я</translation>
+    </message>
+    <message>
+        <source>Bio</source>
+        <translation>Про себе</translation>
+    </message>
+    <message>
+        <source>A line about you</source>
+        <translation>Рядок про вас</translation>
+    </message>
+    <message>
+        <source>Address</source>
+        <translation>Адреса</translation>
+    </message>
+    <message>
+        <source>Show invite code</source>
+        <translation>Показати код запрошення</translation>
+    </message>
+    <message>
+        <source>Send read receipts</source>
+        <translation>Надсилати сповіщення про прочитання</translation>
+    </message>
+    <message>
+        <source>Tells the people you write to when you have read their messages, and asks the same of them. With this off you send none and see none.</source>
+        <translation>Повідомляє тим, кому ви пишете, коли ви прочитали їхні повідомлення, і просить того ж від них. Якщо вимкнено, ви нічого не надсилаєте й не бачите.</translation>
+    </message>
+    <message>
+        <source>Storage and connectivity</source>
+        <translation>Сховище та з&apos;єднання</translation>
+    </message>
+    <message>
+        <source>%1 on this phone</source>
+        <extracomment>How much room the profile takes on the phone. %1 is a size such as &quot;12.3 MB&quot;.</extracomment>
+        <translation>%1 на цьому телефоні</translation>
+    </message>
+    <message>
+        <source>Saved</source>
+        <translation>Збережено</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>Під&apos;єднано, все актуально</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>Під&apos;єднано, надсилання або синхронізація повідомлень</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>Під&apos;єднання до релею</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>Зайнято %1 · вільно %2 з %3</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>Релей ще не повідомив свою квоту</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>Ім&apos;я на кожному повідомленні, яке ви надсилаєте</translation>
+    </message>
+</context>
+<context>
+    <name>ProfileSetupPage</name>
+    <message>
+        <source>Add profile</source>
+        <translation>Додати профіль</translation>
+    </message>
+    <message>
+        <source>Contacting %1...</source>
+        <translation>Зв&apos;язок із %1...</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Скасувати</translation>
+    </message>
+    <message>
+        <source>Back</source>
+        <translation>Назад</translation>
+    </message>
+</context>
+<context>
+    <name>ProfilesPage</name>
+    <message>
+        <source>Add profile</source>
+        <translation>Додати профіль</translation>
+    </message>
+    <message>
+        <source>Profiles</source>
+        <translation>Профілі</translation>
+    </message>
+    <message>
+        <source>Profile settings</source>
+        <translation>Налаштування профілю</translation>
+    </message>
+    <message>
+        <source>Delete profile</source>
+        <translation>Видалити профіль</translation>
+    </message>
+    <message>
+        <source>Deleting profile</source>
+        <translation>Видалення профілю</translation>
+    </message>
+    <message>
+        <source>No profiles</source>
+        <translation>Профілів немає</translation>
+    </message>
+</context>
+<context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>Чат</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR-код</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>Мій код</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>Сканувати</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>Дайте комусь відсканувати цей код або надішліть йому посилання.</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>Отримання...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>Копіювати посилання-запрошення</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>Камера недоступна на цьому пристрої.</translation>
+    </message>
+</context>
+<context>
+    <name>ReplyBar</name>
+    <message>
+        <source>Replying to %1</source>
+        <translation>Відповідь для %1</translation>
+    </message>
+</context>
+<context>
+    <name>ScanView</name>
+    <message>
+        <source>Enter invite link</source>
+        <translation>Ввести посилання-запрошення</translation>
+    </message>
+    <message>
+        <source>Invite link</source>
+        <translation>Посилання-запрошення</translation>
+    </message>
+    <message>
+        <source>Connect</source>
+        <translation>Під&apos;єднатися</translation>
+    </message>
+    <message>
+        <source>Or point the camera at the code</source>
+        <translation>Або наведіть камеру на код</translation>
+    </message>
+    <message>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>Наведіть камеру на чийсь код запрошення</translation>
+    </message>
+</context>
+<context>
+    <name>SearchResultsList</name>
+    <message>
+        <source>Chats (%1)</source>
+        <translation>Чати (%1)</translation>
+    </message>
+    <message>
+        <source>Contacts (%1)</source>
+        <translation>Контакти (%1)</translation>
+    </message>
+    <message>
+        <source>Messages (%1 of %2)</source>
+        <translation>Повідомлення (%1 з %2)</translation>
+    </message>
+    <message>
+        <source>Messages (%1)</source>
+        <translation>Повідомлення (%1)</translation>
+    </message>
+    <message>
+        <source>Nothing found</source>
+        <translation>Нічого не знайдено</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>Ніколи</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>До 256 кБ</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>До 512 кБ</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>До 1 МБ</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>До 2 МБ</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>До 5 МБ</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Завжди</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Налаштування</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Повідомлення</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>Як показувати повідомлення, написане із *зірочками* та `зворотними лапками`.</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>Оформлено: жирний, курсив, посилання</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>Прибрано: лише слова</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>Як написано</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>Автоматично завантажувати вкладення</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>Більші чекають, доки ви їх не запитаєте. Діє для всіх профілів і для повідомлень, що надходять відтепер.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Посилання</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>Прибирати відстеження з посилань</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>Відомі параметри відстеження — ідентифікатори кліків, мітки кампаній, обліковий запис того, хто поділився — прибираються з посилань у ваших надісланих повідомленнях. Решта посилання лишається як є.</translation>
+    </message>
+</context>
+<context>
+    <name>VideoPage</name>
+    <message>
+        <source>Saved to Videos</source>
+        <translation>Збережено у Відео</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>Відкрити в іншому застосунку</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>Зберегти на пристрій</translation>
+    </message>
+</context>
+<context>
+    <name>WelcomePage</name>
+    <message>
+        <source>Postivene</source>
+        <translation>Postivene</translation>
+    </message>
+    <message>
+        <source>Secure decentralized chat</source>
+        <translation>Безпечний децентралізований чат</translation>
+    </message>
+    <message>
+        <source>No phone number, no account with us: your profile lives on a mail server of your choosing.</source>
+        <translation>Без номера телефону, без облікового запису в нас: ваш профіль живе на поштовому сервері на ваш вибір.</translation>
+    </message>
+    <message>
+        <source>Add profile</source>
+        <translation>Додати профіль</translation>
+    </message>
+</context>
+</TS>

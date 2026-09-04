@@ -29,8 +29,18 @@ Item {
     /// The reader asked for the rest of a message the core holds only
     /// the header of.
     signal downloadRequested()
+    /// The reader tapped a reaction chip: put that emoji on the message,
+    /// or take it off again when it is already theirs. The model decides
+    /// which; the row only says what was tapped.
+    signal reactionRequested(string emoji)
 
     property string messageText: ""
+    /// The reactions on this message, as the shim hands them over: a JSON
+    /// array of {emoji, count, self}, most frequent first. Empty for none.
+    property string reactions: ""
+    /// The same, parsed once per change rather than once per chip.
+    readonly property var reactionList: root.reactions.length > 0
+                                        ? JSON.parse(root.reactions) : []
     /// The same text rendered as StyledText by the shim, and with its
     /// Markdown taken out. Empty for a row that has neither, which is
     /// shown as written.
@@ -102,6 +112,7 @@ Item {
         root.maxWidth,
         Math.max(textMetric.implicitWidth,
                  attachmentMetric.implicitWidth,
+                 reactionRow.wantedWidth,
                  attachment.wantsFullWidth && root.hasFile ? root.maxWidth : 0,
                  Theme.itemSizeSmall))
 
@@ -132,6 +143,31 @@ Item {
         // fallback row says is the preview's business, and the bubble only
         // needs to know how wide it comes out.
         text: attachment.genericText
+    }
+
+    // The chips' text end to end, for how wide the strip wants to be and
+    // how tall one line of it is. The chips themselves are measured one
+    // by one below; this is the sum the bubble's width is decided from
+    // before any of them exists.
+    Text {
+        id: reactionMetric
+        visible: false
+        font.pixelSize: Theme.fontSizeSmall
+        textFormat: Text.PlainText
+        text: {
+            var parts = []
+            for (var i = 0; i < root.reactionList.length; i++) {
+                parts.push(root.chipText(root.reactionList[i]))
+            }
+            return parts.join(" ")
+        }
+    }
+
+    /// What a chip says: the emoji, and how many when it is more than one
+    /// person. "👍" reads as one; "👍 1" reads as a score.
+    function chipText(reaction) {
+        return reaction.count > 1 ? reaction.emoji + " " + reaction.count
+                                  : reaction.emoji
     }
 
     // A core notice, not something anyone typed: centred and unadorned.
@@ -325,13 +361,88 @@ Item {
             }
         }
 
+        // Who reacted with what, one chip per emoji, ours lit. Laid out by
+        // hand rather than in a Row, for the reason at the top of the
+        // file: each chip sits after the ones before it, and reads their
+        // widths so a chip that grows pushes the rest along. One line,
+        // clipped: a message with more distinct reactions than fit is
+        // rare enough that the last of them can go unseen.
+        Item {
+            id: reactionRow
+            objectName: "reactionRow"
+            visible: root.reactionList.length > 0
+            x: Theme.paddingMedium
+            y: root.below(downloadLabel, visible)
+            width: root.contentWidth
+            // A line of the chip font plus the chip's own padding.
+            height: visible ? reactionMetric.height + 2 * Theme.paddingSmall : 0
+            clip: true
+
+            /// The room the chips take in a row: their text, each one's
+            /// padding, and the gaps between them.
+            readonly property real wantedWidth:
+                root.reactionList.length === 0 ? 0
+                : reactionMetric.implicitWidth
+                  + root.reactionList.length * 2 * Theme.paddingMedium
+                  + (root.reactionList.length - 1) * Theme.paddingSmall
+
+            Repeater {
+                id: reactionRepeater
+                objectName: "reactionRepeater"
+                model: root.reactionList
+
+                Rectangle {
+                    objectName: "reactionChip"
+                    /// Whether this is the reader's own reaction.
+                    readonly property bool mine: modelData.self === true
+                    /// The emoji, for the tap to name.
+                    readonly property string emoji: modelData.emoji
+                    // After every chip before it. Reading their widths is
+                    // what makes this follow them: the repeater builds
+                    // chips in order, so each one it asks for is there.
+                    x: {
+                        var at = 0
+                        for (var i = 0; i < index; i++) {
+                            var earlier = reactionRepeater.itemAt(i)
+                            if (earlier) {
+                                at += earlier.width + Theme.paddingSmall
+                            }
+                        }
+                        return at
+                    }
+                    width: chipLabel.implicitWidth + 2 * Theme.paddingMedium
+                    height: reactionRow.height
+                    radius: height / 2
+                    color: mine ? Theme.rgba(Theme.highlightColor, 0.35)
+                                : Theme.rgba(Theme.primaryColor, 0.1)
+
+                    Label {
+                        id: chipLabel
+                        objectName: "chipLabel"
+                        anchors.centerIn: parent
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.primaryColor
+                        // The emoji is whatever the other end sent, and
+                        // the core does not check that it is one.
+                        textFormat: Text.PlainText
+                        text: root.chipText(modelData)
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: root.reactionRequested(emoji)
+                    }
+                }
+            }
+        }
+
         // Time, and for our own messages how far it got. A mail icon marks
         // anything that was not encrypted and signed.
         Label {
             id: footerLabel
             objectName: "footerLabel"
             x: Theme.paddingMedium
-            y: root.below(downloadLabel, true)
+            y: root.below(reactionRow, true)
             width: root.contentWidth
             horizontalAlignment: Text.AlignRight
             font.pixelSize: Theme.fontSizeExtraSmall

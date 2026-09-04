@@ -1,0 +1,867 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="zh_TW">
+<context>
+    <name>AddMembersPage</name>
+    <message>
+        <source>Add to group</source>
+        <translation>加入群組</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>新增成員</translation>
+    </message>
+    <message>
+        <source>No contacts to add</source>
+        <translation>沒有可新增的聯絡人</translation>
+    </message>
+</context>
+<context>
+    <name>AddProfileDialog</name>
+    <message>
+        <source>Add profile</source>
+        <translation>新增個人檔案</translation>
+    </message>
+    <message>
+        <source>Create</source>
+        <translation>建立</translation>
+    </message>
+    <message>
+        <source>Pick a chatmail relay or enter a custom server. The server assigns the address; the encryption keys are made on this device.</source>
+        <translation>選擇一個 chatmail 中繼，或輸入自訂伺服器。地址由伺服器指派；加密金鑰在此裝置上產生。</translation>
+    </message>
+    <message>
+        <source>Your name</source>
+        <translation>你的名字</translation>
+    </message>
+    <message>
+        <source>Relay</source>
+        <translation>中繼</translation>
+    </message>
+    <message>
+        <source>Custom server</source>
+        <translation>自訂伺服器</translation>
+    </message>
+    <message>
+        <source>See &lt;a href=&quot;https://chatmail.at/relays&quot;&gt;chatmail.at/relays&lt;/a&gt; for the full list.</source>
+        <translation>完整清單請見 &lt;a href=&quot;https://chatmail.at/relays&quot;&gt;chatmail.at/relays&lt;/a&gt;。</translation>
+    </message>
+</context>
+<context>
+    <name>AttachmentBar</name>
+    <message>
+        <source>Sending %1</source>
+        <extracomment>Shown above the message field once a file has been picked. %1 is the file name.</extracomment>
+        <translation>正在傳送 %1</translation>
+    </message>
+</context>
+<context>
+    <name>AttachmentPreview</name>
+    <message>
+        <source>Voice message</source>
+        <extracomment>A recorded voice message, which has no useful file name.</extracomment>
+        <translation>語音訊息</translation>
+    </message>
+</context>
+<context>
+    <name>ChatListPage</name>
+    <message>
+        <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
+        <translation>與 Delta Chat 核心的連線已中斷。正在重新連線...</translation>
+    </message>
+    <message>
+        <source>Lost the connection to the Delta Chat core. Restart Postivene.</source>
+        <translation>與 Delta Chat 核心的連線已中斷。請重新啟動 Postivene。</translation>
+    </message>
+    <message>
+        <source>Profiles</source>
+        <translation>個人檔案</translation>
+    </message>
+    <message>
+        <source>Archived chats</source>
+        <translation>已封存的聊天</translation>
+    </message>
+    <message>
+        <source>New chat</source>
+        <translation>新聊天</translation>
+    </message>
+    <message>
+        <source>Archived</source>
+        <translation>已封存</translation>
+    </message>
+    <message>
+        <source>Chats</source>
+        <translation>聊天</translation>
+    </message>
+    <message>
+        <source>Search chats</source>
+        <translation>搜尋聊天</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>搜尋</translation>
+    </message>
+    <message>
+        <source>Pinned</source>
+        <translation>已釘選</translation>
+    </message>
+    <message>
+        <source>Other chats</source>
+        <translation>其他聊天</translation>
+    </message>
+    <message>
+        <source>Mark as read</source>
+        <translation>標示為已讀</translation>
+    </message>
+    <message>
+        <source>Unpin</source>
+        <translation>取消釘選</translation>
+    </message>
+    <message>
+        <source>Pin</source>
+        <translation>釘選</translation>
+    </message>
+    <message>
+        <source>Unmute</source>
+        <translation>取消靜音</translation>
+    </message>
+    <message>
+        <source>Mute</source>
+        <translation>靜音</translation>
+    </message>
+    <message>
+        <source>Accept</source>
+        <translation>接受</translation>
+    </message>
+    <message>
+        <source>Block</source>
+        <translation>封鎖</translation>
+    </message>
+    <message>
+        <source>Archive</source>
+        <translation>封存</translation>
+    </message>
+    <message>
+        <source>Unarchive</source>
+        <translation>取消封存</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>刪除</translation>
+    </message>
+    <message>
+        <source>Deleting</source>
+        <translation>正在刪除</translation>
+    </message>
+    <message>
+        <source>No archived chats</source>
+        <translation>沒有已封存的聊天</translation>
+    </message>
+    <message>
+        <source>No chats yet</source>
+        <translation>還沒有聊天</translation>
+    </message>
+    <message>
+        <source>Pull down to start one</source>
+        <translation>下拉以開始一個</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>設定</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR code</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>新群組</translation>
+    </message>
+    <message>
+        <source>Mark as unread</source>
+        <translation>標示為未讀</translation>
+    </message>
+</context>
+<context>
+    <name>ChatPickerPage</name>
+    <message>
+        <source>Forward to</source>
+        <translation>轉寄至</translation>
+    </message>
+    <message>
+        <source>Search chats</source>
+        <translation>搜尋聊天</translation>
+    </message>
+    <message>
+        <source>No chats to forward to</source>
+        <translation>沒有可轉寄至的聊天</translation>
+    </message>
+</context>
+<context>
+    <name>ContactPage</name>
+    <message>
+        <source>Saved</source>
+        <translation>已儲存</translation>
+    </message>
+    <message>
+        <source>Contact</source>
+        <translation>聯絡人</translation>
+    </message>
+    <message>
+        <source>Verified: end-to-end encrypted, and checked in person</source>
+        <translation>已驗證：端對端加密，並已當面核對</translation>
+    </message>
+    <message>
+        <source>End-to-end encrypted</source>
+        <translation>端對端加密</translation>
+    </message>
+    <message>
+        <source>Not encrypted: a plain email contact</source>
+        <translation>未加密：一般電子郵件聯絡人</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>名字</translation>
+    </message>
+    <message>
+        <source>Leave blank to use the name they chose</source>
+        <translation>留空則使用對方自己選擇的名字</translation>
+    </message>
+</context>
+<context>
+    <name>ConversationList</name>
+    <message>
+        <source>Reply</source>
+        <translation>回覆</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>複製</translation>
+    </message>
+    <message>
+        <source>Forward</source>
+        <translation>轉寄</translation>
+    </message>
+    <message>
+        <source>Send again</source>
+        <translation>重新傳送</translation>
+    </message>
+    <message>
+        <source>Download</source>
+        <translation>下載</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>刪除</translation>
+    </message>
+    <message>
+        <source>Deleting</source>
+        <translation>正在刪除</translation>
+    </message>
+</context>
+<context>
+    <name>ConversationPage</name>
+    <message>
+        <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
+        <translation>與 Delta Chat 核心的連線已中斷。正在重新連線...</translation>
+    </message>
+    <message>
+        <source>Lost the connection to the Delta Chat core. Restart Postivene.</source>
+        <translation>與 Delta Chat 核心的連線已中斷。請重新啟動 Postivene。</translation>
+    </message>
+    <message>
+        <source>No messages yet</source>
+        <translation>還沒有訊息</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>已複製到剪貼簿</translation>
+    </message>
+    <message>
+        <source>Caption</source>
+        <extracomment>Message field placeholder. Also the prompt for the caption on a message that is carrying a file.</extracomment>
+        <translation>說明文字</translation>
+    </message>
+    <message>
+        <source>Message</source>
+        <translation>訊息</translation>
+    </message>
+</context>
+<context>
+    <name>CoverPage</name>
+    <message>
+        <source>No new messages</source>
+        <translation>沒有新訊息</translation>
+    </message>
+</context>
+<context>
+    <name>DisappearingMessages</name>
+    <message>
+        <source>Off</source>
+        <translation>關閉</translation>
+    </message>
+    <message>
+        <source>After 1 minute</source>
+        <translation>1 分鐘後</translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation>1 小時後</translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation>1 天後</translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation>1 週後</translation>
+    </message>
+    <message>
+        <source>Disappearing messages</source>
+        <translation>閱後即焚訊息</translation>
+    </message>
+    <message>
+        <source>Applies to all members of this chat, they can still copy, save, and forward messages.</source>
+        <translation>對此聊天的所有成員生效；他們仍可複製、儲存和轉寄訊息。</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>1 年後</translation>
+    </message>
+    <message>
+        <source>After %1 years</source>
+        <translation>%1 年後</translation>
+    </message>
+    <message>
+        <source>After %1 weeks</source>
+        <translation>%1 週後</translation>
+    </message>
+    <message>
+        <source>After %1 days</source>
+        <translation>%1 天後</translation>
+    </message>
+    <message>
+        <source>After %1 hours</source>
+        <translation>%1 小時後</translation>
+    </message>
+    <message>
+        <source>After %1 minutes</source>
+        <translation>%1 分鐘後</translation>
+    </message>
+    <message>
+        <source>After 1 second</source>
+        <translation>1 秒後</translation>
+    </message>
+    <message>
+        <source>After %1 seconds</source>
+        <translation>%1 秒後</translation>
+    </message>
+</context>
+<context>
+    <name>Format</name>
+    <message>
+        <source>now</source>
+        <translation>剛剛</translation>
+    </message>
+    <message>
+        <source>%1 min</source>
+        <translation>%1 分鐘</translation>
+    </message>
+    <message>
+        <source>%1 h</source>
+        <translation>%1 小時</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n day(s)</source>
+        <extracomment>How long ago a chat&apos;s last message was. %n is a count of days.</extracomment>
+        <translation>
+            <numerusform>%n 天</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>GroupPage</name>
+    <message>
+        <source>Saved</source>
+        <translation>已儲存</translation>
+    </message>
+    <message>
+        <source>Leave group</source>
+        <translation>離開群組</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>新增成員</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>群組</translation>
+    </message>
+    <message>
+        <source>Remove picture</source>
+        <translation>移除圖片</translation>
+    </message>
+    <message>
+        <source>Group name</source>
+        <translation>群組名稱</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are.</extracomment>
+        <translation>
+            <numerusform>%n 位成員</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>從群組中移除</translation>
+    </message>
+    <message>
+        <source>Removing</source>
+        <translation>正在移除</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>群組中的每個人都看得到名稱</translation>
+    </message>
+</context>
+<context>
+    <name>LeaveGroupDialog</name>
+    <message>
+        <source>Leave group</source>
+        <translation>離開群組</translation>
+    </message>
+    <message>
+        <source>Leave</source>
+        <translation>離開</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>取消</translation>
+    </message>
+    <message>
+        <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
+        <extracomment>%1 is the group&apos;s name.</extracomment>
+        <translation>離開 %1？你將不再收到它的訊息，而且只有成員才能把你重新加回來。</translation>
+    </message>
+</context>
+<context>
+    <name>MessageDelegate</name>
+    <message>
+        <source>Forwarded</source>
+        <translation>已轉寄</translation>
+    </message>
+    <message>
+        <source>Downloading…</source>
+        <translation>正在下載…</translation>
+    </message>
+    <message>
+        <source>⬇ Download failed, tap to try again</source>
+        <translation>⬇ 下載失敗，點一下以重試</translation>
+    </message>
+    <message>
+        <source>Cannot be decrypted</source>
+        <translation>無法解密</translation>
+    </message>
+    <message>
+        <source>⬇ Download</source>
+        <extracomment>Fetches a message the auto-download limit held back.</extracomment>
+        <translation>⬇ 下載</translation>
+    </message>
+</context>
+<context>
+    <name>NewChatPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>聊天</translation>
+    </message>
+    <message>
+        <source>New chat</source>
+        <translation>新聊天</translation>
+    </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>搜尋聯絡人</translation>
+    </message>
+    <message>
+        <source>No contacts yet</source>
+        <translation>還沒有聯絡人</translation>
+    </message>
+    <message>
+        <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation>從聊天清單掃描對方的邀請：QR code</translation>
+    </message>
+</context>
+<context>
+    <name>NewGroupPage</name>
+    <message>
+        <source>Please name the group</source>
+        <translation>請為群組命名</translation>
+    </message>
+    <message>
+        <source>Create Group</source>
+        <translation>建立群組</translation>
+    </message>
+    <message>
+        <source>New group</source>
+        <translation>新群組</translation>
+    </message>
+    <message>
+        <source>Group name</source>
+        <translation>群組名稱</translation>
+    </message>
+    <message>
+        <source>No contacts to add yet</source>
+        <translation>還沒有可新增的聯絡人</translation>
+    </message>
+</context>
+<context>
+    <name>PicturePage</name>
+    <message>
+        <source>Saved to Pictures</source>
+        <translation>已儲存到圖片</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>用其他應用程式開啟</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>儲存到裝置</translation>
+    </message>
+</context>
+<context>
+    <name>ProfilePage</name>
+    <message>
+        <source>Not connected</source>
+        <translation>未連線</translation>
+    </message>
+    <message>
+        <source>Checking the connection</source>
+        <translation>正在檢查連線</translation>
+    </message>
+    <message>
+        <source>Profile</source>
+        <translation>個人檔案</translation>
+    </message>
+    <message>
+        <source>Remove picture</source>
+        <translation>移除圖片</translation>
+    </message>
+    <message>
+        <source>Your name</source>
+        <translation>你的名字</translation>
+    </message>
+    <message>
+        <source>Bio</source>
+        <translation>簡介</translation>
+    </message>
+    <message>
+        <source>A line about you</source>
+        <translation>一句話介紹你自己</translation>
+    </message>
+    <message>
+        <source>Address</source>
+        <translation>地址</translation>
+    </message>
+    <message>
+        <source>Show invite code</source>
+        <translation>顯示邀請碼</translation>
+    </message>
+    <message>
+        <source>Send read receipts</source>
+        <translation>傳送已讀回條</translation>
+    </message>
+    <message>
+        <source>Tells the people you write to when you have read their messages, and asks the same of them. With this off you send none and see none.</source>
+        <translation>讓你寫信的人知道你何時讀了他們的訊息，並請對方也這麼做。關閉後，你既不傳送也看不到已讀回條。</translation>
+    </message>
+    <message>
+        <source>Storage and connectivity</source>
+        <translation>儲存空間與連線</translation>
+    </message>
+    <message>
+        <source>%1 on this phone</source>
+        <extracomment>How much room the profile takes on the phone. %1 is a size such as &quot;12.3 MB&quot;.</extracomment>
+        <translation>本手機上佔用 %1</translation>
+    </message>
+    <message>
+        <source>Saved</source>
+        <translation>已儲存</translation>
+    </message>
+    <message>
+        <source>Connected, and up to date</source>
+        <translation>已連線，一切最新</translation>
+    </message>
+    <message>
+        <source>Connected, sending or syncing messages</source>
+        <translation>已連線，正在傳送或同步訊息</translation>
+    </message>
+    <message>
+        <source>Connecting to the relay</source>
+        <translation>正在連線至中繼</translation>
+    </message>
+    <message>
+        <source>%1 used · %2 left of %3</source>
+        <extracomment>The mailbox on the relay. %1 used, %2 left, %3 the whole, each a size such as &quot;1.4 GB&quot;.</extracomment>
+        <translation>已用 %1 · 剩餘 %2，共 %3</translation>
+    </message>
+    <message>
+        <source>The relay has not reported its quota yet</source>
+        <translation>中繼尚未回報其配額</translation>
+    </message>
+    <message>
+        <source>The name on every message you send</source>
+        <translation>你傳送的每則訊息上顯示的名字</translation>
+    </message>
+</context>
+<context>
+    <name>ProfileSetupPage</name>
+    <message>
+        <source>Add profile</source>
+        <translation>新增個人檔案</translation>
+    </message>
+    <message>
+        <source>Contacting %1...</source>
+        <translation>正在聯絡 %1...</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>取消</translation>
+    </message>
+    <message>
+        <source>Back</source>
+        <translation>返回</translation>
+    </message>
+</context>
+<context>
+    <name>ProfilesPage</name>
+    <message>
+        <source>Add profile</source>
+        <translation>新增個人檔案</translation>
+    </message>
+    <message>
+        <source>Profiles</source>
+        <translation>個人檔案</translation>
+    </message>
+    <message>
+        <source>Profile settings</source>
+        <translation>個人檔案設定</translation>
+    </message>
+    <message>
+        <source>Delete profile</source>
+        <translation>刪除個人檔案</translation>
+    </message>
+    <message>
+        <source>Deleting profile</source>
+        <translation>正在刪除個人檔案</translation>
+    </message>
+    <message>
+        <source>No profiles</source>
+        <translation>沒有個人檔案</translation>
+    </message>
+</context>
+<context>
+    <name>QrPage</name>
+    <message>
+        <source>Chat</source>
+        <translation>聊天</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR code</translation>
+    </message>
+    <message>
+        <source>My code</source>
+        <translation>我的 QR code</translation>
+    </message>
+    <message>
+        <source>Scan</source>
+        <translation>掃描</translation>
+    </message>
+    <message>
+        <source>Let someone scan this code, or send them the link.</source>
+        <translation>讓對方掃描這個 QR code，或把連結傳給對方。</translation>
+    </message>
+    <message>
+        <source>Fetching...</source>
+        <translation>正在取得...</translation>
+    </message>
+    <message>
+        <source>Copy Invite Link</source>
+        <translation>複製邀請連結</translation>
+    </message>
+    <message>
+        <source>The camera is not available on this device.</source>
+        <translation>此裝置上無法使用相機。</translation>
+    </message>
+</context>
+<context>
+    <name>ReplyBar</name>
+    <message>
+        <source>Replying to %1</source>
+        <translation>回覆 %1</translation>
+    </message>
+</context>
+<context>
+    <name>ScanView</name>
+    <message>
+        <source>Enter invite link</source>
+        <translation>輸入邀請連結</translation>
+    </message>
+    <message>
+        <source>Invite link</source>
+        <translation>邀請連結</translation>
+    </message>
+    <message>
+        <source>Connect</source>
+        <translation>連線</translation>
+    </message>
+    <message>
+        <source>Or point the camera at the code</source>
+        <translation>或將相機對準代碼</translation>
+    </message>
+    <message>
+        <source>Point the camera at someone&apos;s invite code</source>
+        <translation>將相機對準對方的邀請碼</translation>
+    </message>
+</context>
+<context>
+    <name>SearchResultsList</name>
+    <message>
+        <source>Chats (%1)</source>
+        <translation>聊天 (%1)</translation>
+    </message>
+    <message>
+        <source>Contacts (%1)</source>
+        <translation>聯絡人 (%1)</translation>
+    </message>
+    <message>
+        <source>Messages (%1 of %2)</source>
+        <translation>訊息 (%1 / %2)</translation>
+    </message>
+    <message>
+        <source>Messages (%1)</source>
+        <translation>訊息 (%1)</translation>
+    </message>
+    <message>
+        <source>Nothing found</source>
+        <translation>找不到任何內容</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Never</source>
+        <translation>從不</translation>
+    </message>
+    <message>
+        <source>Up to 256 kB</source>
+        <translation>最多 256 kB</translation>
+    </message>
+    <message>
+        <source>Up to 512 kB</source>
+        <translation>最多 512 kB</translation>
+    </message>
+    <message>
+        <source>Up to 1 MB</source>
+        <translation>最多 1 MB</translation>
+    </message>
+    <message>
+        <source>Up to 2 MB</source>
+        <translation>最多 2 MB</translation>
+    </message>
+    <message>
+        <source>Up to 5 MB</source>
+        <translation>最多 5 MB</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>總是</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>設定</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>訊息</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>How a message written with *stars* and `backticks` is shown.</source>
+        <translation>用*星號*和`反引號`寫的訊息如何顯示。</translation>
+    </message>
+    <message>
+        <source>Drawn: bold, italics, links</source>
+        <translation>呈現：粗體、斜體、連結</translation>
+    </message>
+    <message>
+        <source>Taken out: the words only</source>
+        <translation>去除：只保留文字</translation>
+    </message>
+    <message>
+        <source>As written</source>
+        <translation>照原樣</translation>
+    </message>
+    <message>
+        <source>Auto-download attachments</source>
+        <translation>自動下載附件</translation>
+    </message>
+    <message>
+        <source>Bigger ones wait until you ask for them. Applies to every profile and to messages that arrive from now on.</source>
+        <translation>較大的附件會等到你要求時才下載。適用於所有個人檔案以及從現在起收到的訊息。</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>連結</translation>
+    </message>
+    <message>
+        <source>Remove tracking from links</source>
+        <translation>移除連結中的追蹤參數</translation>
+    </message>
+    <message>
+        <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
+        <translation>已知的追蹤參數（點擊 ID、行銷活動標籤、分享者帳號）會從你傳送的訊息的連結中移除。連結的其餘部分維持原樣。</translation>
+    </message>
+</context>
+<context>
+    <name>VideoPage</name>
+    <message>
+        <source>Saved to Videos</source>
+        <translation>已儲存到影片</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>用其他應用程式開啟</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>儲存到裝置</translation>
+    </message>
+</context>
+<context>
+    <name>WelcomePage</name>
+    <message>
+        <source>Postivene</source>
+        <translation>Postivene</translation>
+    </message>
+    <message>
+        <source>Secure decentralized chat</source>
+        <translation>安全的去中心化聊天</translation>
+    </message>
+    <message>
+        <source>No phone number, no account with us: your profile lives on a mail server of your choosing.</source>
+        <translation>不需要電話號碼，也不需要在我們這裡註冊帳號：你的個人檔案存放在你自己選擇的郵件伺服器上。</translation>
+    </message>
+    <message>
+        <source>Add profile</source>
+        <translation>新增個人檔案</translation>
+    </message>
+</context>
+</TS>

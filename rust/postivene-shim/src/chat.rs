@@ -248,6 +248,11 @@ pub struct ChatMessages {
     pub resend_message: qt_method!(fn(&mut self, message_id: u32)),
     /// Send a copy of one message into another chat; QML calls this.
     pub forward_to: qt_method!(fn(&mut self, message_id: u32, chat_id: u32)),
+    /// Put `emoji` on a message as this account's reaction -- or take it
+    /// off again when it is the one already there, which is what a second
+    /// tap on the same emoji means. One reaction per person: a different
+    /// emoji replaces the old one, as the reference clients do.
+    pub react: qt_method!(fn(&mut self, message_id: u32, emoji: QString)),
     /// True from a send being asked for until the core answers.
     ///
     /// The compose state is cleared on the answer rather than on the tap,
@@ -621,8 +626,11 @@ impl ChatMessages {
             // model holds may already be wrong in ways no later event will
             // mention. Start again rather than patch.
             "EventChannelOverflow" => self.reload(),
-            // Delivery state only: refresh the one row it names.
-            "MsgDelivered" | "MsgRead" | "MsgFailed" => {
+            // Delivery state only: refresh the one row it names. A
+            // reaction is the same shape of change -- the id list is
+            // untouched, since a reaction is a hidden message, and only the
+            // row it lands on has anything new to show.
+            "MsgDelivered" | "MsgRead" | "MsgFailed" | "ReactionsChanged" => {
                 if let Some(message_id) = json::u32_opt(&payload, "msgId") {
                     self.refresh_one(message_id);
                 }
@@ -1011,6 +1019,62 @@ impl ChatMessages {
         });
     }
 
+    /// React to a message, or take this account's reaction off it.
+    ///
+    /// The toggle is decided here, from the row: the core's call sets the
+    /// whole list of this account's reactions, so "the same emoji again"
+    /// has to become an empty list before it is sent. Not `act`: the call
+    /// takes the reaction as well as the message. The row is re-read on
+    /// the answer, and again on the `ReactionsChanged` the core sends --
+    /// the first for the tap to show at once, the second because that is
+    /// how a reaction from anyone else arrives too.
+    pub fn react(&mut self, message_id: u32, emoji: QString) {
+        let account_id = self.account_id;
+        let emoji = emoji.to_string().trim().to_string();
+        if account_id == 0 || message_id == 0 || emoji.is_empty() {
+            return;
+        }
+        let mine = self
+            .rows
+            .borrow()
+            .iter()
+            .find(|row| row.message_id == message_id)
+            .map(|row| row.my_reaction.to_string())
+            .unwrap_or_default();
+        let reaction: Vec<String> = if mine == emoji {
+            Vec::new()
+        } else {
+            vec![emoji]
+        };
+        let Some((rpc, runtime)) = connection() else {
+            self.error(QString::from("not started"));
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<(), String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            match result {
+                Ok(()) => this.borrow_mut().refresh_one(message_id),
+                Err(err) => this.borrow().error(err.into()),
+            }
+        });
+
+        runtime.spawn(async move {
+            // send_reaction params: account, message, the reactions this
+            // account now has on it. It answers with the id of the hidden
+            // message that carries the reaction, which nothing here needs.
+            // Pinned against the real core in
+            // deltachat-jsonrpc/tests/real_server.rs.
+            let result = rpc
+                .call::<_, serde_json::Value>("send_reaction", (account_id, message_id, reaction))
+                .await
+                .map(|_| ())
+                .map_err(|err| err.to_string());
+            done(result);
+        });
+    }
+
     /// Call `method` with `(account, [message])`, then re-read that row.
     ///
     /// A deletion changes the id list, so the event it raises reloads the
@@ -1360,7 +1424,59 @@ fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
         vcard_name: json::text(message, "/vcardContact/displayName"),
         vcard_addr: json::text(message, "/vcardContact/addr"),
         vcard_color: json::text(message, "/vcardContact/color"),
+        reactions: reactions_json(message).into(),
+        my_reaction: own_reaction(message).into(),
     }
+}
+
+/// The reactions on a message, as the row carries them.
+///
+/// The core hands them over already counted and sorted, most frequent
+/// first, under `reactions.reactions`; this keeps that order and drops
+/// the per-contact breakdown, which nothing draws. Null, absent, or a
+/// list with nothing in it all read as no reactions. An emoji is whatever
+/// the other end sent -- the core does not check that it is one -- so the
+/// row shows it as plain text.
+fn reactions_json(message: &serde_json::Value) -> String {
+    let Some(list) = message
+        .pointer("/reactions/reactions")
+        .and_then(serde_json::Value::as_array)
+    else {
+        return String::new();
+    };
+    let chips: Vec<serde_json::Value> = list
+        .iter()
+        .filter_map(|reaction| {
+            let emoji = json::str_at(reaction, "emoji");
+            if emoji.is_empty() {
+                return None;
+            }
+            Some(serde_json::json!({
+                "emoji": emoji,
+                // Never 0: the core lists a reaction because someone sent
+                // it, and a chip reading "👍 0" would be a lie.
+                "count": json::u32_at(reaction, "count").max(1),
+                "self": json::flag(reaction, "isFromSelf"),
+            }))
+        })
+        .collect();
+    if chips.is_empty() {
+        String::new()
+    } else {
+        serde_json::Value::Array(chips).to_string()
+    }
+}
+
+/// The reaction this account put on a message, empty when none.
+fn own_reaction(message: &serde_json::Value) -> String {
+    message
+        .pointer("/reactions/reactions")
+        .and_then(serde_json::Value::as_array)
+        .into_iter()
+        .flatten()
+        .find(|reaction| json::flag(reaction, "isFromSelf"))
+        .map(|reaction| json::str_at(reaction, "emoji").to_string())
+        .unwrap_or_default()
 }
 
 /// The local path a picker handed back.
@@ -1414,7 +1530,46 @@ fn file_name_of(path: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{file_name_of, local_path};
+    use super::{file_name_of, local_path, own_reaction, reactions_json};
+    use serde_json::json;
+
+    #[test]
+    fn reactions_keep_the_cores_order_and_say_which_is_ours() {
+        let message = json!({
+            "reactions": {
+                "reactions": [
+                    {"emoji": "👍", "count": 2, "isFromSelf": false},
+                    {"emoji": "❤️", "count": 1, "isFromSelf": true},
+                ],
+                "reactionsByContact": {"1": ["❤️"], "10": ["👍"], "11": ["👍"]},
+            }
+        });
+        assert_eq!(
+            reactions_json(&message),
+            r#"[{"count":2,"emoji":"👍","self":false},{"count":1,"emoji":"❤️","self":true}]"#
+        );
+        assert_eq!(own_reaction(&message), "❤️");
+    }
+
+    #[test]
+    fn no_reactions_read_as_nothing_however_the_core_says_it() {
+        for message in [
+            json!({}),
+            json!({"reactions": null}),
+            json!({"reactions": {"reactions": [], "reactionsByContact": {}}}),
+            // A reaction with no emoji is nothing to draw.
+            json!({"reactions": {"reactions": [{"emoji": "", "count": 1}]}}),
+        ] {
+            assert_eq!(reactions_json(&message), "", "{message}");
+            assert_eq!(own_reaction(&message), "", "{message}");
+        }
+        // A count the core left out is still one person's reaction.
+        let counted = json!({"reactions": {"reactions": [{"emoji": "🙏"}]}});
+        assert_eq!(
+            reactions_json(&counted),
+            r#"[{"count":1,"emoji":"🙏","self":false}]"#
+        );
+    }
 
     #[test]
     fn a_picked_path_survives_whichever_way_it_arrives() {

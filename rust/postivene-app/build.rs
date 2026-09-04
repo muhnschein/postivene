@@ -1,4 +1,5 @@
-//! Export `main()` as a dynamic symbol.
+//! Export `main()` as a dynamic symbol, and compile the C++ side of the
+//! `cpp!` block in `src/translations.rs`.
 //!
 //! Rust emits `main` as an ordinary global symbol, which lives only in
 //! `.symtab` and is gone once rpmbuild strips the binary. The
@@ -24,4 +25,22 @@ fn main() {
     // otherwise fail Harbour's allowed-libraries check. It prunes only
     // libraries no symbol needs, so it is right for the others too.
     println!("cargo:rustc-link-arg-bins=-Wl,--as-needed");
+
+    // The C++ in src/translations.rs, compiled against the Qt that qttypes
+    // found -- the same Qt everything else links, since qttypes tells its
+    // dependents about exactly one. Under the Sailfish SDK's scratchbox
+    // that is the target's, through the QT_INCLUDE_PATH the spec sets;
+    // here it is whatever qmake answers for. The same arrangement as the
+    // vendored qmetaobject's own build.rs.
+    let Ok(include) = std::env::var("DEP_QT_INCLUDE_PATH") else {
+        panic!("qttypes found no Qt; its build script says why above");
+    };
+    let mut config = cpp_build::Config::new();
+    for flag in std::env::var("DEP_QT_COMPILE_FLAGS")
+        .unwrap_or_default()
+        .split_terminator(';')
+    {
+        config.flag(flag);
+    }
+    config.include(include).build("src/main.rs");
 }

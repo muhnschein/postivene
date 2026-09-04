@@ -106,28 +106,57 @@ else
     status=1
 fi
 
-# The catalog is generated from source, so it is only right if it matches
-# what the source currently says. Checked by regenerating into a temporary
-# file rather than by eye: a qsTr() added without a catalog entry is
-# invisible until someone tries to translate the app.
+# The catalogs are generated from source, so they are only right if they
+# match what the source currently says. Checked by regenerating a copy
+# rather than by eye: a qsTr() added without a catalog entry is invisible
+# until someone tries to translate the app -- and with forty languages, a
+# string missing from one of them is invisible until someone reads the app
+# in that language.
 if command -v lupdate >/dev/null 2>&1 || command -v lupdate-qt5 >/dev/null 2>&1; then
     ran=$((ran + 1))
-    # The suffix matters: lupdate picks its format from the extension.
-    # A directory from mktemp and a name inside it, since `--suffix` is
-    # GNU's alone and this is a /bin/sh script.
+    # Only the .ts files: a `make translations` leaves .qm files beside
+    # them, and those are not lupdate's to regenerate.
     fresh_dir=$(mktemp -d)
-    fresh="$fresh_dir/postivene.ts"
-    cp "$root/translations/postivene.ts" "$fresh"
-    if "$root/scripts/update-translations.sh" "$fresh" >/dev/null 2>&1 &&
-        diff -q "$root/translations/postivene.ts" "$fresh" >/dev/null; then
-        echo "packaging-lint: translations/postivene.ts is up to date"
+    cp "$root"/translations/*.ts "$fresh_dir/"
+    stale=""
+    if "$root/scripts/update-translations.sh" "$fresh_dir" >/dev/null 2>&1; then
+        for catalog in "$root"/translations/*.ts; do
+            name=$(basename "$catalog")
+            diff -q "$catalog" "$fresh_dir/$name" >/dev/null || stale="$stale $name"
+        done
     else
-        echo "packaging-lint: FAIL translations/postivene.ts is stale; run scripts/update-translations.sh" >&2
+        stale=" (lupdate failed)"
+    fi
+    if [ -z "$stale" ]; then
+        echo "packaging-lint: every translations/*.ts is up to date"
+    else
+        echo "packaging-lint: FAIL stale catalog(s):$stale; run scripts/update-translations.sh" >&2
         status=1
     fi
     rm -rf "$fresh_dir"
 else
     skip lupdate "install qttools5-dev-tools"
+fi
+
+# And they compile: lrelease is what the RPM runs on them, and a numerus
+# form missing from one language, or a tag out of place, fails there --
+# on the SDK, minutes into a build nobody watches. Every warning counts:
+# lrelease's are exactly the catalog faults that reach the phone as an
+# untranslated string.
+if command -v lrelease >/dev/null 2>&1 || command -v lrelease-qt5 >/dev/null 2>&1; then
+    ran=$((ran + 1))
+    qm_dir=$(mktemp -d)
+    if out=$("$root/scripts/release-translations.sh" "$qm_dir" 2>&1) &&
+        ! echo "$out" | grep -qi 'warning'; then
+        echo "packaging-lint: every translations/postivene-*.ts compiles cleanly"
+    else
+        echo "$out" >&2
+        echo "packaging-lint: FAIL a catalog does not compile cleanly with lrelease" >&2
+        status=1
+    fi
+    rm -rf "$qm_dir"
+else
+    skip lrelease "install qttools5-dev-tools"
 fi
 
 # Every docs/<name>.md that a comment, a script or a document points at

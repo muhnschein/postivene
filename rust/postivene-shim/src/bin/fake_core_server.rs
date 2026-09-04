@@ -71,6 +71,10 @@ struct State {
     /// from the list, and cleared when the chat is noticed. The real
     /// core counts fresh messages; this counts a chat as having one.
     fresh: std::collections::BTreeSet<(u32, u32)>,
+    /// Reactions by message, then by the contact who sent them. The real
+    /// core keeps one list per contact, and the list this account sends
+    /// replaces whatever it had there before.
+    reactions: std::collections::BTreeMap<u32, std::collections::BTreeMap<u32, Vec<String>>>,
 }
 
 impl State {
@@ -144,7 +148,56 @@ impl State {
             // a test can add the other and remove this one.
             self.group_members.insert(2, vec![SELF, 10]);
             self.next_chat_id = 500;
+            // Someone else's reaction on the first message, when a test
+            // asks for one: what a chip that is not ours looks like, and
+            // what our own on top of it counts up to.
+            if std::env::var_os("POSTIVENE_FAKE_REACTED").is_some() {
+                self.reactions
+                    .entry(1)
+                    .or_default()
+                    .insert(10, vec!["👍".to_string()]);
+            }
         }
+    }
+
+    /// A message's reactions as the real core shapes them: counted and
+    /// sorted, most frequent first, beside the per-contact lists -- or
+    /// null when nobody has reacted. Pinned in
+    /// deltachat-jsonrpc/tests/real_server.rs.
+    fn reactions_object(&self, msg: u32) -> Value {
+        let Some(by_contact) = self.reactions.get(&msg) else {
+            return Value::Null;
+        };
+        let mut counts: std::collections::BTreeMap<&str, (u32, bool)> =
+            std::collections::BTreeMap::new();
+        for (contact, emojis) in by_contact {
+            for emoji in emojis {
+                let entry = counts.entry(emoji.as_str()).or_default();
+                entry.0 += 1;
+                entry.1 |= *contact == SELF;
+            }
+        }
+        if counts.is_empty() {
+            return Value::Null;
+        }
+        let mut sorted: Vec<(&str, u32, bool)> = counts
+            .into_iter()
+            .map(|(emoji, (count, from_self))| (emoji, count, from_self))
+            .collect();
+        sorted.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(b.0)));
+        json!({
+            "reactions": sorted
+                .iter()
+                .map(|(emoji, count, from_self)| {
+                    json!({"emoji": emoji, "count": count, "isFromSelf": from_self})
+                })
+                .collect::<Vec<Value>>(),
+            "reactionsByContact": by_contact
+                .iter()
+                .filter(|(_, emojis)| !emojis.is_empty())
+                .map(|(contact, emojis)| (contact.to_string(), json!(emojis)))
+                .collect::<serde_json::Map<String, Value>>(),
+        })
     }
 
     /// Whether a chat is a group: the created ones, and the seeded one.
@@ -654,6 +707,55 @@ async fn main() {
                     }));
                     ok(&id, &Value::Null)
                 }
+                // This account's reactions on a message, the whole list
+                // at once: an empty one takes them off. Announced with the
+                // event the real core sends, and answered with the id of
+                // the hidden message that carries the reaction -- which
+                // is not in any chat's list.
+                "send_reaction" => {
+                    let account = account_id();
+                    let msg = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let emojis: Vec<String> = positional(2)
+                        .as_array()
+                        .map(|array| {
+                            array
+                                .iter()
+                                .filter_map(Value::as_str)
+                                .map(ToString::to_string)
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    let by_contact = state.reactions.entry(msg).or_default();
+                    if emojis.is_empty() {
+                        by_contact.remove(&SELF);
+                    } else {
+                        by_contact.insert(SELF, emojis);
+                    }
+                    state.next_message_id += 1;
+                    let carrier = state.next_message_id;
+                    let chat = state.chat_of(msg);
+                    state.events.push_back(json!({
+                        "contextId": account,
+                        "event": {"kind": "ReactionsChanged", "chatId": chat,
+                                  "contactId": SELF, "msgId": msg},
+                    }));
+                    ok(&id, &json!(carrier))
+                }
+                "get_message_reactions" => {
+                    let msg = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    let reactions = state.reactions_object(msg);
+                    ok(&id, &reactions)
+                }
                 // A join and a one-to-one both end in a fresh chat at the top.
                 "create_chat_by_contact_id" | "secure_join" => {
                     let mut state = state.lock().await;
@@ -1116,6 +1218,8 @@ async fn main() {
                         } else {
                             "Done"
                         });
+                        message["reactions"] =
+                            u32::try_from(msg).map_or(Value::Null, |msg| state.reactions_object(msg));
                         loaded.insert(msg.to_string(), message);
                     }
                     ok(&id, &Value::Object(loaded))

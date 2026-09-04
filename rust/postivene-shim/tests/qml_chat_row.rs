@@ -214,9 +214,13 @@ fn assert_outcome(steps: &[(&str, String)]) {
         "unread messages went unbadged. {context}"
     );
     assert_eq!(value("badge-text"), "3", "the badge miscounts. {context}");
+    // The source form: this loads no catalog, and "%n day(s)" is what
+    // the source says. The app always has one -- the reader's language,
+    // or the English catalog for its plural forms -- and
+    // postivene-app's translation test is what proves the word comes out.
     assert_eq!(
         value("this-week"),
-        "3 days",
+        "3 day(s)",
         "a message from earlier this week is not counted in days. {context}"
     );
     assert!(

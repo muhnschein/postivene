@@ -120,6 +120,15 @@ pub struct MessageListItem {
     pub styled_text: QString,
     /// The text with its Markdown markers taken out.
     pub plain_text: QString,
+    /// The reactions on this message, as a JSON array of
+    /// `{"emoji", "count", "self"}` in the core's order, most frequent
+    /// first. Empty when there are none. One string rather than a model
+    /// per row: a row draws a handful of chips from it, and nothing else
+    /// reads it.
+    pub reactions: QString,
+    /// The reaction this account put on the message, empty when none.
+    /// What a second tap on the same emoji takes off again.
+    pub my_reaction: QString,
 }
 
 /// Conversation model bound to a `SilicaListView` from QML.

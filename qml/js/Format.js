@@ -27,11 +27,13 @@ function timeLabel(seconds) {
         return qsTr("%1 h").arg(Math.floor(elapsed / 3600000))
     }
     if (elapsed < 7 * 86400000) {
-        // Two forms by hand rather than qsTr's %n: without a loaded
-        // translation -- and the app loads none yet, docs/PROJECT.md --
-        // %n shows the source text, "3 day(s)", as it stands.
-        var days = Math.floor(elapsed / 86400000)
-        return days === 1 ? qsTr("1 day") : qsTr("%1 days").arg(days)
+        // %n, so a language with three plural forms gets all three. The
+        // English catalog is what turns the source's "day(s)" into a
+        // word, which is why the app falls back to it for a language it
+        // has no catalog for: without one loaded, %n shows the source
+        // text as it stands.
+        //: How long ago a chat's last message was. %n is a count of days.
+        return qsTr("%n day(s)", "", Math.floor(elapsed / 86400000))
     }
     return Qt.formatDate(when, Qt.DefaultLocaleShortDate)
 }

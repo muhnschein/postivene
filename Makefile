@@ -6,12 +6,15 @@
 #
 # Qt5 packages (Debian/Ubuntu):
 #   apt install qtbase5-dev qtdeclarative5-dev qtdeclarative5-dev-tools \
-#               qml-module-qtquick2
+#               qml-module-qtquick2 qttools5-dev-tools
 #
-# The last is the QtQuick runtime plugin, which the -dev packages omit.
+# qml-module-qtquick2 is the QtQuick runtime plugin, which the -dev
+# packages omit; qttools5-dev-tools is lupdate and lrelease, for the
+# catalogs, and the app's own test compiles one.
 
 .PHONY: check test lint fmt qml-lint packaging-lint lockfile-lint doc-lint \
-        msrv deny integration harbour vendor-check fetch-server clean
+        msrv deny integration harbour vendor-check fetch-server \
+        translations clean
 
 CARGO ?= cargo
 # The shim's tests drive a real Qt event loop, which needs a platform
@@ -91,6 +94,11 @@ deny:
 ## Fetch the pinned upstream deltachat-rpc-server binaries (network).
 fetch-server:
 	./scripts/fetch-rpc-server.sh
+
+## Compile the catalogs into translations/*.qm, where a source-tree run
+## of the app finds them. The RPM does the same in %%build.
+translations:
+	./scripts/release-translations.sh
 
 ## The tests that drive the real core, offline. Needs `make fetch-server`.
 integration:

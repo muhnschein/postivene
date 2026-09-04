@@ -1,5 +1,5 @@
-//! Locates the server binary and the `qml/` directory, registers the
-//! context properties, and hands off to the QML engine.
+//! Locates the server binary, the `qml/` directory and the translations,
+//! registers the context properties, and hands off to the QML engine.
 
 // See postivene-shim/src/lib.rs: qmetaobject's macros expand to references
 // across that crate, and upstream's own examples use the glob.
@@ -9,6 +9,8 @@ use std::path::PathBuf;
 
 use postivene_shim::DeltaChatCore;
 use qmetaobject::*;
+
+mod translations;
 
 /// `POSTIVENE_QML_DIR`, then the installed path, then the source tree.
 fn qml_dir() -> PathBuf {
@@ -22,6 +24,20 @@ fn qml_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml")
 }
 
+/// Where the compiled catalogs are: `POSTIVENE_TRANSLATIONS_DIR`, then
+/// the installed path, then the source tree -- where `make translations`
+/// puts them, beside the `.ts` files they are built from.
+fn translations_dir() -> PathBuf {
+    if let Ok(env) = std::env::var("POSTIVENE_TRANSLATIONS_DIR") {
+        return PathBuf::from(env);
+    }
+    let installed = PathBuf::from("/usr/share/harbour-postivene/translations");
+    if installed.is_dir() {
+        return installed;
+    }
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../translations")
+}
+
 fn main() {
     // Types QML instantiates itself, notably the per-chat message model.
     postivene_shim::register_qml_types();
@@ -32,6 +48,12 @@ fn main() {
     // must be hosted in a view and shown, as `SailfishApp::createView()`
     // does. An engine alone loads the QML but never creates a window.
     let mut view = QQuickView::new();
+
+    // After the view, which is what makes the application object the
+    // translator hangs off; before the QML, which is translated as it is
+    // built and not again. A language with no catalog gets the English
+    // one, for its plural forms; every other string is English already.
+    translations::install(&translations_dir().to_string_lossy(), "");
 
     // Must exist before the QML is sourced, or bindings see undefined.
     view.engine()

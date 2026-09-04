@@ -344,8 +344,14 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   for the link the code would carry, typed or pasted -- a panel over the
   viewfinder rather than a dialog, because a dialog's own pop is the
   transition the page's navigation would land in and be dropped by.
-  "New group" is in the same pull-down; the new-chat page is the known
-  contacts and nothing else.
+  "New group" is in the same pull-down, and its page is the group's own
+  page before the group exists: the picture with its badge, the name,
+  the reader among the members, and the way to more of them at the end
+  of the list. The picker it opens is the one an existing group opens,
+  handed a stand-in that answers the same two questions (who is in, whom
+  to add), with a search field at the top for a long contact list; what
+  is chosen is held on the page and handed to the core in one go. The
+  new-chat page is the known contacts and nothing else.
 - **A chat can be marked unread, and a profile shows what is.** The
   row's menu offers "Mark as unread" on a chat with nothing unread: the
   core's `markfresh_chat`, which puts the chat's newest incoming message
@@ -410,10 +416,27 @@ limit held back fetched on a tap), adding a
 profile on a chosen chatmail relay through the core's current transport
 API, `secure_join` invites in both directions -- as links typed or
 pasted, and as QR codes drawn and scanned, into the chat -- encryption
-indicators, the three app-wide settings on the settings page (Markdown,
-tracking parameters out of sent links, the auto-download limit), a chat
-marked unread and unread badges on the profiles, foreground
-notifications, and the cover.
+indicators, the four app-wide settings on the settings page (Markdown,
+tracking parameters out of sent links, the auto-download limit, and how
+much a notification gives away), a chat marked unread and unread badges
+on the profiles, notifications, and the cover.
+
+Notifications are the platform's: one per chat under the app's name and
+icon, counting up as a chat keeps talking, taken down when the chat is
+read, and opening the chat on a tap -- the tap comes back over D-Bus, on
+the name Sailjail derives from the desktop file (`postivene.postivene`),
+which `Notifier` owns through a `DBusAdaptor`. What one says is the
+reader's choice, since the lock screen shows it to whoever is looking:
+who wrote and what, who wrote, or only that something arrived.
+
+The cover has three states. Nobody yet -- no chat but the one with
+oneself and the core's own -- and it says "No messages". People and
+nothing new: a grid of their avatars in grey, the few repeated to fill
+it. Something new: the same grid dimmed, whoever wrote drawn large over
+it in their own colours, and the count in the corner. "Delta" sits top
+left throughout. The people come out of the cover's own `ChatList` as
+one JSON list (`cover_people`), which is how the grid can be laid out in
+a pass and repeated to fill.
 
 The app speaks every language Sailfish OS ships in: forty catalogs under
 `translations/`, one per language the platform's Language setting offers,

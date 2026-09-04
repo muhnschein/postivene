@@ -4,8 +4,14 @@ import "../components"
 import Postivene 1.0
 
 /*
- * Name a group and pick its members. Groups are created encrypted, which is
- * what the reference client's "New Group" does.
+ * Name a group, give it a picture and pick its members, laid out the way
+ * the group's own page will be once it exists (GroupPage.qml): the
+ * picture with its badge, the name under it, the members, and the way to
+ * more of them where the next one would be listed. What is different is
+ * what is not there yet -- the group -- so everything chosen here is held
+ * on the page and handed to the core in one go when the group is made.
+ * Groups are created encrypted, which is what the reference client's
+ * "New Group" does.
  */
 Page {
     id: page
@@ -15,13 +21,26 @@ Page {
     // True from tapping create until the core answers, so a second tap
     // cannot make a second group.
     property bool creating: false
-    // Contact ids the user has ticked.
+    /// Contact ids picked so far, besides the reader's own.
     property var members: []
+    /// The picture chosen for the group, empty for none. Held as a path:
+    /// the core takes a picture only for a chat that exists.
+    property string picturePath: ""
 
+    /// What AddMembersPage asks of the group it adds to. There is no
+    /// group yet, so the page answers for it: who is in, and whom to add.
+    readonly property var pendingGroup: ({
+        is_member: function(contactId) { return page.isMember(contactId) },
+        add_members: function(contactIds) { page.addMembers(contactIds) }
+    })
+
+    // Every contact, the reader's own last: the members are drawn from
+    // these rows, so a picked id has a name and a picture to show.
     ContactList {
         id: contacts
         objectName: "contacts"
         account_id: page.accountId
+        include_self: true
         onError: {
             page.creating = false
             page.errorMessage = message
@@ -31,25 +50,9 @@ Page {
             pageStack.replace(Qt.resolvedUrl("ConversationPage.qml"), {
                 accountId: page.accountId,
                 chatId: chat_id,
-                chatName: nameField.text
+                chatName: nameField.text.trim()
             })
         }
-    }
-
-    function toggle(contactId) {
-        var next = []
-        var found = false
-        for (var i = 0; i < page.members.length; i++) {
-            if (page.members[i] === contactId) {
-                found = true
-            } else {
-                next.push(page.members[i])
-            }
-        }
-        if (!found) {
-            next.push(contactId)
-        }
-        page.members = next
     }
 
     function isMember(contactId) {
@@ -61,14 +64,67 @@ Page {
         return false
     }
 
+    /// Take a picked member off again. Nothing has been sent, so there
+    /// is nothing to undo on the core.
+    function removeMember(contactId) {
+        var next = []
+        for (var i = 0; i < page.members.length; i++) {
+            if (page.members[i] !== contactId) {
+                next.push(page.members[i])
+            }
+        }
+        page.members = next
+    }
+
+    /// Add what the picker ticked, once each.
+    function addMembers(contactIds) {
+        var next = page.members.slice()
+        for (var i = 0; i < contactIds.length; i++) {
+            if (!page.isMember(contactIds[i])) {
+                next.push(contactIds[i])
+            }
+        }
+        page.members = next
+    }
+
+    // The same picker the group's page uses, handed the stand-in above
+    // where that page hands its ChatInfo.
+    function pickMembers() {
+        pageStack.push(Qt.resolvedUrl("AddMembersPage.qml"), {
+            accountId: page.accountId,
+            chat: page.pendingGroup
+        })
+    }
+
+    // The gallery, through the same page GroupPage uses, so the picker
+    // page is the one place Sailfish.Pickers is imported.
+    function pickPicture() {
+        var picker = pageStack.push(Qt.resolvedUrl("AttachPhotoPage.qml"))
+        if (picker) {
+            picker.picked.connect(function(path) {
+                page.picturePath = path
+            })
+        }
+    }
+
     function createGroup() {
-        if (nameField.text.length === 0) {
+        var name = nameField.text.trim()
+        if (name.length === 0) {
             page.errorMessage = qsTr("Please name the group")
             return
         }
         page.errorMessage = ""
         page.creating = true
-        contacts.create_group(nameField.text, page.members)
+        nameField.editing = false
+        contacts.create_group(name, page.members, page.picturePath)
+    }
+
+    // The name is what a new group needs first, so the field is up and
+    // focused when the page arrives, rather than a tap away.
+    onStatusChanged: {
+        if (status === PageStatus.Active && nameField.text.length === 0) {
+            nameField.editing = true
+        }
     }
 
     Connections {
@@ -81,52 +137,94 @@ Page {
         }
     }
 
-    // Outside the list for the reason ChatListPage documents: a field in
-    // a view's `header` lives inside the flickable and its id does not
-    // resolve from the page. Here that was not merely a dead search --
-    // `nameField.text` is what names the group and what enables the
-    // Create button, so both were reading an undefined name.
-    // One flickable for the whole page, owning the pulley.
-    //
-    // A PullDownMenu draws at the top of the flickable that owns
-    // it, and the list starts below the search field -- so a pulley
-    // on the list opened below the field, or inside it. It does not
-    // scroll: the field has to stay out of a view whose contents
-    // change on every keystroke, which is what took the keyboard
-    // away mid-search.
     SilicaFlickable {
-        id: pulleyHost
         anchors.fill: parent
-        contentWidth: width
-        contentHeight: height
+        contentHeight: column.height + Theme.paddingLarge
 
         PullDownMenu {
             MenuItem {
+                objectName: "removePicture"
+                visible: page.picturePath.length > 0
+                text: qsTr("Remove picture")
+                onClicked: page.picturePath = ""
+            }
+            MenuItem {
                 objectName: "createButton"
                 text: qsTr("Create Group")
-                enabled: !page.creating && nameField.text.length > 0
+                enabled: !page.creating && nameField.text.trim().length > 0
                 onClicked: page.createGroup()
             }
         }
 
         Column {
-            id: heading
-            anchors {
-                top: parent.top
-                left: parent.left
-                right: parent.right
-            }
+            id: column
+            width: parent.width
+            spacing: Theme.paddingMedium
 
             PageHeader {
                 title: qsTr("New group")
             }
 
-            TextField {
-                id: nameField
-                objectName: "nameField"
+            // The picture is the control, not a preview of one: tapping
+            // it opens the gallery, and the badge says so. Until one is
+            // chosen it shows the name's initial, as the group will.
+            Item {
                 width: parent.width
-                label: qsTr("Group name")
-                placeholderText: label
+                height: bigAvatar.height + 2 * Theme.paddingLarge
+
+                Avatar {
+                    id: bigAvatar
+                    objectName: "groupAvatar"
+                    anchors.centerIn: parent
+                    width: 2 * Theme.itemSizeExtraLarge
+                    initial: nameField.text
+                    ownColor: ""
+                    picturePath: page.picturePath
+                }
+
+                Rectangle {
+                    id: editBadge
+                    objectName: "editBadge"
+                    anchors {
+                        right: bigAvatar.right
+                        bottom: bigAvatar.bottom
+                    }
+                    width: Theme.itemSizeExtraSmall
+                    height: width
+                    radius: width / 2
+                    color: Theme.highlightBackgroundColor
+
+                    Image {
+                        anchors.centerIn: parent
+                        source: "image://theme/icon-s-edit"
+                    }
+                }
+
+                MouseArea {
+                    objectName: "pictureTap"
+                    anchors.fill: bigAvatar
+                    onClicked: page.pickPicture()
+                }
+            }
+
+            // The name, under the picture, as the group's page shows it.
+            // The field is what is read; see EditableName.qml.
+            EditableName {
+                id: nameField
+                objectName: "groupNameControl"
+                labelObjectName: "groupName"
+                fieldObjectName: "nameField"
+                badgeObjectName: "nameEditBadge"
+                hintObjectName: "nameHint"
+                placeholderText: qsTr("Group name")
+                hint: qsTr("Everyone in the group sees the name")
+            }
+
+            // Room under the name, so the badge at its corner does not
+            // sit on the heading below.
+            Item {
+                width: 1
+                height: Theme.paddingLarge
             }
 
             Banner {
@@ -135,60 +233,111 @@ Page {
                 text: page.errorMessage
                 onDismissed: page.errorMessage = ""
             }
-        }
 
-        SilicaListView {
-            id: listView
-            anchors {
-                top: heading.bottom
-                left: parent.left
-                right: parent.right
-                bottom: parent.bottom
+            SectionHeader {
+                objectName: "membersHeader"
+                //: Heading over the member list. %n is how many there are, the reader included.
+                text: qsTr("%n member(s)", "", page.members.length + 1)
             }
-            model: contacts.rows
 
-            delegate: ListItem {
-                objectName: "memberRow"
-                contentHeight: body.height
-                // A group here is encrypted, and the core takes only
-                // key-contacts into one -- picking anyone else builds a group
-                // they cannot be added to, which fails halfway through.
-                enabled: model.is_key_contact
+            // The reader first, then whoever was picked, each drawn from
+            // the contact rows. A Repeater over every contact, showing
+            // only the members: a Column takes no room for a row that is
+            // not shown, and a model of the members alone would be these
+            // rows copied.
+            Repeater {
+                model: contacts.rows
 
-                ContactRow {
-                    id: body
-                    width: parent.width
-                    displayName: model.display_name
-                    ownColor: model.color
-                    picturePath: model.avatar_path
-                    isKeyContact: model.is_key_contact
-                    isVerified: model.is_verified
-                    // Greyed where the core would refuse them, highlighted
-                    // where they are already in.
-                    opacity: model.is_key_contact ? 1.0 : 0.4
-                }
+                delegate: ListItem {
+                    // Named only where it is drawn: the other rows of this
+                    // Repeater are nobody, and must not answer for the
+                    // members drawn below.
+                    objectName: model.is_self ? "memberRow" + model.contact_id : ""
+                    visible: model.is_self
+                    width: column.width
+                    contentHeight: body.height
+                    // Nothing to do with oneself here: not being in the
+                    // group is not creating it.
+                    menu: null
 
-                // The tick sits on the avatar rather than in the name, so the
-                // row reads the same as every other contact row.
-                Label {
-                    objectName: "memberMark"
-                    anchors {
-                        right: parent.right
-                        rightMargin: Theme.horizontalPageMargin
-                        verticalCenter: body.verticalCenter
+                    ContactRow {
+                        id: body
+                        width: parent.width
+                        displayName: model.display_name
+                        ownColor: model.color
+                        picturePath: model.avatar_path
+                        isKeyContact: model.is_key_contact
+                        isVerified: model.is_verified
                     }
-                    visible: page.isMember(model.contact_id)
-                    text: "✓"
-                    color: Theme.highlightColor
-                    font.pixelSize: Theme.fontSizeLarge
                 }
-
-                onClicked: if (model.is_key_contact) page.toggle(model.contact_id)
             }
 
-            ViewPlaceholder {
-                enabled: contacts.count === 0
-                text: qsTr("No contacts to add yet")
+            Repeater {
+                model: contacts.rows
+
+                delegate: ListItem {
+                    id: memberRow
+                    objectName: model.is_self ? "" : "memberRow" + model.contact_id
+                    visible: !model.is_self && page.isMember(model.contact_id)
+                    width: column.width
+                    contentHeight: body.height
+
+                    // Taking someone off the list again, from the row,
+                    // as the group's page offers it. No countdown: nothing
+                    // has been sent yet.
+                    menu: ContextMenu {
+                        MenuItem {
+                            objectName: "removeItem"
+                            text: qsTr("Remove from group")
+                            onClicked: page.removeMember(model.contact_id)
+                        }
+                    }
+
+                    ContactRow {
+                        id: body
+                        width: parent.width
+                        displayName: model.display_name
+                        ownColor: model.color
+                        picturePath: model.avatar_path
+                        isKeyContact: model.is_key_contact
+                        isVerified: model.is_verified
+                    }
+                }
+            }
+
+            // The way to more members, where the next one would be listed:
+            // a row shaped like a member's, with a plus for a picture.
+            ListItem {
+                id: addMembersRow
+                objectName: "addMembersButton"
+                width: column.width
+                contentHeight: Theme.itemSizeSmall + 2 * Theme.paddingMedium
+
+                Rectangle {
+                    id: plus
+                    x: Theme.horizontalPageMargin
+                    y: Theme.paddingMedium
+                    width: Theme.itemSizeSmall
+                    height: width
+                    radius: width / 2
+                    color: Theme.rgba(Theme.highlightBackgroundColor,
+                                      Theme.highlightBackgroundOpacity)
+
+                    Image {
+                        anchors.centerIn: parent
+                        source: "image://theme/icon-m-add"
+                    }
+                }
+
+                Label {
+                    x: plus.x + plus.width + Theme.paddingMedium
+                    anchors.verticalCenter: plus.verticalCenter
+                    color: addMembersRow.highlighted ? Theme.highlightColor
+                                                     : Theme.primaryColor
+                    text: qsTr("Add members")
+                }
+
+                onClicked: page.pickMembers()
             }
         }
     }

@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>சேர்க்கக் கூடிய தொடர்புகள் இல்லை</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>தொடர்புகளைத் தேடு</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>யாரும் பொருந்தவில்லை</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,8 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>புதிய செய்திகள் இல்லை</translation>
+        <source>No messages</source>
+        <translation>செய்திகள் இல்லை</translation>
     </message>
 </context>
 <context>
@@ -513,8 +521,39 @@
         <translation>குழுவின் பெயர்</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>சேர்க்கக் கூடிய தொடர்புகள் இன்னும் இல்லை</translation>
+        <source>Remove picture</source>
+        <translation>படத்தை நீக்கு</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>குழுவில் உள்ள அனைவரும் பெயரைப் பார்க்கிறார்கள்</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n உறுப்பினர்</numerusform>
+            <numerusform>%n உறுப்பினர்கள்</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>குழுவிலிருந்து நீக்கு</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>உறுப்பினர்களைச் சேர்</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n புதிய செய்தி</numerusform>
+            <numerusform>%n புதிய செய்திகள்</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -829,6 +868,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>அறியப்பட்ட கண்காணிப்பு அளவுருக்கள் – கிளிக் ஐடிகள், பிரச்சாரக் குறிச்சொற்கள், பகிர்ந்தவரின் கணக்கு – நீங்கள் அனுப்பும் செய்திகளின் இணைப்புகளிலிருந்து நீக்கப்படும். இணைப்பின் மீதி இருந்தபடியே விடப்படும்.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>அறிவிப்புகள்</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>புதிய செய்தி காட்டுவது</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>பூட்டுத் திரையிலும் அறிவிப்புப் பகுதியிலும். அது வந்த அரட்டை தட்டினால் எப்படியும் திறக்கும்.</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>யார் எழுதினார், என்ன எழுதினார்</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>யார் எழுதினார்</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>ஏதோ வந்தது என்பது மட்டும்</translation>
     </message>
 </context>
 <context>

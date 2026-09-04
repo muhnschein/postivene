@@ -31,6 +31,12 @@ pub struct ChatListItem {
     pub is_muted: bool,
     /// A chat from someone not yet accepted.
     pub is_contact_request: bool,
+    /// The chat with oneself, "Saved messages". Nobody else is in it, so
+    /// the cover does not count it as someone to draw.
+    pub is_self_talk: bool,
+    /// The core's own device chat, where its notices land. Not a person
+    /// either.
+    pub is_device_talk: bool,
     /// The core's per-chat colour, `#rrggbb`, for the avatar.
     pub color: QString,
     /// Path to the chat's picture, empty when it has none.

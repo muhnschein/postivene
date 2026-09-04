@@ -5,11 +5,16 @@ import QtQuick 2.0
 // do, so a test can see whether a notification was raised and taken back
 // down again -- see tests/silica-stubs/Sailfish/Silica for the same idea.
 QtObject {
+    property string appName
+    property string appIcon
     property string summary
     property string body
     property string previewSummary
     property string previewBody
     property string category
+    property int itemCount: 1
+    property var timestamp
+    property var remoteActions: []
     property int replacesId: 0
 
     // What the tests read.

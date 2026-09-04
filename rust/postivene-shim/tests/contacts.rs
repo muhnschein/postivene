@@ -43,7 +43,7 @@ const PROBE_QML: &str = r"
                 if (!started && rows.count > 1) {
                     started = true
                     contacts.open_chat_with(rows.itemAt(0).cid)
-                    contacts.create_group('Team', [rows.itemAt(0).cid, rows.itemAt(1).cid])
+                    contacts.create_group('Team', [rows.itemAt(0).cid, rows.itemAt(1).cid], '')
                     contacts.join_by_invite('https://i.delta.chat/#ABC&a=them%40example.org')
                     contacts.join_by_invite('just some text')
                     contacts.fetch_invite()

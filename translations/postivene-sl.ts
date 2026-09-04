@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>Ni stikov za dodajanje</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>Išči po stikih</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>Nihče ne ustreza</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,8 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>Ni novih sporočil</translation>
+        <source>No messages</source>
+        <translation>Ni sporočil</translation>
     </message>
 </context>
 <context>
@@ -517,8 +525,43 @@
         <translation>Ime skupine</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>Ni še stikov za dodajanje</translation>
+        <source>Remove picture</source>
+        <translation>Odstrani sliko</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Ime vidijo vsi v skupini</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n član</numerusform>
+            <numerusform>%n člana</numerusform>
+            <numerusform>%n člani</numerusform>
+            <numerusform>%n članov</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>Odstrani iz skupine</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>Dodaj člane</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n novo sporočilo</numerusform>
+            <numerusform>%n novi sporočili</numerusform>
+            <numerusform>%n nova sporočila</numerusform>
+            <numerusform>%n novih sporočil</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -833,6 +876,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>Znani parametri sledenja – ID-ji klikov, oznake kampanj, račun tistega, ki deli – se odstranijo iz povezav v sporočilih, ki jih pošljete. Preostanek povezave ostane, kot je bil.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>Obvestila</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>Novo sporočilo pokaže</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>Na zaklenjenem zaslonu in v območju obvestil. Klepet, iz katerega je, se z dotikom odpre v vsakem primeru.</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>Kdo je pisal in kaj</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>Kdo je pisal</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>Le to, da je nekaj prispelo</translation>
     </message>
 </context>
 <context>

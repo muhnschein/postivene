@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>Žiadne kontakty na pridanie</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>Hľadať v kontaktoch</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>Nikto nevyhovuje</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,8 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>Žiadne nové správy</translation>
+        <source>No messages</source>
+        <translation>Žiadne správy</translation>
     </message>
 </context>
 <context>
@@ -515,8 +523,41 @@
         <translation>Názov skupiny</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>Zatiaľ žiadne kontakty na pridanie</translation>
+        <source>Remove picture</source>
+        <translation>Odstrániť obrázok</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Meno vidia všetci v skupine</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n člen</numerusform>
+            <numerusform>%n členovia</numerusform>
+            <numerusform>%n členov</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>Odobrať zo skupiny</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>Pridať členov</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n nová správa</numerusform>
+            <numerusform>%n nové správy</numerusform>
+            <numerusform>%n nových správ</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -831,6 +872,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>Známe sledovacie parametre – ID kliknutí, značky kampaní, účet zdieľajúceho – sa z odkazov vo vašich odosielaných správach odstránia. Zvyšok odkazu zostane, aký bol.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>Oznámenia</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>Nová správa ukazuje</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>Na uzamknutej obrazovke a v oblasti oznámení. Chat, z ktorého je, sa klepnutím otvorí tak či tak.</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>Kto písal a čo</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>Kto písal</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>Len to, že niečo prišlo</translation>
     </message>
 </context>
 <context>

@@ -133,6 +133,10 @@ fn the_settings_page_writes_what_the_app_reads() {
             call!("appKey", QString::from("downloadLimitConfig"))
         );
         record!(
+            "app-notification-key",
+            call!("appKey", QString::from("notificationDetailConfig"))
+        );
+        record!(
             "load",
             call!("load", QString::from(common::page_url("SettingsPage.qml")))
         );
@@ -152,6 +156,14 @@ fn the_settings_page_writes_what_the_app_reads() {
             call!("appReads", QString::from("cleanLinks"))
         );
         record!("links-switch", get!("cleanLinksSwitch", "checked"));
+        record!(
+            "notification-default",
+            call!("appReads", QString::from("notificationDetail"))
+        );
+        record!(
+            "notification-index",
+            get!("notificationCombo", "currentIndex")
+        );
         // Each control writes its setting, and the choice shown follows it.
         record!(
             "pick-markdown",
@@ -191,6 +203,18 @@ fn the_settings_page_writes_what_the_app_reads() {
             call!("click", QString::from("cleanLinksSwitch"))
         );
         record!("links-off", call!("appReads", QString::from("cleanLinks")));
+        record!(
+            "pick-notification",
+            call!("click", QString::from("notificationOption2"))
+        );
+        record!(
+            "notification-picked",
+            call!("appReads", QString::from("notificationDetail"))
+        );
+        record!(
+            "notification-shown",
+            get!("notificationCombo", "currentIndex")
+        );
         // The other direction: a change made anywhere else reaches the
         // page's choice.
         record!(
@@ -241,6 +265,15 @@ fn the_settings_page_writes_what_the_app_reads() {
         ("app-markdown-key", "/apps/harbour-postivene/markdown_mode"),
         ("app-links-key", "/apps/harbour-postivene/clean_links"),
         ("app-download-key", "/apps/harbour-postivene/download_limit"),
+        (
+            "app-notification-key",
+            "/apps/harbour-postivene/notification_detail",
+        ),
+        ("notification-default", "0"),
+        ("notification-index", "0"),
+        ("pick-notification", "ok"),
+        ("notification-picked", "2"),
+        ("notification-shown", "2"),
         ("app-write", "ok"),
         ("page-follows", "2"),
     ] {

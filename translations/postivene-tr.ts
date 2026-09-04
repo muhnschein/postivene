@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>Eklenecek kişi yok</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>Kişilerde ara</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>Kimse eşleşmiyor</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,8 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>Yeni mesaj yok</translation>
+        <source>No messages</source>
+        <translation>Mesaj yok</translation>
     </message>
 </context>
 <context>
@@ -511,8 +519,37 @@
         <translation>Grup adı</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>Henüz eklenecek kişi yok</translation>
+        <source>Remove picture</source>
+        <translation>Resmi kaldır</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Adı gruptaki herkes görür</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n üye</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>Gruptan çıkar</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>Üye ekle</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n yeni mesaj</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -827,6 +864,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>Bilinen izleme parametreleri – tıklama kimlikleri, kampanya etiketleri, paylaşanın hesabı – gönderdiğiniz mesajlardaki bağlantılardan çıkarılır. Bağlantının geri kalanı olduğu gibi bırakılır.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>Bildirimler</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>Yeni bir mesaj şunu gösterir</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>Kilit ekranında ve bildirim alanında. Geldiği sohbet dokununca her halükârda açılır.</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>Kimin yazdığını ve ne yazdığını</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>Kimin yazdığını</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>Yalnızca bir şey geldiğini</translation>
     </message>
 </context>
 <context>

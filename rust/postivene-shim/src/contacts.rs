@@ -32,6 +32,13 @@ pub struct ContactList {
     /// Emitted when the query changes.
     pub query_changed: qt_signal!(),
 
+    /// List the account's own contact too, after everyone else. Off by
+    /// default: a picker offers other people, and the one page that
+    /// draws the reader among the members is the one that asks.
+    pub include_self: qt_property!(bool; WRITE set_include_self NOTIFY include_self_changed),
+    /// Emitted when `include_self` changes.
+    pub include_self_changed: qt_signal!(),
+
     /// The rows, for a `SilicaListView`'s `model`.
     pub rows: qt_property!(RefCell<ContactListModel>; CONST),
 
@@ -50,9 +57,12 @@ pub struct ContactList {
     /// Answers on `chat_ready`.
     pub open_chat_with: qt_method!(fn(&mut self, contact_id: u32)),
 
-    /// Create a group with the given name and members, and open it.
+    /// Create a group with the given name, members and picture, and open
+    /// it. The picture is a path, or empty for none: the core takes one
+    /// only on a chat that exists, so it is set once the group does.
     /// Answers on `chat_ready`.
-    pub create_group: qt_method!(fn(&mut self, name: QString, member_ids: QVariantList)),
+    pub create_group:
+        qt_method!(fn(&mut self, name: QString, member_ids: QVariantList, picture_path: QString)),
 
     /// Follow an invite -- a scanned QR payload or a pasted
     /// `https://i.delta.chat/...` link -- and open the chat it leads to.
@@ -99,6 +109,15 @@ impl ContactList {
         }
     }
 
+    /// List the account's own contact as well, or stop doing so.
+    pub fn set_include_self(&mut self, include_self: bool) {
+        if self.include_self != include_self {
+            self.include_self = include_self;
+            self.include_self_changed();
+            self.reload();
+        }
+    }
+
     /// Reload the list.
     pub fn reload(&mut self) {
         let account_id = self.account_id;
@@ -109,6 +128,10 @@ impl ContactList {
             return;
         };
         let query = self.query.to_string();
+        // listFlags: 0 is known, unblocked contacts; DC_GCL_ADD_SELF (2)
+        // puts the account's own contact at the end of them. The
+        // "verified only" flag is never wanted here.
+        let list_flags: u32 = if self.include_self { 2 } else { 0 };
         self.generation = self.generation.wrapping_add(1);
         let generation = self.generation;
 
@@ -131,10 +154,8 @@ impl ContactList {
 
         runtime.spawn(async move {
             let query = if query.is_empty() { None } else { Some(query) };
-            // listFlags 0: known, unblocked contacts, without the special
-            // "add self" and "verified only" filters.
             let result = rpc
-                .call::<_, Vec<serde_json::Value>>("get_contacts", (account_id, 0, query))
+                .call::<_, Vec<serde_json::Value>>("get_contacts", (account_id, list_flags, query))
                 .await
                 .map(|contacts| contacts.iter().map(contact_row).collect())
                 .map_err(|err| err.to_string());
@@ -160,8 +181,8 @@ impl ContactList {
         });
     }
 
-    /// Create a group and add the given members.
-    pub fn create_group(&mut self, name: QString, member_ids: QVariantList) {
+    /// Create a group, add the given members, and give it its picture.
+    pub fn create_group(&mut self, name: QString, member_ids: QVariantList, picture_path: QString) {
         let account_id = self.account_id;
         let Some((rpc, runtime)) = connection() else {
             self.error(QString::from("not started"));
@@ -196,6 +217,12 @@ impl ContactList {
             .filter_map(|value| i32::from_qvariant(value.clone()))
             .filter_map(|value| u32::try_from(value).ok())
             .collect();
+        let picture = picture_path.to_string();
+        let picture = if picture.is_empty() {
+            None
+        } else {
+            Some(crate::chat::local_path(&picture))
+        };
         runtime.spawn(async move {
             let result = async {
                 // Encrypted, of key-contacts, which is what the reference
@@ -219,6 +246,17 @@ impl ContactList {
                         .await
                     {
                         refused.push(format!("{member}: {err}"));
+                    }
+                }
+                // The picture last, on the group that now exists. A
+                // refusal here is reported like a member's: the group is
+                // still made and still opened.
+                if let Some(path) = picture {
+                    if let Err(err) = rpc
+                        .call::<_, ()>("set_chat_profile_image", (account_id, chat_id, Some(path)))
+                        .await
+                    {
+                        refused.push(format!("picture: {err}"));
                     }
                 }
                 Ok::<_, String>((chat_id, refused))

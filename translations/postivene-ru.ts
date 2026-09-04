@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>Нет контактов для добавления</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>Поиск контактов</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>Никто не подходит</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,8 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>Новых сообщений нет</translation>
+        <source>No messages</source>
+        <translation>Нет сообщений</translation>
     </message>
 </context>
 <context>
@@ -515,8 +523,41 @@
         <translation>Название группы</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>Пока нет контактов для добавления</translation>
+        <source>Remove picture</source>
+        <translation>Удалить изображение</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Название видят все в группе</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n участник</numerusform>
+            <numerusform>%n участника</numerusform>
+            <numerusform>%n участников</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>Удалить из группы</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>Добавить участников</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n новое сообщение</numerusform>
+            <numerusform>%n новых сообщения</numerusform>
+            <numerusform>%n новых сообщений</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -831,6 +872,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>Известные параметры отслеживания — идентификаторы кликов, метки кампаний, аккаунт поделившегося — убираются из ссылок в отправляемых вами сообщениях. Остальная часть ссылки остаётся как есть.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>Уведомления</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>Новое сообщение показывает</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>На экране блокировки и в области уведомлений. Чат, из которого оно пришло, в любом случае открывается по нажатию.</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>Кто написал и что</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>Кто написал</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>Только то, что что-то пришло</translation>
     </message>
 </context>
 <context>

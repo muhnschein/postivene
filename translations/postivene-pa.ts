@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>ਸ਼ਾਮਲ ਕਰਨ ਲਈ ਕੋਈ ਸੰਪਰਕ ਨਹੀਂ</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>ਸੰਪਰਕ ਖੋਜੋ</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>ਕੋਈ ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,8 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>ਕੋਈ ਨਵਾਂ ਸੁਨੇਹਾ ਨਹੀਂ</translation>
+        <source>No messages</source>
+        <translation>ਕੋਈ ਸੁਨੇਹਾ ਨਹੀਂ</translation>
     </message>
 </context>
 <context>
@@ -513,8 +521,39 @@
         <translation>ਗਰੁੱਪ ਦਾ ਨਾਂ</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>ਸ਼ਾਮਲ ਕਰਨ ਲਈ ਹਾਲੇ ਕੋਈ ਸੰਪਰਕ ਨਹੀਂ</translation>
+        <source>Remove picture</source>
+        <translation>ਤਸਵੀਰ ਹਟਾਓ</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>ਗਰੁੱਪ ਵਿੱਚ ਹਰ ਕੋਈ ਨਾਂ ਵੇਖਦਾ ਹੈ</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n ਮੈਂਬਰ</numerusform>
+            <numerusform>%n ਮੈਂਬਰ</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>ਗਰੁੱਪ ਵਿੱਚੋਂ ਹਟਾਓ</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>ਮੈਂਬਰ ਸ਼ਾਮਲ ਕਰੋ</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n ਨਵਾਂ ਸੁਨੇਹਾ</numerusform>
+            <numerusform>%n ਨਵੇਂ ਸੁਨੇਹੇ</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -829,6 +868,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>ਜਾਣੇ-ਪਛਾਣੇ ਟਰੈਕਿੰਗ ਪੈਰਾਮੀਟਰ – ਕਲਿੱਕ ਆਈਡੀ, ਮੁਹਿੰਮ ਟੈਗ, ਸਾਂਝਾ ਕਰਨ ਵਾਲੇ ਦਾ ਖਾਤਾ – ਤੁਹਾਡੇ ਭੇਜੇ ਸੁਨੇਹਿਆਂ ਦੇ ਲਿੰਕਾਂ ਵਿੱਚੋਂ ਹਟਾ ਦਿੱਤੇ ਜਾਂਦੇ ਹਨ। ਬਾਕੀ ਲਿੰਕ ਜਿਵੇਂ ਸੀ ਉਵੇਂ ਰਹਿੰਦਾ ਹੈ।</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>ਸੂਚਨਾਵਾਂ</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>ਨਵਾਂ ਸੁਨੇਹਾ ਦਿਖਾਉਂਦਾ ਹੈ</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>ਲਾਕ ਸਕ੍ਰੀਨ ਉੱਤੇ ਅਤੇ ਸੂਚਨਾ ਖੇਤਰ ਵਿੱਚ। ਜਿਸ ਚੈਟ ਤੋਂ ਹੈ ਉਹ ਟੈਪ ਕਰਨ ਉੱਤੇ ਕਿਸੇ ਵੀ ਹਾਲ ਖੁੱਲ੍ਹਦੀ ਹੈ।</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>ਕਿਸ ਨੇ ਲਿਖਿਆ, ਤੇ ਕੀ</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>ਕਿਸ ਨੇ ਲਿਖਿਆ</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>ਸਿਰਫ਼ ਇਹ ਕਿ ਕੁਝ ਆਇਆ ਹੈ</translation>
     </message>
 </context>
 <context>

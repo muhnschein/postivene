@@ -105,11 +105,28 @@ Page {
     Notifier {
         id: notifier
         objectName: "notifier"
+        detail: Settings.notificationDetail
+        // A tap on a notification: back to the list, then into the chat,
+        // in front of whatever the reader was doing.
+        onOpenRequested: page.showChat(chatId)
     }
 
     Connections {
         target: chats
-        onMessage_arrived: notifier.arrived(chat_id, chat_name, preview)
+        onMessage_arrived: notifier.arrived(chat_id, chat_name, sender, preview)
+    }
+
+    /// Open a chat from outside the app: a notification was tapped. The
+    /// window is raised first, as lipstick only calls the app and does
+    /// not bring it up; a page loaded on its own in a test has no window.
+    function showChat(chatId) {
+        if (typeof appWindow !== "undefined") {
+            appWindow.activate()
+        }
+        if (pageStack.currentPage !== page) {
+            pageStack.pop(page, PageStackAction.Immediate)
+        }
+        page.openChat(chatId, notifier.nameOf(chatId), 0)
     }
 
     // Back on the list means no chat is being read.

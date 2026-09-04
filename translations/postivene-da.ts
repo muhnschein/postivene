@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>Ingen kontakter at tilføje</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>Søg i kontakter</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>Ingen matcher</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,8 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>Ingen nye beskeder</translation>
+        <source>No messages</source>
+        <translation>Ingen beskeder</translation>
     </message>
 </context>
 <context>
@@ -513,8 +521,39 @@
         <translation>Gruppenavn</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>Ingen kontakter at tilføje endnu</translation>
+        <source>Remove picture</source>
+        <translation>Fjern billede</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Alle i gruppen ser navnet</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n medlem</numerusform>
+            <numerusform>%n medlemmer</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>Fjern fra gruppe</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>Tilføj medlemmer</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n ny besked</numerusform>
+            <numerusform>%n nye beskeder</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -829,6 +868,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>Kendte sporingsparametre – klik-id&apos;er, kampagnetags, delerens konto – fjernes fra links i de beskeder, du sender. Resten af linket bliver, som det var.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>Notifikationer</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>En ny besked viser</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>På låseskærmen og i notifikationsområdet. Chatten, den er fra, åbnes ved et tryk uanset hvad.</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>Hvem der skrev, og hvad</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>Hvem der skrev</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>Kun at der er kommet noget</translation>
     </message>
 </context>
 <context>

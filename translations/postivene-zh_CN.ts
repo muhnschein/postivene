@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>没有可添加的联系人</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>搜索联系人</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>没有匹配的联系人</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,8 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>没有新消息</translation>
+        <source>No messages</source>
+        <translation>没有消息</translation>
     </message>
 </context>
 <context>
@@ -511,8 +519,37 @@
         <translation>群组名称</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>还没有可添加的联系人</translation>
+        <source>Remove picture</source>
+        <translation>移除图片</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>群组中的每个人都能看到该名称</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n 位成员</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>从群组中移除</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>添加成员</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n 条新消息</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -827,6 +864,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>已知的跟踪参数（点击 ID、营销活动标签、分享者账号）会从你发送的消息的链接中去除。链接的其余部分保持原样。</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>通知</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>新消息显示</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>在锁屏和通知区域中。无论如何，点按都会打开它所在的聊天。</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>谁写的，以及写了什么</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>谁写的</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>只显示有消息到达</translation>
     </message>
 </context>
 <context>

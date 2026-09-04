@@ -4,8 +4,9 @@ import "../components"
 
 /*
  * The settings that belong to no profile: how a message is drawn, what
- * goes out with a link, and how much of an attachment arrives unasked.
- * Reached from the chat list's pull-down. A profile's own settings --
+ * goes out with a link, how much of an attachment arrives unasked, and
+ * how much a notification gives away. Reached from the chat list's
+ * pull-down. A profile's own settings --
  * picture, name, address, read receipts, what the relay says -- are on
  * the profile's page, reached from its row on the profiles page.
  *
@@ -52,6 +53,10 @@ Page {
         return mode >= 0 && mode <= 2 ? mode : 0
     }
 
+    function notificationIndex(detail) {
+        return detail >= 0 && detail <= 2 ? detail : 0
+    }
+
     /// Put each choice back to what the setting holds. Silica writes
     /// currentIndex itself on a tap, which detaches a binding, so the
     /// choice is put back from the setting each time it changes -- the
@@ -59,12 +64,15 @@ Page {
     function refresh() {
         markdownCombo.currentIndex = page.markdownIndex(Settings.markdownMode)
         downloadCombo.currentIndex = page.limitIndex(Settings.downloadLimit)
+        notificationCombo.currentIndex =
+            page.notificationIndex(Settings.notificationDetail)
     }
 
     Connections {
         target: Settings
         onMarkdownModeChanged: page.refresh()
         onDownloadLimitChanged: page.refresh()
+        onNotificationDetailChanged: page.refresh()
     }
 
     Component.onCompleted: page.refresh()
@@ -128,6 +136,38 @@ Page {
                             text: page.limitLabel(index)
                             onClicked: Settings.downloadLimit = modelData
                         }
+                    }
+                }
+            }
+
+            SectionHeader {
+                text: qsTr("Notifications")
+            }
+
+            // What a notification says is what the lock screen shows to
+            // whoever is looking at it, so the reader chooses how much.
+            ComboBox {
+                id: notificationCombo
+                objectName: "notificationCombo"
+                width: parent.width
+                label: qsTr("A new message shows")
+                description: qsTr("On the lock screen and in the notification area. The chat it is from opens on a tap either way.")
+
+                menu: ContextMenu {
+                    MenuItem {
+                        objectName: "notificationOption0"
+                        text: qsTr("Who wrote, and what")
+                        onClicked: Settings.notificationDetail = 0
+                    }
+                    MenuItem {
+                        objectName: "notificationOption1"
+                        text: qsTr("Who wrote")
+                        onClicked: Settings.notificationDetail = 1
+                    }
+                    MenuItem {
+                        objectName: "notificationOption2"
+                        text: qsTr("Only that something arrived")
+                        onClicked: Settings.notificationDetail = 2
                     }
                 }
             }

@@ -1,7 +1,8 @@
 //! Adding to a group that already exists.
 //!
-//! The picker greys whoever is already in, adds whoever was ticked through
-//! the group it was handed, and goes back to that group's page.
+//! The picker greys whoever is already in, narrows the list to what is
+//! typed into its search field, adds whoever was ticked through the group
+//! it was handed, and goes back to that group's page.
 
 // Qt harness: needs `unsafe` for `env::set_var` before Qt starts
 // (`unused_unsafe` because it is only unsafe from edition 2024 on),
@@ -95,6 +96,12 @@ const PROBE_QML: &str = r"
             item.clicked()
             return 'ok'
         }
+        function setText(name, value) {
+            var item = findIn(loader.item, name)
+            if (!item) { return 'missing:' + name }
+            item.text = value
+            return 'ok'
+        }
         function get(name, property) {
             var item = findIn(loader.item, name)
             if (!item) { return 'missing:' + name }
@@ -179,12 +186,27 @@ fn the_picker_adds_who_was_ticked_and_greys_who_is_in() {
         // Tapping someone already in does nothing.
         record!("tap-in", call!("click", QString::from("memberRow10")));
         record!("still-nothing", get!("addButton", "enabled"));
+        // Searching narrows the list to Grace, whom the fake core finds by
+        // her address.
+        record!(
+            "search",
+            call!(
+                "setText",
+                QString::from("searchField"),
+                QString::from("grace")
+            )
+        );
+    });
+
+    single_shot(Duration::from_secs(6), move || unsafe {
+        record!("ada-hidden", get!("memberRow10", "enabled"));
+        record!("grace-found", get!("memberRow11", "enabled"));
         record!("tap-out", call!("click", QString::from("memberRow11")));
         record!("picked", get!("addButton", "enabled"));
         record!("add", call!("click", QString::from("addButton")));
     });
 
-    single_shot(Duration::from_secs(6), move || unsafe {
+    single_shot(Duration::from_secs(8), move || unsafe {
         (*engine_ptr).quit();
     });
 
@@ -210,9 +232,27 @@ fn assert_outcome(steps: &[(&str, String)], navigation: &str, calls: &[(String, 
             .unwrap_or_default()
     };
 
-    for label in ["load", "tap-in", "tap-out", "add"] {
+    for label in ["load", "tap-in", "search", "tap-out", "add"] {
         assert_eq!(value(label), "ok", "step {label} failed. {context}");
     }
+    assert!(
+        value("ada-hidden").starts_with("missing:"),
+        "searching for Grace still lists Ada. {context}"
+    );
+    assert_eq!(
+        value("grace-found"),
+        "true",
+        "searching for Grace did not find her, or found her greyed. {context}"
+    );
+    let searched: Vec<Value> = calls
+        .iter()
+        .filter(|(name, _)| name == "get_contacts")
+        .map(|(_, params)| params.clone())
+        .collect();
+    assert!(
+        searched.contains(&serde_json::json!([1, 0, "grace"])),
+        "the typed search never reached the core as a query. {context}"
+    );
     assert_eq!(
         value("in-greyed"),
         "false",

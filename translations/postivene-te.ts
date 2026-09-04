@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>చేర్చడానికి పరిచయాలు లేవు</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>పరిచయాలను వెతుకు</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>ఎవరూ సరిపోలడం లేదు</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,8 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>కొత్త సందేశాలు లేవు</translation>
+        <source>No messages</source>
+        <translation>సందేశాలు లేవు</translation>
     </message>
 </context>
 <context>
@@ -513,8 +521,39 @@
         <translation>గుంపు పేరు</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>చేర్చడానికి ఇంకా పరిచయాలు లేవు</translation>
+        <source>Remove picture</source>
+        <translation>చిత్రాన్ని తీసివేయి</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>గుంపులో అందరూ పేరును చూస్తారు</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n సభ్యుడు</numerusform>
+            <numerusform>%n సభ్యులు</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>గుంపు నుండి తీసివేయి</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>సభ్యులను చేర్చు</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n కొత్త సందేశం</numerusform>
+            <numerusform>%n కొత్త సందేశాలు</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -829,6 +868,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>తెలిసిన ట్రాకింగ్ పారామితులు – క్లిక్ ఐడీలు, ప్రచార ట్యాగ్‌లు, పంచుకున్నవారి ఖాతా – మీరు పంపే సందేశాల్లోని లింక్‌ల నుండి తీసివేయబడతాయి. లింక్‌లోని మిగిలిన భాగం ఉన్నట్లే ఉంటుంది.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>నోటిఫికేషన్‌లు</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>కొత్త సందేశం చూపేది</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>లాక్ స్క్రీన్‌పై మరియు నోటిఫికేషన్ ప్రాంతంలో. అది వచ్చిన చాట్ నొక్కితే ఎలాగైనా తెరుచుకుంటుంది.</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>ఎవరు రాశారు, ఏమి రాశారు</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>ఎవరు రాశారు</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>ఏదో వచ్చిందని మాత్రమే</translation>
     </message>
 </context>
 <context>

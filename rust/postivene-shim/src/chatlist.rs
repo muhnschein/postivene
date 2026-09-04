@@ -73,6 +73,13 @@ pub struct ChatList {
     /// Muted chats are counted. Muting silences the announcement, not the
     /// arithmetic -- the badge on a muted chat behaves the same way.
     pub unread_total: qt_property!(u32; READ unread_total NOTIFY rows_changed),
+    /// The people behind the chats, for the cover to draw: every row but
+    /// the chat with oneself and the device chat, as a JSON array of
+    /// `{"chat_id", "name", "color", "avatar_path", "unread_count"}` in
+    /// the list's order. One string rather than the model: the cover
+    /// lays its grid out in one pass and repeats the few to fill it,
+    /// which a view over the rows cannot.
+    pub cover_people: qt_property!(QString; READ cover_people NOTIFY rows_changed),
     /// Emitted after any change to `rows`.
     pub rows_changed: qt_signal!(),
 
@@ -83,8 +90,10 @@ pub struct ChatList {
     /// landed -- announcing on the event itself would carry a preview from
     /// before the message. A muted chat is never announced: it still
     /// counts towards the badge, quietly, which is the whole point of
-    /// muting.
-    pub message_arrived: qt_signal!(chat_id: u32, chat_name: QString, preview: QString),
+    /// muting. `sender` is who wrote it as the row's summary names them:
+    /// a name in a group, and empty in a one-to-one chat, where the chat
+    /// is already named after them.
+    pub message_arrived: qt_signal!(chat_id: u32, chat_name: QString, sender: QString, preview: QString),
 
     /// Loading failed. The message is the core's own.
     pub error: qt_signal!(message: QString),
@@ -140,6 +149,26 @@ impl ChatList {
             .borrow()
             .iter()
             .fold(0u32, |total, row| total.saturating_add(row.unread_count))
+    }
+
+    /// The people behind the chats, as JSON; see the property.
+    pub fn cover_people(&self) -> QString {
+        let people: Vec<serde_json::Value> = self
+            .rows
+            .borrow()
+            .iter()
+            .filter(|row| !row.is_self_talk && !row.is_device_talk)
+            .map(|row| {
+                json!({
+                    "chat_id": row.chat_id,
+                    "name": row.name.to_string(),
+                    "color": row.color.to_string(),
+                    "avatar_path": row.avatar_path.to_string(),
+                    "unread_count": row.unread_count,
+                })
+            })
+            .collect();
+        serde_json::Value::Array(people).to_string().into()
     }
 
     /// Set the account and reload if it changed.
@@ -381,9 +410,16 @@ impl ChatList {
                             .borrow()
                             .iter()
                             .find(|row| row.chat_id == chat_id && !row.is_muted)
-                            .map(|row| (row.name.clone(), row.preview.clone()));
-                        if let Some((name, preview)) = announcement {
-                            this.borrow().message_arrived(chat_id, name, preview);
+                            .map(|row| {
+                                (
+                                    row.name.clone(),
+                                    row.preview_sender.clone(),
+                                    row.preview.clone(),
+                                )
+                            });
+                        if let Some((name, sender, preview)) = announcement {
+                            this.borrow()
+                                .message_arrived(chat_id, name, sender, preview);
                         }
                     }
                 }
@@ -608,6 +644,8 @@ pub(crate) async fn chat_items(
                     is_pinned: json::flag(&item, "isPinned"),
                     is_muted: json::flag(&item, "isMuted"),
                     is_contact_request: json::flag(&item, "isContactRequest"),
+                    is_self_talk: json::flag(&item, "isSelfTalk"),
+                    is_device_talk: json::flag(&item, "isDeviceTalk"),
                     color: json::text(&item, "color"),
                     avatar_path: json::text(&item, "avatarPath"),
                 },

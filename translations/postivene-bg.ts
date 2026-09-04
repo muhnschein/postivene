@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>Няма контакти за добавяне</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>Търсене в контактите</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>Никой не отговаря на търсенето</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,8 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>Няма нови съобщения</translation>
+        <source>No messages</source>
+        <translation>Няма съобщения</translation>
     </message>
 </context>
 <context>
@@ -513,8 +521,39 @@
         <translation>Име на групата</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>Все още няма контакти за добавяне</translation>
+        <source>Remove picture</source>
+        <translation>Премахване на изображението</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Всички в групата виждат името</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n член</numerusform>
+            <numerusform>%n членове</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>Премахване от групата</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>Добавяне на членове</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n ново съобщение</numerusform>
+            <numerusform>%n нови съобщения</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -829,6 +868,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>Известните параметри за проследяване – идентификатори на кликвания, етикети на кампании, акаунтът на споделящия – се премахват от връзките в съобщенията, които изпращате. Останалата част от връзката се оставя както е.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>Известия</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>Ново съобщение показва</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>На заключения екран и в областта за известия. Чатът, от който е, се отваря с докосване така или иначе.</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>Кой е писал и какво</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>Кой е писал</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>Само че е пристигнало нещо</translation>
     </message>
 </context>
 <context>

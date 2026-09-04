@@ -4,7 +4,8 @@ import Nemo.Configuration 1.0
 
 /*
  * The settings that belong to no profile: how a message is drawn, what
- * goes out with a link, and how much of an attachment arrives unasked.
+ * goes out with a link, how much of an attachment arrives unasked, and
+ * how much a notification gives away.
  *
  * They live in dconf under the app's own path, and every page reads
  * them through this one object: the settings page (qml/pages/
@@ -26,6 +27,10 @@ QtObject {
     /// fetches everything. The core's own `download_limit`, applied to
     /// every profile.
     property alias downloadLimit: downloadLimitValue.value
+    /// How much a notification says: 0 who wrote and what, 1 who wrote,
+    /// 2 only that something arrived. What the lock screen shows to
+    /// whoever is looking at it.
+    property alias notificationDetail: notificationDetailValue.value
 
     // The keys, named here and nowhere else: tests/qml_syntax.rs holds
     // every other file to reading them through this object.
@@ -47,5 +52,11 @@ QtObject {
         // One megabyte, as parla defaults it: a photo arrives, a video
         // waits to be asked for.
         defaultValue: 1048576
+    }
+
+    property ConfigurationValue notificationDetailConfig: ConfigurationValue {
+        id: notificationDetailValue
+        key: "/apps/harbour-postivene/notification_detail"
+        defaultValue: 0
     }
 }

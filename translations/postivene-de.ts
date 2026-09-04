@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>Keine Kontakte zum Hinzufügen</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>Kontakte durchsuchen</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>Niemand passt</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,8 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>Keine neuen Nachrichten</translation>
+        <source>No messages</source>
+        <translation>Keine Nachrichten</translation>
     </message>
 </context>
 <context>
@@ -513,8 +521,39 @@
         <translation>Gruppenname</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>Noch keine Kontakte zum Hinzufügen</translation>
+        <source>Remove picture</source>
+        <translation>Bild entfernen</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>Alle in der Gruppe sehen den Namen</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n Mitglied</numerusform>
+            <numerusform>%n Mitglieder</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>Aus der Gruppe entfernen</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>Mitglieder hinzufügen</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n neue Nachricht</numerusform>
+            <numerusform>%n neue Nachrichten</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -829,6 +868,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>Bekannte Tracking-Parameter – Klick-IDs, Kampagnen-Tags, das Konto des Teilenden – werden aus den Links in deinen gesendeten Nachrichten entfernt. Der Rest des Links bleibt, wie er war.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>Benachrichtigungen</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>Eine neue Nachricht zeigt</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>Auf dem Sperrbildschirm und im Benachrichtigungsbereich. Der Chat, aus dem sie stammt, öffnet sich bei einem Tipp so oder so.</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>Wer geschrieben hat, und was</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>Wer geschrieben hat</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>Nur, dass etwas angekommen ist</translation>
     </message>
 </context>
 <context>

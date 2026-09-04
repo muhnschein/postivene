@@ -15,6 +15,14 @@
         <source>No contacts to add</source>
         <translation>ചേർക്കാൻ കോൺടാക്റ്റുകളില്ല</translation>
     </message>
+    <message>
+        <source>Search contacts</source>
+        <translation>കോൺടാക്റ്റുകൾ തിരയുക</translation>
+    </message>
+    <message>
+        <source>Nobody matches</source>
+        <translation>ആരും പൊരുത്തപ്പെടുന്നില്ല</translation>
+    </message>
 </context>
 <context>
     <name>AddProfileDialog</name>
@@ -290,8 +298,8 @@
 <context>
     <name>CoverPage</name>
     <message>
-        <source>No new messages</source>
-        <translation>പുതിയ സന്ദേശങ്ങളില്ല</translation>
+        <source>No messages</source>
+        <translation>സന്ദേശങ്ങളില്ല</translation>
     </message>
 </context>
 <context>
@@ -513,8 +521,39 @@
         <translation>ഗ്രൂപ്പിന്റെ പേര്</translation>
     </message>
     <message>
-        <source>No contacts to add yet</source>
-        <translation>ചേർക്കാൻ ഇതുവരെ കോൺടാക്റ്റുകളില്ല</translation>
+        <source>Remove picture</source>
+        <translation>ചിത്രം നീക്കുക</translation>
+    </message>
+    <message>
+        <source>Everyone in the group sees the name</source>
+        <translation>ഗ്രൂപ്പിലുള്ള എല്ലാവരും പേര് കാണുന്നു</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n member(s)</source>
+        <extracomment>Heading over the member list. %n is how many there are, the reader included.</extracomment>
+        <translation>
+            <numerusform>%n അംഗം</numerusform>
+            <numerusform>%n അംഗങ്ങൾ</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Remove from group</source>
+        <translation>ഗ്രൂപ്പിൽ നിന്ന് നീക്കുക</translation>
+    </message>
+    <message>
+        <source>Add members</source>
+        <translation>അംഗങ്ങളെ ചേർക്കുക</translation>
+    </message>
+</context>
+<context>
+    <name>Notifier</name>
+    <message numerus="yes">
+        <source>%n new message(s)</source>
+        <extracomment>A notification that says no more than this. %n is how many arrived in one chat.</extracomment>
+        <translation>
+            <numerusform>%n പുതിയ സന്ദേശം</numerusform>
+            <numerusform>%n പുതിയ സന്ദേശങ്ങൾ</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -829,6 +868,30 @@
     <message>
         <source>Known tracking parameters -- click ids, campaign tags, the sharer&apos;s account -- are taken out of the links in the messages you send. The rest of the link is left as it was.</source>
         <translation>അറിയപ്പെടുന്ന ട്രാക്കിംഗ് പാരാമീറ്ററുകൾ – ക്ലിക്ക് ഐഡികൾ, കാമ്പെയ്ൻ ടാഗുകൾ, പങ്കിടുന്നയാളുടെ അക്കൗണ്ട് – നിങ്ങൾ അയയ്ക്കുന്ന സന്ദേശങ്ങളിലെ ലിങ്കുകളിൽ നിന്ന് നീക്കം ചെയ്യുന്നു. ലിങ്കിന്റെ ബാക്കി ഭാഗം അതേപടി നിലനിൽക്കും.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>അറിയിപ്പുകൾ</translation>
+    </message>
+    <message>
+        <source>A new message shows</source>
+        <translation>പുതിയ സന്ദേശം കാണിക്കുന്നത്</translation>
+    </message>
+    <message>
+        <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
+        <translation>ലോക്ക് സ്ക്രീനിലും അറിയിപ്പ് മേഖലയിലും. അത് വന്ന ചാറ്റ് ടാപ്പ് ചെയ്താൽ എന്തായാലും തുറക്കും.</translation>
+    </message>
+    <message>
+        <source>Who wrote, and what</source>
+        <translation>ആരെഴുതി, എന്തെഴുതി</translation>
+    </message>
+    <message>
+        <source>Who wrote</source>
+        <translation>ആരെഴുതി</translation>
+    </message>
+    <message>
+        <source>Only that something arrived</source>
+        <translation>എന്തോ വന്നു എന്നു മാത്രം</translation>
     </message>
 </context>
 <context>

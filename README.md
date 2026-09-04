@@ -33,28 +33,14 @@ itself *never* touches a mail server or a key.
 
 See the non-goals in [`docs/PROJECT.md`](docs/PROJECT.md) for more information.
 
-## Bug reports
-
-Report anything that goes wrong with postivene **here**, in this
-repository's issues -- not to the Delta Chat project. postivene bundles
-upstream's `deltachat-rpc-server` and talks to it over JSON-RPC, so a
-crash, a message that does not arrive or a chat that draws wrongly is
-ours to look at first: it is far more likely to be this app's
-handling than the core's, and when it does turn out to be the core's,
-we take it upstream with what they need to reproduce it. Please do not
-file postivene bugs against Delta Chat's own trackers; they cannot see
-what this app does with their core.
-
 ## Documentation
 
 - [`docs/PROJECT.md`](docs/PROJECT.md) — project scope and explicit non-goals,
-current implementation status, and what is missing
+ and what is missing
 - [`docs/BUILDING.md`](docs/BUILDING.md) — engineering standards, testing, and
 how a device RPM is built
-- [`docs/HARBOUR.md`](docs/HARBOUR.md) — Jolla's store rules, how CI gates
-them, and the two that still block submission
-- [`docs/SECURITY.md`](docs/SECURITY.md) — what guards the app, and the
-evaluation of seccomp, Landlock and sandboxed media decoding
+- [`docs/HARBOUR.md`](docs/HARBOUR.md) — our understanding of Jolla's store 
+rules, how CI tries to gate them, and the two that still block submission
 
 ## Building
 
@@ -82,8 +68,20 @@ $ make check
 $ make msrv
 ```
 
-Host-side Qt5 requirements, the real-core integration tests, OBS/Chum vendor
-mode and the toolchain floor are in [`docs/BUILDING.md`](docs/BUILDING.md).
+Host-side Qt5 requirements, the real-core integration tests,  and the 
+toolchain floor are in [`docs/BUILDING.md`](docs/BUILDING.md).
+
+## Attributions
+
+* [Delta Chat](https://delta.chat/), for building a rock-solid messenger 
+  that is modern, secure, and standards-based - and for making all of that
+  available in a handy, memory-safe [core library](https://github.com/chatmail/core).  
+* [parla](https://github.com/trufae/parla), for building an excellent Delta
+  Chat client. postivene's settings, tracking protection (`links.rs`) are taken 
+  from it. Its Markdown formatting (`markdown.rs`) and relay connectivity info
+   (`connectivity.rs`) are modeled after it.
+* [whisperfish](https://gitlab.com/whisperfish/whisperfish), for showing what's
+  possible on Sailfish OS.
 
 ## License
 

@@ -36,7 +36,7 @@ pub use crate::chat::{local_day_number, ChatMessages};
 pub use crate::chat_info::ChatInfo;
 pub use crate::chatlist::ChatList;
 pub use crate::contacts::ContactList;
-pub use crate::core::{server_path, shutdown, DeltaChatCore, BUNDLED_SERVER};
+pub use crate::core::{server_path, server_pid, shutdown, DeltaChatCore, BUNDLED_SERVER};
 pub use crate::prefetch::ChatPrefetch;
 pub use crate::profile::Profile;
 pub use crate::qr::{QrCode, QrScanner};

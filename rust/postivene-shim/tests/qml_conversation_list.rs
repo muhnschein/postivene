@@ -170,6 +170,23 @@ const PROBE_QML: &str = r"
             return '' + view.atYEnd
         }
         function near() { return '' + loader.item.nearBottom }
+        // What coming back from a picture does: hold the row the reader
+        // left on, against the rows settling.
+        function holdAt(index) { loader.item.holdAt(index); return 'ok' }
+        // The view moved down a little by something other than the
+        // reader: the view's own clamp, or a flick's last frame.
+        function nudge(gap) {
+            var view = loader.item
+            view.contentY = view.contentY + gap
+            return 'ok'
+        }
+        // The last row grows, as it does when its picture decodes.
+        function growLast() {
+            var text = 'a message that has grown'
+            for (var i = 0; i < 8; i++) { text += text }
+            rows.setProperty(rows.count - 1, 'text', text)
+            return 'ok'
+        }
         // The placeholder's own enabled state, read off the item rather
         // than recomputed -- a probe that repeated the binding would pass
         // whatever the component did.
@@ -395,6 +412,51 @@ fn a_conversation_opens_at_the_newest_message_and_stays_where_it_is_left() {
 
     single_shot(Duration::from_secs(16), move || unsafe {
         record!("placeholder-when-empty", call!("placeholderOn"));
+        // Refilled for the jumps below.
+        call!("append", 40);
+    });
+
+    single_shot(Duration::from_secs(17), move || unsafe {
+        // Back from a picture, held on a row up in the history, and the
+        // jump button tapped before the hold has run out. A row measured
+        // after the jump used to put the reader straight back.
+        call!("holdAt", 20);
+        call!("jump");
+        call!("append", 1);
+    });
+
+    single_shot(Duration::from_secs(18), move || unsafe {
+        record!("jumped-from-hold", call!("ended"));
+        record!(
+            "sticky-from-hold",
+            call!("get", QString::from("stickToBottom"))
+        );
+
+        // Up in the history, the button tapped, and the view moved down a
+        // little on its own before the jump lands. Moving down is never
+        // the reader leaving.
+        call!("toTop");
+        call!("settle");
+        call!("jump");
+        call!("nudge", 50.0);
+    });
+
+    single_shot(Duration::from_secs(19), move || unsafe {
+        record!("jumped-despite-nudge", call!("ended"));
+        record!(
+            "sticky-despite-nudge",
+            call!("get", QString::from("stickToBottom"))
+        );
+
+        // At the newest message, which then grows -- a picture decoding,
+        // a placeholder filled in. The reader should still be looking at
+        // the bottom of it.
+        call!("growLast");
+    });
+
+    single_shot(Duration::from_secs(20), move || unsafe {
+        record!("grown-end", call!("ended"));
+        record!("grown-sticky", call!("get", QString::from("stickToBottom")));
         (*engine_ptr).quit();
     });
 
@@ -402,6 +464,55 @@ fn a_conversation_opens_at_the_newest_message_and_stays_where_it_is_left() {
 
     assert_outcome(&steps);
     assert_near_bottom(&steps);
+    assert_jumps_land(&steps);
+}
+
+/// A jump goes all the way, whatever else is moving the view.
+fn assert_jumps_land(steps: &[(&str, String)]) {
+    let value = |label: &str| {
+        steps
+            .iter()
+            .find(|(name, _)| *name == label)
+            .map(|(_, value)| value.clone())
+            .unwrap_or_default()
+    };
+    let context = format!("steps: {steps:?}");
+
+    assert_eq!(
+        value("jumped-from-hold"),
+        "true",
+        "jumping to the newest message while a row was held went to the \
+         end and was put straight back on the held row by the next row \
+         measured -- with the button already gone. {context}"
+    );
+    assert_eq!(
+        value("sticky-from-hold"),
+        "true",
+        "the jump from a held row did not leave the view following. {context}"
+    );
+    assert_eq!(
+        value("jumped-despite-nudge"),
+        "true",
+        "the view moving down a little between the tap and the jump was \
+         taken for the reader scrolling away, and the jump was dropped. \
+         {context}"
+    );
+    assert_eq!(
+        value("sticky-despite-nudge"),
+        "true",
+        "a small move down while following switched following off. {context}"
+    );
+    assert_eq!(
+        value("grown-end"),
+        "true",
+        "the newest message growing under a view at the end left the view \
+         at the top of it: a tall picture shown from its upper half. {context}"
+    );
+    assert_eq!(
+        value("grown-sticky"),
+        "true",
+        "the newest message growing switched following off. {context}"
+    );
 }
 
 /// Opening lands on the newest message; an arrival moves the view only

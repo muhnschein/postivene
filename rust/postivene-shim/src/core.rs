@@ -75,6 +75,17 @@ where
         .unwrap_or_else(|| BUNDLED_SERVER.to_string())
 }
 
+/// The running server's process id, or `None` before it is started or
+/// after it has gone. For `POSTIVENE_MEMORY_LOG` in the app.
+#[must_use]
+pub fn server_pid() -> Option<u32> {
+    CONNECTION
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .as_ref()
+        .and_then(|(rpc, _)| rpc.pid())
+}
+
 /// Stop the server, once the Qt event loop has returned.
 ///
 /// Without this the child is only killed when the last `RpcClient` drops,

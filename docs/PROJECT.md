@@ -99,16 +99,33 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   file every message in a zone behind UTC under yesterday -- and go through
   the same `local_day_number` as a fetched row, so a row's day cannot change
   when its message arrives.
-- **Following the newest message stops the moment something else moves the
-  view.** A chat opens at its newest message and stays there as messages
+- **Following the newest message stops when something else moves the view
+  up.** A chat opens at its newest message and stays there as messages
   arrive -- which means every change to the content height sends the view
   back to the end. The system's own scroll-to-top changes `contentY` without
   a drag, so nothing would otherwise tell the list that the reader has gone
   somewhere, and the first row measured after the jump would haul them back
-  down. `ConversationList` reads a jump it did not make as the reader
+  down. `ConversationList` reads a move *up* it did not make as the reader
   leaving, and only once the view has actually reached the end at least
   once: before that, a view far from the end is a chat that has not finished
-  opening.
+  opening. Only up, because the view also moves down on its own -- the last
+  row growing as its picture decodes, or the view clamping to an end that
+  has just moved -- and taking that for the reader leaving was how a tall
+  picture at the end of a chat came to be shown from its top: the view was
+  put at the end of the row as it stood, the row grew, and the move that
+  would have followed it down had been switched off by the one before.
+- **The jump button lets go of everything first.** Coming back from a
+  picture holds the row the reader left on for a while, re-applied on
+  every change to the content; a jump tapped inside that while went to
+  the end and was put straight back by the next row measured, with the
+  button already gone. `jumpToNewest` releases the held row, cancels any
+  flick, and sets following before it positions, so nothing the list is
+  doing on its own account can undo it. deltachat-android's button was
+  looked at for this: it scrolls smoothly when the end is near and jumps
+  when it is far, and hides only when the list reports it is at the
+  bottom. The smooth scroll was not ported -- rows here are measured as
+  they come into view, so the end moves under an animation aimed at it --
+  and the rest is what this already does.
 - **The chat is on the page before the page arrives.** `ChatPrefetch` loads
   it while the reader is still looking at the chat list, and
   `ConversationPage` takes it in `Component.onCompleted` -- after
@@ -173,18 +190,51 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   out to another app stays in each viewer's pull-down.
 - **A photo is shown the way it was taken.** `Image.autoTransform` reads
   the EXIF orientation tag, which is where a camera records the turn
-  rather than applying it to the pixels. The row is measured from the
-  decoded picture rather than from the core's dimensions for the same
-  reason: the core reads the file's header, so its answer is the size
-  before the turn.
+  rather than applying it to the pixels. The core reads the file's
+  header, so its dimensions are the size before the turn; the row is
+  measured from them all the same, and lets the decoded picture override
+  them only where the shapes disagree. Same shape means the header was
+  right and the row stays put.
+- **A picture's row is the right height before the picture is decoded.**
+  A row that changes height when its picture lands moves every row below
+  it, and under a reader scrolling through a chat full of pictures that
+  is the list jumping about as they decode. So `AttachmentPreview` sizes
+  the row from the dimensions it was handed and not from the decode: the
+  core's for PNG and JPEG, and for a GIF -- which the core reports as
+  0x0 -- the two fields at the front of the file, read by the model as
+  the row is built. deltachat-android's `ThumbnailView` does the same
+  from the message's stored width and height. The decode is bounded to
+  the row's width with `sourceSize`, which is also what keeps a chat of
+  photos from holding every one of them at the camera's resolution.
+- **A GIF plays three times, and only when it is new.** The movie is
+  drawn over the still while there are runs left -- three for a GIF that
+  arrived while the chat was open or was unread when it was opened, three
+  more for a tap on the mark a stopped GIF carries -- and unloaded
+  otherwise, because a stopped movie still holds every frame it decoded,
+  which in a long conversation of GIFs is memory a phone notices. The
+  runs are counted from the frame number going back to nought, since a
+  GIF's frames each carry their own delay. A GIF from last week does not
+  start on its own. What "new" means is the model's `is_new`: an
+  incoming message in one of the unseen states at the moment its row was
+  built.
+- **A picture opens on the row's own decode, and finishes decoding once
+  the page is in place.** Opening a picture full screen dropped frames
+  for about a second; a GIF dropped them for its whole first run. Both
+  were decoding behind the page transition -- the still on a thread, the
+  movie's frames on the main thread as they come round. `PicturePage`
+  now asks first for the picture at the width the row drew it, which is
+  a hit in Qt's pixmap cache while the row is on the page underneath, so
+  the page arrives with the picture on it and nothing decoding; the full
+  decode, bounded to twice the screen's long edge, and the movie start
+  once the page's status is `Active`.
 - **The core classifies attachments, not the app.** Every file goes to
   `misc_send_msg` and comes back with a `viewType` the core chose from the
   file itself; `AttachmentPreview` picks a renderer from that answer and
   nothing here inspects a file. What the core leaves blank matters as much:
   it reports no dimensions for a GIF and no duration for a sound file, so
-  the row sizes pictures from the decoded image and lets the audio player
-  report its own length (`deltachat-jsonrpc/tests/real_server.rs` pins
-  both). It also declines to call a `.vcf` a contact card unless the file
+  the model reads a GIF's size off its header and the row lets the audio
+  player report its own length (`deltachat-jsonrpc/tests/real_server.rs`
+  pins both). It also declines to call a `.vcf` a contact card unless the file
   holds exactly one contact *with an email address* -- a phone-only contact
   exported from the address book is neither, and is not someone Delta Chat
   could open a chat with anyway -- so those land on the file row, which
@@ -408,7 +458,8 @@ resend, reactions -- six quick ones in a row's menu, and a tap on any chip
 already on a message to answer it in kind, one per person as the reference
 clients have it -- Markdown drawn or taken out or left as written, a page
 of history at a time, and every kind of attachment the core classifies: photos and
-stickers inline, GIFs animated over a still poster, a video's poster frame
+stickers inline, GIFs over a still poster that play three times when new
+and on a tap otherwise, a video's poster frame
 from the platform thumbnailer, voice and audio played where they sit, a
 shared contact as a card, everything else named and sized; pictures and
 video saved to the device from their own pages; a message the download

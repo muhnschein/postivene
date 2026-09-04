@@ -32,6 +32,7 @@ TextField 1.0 TextField.qml
 TextSwitch 1.0 TextSwitch.qml
 ViewPlaceholder 1.0 ViewPlaceholder.qml
 singleton Theme 1.0 Theme.qml
+singleton Screen 1.0 Screen.qml
 singleton Clipboard 1.0 Clipboard.qml
 TruncationMode 1.0 TruncationMode.qml
 PageStatus 1.0 PageStatus.qml

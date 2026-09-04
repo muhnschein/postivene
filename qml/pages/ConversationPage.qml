@@ -325,7 +325,8 @@ Page {
             Clipboard.text = body
             notice.show(qsTr("Copied to clipboard"))
         }
-        onOpenRequested: page.openAttachment(fileUrl, fileName, viewType)
+        onOpenRequested: page.openAttachment(fileUrl, fileName, viewType,
+                                             previewWidth)
         onDownloadRequested: messages.download_full(messageId)
         // On or off is the model's call: it knows what the reader already
         // sent, and the core takes the whole list either way.
@@ -495,13 +496,15 @@ Page {
     // something that then failed to play it; everything else is still
     // somebody else's file to open, and a page here that could only say
     // "cannot show this" would be worse than the handover.
-    function openAttachment(fileUrl, fileName, viewType) {
+    function openAttachment(fileUrl, fileName, viewType, previewWidth) {
         if (viewType === "Image" || viewType === "Gif"
                 || viewType === "Sticker") {
             pageStack.push(Qt.resolvedUrl("PicturePage.qml"), {
                 fileUrl: fileUrl,
                 fileName: fileName,
-                viewType: viewType
+                viewType: viewType,
+                // How wide the row drew it, when it came from a row.
+                previewWidth: previewWidth > 0 ? previewWidth : 0
             })
         } else if (viewType === "Video") {
             pageStack.push(Qt.resolvedUrl("VideoPage.qml"), {

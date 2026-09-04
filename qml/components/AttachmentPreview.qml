@@ -44,6 +44,10 @@ Item {
     /// these without checking.
     property int imageWidth: 0
     property int imageHeight: 0
+    /// True for a message the reader has not seen before: one that came in
+    /// while the chat was open, or was unread when it was opened. The only
+    /// GIFs that play by themselves.
+    property bool isNew: false
     /// A shared contact, for `Vcard`.
     property string vcardName: ""
     property string vcardAddr: ""
@@ -113,29 +117,60 @@ Item {
 
     /// How tall a picture `width` wide should be.
     ///
-    /// The core reports dimensions for PNG and JPEG and not for GIF, so
-    /// the loaded image's own proportions are the fallback -- and a square
-    /// is the fallback for that, because a height of zero is an attachment
-    /// the reader cannot see at all. `PreserveAspectFit` means a square box
-    /// shows the whole picture whatever shape it turns out to be; it costs
-    /// some blank space and nothing else.
+    /// From the dimensions the row was handed, before the picture has
+    /// been decoded and after: a row that is the right height from the
+    /// start does not change height when the picture lands, and a row
+    /// that changes height moves every row below it, which under a
+    /// reader scrolling through a chat full of pictures is the list
+    /// jumping about as they decode. The core reads PNG and JPEG
+    /// headers and the model reads a GIF's, so the dimensions are nearly
+    /// always there.
+    ///
+    /// The decoded picture wins only where it disagrees. The header's
+    /// dimensions are the stored ones, before any turn the orientation
+    /// tag asks for: a photo taken in portrait is stored landscape and
+    /// marked, and a box shaped from the stored size is the wrong way
+    /// round for it. Same shape, to within rounding, means the header
+    /// was right and the row stays put.
+    ///
+    /// A square is the fallback when neither is known, because a height
+    /// of zero is an attachment the reader cannot see at all, and
+    /// `PreserveAspectFit` shows the whole picture in a square box
+    /// whatever shape it turns out to be.
     function pictureHeight(width, item) {
-        // The decoded picture's own proportions first, once it has been
-        // decoded. The core reads its dimensions out of the file's header,
-        // which are the ones before any turn the orientation tag asks for:
-        // a photo taken in portrait is stored landscape and marked, and
-        // measuring the row from the stored size shapes the box the wrong
-        // way round. The core's answer is still what sizes the row while
-        // the decode is in flight, which is what keeps it from starting
-        // square and reflowing.
-        if (item.implicitWidth > 0 && item.implicitHeight > 0) {
-            return width * item.implicitHeight / item.implicitWidth
+        var stored = root.imageWidth > 0 && root.imageHeight > 0
+                     ? root.imageHeight / root.imageWidth : 0
+        var decoded = item.implicitWidth > 0 && item.implicitHeight > 0
+                      ? item.implicitHeight / item.implicitWidth : 0
+        if (decoded > 0 && Math.abs(decoded - stored) > 0.02 * stored) {
+            return width * decoded
         }
-        if (root.imageWidth > 0 && root.imageHeight > 0) {
-            return width * root.imageHeight / root.imageWidth
+        if (stored > 0) {
+            return width * stored
         }
         return width
     }
+
+    /// How many runs of the animation are left to play. A run is one pass
+    /// through the frames. Three of them is what a GIF the reader has not
+    /// seen before gets, and what the mark on a stopped one buys; a GIF
+    /// from last week does not start on its own.
+    property int runsLeft: 0
+    readonly property int runsPerPlay: 3
+
+    /// Play the animation, three runs' worth.
+    function replay() {
+        root.runsLeft = root.runsPerPlay
+    }
+
+    /// Whether there is an animation here to play at all.
+    readonly property bool animatable: root.isAnimated && root.hasFile
+
+    // Both, because the row learns what it is in either order: a
+    // placeholder is filled in as a GIF that is already new, or a message
+    // arrives and is new before its file is there.
+    onAnimatableChanged: if (root.animatable && root.isNew) root.replay()
+    onIsNewChanged: if (root.animatable && root.isNew) root.replay()
 
     // Every picture, animated or not. A GIF is this image with the
     // animation laid over it, rather than a second renderer beside it, for
@@ -153,6 +188,14 @@ Item {
         height: visible ? root.pictureHeight(width, still) : 0
         fillMode: Image.PreserveAspectFit
         asynchronous: true
+        // Decoded no wider than it is drawn. A picture is kept as a
+        // texture of four bytes a pixel for as long as its row is built,
+        // and a phone's own photo is several times the width of its
+        // screen; this is most of what a chat full of pictures costs in
+        // memory, and the bound on what a crafted file can make the app
+        // allocate (docs/SECURITY.md). Only the width, so the height
+        // follows the picture's own shape.
+        sourceSize.width: root.contentWidth
         // A camera reads its sensor out landscape however the phone is
         // held and writes which way to turn it into an EXIF tag rather
         // than into the pixels. Every other client honours the tag; Image
@@ -162,22 +205,83 @@ Item {
         autoTransform: true
         source: visible ? root.fileUrl : ""
 
+        // The movie, while there are runs left to play, and nothing at
+        // all otherwise: a stopped movie still holds every frame it
+        // decoded, and a long conversation of GIFs holding theirs is the
+        // memory a phone notices. Unloaded, the still underneath shows
+        // its first frame.
         AnimatedImage {
             id: animated
             objectName: "attachmentAnimation"
             anchors.fill: parent
-            visible: root.isAnimated
+            visible: root.animatable && root.runsLeft > 0
             fillMode: Image.PreserveAspectFit
-            // Not playing when it is not showing: a long conversation of
-            // GIFs all decoding at once is the kind of thing a phone
-            // notices.
             playing: visible
             source: visible ? root.fileUrl : ""
+
+            // The frame before this one: a smaller number now is the movie
+            // having gone round. Counted here rather than from a clock,
+            // because a GIF's frames each carry their own delay.
+            property int lastFrame: 0
+            onSourceChanged: animated.lastFrame = 0
+            onFrameChanged: {
+                if (animated.currentFrame < animated.lastFrame) {
+                    root.runsLeft -= 1
+                }
+                animated.lastFrame = animated.currentFrame
+            }
+            // A movie that is not running while it is meant to be has
+            // had its run: a GIF made to play once, or a file the movie
+            // reader could not start on at all, which the still shows as
+            // well as anything could. Asked a pass later rather than in
+            // the handler: the movie reports this from inside the load
+            // its own `source` binding started, and changing `runsLeft`
+            // there is changing what `visible` is being worked out from.
+            onPlayingChanged: if (!animated.playing) stopped.restart()
+
+            Timer {
+                id: stopped
+                interval: 0
+                onTriggered: {
+                    if (!animated.playing && animated.visible
+                            && animated.status === Image.Ready) {
+                        root.runsLeft = 0
+                    }
+                }
+            }
         }
 
         MouseArea {
             anchors.fill: parent
             onClicked: root.openRequested()
+        }
+
+        // The mark on a GIF that is not playing. Over the tap that opens
+        // the picture, so a tap on the mark plays it here instead.
+        Rectangle {
+            id: gifMark
+            objectName: "gifMark"
+            visible: root.animatable && !animated.visible
+            anchors.centerIn: parent
+            width: Theme.itemSizeSmall
+            height: width
+            radius: width / 2
+            color: Theme.rgba("black", 0.5)
+
+            Label {
+                anchors.centerIn: parent
+                color: "white"
+                font.pixelSize: Theme.fontSizeSmall
+                font.bold: true
+                textFormat: Text.PlainText
+                // The format's name, which is the same in every language.
+                text: "GIF"
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: root.replay()
+            }
         }
     }
 

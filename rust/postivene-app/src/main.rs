@@ -10,6 +10,7 @@ use std::path::PathBuf;
 use postivene_shim::DeltaChatCore;
 use qmetaobject::*;
 
+mod memory_log;
 mod translations;
 
 /// `POSTIVENE_QML_DIR`, then the installed path, then the source tree.
@@ -39,6 +40,10 @@ fn translations_dir() -> PathBuf {
 }
 
 fn main() {
+    // `POSTIVENE_MEMORY_LOG=<seconds>`: what the app and the core weigh,
+    // on stderr, for profiling on a device. See docs/BUILDING.md.
+    memory_log::start_from_env();
+
     // Types QML instantiates itself, notably the per-chat message model.
     postivene_shim::register_qml_types();
 

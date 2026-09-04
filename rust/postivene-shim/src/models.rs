@@ -101,10 +101,15 @@ pub struct MessageListItem {
     /// Video, File, Call, Webxdc, Vcard. What the conversation renders the
     /// attachment as; the core decides it from the file itself.
     pub view_type: QString,
-    /// Attachment pixel size, 0 when not an image.
+    /// Attachment pixel size, 0 when not an image. The core's answer for
+    /// PNG and JPEG; read out of the file's header here for a GIF.
     pub image_width: i32,
     /// Attachment pixel size, 0 when not an image.
     pub image_height: i32,
+    /// An incoming message the account had not read when this row was
+    /// built: one that arrived while the chat was open, or was unread when
+    /// it was opened. What decides whether a GIF plays by itself.
+    pub is_new: bool,
     /// The attachment's MIME type, empty when the core has none. What a
     /// generic file row names itself by when it has nothing better.
     pub file_mime: QString,

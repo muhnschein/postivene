@@ -1376,6 +1376,21 @@ fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
         name => name.into(),
     };
     let text = json::str_at(message, "text");
+    let is_outgoing = json::u32_opt(message, "fromId") == Some(1);
+    let state = json::u32_at(message, "state");
+    let file_path = json::str_at(message, "file");
+    let view_type = json::str_at(message, "viewType");
+    // The core probes PNG and JPEG for their size and returned 0x0 for a
+    // valid GIF. A row that knows its picture's shape before the picture
+    // is decoded is a row that does not change height when it lands, so
+    // a GIF's is read out of its own header: ten bytes, at the front.
+    let (image_width, image_height) = match (
+        json::i32_at(message, "dimensionsWidth"),
+        json::i32_at(message, "dimensionsHeight"),
+    ) {
+        (0, 0) if view_type == "Gif" => gif_dimensions(file_path).unwrap_or((0, 0)),
+        known => known,
+    };
     MessageListItem {
         message_id,
         loaded: true,
@@ -1388,11 +1403,16 @@ fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
         // message composed here is never one held back.
         download_state: json::text(message, "/downloadState"),
         // Contact id 1 is the well-known DC_CONTACT_ID_SELF.
-        is_outgoing: json::u32_opt(message, "fromId") == Some(1),
+        is_outgoing,
         timestamp,
         day_number: local_day_number(timestamp),
         show_padlock: json::flag(message, "showPadlock"),
-        state: json::u32_at(message, "state"),
+        state,
+        // Decided once, as the row is built: the row is rebuilt when the
+        // core says the message changed, and by then it has usually been
+        // marked seen -- but a GIF that started playing keeps its runs,
+        // and one the reader has not scrolled to yet is still new to them.
+        is_new: !is_outgoing && UNSEEN_STATES.contains(&state),
         sender_name,
         sender_color: json::text(message, "/sender/color"),
         is_info: json::flag(message, "isInfo"),
@@ -1403,13 +1423,13 @@ fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
         is_forwarded: json::flag(message, "isForwarded"),
         quote_text: json::text(message, "/quote/text"),
         quote_author: json::text(message, "/quote/authorDisplayName"),
-        file_path: json::text(message, "/file"),
+        file_path: file_path.into(),
         file_name: json::text(message, "/fileName"),
-        view_type: json::text(message, "/viewType"),
-        // Often 0 even for a picture: the core probes PNG and JPEG but
-        // returned 0x0 for a valid GIF, so nothing may divide by these.
-        image_width: json::i32_at(message, "dimensionsWidth"),
-        image_height: json::i32_at(message, "dimensionsHeight"),
+        view_type: view_type.into(),
+        // Still 0 for anything neither the core nor the header read above
+        // could size, so nothing may divide by these.
+        image_width,
+        image_height,
         file_mime: json::text(message, "/fileMime"),
         file_bytes: message
             .get("fileBytes")
@@ -1427,6 +1447,28 @@ fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
         reactions: reactions_json(message).into(),
         my_reaction: own_reaction(message).into(),
     }
+}
+
+/// A GIF's size from its logical screen descriptor: the two little-endian
+/// 16-bit fields after the six-byte signature. Nothing else in the file is
+/// read, and nothing is decoded; a file that is not there yet, or not a
+/// GIF, is `None`.
+fn gif_dimensions(path: &str) -> Option<(i32, i32)> {
+    use std::io::Read;
+    if path.is_empty() {
+        return None;
+    }
+    let mut header = [0_u8; 10];
+    std::fs::File::open(path)
+        .ok()?
+        .read_exact(&mut header)
+        .ok()?;
+    if &header[..4] != b"GIF8" {
+        return None;
+    }
+    let width = i32::from(u16::from_le_bytes([header[6], header[7]]));
+    let height = i32::from(u16::from_le_bytes([header[8], header[9]]));
+    (width > 0 && height > 0).then_some((width, height))
 }
 
 /// The reactions on a message, as the row carries them.
@@ -1530,8 +1572,31 @@ fn file_name_of(path: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{file_name_of, local_path, own_reaction, reactions_json};
+    use super::{file_name_of, gif_dimensions, local_path, own_reaction, reactions_json};
     use serde_json::json;
+
+    #[test]
+    fn a_gifs_size_is_read_off_its_header_and_nothing_elses_is() {
+        let dir = std::env::temp_dir().join(format!("postivene-gif-dims-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        // 300 wide, 2 high: the descriptor is little-endian.
+        let gif = dir.join("wide.gif");
+        std::fs::write(&gif, b"GIF89a\x2c\x01\x02\x00\x00\x00\x00;").expect("write gif");
+        let png = dir.join("dot.png");
+        std::fs::write(&png, b"\x89PNG\r\n\x1a\n\x00\x00\x00\x0dIHDR").expect("write png");
+        let short = dir.join("short.gif");
+        std::fs::write(&short, b"GIF8").expect("write short");
+
+        assert_eq!(gif_dimensions(&gif.to_string_lossy()), Some((300, 2)));
+        assert_eq!(gif_dimensions(&png.to_string_lossy()), None);
+        assert_eq!(gif_dimensions(&short.to_string_lossy()), None);
+        assert_eq!(gif_dimensions(""), None);
+        assert_eq!(
+            gif_dimensions(&dir.join("missing.gif").to_string_lossy()),
+            None
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn reactions_keep_the_cores_order_and_say_which_is_ours() {

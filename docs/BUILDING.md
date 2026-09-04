@@ -89,6 +89,44 @@ Where a step depends on work finishing, wait for the work. A repeating
 as a backstop that reads results and quits. The other Qt tests still
 schedule on the clock and should move over as they are touched.
 
+## Profiling memory on a device
+
+The app sits at 250--400 MB resident on a phone, and the first question
+is which of the two processes it is. `POSTIVENE_MEMORY_LOG` answers it:
+
+```
+$ POSTIVENE_MEMORY_LOG=5 /usr/bin/harbour-postivene
+memory: app 138 MiB resident, core 61 MiB
+memory: app 212 MiB resident, core 62 MiB
+```
+
+A line every five seconds with the resident size of the app and of the
+`deltachat-rpc-server` it spawned, read from `/proc`. Run it from a
+terminal on the phone (the launcher does not pass environment through
+the invoker), and drive the app while it prints: open the chat list,
+open a chat with pictures, scroll a long one, open a picture full
+screen, minimise to the cover. The number that moves with the action is
+the one to look at.
+
+What each side is made of, and how to look closer:
+
+- **The app** is Qt: every decoded picture on screen is a texture, and a
+  texture is width times height times four bytes whatever the file
+  weighed -- a phone screenshot is 20 MB decoded. `sourceSize` on an
+  `Image` is what bounds that; a row that decodes at the file's own size
+  rather than the row's is the usual leak-shaped growth. `QSG_INFO=1` on
+  the same command line has the scene graph say what it allocates, and
+  `QML_DISABLE_DISK_CACHE=1` takes the QML cache out of the picture.
+- **The core** is upstream's: SQLite's page cache, the accounts'
+  in-memory state, and the tokio runtime. It is the same binary the
+  desktop client and the Android app run, so a core that grows without
+  bound is a bug to take upstream with the log that shows it.
+- **Proportional sizes.** `VmRSS` counts shared pages -- Qt's libraries,
+  the GL driver -- in full for each process. For the true cost, `smem
+  -P harbour` on the phone, or `grep Pss /proc/<pid>/smaps_rollup` for
+  either pid, gives the proportional figure; the log's numbers are for
+  spotting the movement, not the total.
+
 ## Translations
 
 The strings are the `qsTr()` calls in `qml/`; `translations/postivene.ts`

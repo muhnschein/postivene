@@ -195,33 +195,24 @@ fn a_picked_file_shows_above_the_field_and_leaves_with_the_message() {
 
     engine.exec();
 
+    assert_tray(&steps);
     assert_outcome(&steps, &journal);
 }
 
-/// Everything the run has to show for itself, out of the test body: what a
-/// Qt harness can do in one function is bounded, and the assertions are the
-/// part worth reading.
-fn assert_outcome(steps: &[(&str, String)], journal: &std::path::Path) {
-    let value = |label: &str| {
-        steps
-            .iter()
-            .find(|(name, _)| *name == label)
-            .map(|(_, value)| value.clone())
-            .unwrap_or_default()
-    };
+/// What a run has to show for itself, read back by label.
+fn value_of<'a>(steps: &'a [(&str, String)], label: &str) -> &'a str {
+    steps
+        .iter()
+        .find(|(name, _)| *name == label)
+        .map_or("", |(_, value)| value.as_str())
+}
+
+/// The tray: closed until the plus is tapped, closed again by a tap
+/// anywhere beside it, and open again on the next plus.
+fn assert_tray(steps: &[(&str, String)]) {
+    let value = |label: &str| value_of(steps, label);
     let context = format!("steps: {steps:?}");
 
-    assert_eq!(value("load"), "ok", "the page did not load. {context}");
-    assert_eq!(
-        value("bar-before"),
-        "false",
-        "the attachment bar is showing before anything has been picked. {context}"
-    );
-    assert_eq!(
-        value("send-enabled-before"),
-        "false",
-        "an empty field with nothing attached still offers to send. {context}"
-    );
     assert_eq!(
         value("tray-closed"),
         "false",
@@ -252,7 +243,26 @@ fn assert_outcome(steps: &[(&str, String)], journal: &std::path::Path) {
         "true",
         "the plus does not open the tray a second time. {context}"
     );
+}
 
+/// Everything the run has to show for itself, out of the test body: what a
+/// Qt harness can do in one function is bounded, and the assertions are the
+/// part worth reading.
+fn assert_outcome(steps: &[(&str, String)], journal: &std::path::Path) {
+    let value = |label: &str| value_of(steps, label);
+    let context = format!("steps: {steps:?}");
+
+    assert_eq!(value("load"), "ok", "the page did not load. {context}");
+    assert_eq!(
+        value("bar-before"),
+        "false",
+        "the attachment bar is showing before anything has been picked. {context}"
+    );
+    assert_eq!(
+        value("send-enabled-before"),
+        "false",
+        "an empty field with nothing attached still offers to send. {context}"
+    );
     assert_eq!(
         value("bar-after"),
         "true",

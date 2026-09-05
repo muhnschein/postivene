@@ -9,8 +9,9 @@
 //! enough to be checked by reading.
 //!
 //! What is recorded goes through `GStreamer` on a device, in whatever
-//! codec and container it offers: Opus in Ogg where it can, the way the
-//! desktop client records, and down the list from there. The file lands
+//! codec and container it offers: AAC in MP4 where it can, which is what
+//! the Android client records and what every client plays, Opus in Ogg
+//! after that, and down the list from there. The file lands
 //! in the captures directory (`capture.rs`) and is sent as a voice
 //! message -- the core's `Voice` view type, which is what draws it as one
 //! at the other end rather than as a music file.
@@ -47,11 +48,14 @@ cpp! {{
 /// `GStreamer` calls them: a codec is matched by whether its name contains
 /// the word, since the exact strings vary between releases.
 const CODECS: [(&str, &str, &str); 5] = [
-    // What the desktop client records, and what every current client
-    // plays.
+    // AAC, which GStreamer names as MPEG-4 audio: what the Android
+    // client records (`voice.m4a`) and the one format every client,
+    // iOS included, plays. Matched on the version, since MP3 is
+    // `audio/mpeg` too.
+    ("mpegversion=(int)4", "mp4", "m4a"),
+    // What the desktop client records.
     ("opus", "ogg", "ogg"),
     ("vorbis", "ogg", "ogg"),
-    ("mpeg", "mp4", "m4a"),
     ("flac", "ogg", "ogg"),
     // Uncompressed, and large, but a phone with nothing else still
     // records.
@@ -499,13 +503,15 @@ mod tests {
     }
 
     #[test]
-    fn opus_in_ogg_is_chosen_where_it_can_be_and_the_list_walked_otherwise() {
-        // What a Sailfish GStreamer reports, near enough.
+    fn aac_in_mp4_is_chosen_where_it_can_be_and_the_list_walked_otherwise() {
+        // What a Sailfish GStreamer reports, near enough: MP3 too, which
+        // is `audio/mpeg` as well and must not pass for AAC.
         let codecs = names(&[
+            "audio/mpeg, mpegversion=(int)1, layer=(int)3",
             "audio/x-flac",
             "audio/x-vorbis",
             "audio/x-opus",
-            "audio/mpeg, mpegversion=(int)4",
+            "audio/mpeg, mpegversion=(int)4, stream-format=(string)raw",
         ]);
         let containers = names(&[
             "audio/ogg",
@@ -514,23 +520,23 @@ mod tests {
         ]);
         assert_eq!(
             choose_format(&codecs, &containers),
-            Some(("audio/x-opus".into(), "audio/ogg".into(), "ogg"))
-        );
-        // No opus: vorbis, still in ogg.
-        let without_opus = names(&["audio/x-vorbis", "audio/mpeg, mpegversion=(int)4"]);
-        assert_eq!(
-            choose_format(&without_opus, &containers),
-            Some(("audio/x-vorbis".into(), "audio/ogg".into(), "ogg"))
-        );
-        // A codec whose container is missing is skipped for one that fits.
-        let no_ogg = names(&["video/quicktime, variant=(string)iso", "audio/x-wav"]);
-        assert_eq!(
-            choose_format(&codecs, &no_ogg),
             Some((
-                "audio/mpeg, mpegversion=(int)4".into(),
+                "audio/mpeg, mpegversion=(int)4, stream-format=(string)raw".into(),
                 "video/quicktime, variant=(string)iso".into(),
                 "m4a"
             ))
+        );
+        // No AAC: opus, in ogg.
+        let without_aac = names(&["audio/x-vorbis", "audio/x-opus"]);
+        assert_eq!(
+            choose_format(&without_aac, &containers),
+            Some(("audio/x-opus".into(), "audio/ogg".into(), "ogg"))
+        );
+        // A codec whose container is missing is skipped for one that fits.
+        let no_mp4 = names(&["audio/ogg", "audio/x-wav"]);
+        assert_eq!(
+            choose_format(&codecs, &no_mp4),
+            Some(("audio/x-opus".into(), "audio/ogg".into(), "ogg"))
         );
         // Nothing offered, as headlessly: nothing chosen.
         assert_eq!(choose_format(&[], &containers), None);

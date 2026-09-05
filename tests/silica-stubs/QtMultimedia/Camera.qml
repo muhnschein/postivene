@@ -8,8 +8,15 @@ import QtQuick 2.0
 QtObject {
     property bool running: false
     property var captureMode
-    property var position
+    // QCamera::Position's own values: BackFace 1, FrontFace 2. The enum
+    // reads as undefined here, and a page comparing against it must not
+    // be handed undefined on this side too.
+    property var position: 1
+    // The sensor's mounting, in degrees, as a phone's back camera reports
+    // it: its frame is the phone's landscape.
+    property int orientation: 90
     property CameraFocus focus: CameraFocus {}
+    property CameraMetaData metaData: CameraMetaData {}
     property CameraCapture imageCapture: CameraCapture {}
     property CameraRecorder videoRecorder: CameraRecorder {}
     /// How many focus searches were asked for.

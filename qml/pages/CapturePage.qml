@@ -1,5 +1,6 @@
 import QtQuick 2.0
 import QtMultimedia 5.6
+import QtSensors 5.0
 import Sailfish.Silica 1.0
 import Postivene 1.0
 import "../components"
@@ -17,11 +18,17 @@ import "../components"
  * the capture afterwards.
  *
  * Laid out as the platform's own camera lays itself out: the viewfinder
- * on black, letterboxed to the sensor's frame rather than stretched to
- * the screen, and the controls in the black below it -- the two modes
+ * on black, as large as the sensor's frame lets it be above the
+ * controls, and the controls in the black below it -- the two modes
  * stacked on the left with the current one lit, the shutter in the
- * middle, the other camera on the right. The time runs over the top of
- * the viewfinder while a video records.
+ * middle, the other camera on the right. The time sits over the bottom
+ * of the viewfinder, above the shutter, while a video records: the top
+ * of the screen is under a notch on some phones.
+ *
+ * The sensor's frame is the phone's landscape whichever way the phone
+ * is held. The platform's camera writes the turn into the file rather
+ * than turning the pixels -- a still's EXIF orientation, a video's
+ * rotation -- from the orientation sensor, and so does this page.
  *
  * A still is written where it is asked to go. A video is written where
  * the recorder decides to put it, and is not done when it is stopped:
@@ -65,6 +72,31 @@ Page {
     readonly property int recordingStatus: 5
     readonly property int finalizingStatus: 7
 
+    /// How far the phone is turned from upright, clockwise: 0, 90, 180
+    /// or 270. From the orientation sensor, which the platform's camera
+    /// reads too; the page itself stays put, as that camera does.
+    property int pictureRotation: 0
+
+    OrientationSensor {
+        id: orientationSensor
+        objectName: "orientationSensor"
+        active: page.status === PageStatus.Active && !page.done
+        onReadingChanged: page.turnWith(orientationSensor.reading
+                                        ? orientationSensor.reading.orientation : 0)
+    }
+
+    /// `OrientationReading`'s values, written as such: TopUp 1, TopDown
+    /// 2, LeftUp 3, RightUp 4. Face up, face down and unknown keep the
+    /// last turn, which is what the platform's camera does too.
+    function turnWith(orientation) {
+        switch (orientation) {
+        case 1: page.pictureRotation = 0; break
+        case 2: page.pictureRotation = 180; break
+        case 3: page.pictureRotation = 270; break
+        case 4: page.pictureRotation = 90; break
+        }
+    }
+
     /// Where the next capture goes.
     Captures {
         id: captures
@@ -79,6 +111,12 @@ Page {
         // the pipeline is rebuilt for the other mode, and a recording
         // asked for while that was under way was taken and not reported.
         captureMode: Camera.CaptureStillImage
+        // The turn written into the file: the sensor's own mounting plus
+        // the phone's, the front camera the other way round, which is the
+        // sum the platform's camera apps write.
+        metaData.orientation: camera.position === Camera.FrontFace
+                              ? (720 + camera.orientation - page.pictureRotation) % 360
+                              : (720 + camera.orientation + page.pictureRotation) % 360
         focus {
             focusMode: Camera.FocusContinuous
             focusPointMode: Camera.FocusPointAuto
@@ -252,51 +290,17 @@ Page {
         color: "black"
     }
 
-    // Over the viewfinder's top edge: the time, while a video runs.
-    Item {
-        id: topBar
-        anchors {
-            top: parent.top
-            left: parent.left
-            right: parent.right
-        }
-        height: Theme.itemSizeSmall
-
-        Row {
-            objectName: "recordingIndicator"
-            anchors.centerIn: parent
-            spacing: Theme.paddingMedium
-            visible: page.recording || page.stopping
-
-            Rectangle {
-                anchors.verticalCenter: parent.verticalCenter
-                width: Theme.paddingMedium
-                height: width
-                radius: width / 2
-                color: Theme.errorColor
-            }
-
-            Label {
-                objectName: "recordingTime"
-                anchors.verticalCenter: parent.verticalCenter
-                color: Theme.primaryColor
-                font.pixelSize: Theme.fontSizeMedium
-                text: page.clock(page.seconds)
-            }
-        }
-    }
-
-    // The sensor's frame, on black, as tall as its shape makes it and
-    // never over the controls.
+    // The sensor's frame, on black, as large as the room above the
+    // controls lets it be.
     VideoOutput {
         id: viewfinder
         objectName: "viewfinder"
         anchors {
-            top: topBar.bottom
+            top: parent.top
             left: parent.left
             right: parent.right
+            bottom: controls.top
         }
-        height: Math.min(width * 4 / 3, controls.y - topBar.height)
         source: camera
         fillMode: VideoOutput.PreserveAspectFit
 
@@ -309,6 +313,44 @@ Page {
                 camera.focus.customFocusPoint = Qt.point(mouse.x / width, mouse.y / height)
                 camera.unlock()
                 camera.searchAndLock()
+            }
+        }
+    }
+
+    // The time, while a video runs: a pill over the bottom of the
+    // viewfinder, centred above the shutter.
+    Rectangle {
+        objectName: "recordingIndicator"
+        anchors {
+            horizontalCenter: parent.horizontalCenter
+            bottom: controls.top
+            bottomMargin: Theme.paddingMedium
+        }
+        width: indicator.width + 2 * Theme.paddingLarge
+        height: indicator.height + 2 * Theme.paddingSmall
+        radius: height / 2
+        color: Qt.rgba(0, 0, 0, 0.6)
+        visible: page.recording || page.stopping
+
+        Row {
+            id: indicator
+            anchors.centerIn: parent
+            spacing: Theme.paddingMedium
+
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                width: Theme.paddingMedium
+                height: width
+                radius: width / 2
+                color: Theme.errorColor
+            }
+
+            Label {
+                objectName: "recordingTime"
+                anchors.verticalCenter: parent.verticalCenter
+                color: "white"
+                font.pixelSize: Theme.fontSizeMedium
+                text: page.clock(page.seconds)
             }
         }
     }

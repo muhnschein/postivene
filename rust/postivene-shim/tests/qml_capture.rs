@@ -99,6 +99,12 @@ const PROBE_QML: &str = r"
         function recorderState() { return '' + camera().videoRecorder.recorderState }
         function pickedPath() { return picked }
         function leave() { loader.item.status = PageStatus.Deactivating; return 'ok' }
+        // The phone is turned: the sensor reports it, and the page writes
+        // the turn into the next capture.
+        function turn(orientation) {
+            findIn(loader.item, 'orientationSensor').report(orientation)
+            return '' + camera().metaData.orientation
+        }
     }
 ";
 
@@ -164,6 +170,15 @@ fn a_still_and_a_video_are_reported_once_written_and_the_page_leaves() {
         // runs from the start.
         record!("running", call!("running"));
         probe!("mode", "modeColumn", "enabled");
+        // Held upright, the sensor's landscape frame needs a quarter turn;
+        // on its left side, none; on its right, a half. The stub's sensor
+        // is mounted at 90 degrees, as a phone's back camera is.
+        record!("turn-upright", call!("turn", 1));
+        record!("turn-left", call!("turn", 3));
+        record!("turn-right", call!("turn", 4));
+        record!("turn-upside-down", call!("turn", 2));
+        // Face down says nothing about the turn: the last one stays.
+        record!("turn-face-down", call!("turn", 6));
         record!("shutter", call!("click", QString::from("shutterTap")));
         record!("still-asked", call!("requestedStill"));
         // Nothing reported until the file is on disk.
@@ -266,6 +281,17 @@ fn a_still_and_a_video_are_reported_once_written_and_the_page_leaves() {
         value("mode"),
         "true",
         "the mode switch is locked. {context}"
+    );
+    assert_eq!(
+        [
+            value("turn-upright"),
+            value("turn-left"),
+            value("turn-right"),
+            value("turn-upside-down"),
+            value("turn-face-down"),
+        ],
+        ["90", "0", "180", "270", "270"],
+        "the turn written into a capture does not follow the phone. {context}"
     );
     // What the page asks for is the exact name, extension and all: it is
     // what the other end sees the file called.

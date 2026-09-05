@@ -152,7 +152,7 @@ Item {
     /// How far the chips reach up over the bubble's bottom edge: enough
     /// to read as hung on it, and no more, since the footer's time sits
     /// in that corner and the chips went over it at half their height.
-    readonly property real chipOverlap: Theme.paddingSmall
+    readonly property real chipOverlap: Theme.paddingMedium - Theme.paddingSmall / 2
 
     // Where the next part goes: right below the last one that is there,
     // with a gap only when both are.

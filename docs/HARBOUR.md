@@ -116,7 +116,7 @@ through the real validator.
   does not cover is one the picker can offer and the app cannot open --
   which is why the attach button needs `UserDirs` and the profile picture
   needed `Pictures` *and* `MediaIndexing`.
-- Whether the `Sailfish.Pickers`, `QtMultimedia` and `Nemo.Thumbnailer`
+- Whether the `Sailfish.Pickers`, `QtMultimedia`, `QtSensors` and `Nemo.Thumbnailer`
   types the conversation uses exist and behave on the target release.
   Harbour's own `allowed_qmlimports.conf` permits all three, which settles
   whether they may be used and says nothing about whether they work. The
@@ -297,7 +297,7 @@ removed from the store even after approval. Not an option.
    the camera page needs `Camera`. Send one of each kind -- photo, video,
    sound, document -- and open what arrives at the other end; take a
    picture, a video and a voice message in the app and send those too.
-   The recorder picks a codec from what GStreamer offers (Opus in Ogg
+   The recorder picks a codec from what GStreamer offers (AAC in MP4
    first); the microphone button is not shown at all when it finds none,
    which is the state the headless tests see.
 5. Delete the cache directory while the app runs; confirm nothing breaks.

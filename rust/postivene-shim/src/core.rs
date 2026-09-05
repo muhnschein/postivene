@@ -215,13 +215,26 @@ pub struct DeltaChatCore {
     /// at startup to choose between onboarding and resuming an account.
     pub refresh_accounts: qt_method!(fn(&mut self)),
     /// [`DeltaChatCore::account_list`] was repopulated. `configured_count`
-    /// is how many accounts are usable, and `first_configured_id` is the
-    /// one to resume (0 when there is none).
-    pub accounts_refreshed: qt_signal!(configured_count: u32, first_configured_id: u32),
+    /// is how many accounts are usable, and `resume_account_id` is the one
+    /// to show (0 when there is none): the profile the core has marked as
+    /// selected -- the one last shown, which the core remembers across
+    /// runs -- or the first configured one when nothing is selected, or
+    /// what is selected is not usable.
+    pub accounts_refreshed: qt_signal!(configured_count: u32, resume_account_id: u32),
+
+    /// Tell the core which profile is being shown, so the next start
+    /// comes back to it. The core's `select_account`, which it writes to
+    /// disk; the chat list calls this for whatever profile it opens on.
+    pub select_account: qt_method!(fn(&mut self, account_id: u32)),
 
     /// Resume IO for an already-configured account.
     pub start_account_io: qt_method!(fn(&mut self, account_id: u32)),
-    /// Result of resuming IO for an already-configured account.
+    /// Resume IO for every configured account. Every profile receives,
+    /// whichever the chat list is showing: the cover counts them all, and
+    /// a profile switched away from is still one people write to.
+    pub start_all_account_io: qt_method!(fn(&mut self)),
+    /// Result of resuming IO. `account_id` is 0 for a resume of every
+    /// account at once.
     pub io_started: qt_signal!(account_id: u32, success: bool, error: QString),
 
     /// The default chatmail server's `dcaccount:` payload.
@@ -277,6 +290,9 @@ pub struct DeltaChatCore {
     /// server has the account files but no IO running, so without this the
     /// app comes back able to read history and unable to receive.
     io_accounts: BTreeSet<u32>,
+    /// IO was resumed for every account at once, and is to be again after
+    /// a restart.
+    io_all: bool,
     /// Restarts since the last healthy run; drives the backoff and the
     /// give-up limit.
     restart_attempt: u32,
@@ -340,22 +356,29 @@ impl DeltaChatCore {
             };
             match result {
                 Ok(rpc) => {
-                    let (runtime, accounts) = {
+                    let (runtime, accounts, all) = {
                         let mut this_mut = this.borrow_mut();
                         this_mut.rpc = Some(rpc.clone());
                         this_mut.status = QString::from("ready");
                         this_mut.server_started_at = Some(Instant::now());
                         this_mut.supervising = true;
                         set_connection(this_mut.runtime.clone().map(|rt| (rpc.clone(), rt)));
-                        (this_mut.runtime.clone(), this_mut.io_accounts.clone())
+                        (
+                            this_mut.runtime.clone(),
+                            this_mut.io_accounts.clone(),
+                            this_mut.io_all,
+                        )
                     };
                     // Draining first: IO resumed before anything is reading
                     // the stream would deliver its events to nobody.
                     if let Some(runtime) = runtime {
                         Self::forward_events(started_ptr.clone(), rpc, runtime, retry_path.clone());
                     }
+                    if all {
+                        Self::resume_io(started_ptr.clone(), None);
+                    }
                     for account_id in accounts {
-                        Self::resume_io(started_ptr.clone(), account_id);
+                        Self::resume_io(started_ptr.clone(), Some(account_id));
                     }
                     // Last, because a handler may call back in here.
                     this.borrow().status_changed();
@@ -467,10 +490,11 @@ impl DeltaChatCore {
         });
     }
 
-    /// Resume IO for one account after a restart, without touching the
-    /// `io_started` signal: nothing asked for this, and a page that reacted
-    /// to it would be reacting to a reconnection it never requested.
-    fn resume_io(ptr: QPointer<Self>, account_id: u32) {
+    /// Resume IO after a restart -- for one account, or for all of them
+    /// with `None` -- without touching the `io_started` signal: nothing
+    /// asked for this, and a page that reacted to it would be reacting to
+    /// a reconnection it never requested.
+    fn resume_io(ptr: QPointer<Self>, account_id: Option<u32>) {
         let Some(this) = ptr.as_pinned() else { return };
         let Some((rpc, runtime)) = this.borrow().connection() else {
             return;
@@ -481,8 +505,8 @@ impl DeltaChatCore {
             }
         });
         runtime.spawn(async move {
-            if let Err(err) = rpc.call::<_, ()>("start_io", (account_id,)).await {
-                failed(err.to_string());
+            if let Err(err) = start_io(&rpc, account_id).await {
+                failed(err);
             }
         });
     }
@@ -805,28 +829,27 @@ impl DeltaChatCore {
         };
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
-        let done = queued_callback(move |result: Result<Vec<AccountItem>, String>| {
-            let Some(this) = ptr.as_pinned() else { return };
-            match result {
-                Ok(items) => {
-                    // Saturating: "very many" is the right answer for a
-                    // has-any-configured-account check.
-                    let configured_count =
-                        u32::try_from(items.iter().filter(|item| item.is_configured).count())
-                            .unwrap_or(u32::MAX);
-                    let first_configured_id = items
-                        .iter()
-                        .find(|item| item.is_configured)
-                        .map_or(0, |item| item.account_id);
-                    let ids: Vec<u32> = items.iter().map(|item| item.account_id).collect();
-                    reconcile_accounts(&mut this.borrow_mut().account_list.borrow_mut(), items);
-                    this.borrow().apply_download_limit(ids);
-                    this.borrow()
-                        .accounts_refreshed(configured_count, first_configured_id);
+        let done = queued_callback(
+            move |result: Result<(Vec<AccountItem>, Option<u32>), String>| {
+                let Some(this) = ptr.as_pinned() else { return };
+                match result {
+                    Ok((items, selected)) => {
+                        // Saturating: "very many" is the right answer for a
+                        // has-any-configured-account check.
+                        let configured_count =
+                            u32::try_from(items.iter().filter(|item| item.is_configured).count())
+                                .unwrap_or(u32::MAX);
+                        let resume_account_id = resume_account(&items, selected);
+                        let ids: Vec<u32> = items.iter().map(|item| item.account_id).collect();
+                        reconcile_accounts(&mut this.borrow_mut().account_list.borrow_mut(), items);
+                        this.borrow().apply_download_limit(ids);
+                        this.borrow()
+                            .accounts_refreshed(configured_count, resume_account_id);
+                    }
+                    Err(err) => this.borrow().account_error(err.into()),
                 }
-                Err(err) => this.borrow().account_error(err.into()),
-            }
-        });
+            },
+        );
 
         runtime.spawn(async move {
             let result = async {
@@ -836,6 +859,15 @@ impl DeltaChatCore {
                     .call_unit("get_all_accounts")
                     .await
                     .map_err(|err| err.to_string())?;
+                // The profile the core has marked as selected: what the
+                // chat list last told it, kept on disk, so it survives the
+                // app being closed. Null when nothing was ever selected.
+                // Nice to have rather than needed: a core that cannot say
+                // still has a first configured profile to open on.
+                let selected: Option<u32> = rpc
+                    .call_unit("get_selected_account_id")
+                    .await
+                    .unwrap_or(None);
                 let mut items: Vec<AccountItem> = accounts
                     .iter()
                     .filter_map(|account| {
@@ -856,10 +888,31 @@ impl DeltaChatCore {
                 for item in items.iter_mut().filter(|item| item.is_configured) {
                     item.unread_count = fresh_count(&rpc, item.account_id).await;
                 }
-                Ok::<_, String>(items)
+                Ok::<_, String>((items, selected))
             }
             .await;
             done(result);
+        });
+    }
+
+    /// Tell the core which profile is being shown.
+    pub fn select_account(&mut self, account_id: u32) {
+        if account_id == 0 {
+            return;
+        }
+        let Some((rpc, runtime)) = self.connection() else {
+            return;
+        };
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let failed = queued_callback(move |err: String| {
+            if let Some(this) = ptr.as_pinned() {
+                this.borrow().account_error(err.into());
+            }
+        });
+        runtime.spawn(async move {
+            if let Err(err) = rpc.call::<_, ()>("select_account", (account_id,)).await {
+                failed(format!("could not remember the profile: {err}"));
+            }
         });
     }
 
@@ -919,11 +972,31 @@ impl DeltaChatCore {
         });
 
         runtime.spawn(async move {
-            let result = rpc
-                .call::<_, ()>("start_io", (account_id,))
-                .await
-                .map_err(|err| err.to_string());
+            let result = start_io(&rpc, Some(account_id)).await;
             done((account_id, result));
+        });
+    }
+
+    /// Resume IO for every configured account.
+    pub fn start_all_account_io(&mut self) {
+        // Remembered before the call, for the same reason as above.
+        self.io_all = true;
+        let Some((rpc, runtime)) = self.connection() else {
+            self.io_started(0, false, QString::from("not started"));
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<(), String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            match result {
+                Ok(()) => this.borrow().io_started(0, true, QString::default()),
+                Err(err) => this.borrow().io_started(0, false, err.into()),
+            }
+        });
+
+        runtime.spawn(async move {
+            done(start_io(&rpc, None).await);
         });
     }
 
@@ -1153,6 +1226,37 @@ async fn fresh_count(rpc: &RpcClient, account_id: u32) -> u32 {
         .map_or(0, |ids| u32::try_from(ids.len()).unwrap_or(u32::MAX))
 }
 
+/// Start IO for one account, or with `None` for every account the core
+/// has: `start_io` and `start_io_for_all_accounts`, the core's own pair.
+async fn start_io(rpc: &RpcClient, account_id: Option<u32>) -> Result<(), String> {
+    match account_id {
+        Some(account_id) => rpc.call::<_, ()>("start_io", (account_id,)).await,
+        None => rpc.call_unit::<()>("start_io_for_all_accounts").await,
+    }
+    .map_err(|err| err.to_string())
+}
+
+/// The profile to open on: the one the core has selected when it is a
+/// configured one, else the first configured, else 0.
+///
+/// The selected profile is the one the chat list last told the core
+/// about, and the core keeps it on disk -- so this is what brings the app
+/// back to the profile it was closed on. It can point at nothing usable:
+/// a profile deleted from another client, or one whose setup never
+/// finished, and then the first that works is the honest answer.
+fn resume_account(items: &[AccountItem], selected: Option<u32>) -> u32 {
+    let usable = |item: &&AccountItem| item.is_configured;
+    selected
+        .and_then(|id| {
+            items
+                .iter()
+                .filter(usable)
+                .find(|item| item.account_id == id)
+        })
+        .or_else(|| items.iter().find(usable))
+        .map_or(0, |item| item.account_id)
+}
+
 /// `reset_data` destroys every delegate, and a profile counting down to
 /// its deletion *is* a delegate: Silica's remorse timer lives on the row.
 /// Deleting the first of several profiles reloaded the list and tore the
@@ -1196,8 +1300,8 @@ fn reconcile_accounts(rows: &mut AccountListModel, wanted: Vec<AccountItem>) {
 #[cfg(test)]
 mod tests {
     use super::{
-        last_words, reconcile_accounts, restart_delay, server_path, AccountItem, AccountListModel,
-        BUNDLED_SERVER, RESTART_DELAY_MAX, RESTART_DELAY_MIN, RESTART_LIMIT,
+        last_words, reconcile_accounts, restart_delay, resume_account, server_path, AccountItem,
+        AccountListModel, BUNDLED_SERVER, RESTART_DELAY_MAX, RESTART_DELAY_MIN, RESTART_LIMIT,
     };
 
     fn account(id: u32, name: &str) -> AccountItem {
@@ -1240,6 +1344,27 @@ mod tests {
         assert_eq!(ids(&rows), vec![(4, "d".into()), (1, "ada".into())]);
         reconcile_accounts(&mut rows, Vec::new());
         assert_eq!(ids(&rows), Vec::<(u32, String)>::new());
+    }
+
+    #[test]
+    fn the_app_comes_back_to_the_selected_profile_when_it_is_usable() {
+        let unconfigured = AccountItem {
+            account_id: 3,
+            is_configured: false,
+            ..AccountItem::default()
+        };
+        let items = vec![account(1, "a"), account(2, "b"), unconfigured];
+        // What the core has selected wins, whichever position it is in.
+        assert_eq!(resume_account(&items, Some(2)), 2);
+        assert_eq!(resume_account(&items, Some(1)), 1);
+        // Nothing selected, a profile that is gone, and one that never
+        // finished setting up all fall back to the first that works.
+        assert_eq!(resume_account(&items, None), 1);
+        assert_eq!(resume_account(&items, Some(9)), 1);
+        assert_eq!(resume_account(&items, Some(3)), 1);
+        // And with nothing usable there is nothing to come back to.
+        assert_eq!(resume_account(&[], Some(1)), 0);
+        assert_eq!(resume_account(&items[2..], None), 0);
     }
 
     fn args(list: &[&str]) -> Vec<String> {

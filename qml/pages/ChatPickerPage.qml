@@ -62,7 +62,7 @@ Page {
             id: searchField
             objectName: "pickerSearchField"
             width: parent.width
-            placeholderText: qsTr("Search chats")
+            placeholderText: qsTr("Search")
             onTextChanged: searchDebounce.restart()
         }
     }

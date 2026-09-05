@@ -6,9 +6,11 @@ import "../components"
  * Which profile the chat list is showing, and the way to each one's own
  * page.
  *
- * The core keeps every configured account open at once, so switching is a
- * matter of pointing the chat list at a different one rather than starting
- * anything up. Picking the profile already shown does nothing. A row's
+ * The core keeps every configured account open at once, with IO running
+ * on all of them, so switching is a matter of pointing the chat list at a
+ * different one rather than starting anything up; the chat list tells the
+ * core which it is on, and that is the profile the app opens on next
+ * time. Picking the profile already shown does nothing. A row's
  * menu leads to the profile's page -- picture, name, address, the rest --
  * and to deleting it.
  *

@@ -16,12 +16,12 @@
         <translation>Geen contacten om toe te voegen</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Contacten zoeken</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Niemand komt overeen</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Zoeken</translation>
     </message>
 </context>
 <context>
@@ -72,6 +72,13 @@
     </message>
 </context>
 <context>
+    <name>CapturePage</name>
+    <message>
+        <source>The video could not be saved</source>
+        <translation>De video kon niet worden opgeslagen</translation>
+    </message>
+</context>
+<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
@@ -100,14 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Chats</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Chats zoeken</translation>
-    </message>
-    <message>
-        <source>Search</source>
-        <translation>Zoeken</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -189,6 +188,10 @@
         <source>Mark as unread</source>
         <translation>Markeren als ongelezen</translation>
     </message>
+    <message>
+        <source>Search</source>
+        <translation>Zoeken</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -197,12 +200,12 @@
         <translation>Doorsturen naar</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Chats zoeken</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Geen chats om naar door te sturen</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Zoeken</translation>
     </message>
 </context>
 <context>
@@ -494,16 +497,16 @@
         <translation>Nieuwe chat</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Contacten zoeken</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Nog geen contacten</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Scan iemands uitnodiging vanuit de chatlijst: QR-code</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Zoeken</translation>
     </message>
 </context>
 <context>
@@ -912,6 +915,14 @@
     <message>
         <source>Save to device</source>
         <translation>Opslaan op apparaat</translation>
+    </message>
+</context>
+<context>
+    <name>VoiceBar</name>
+    <message>
+        <source>Recording %1</source>
+        <extracomment>Shown while a voice message records. %1 is the time so far, such as &quot;0:07&quot;.</extracomment>
+        <translation>Opname %1</translation>
     </message>
 </context>
 <context>

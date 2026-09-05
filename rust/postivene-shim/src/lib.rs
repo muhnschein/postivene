@@ -15,6 +15,7 @@
     clippy::needless_pass_by_value
 )]
 
+mod capture;
 mod chat;
 mod chat_info;
 mod chatlist;
@@ -28,10 +29,12 @@ mod models;
 mod prefetch;
 mod profile;
 mod qr;
+mod recorder;
 mod runtime;
 mod saver;
 mod search;
 
+pub use crate::capture::Captures;
 pub use crate::chat::{local_day_number, ChatMessages};
 pub use crate::chat_info::ChatInfo;
 pub use crate::chatlist::ChatList;
@@ -40,6 +43,7 @@ pub use crate::core::{server_path, server_pid, shutdown, DeltaChatCore, BUNDLED_
 pub use crate::prefetch::ChatPrefetch;
 pub use crate::profile::Profile;
 pub use crate::qr::{QrCode, QrScanner};
+pub use crate::recorder::VoiceRecorder;
 pub use crate::saver::FileSaver;
 pub use crate::search::SearchResults;
 
@@ -73,6 +77,12 @@ pub fn register_qml_types() {
     ) else {
         return;
     };
+    let (Ok(captures), Ok(recorder)) = (
+        std::ffi::CStr::from_bytes_with_nul(b"Captures\0"),
+        std::ffi::CStr::from_bytes_with_nul(b"VoiceRecorder\0"),
+    ) else {
+        return;
+    };
     qmetaobject::qml_register_type::<ChatMessages>(uri, 1, 0, messages);
     qmetaobject::qml_register_type::<ChatList>(uri, 1, 0, list);
     qmetaobject::qml_register_type::<ContactList>(uri, 1, 0, contacts);
@@ -83,6 +93,8 @@ pub fn register_qml_types() {
     qmetaobject::qml_register_type::<QrCode>(uri, 1, 0, qr_code);
     qmetaobject::qml_register_type::<QrScanner>(uri, 1, 0, qr_scanner);
     qmetaobject::qml_register_type::<FileSaver>(uri, 1, 0, saver);
+    qmetaobject::qml_register_type::<Captures>(uri, 1, 0, captures);
+    qmetaobject::qml_register_type::<VoiceRecorder>(uri, 1, 0, recorder);
 }
 pub use models::{
     AccountItem, ChatListItem, ChatListModel, ContactItem, ContactListModel, MessageListItem,

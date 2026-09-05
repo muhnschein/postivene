@@ -22,12 +22,18 @@ Workspace-level, so a bare `cargo clippy` fails the way CI does:
 outside tests, `missing_docs` and `unsafe_code` denied.
 
 `unsafe_code` is deny rather than forbid because the Qt harness tests need
-`env::set_var` before Qt initialises, and because one thing the app does
-has no safe binding: installing a `QTranslator`, which qmetaobject does
-not wrap. That is the one `cpp!` block in the tree, in
-`postivene-app/src/translations.rs`, and the C++ build step in that
-crate's `build.rs` exists for it alone. Every exception is at the
-narrowest scope and says why.
+`env::set_var` before Qt initialises, and because two things the app does
+have no safe binding: installing a `QTranslator`, and recording a voice
+message through `QAudioRecorder`, neither of which qmetaobject wraps.
+Those are the two `cpp!` files in the tree, `postivene-app/src/translations.rs`
+and `postivene-shim/src/recorder.rs`, and the C++ build step in each
+crate's `build.rs` exists for them alone. Every exception is at the
+narrowest scope and says why, and every block is short enough to be
+checked by reading.
+
+The recorder is also why the host build needs `qtmultimedia5-dev` (the
+`Makefile` lists the packages) and the spec `pkgconfig(Qt5Multimedia)`:
+the shim links `libQt5Multimedia`, which Harbour allows.
 
 `rust/clippy.toml` bans two methods that have already caused device-only
 failures: `tokio::runtime::Runtime::new` (must go through `CoreRuntime`) and
@@ -102,6 +108,34 @@ strings are English already, and that catalog holds their plural forms.
 To add one, write the three-line header `update-translations.sh` documents to
 `translations/postivene-<lang>.ts` and run the script; `lupdate` fills in
 every string with as many plural forms as that language has.
+
+## Dependencies
+
+Few, and each for a reason. `cargo tree` on the app is the list; this is
+why each entry is there, so that a proposal to drop one starts from what
+it would cost.
+
+| Crate | What it is for | Why it stays |
+|---|---|---|
+| `tokio` | the server subprocess, its pipes, the event loop | the transport is async; `process` is what reaps the child |
+| `serde`, `serde_json` | the JSON on the wire | the contract with the core is JSON-RPC |
+| `qmetaobject` (vendored), `qttypes`, `cpp`, `cpp_build` | Qt from Rust | the whole UI hangs off them; `default-features = false` keeps its `log` bridge out |
+| `chrono` | the viewer's timezone, for the day headings | `std` has none, and the alternative is `localtime_r`, which `unsafe_code` denies |
+| `qrcode` | an invite drawn as a code | one crate, no dependencies |
+| `rqrr` (+ `g2p`, `lru`) | a code read off the camera | a QR decoder is not a small thing to vendor |
+
+What is not there any more, and where the line is: `thiserror` was two
+crates for a dozen lines of `Display`, so the transport's errors are
+written out; the fake servers build their tokio runtime by hand, so
+`macros` is a dev-dependency and the app's build carries no
+`tokio-macros`; qmetaobject's `log` feature is off. `serde`'s `derive`
+could go the same way for one crate less, at the cost of hand-written
+`Deserialize` for the four wire types -- more code than it saves, so it
+stays. Everything else is either the vendored qmetaobject's own
+(`lazy_static`, `syn 1`) or a build script's (`cc`, `regex`, `semver`,
+`rustversion`), and the platform-gated crates in `Cargo.lock` --
+`windows-*`, `wasm-bindgen`, `js-sys` -- are resolved for other targets
+and never built here.
 
 ## Comments
 

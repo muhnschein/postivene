@@ -16,12 +16,12 @@
         <translation>Δεν υπάρχουν επαφές για προσθήκη</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Αναζήτηση επαφών</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Κανείς δεν ταιριάζει</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Αναζήτηση</translation>
     </message>
 </context>
 <context>
@@ -72,6 +72,13 @@
     </message>
 </context>
 <context>
+    <name>CapturePage</name>
+    <message>
+        <source>The video could not be saved</source>
+        <translation>Δεν ήταν δυνατή η αποθήκευση του βίντεο</translation>
+    </message>
+</context>
+<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
@@ -100,14 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Συνομιλίες</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Αναζήτηση συνομιλιών</translation>
-    </message>
-    <message>
-        <source>Search</source>
-        <translation>Αναζήτηση</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -189,6 +188,10 @@
         <source>Mark as unread</source>
         <translation>Σήμανση ως μη αναγνωσμένο</translation>
     </message>
+    <message>
+        <source>Search</source>
+        <translation>Αναζήτηση</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -197,12 +200,12 @@
         <translation>Προώθηση σε</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Αναζήτηση συνομιλιών</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Δεν υπάρχουν συνομιλίες για προώθηση</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Αναζήτηση</translation>
     </message>
 </context>
 <context>
@@ -494,16 +497,16 @@
         <translation>Νέα συνομιλία</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Αναζήτηση επαφών</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Δεν υπάρχουν ακόμη επαφές</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Σαρώστε την πρόσκληση κάποιου από τη λίστα συνομιλιών: Κωδικός QR</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Αναζήτηση</translation>
     </message>
 </context>
 <context>
@@ -912,6 +915,14 @@
     <message>
         <source>Save to device</source>
         <translation>Αποθήκευση στη συσκευή</translation>
+    </message>
+</context>
+<context>
+    <name>VoiceBar</name>
+    <message>
+        <source>Recording %1</source>
+        <extracomment>Shown while a voice message records. %1 is the time so far, such as &quot;0:07&quot;.</extracomment>
+        <translation>Εγγραφή %1</translation>
     </message>
 </context>
 <context>

@@ -16,12 +16,12 @@
         <translation>没有可添加的联系人</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>搜索联系人</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>没有匹配的联系人</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>搜索</translation>
     </message>
 </context>
 <context>
@@ -72,6 +72,13 @@
     </message>
 </context>
 <context>
+    <name>CapturePage</name>
+    <message>
+        <source>The video could not be saved</source>
+        <translation>无法保存视频</translation>
+    </message>
+</context>
+<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
@@ -100,14 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>聊天</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>搜索聊天</translation>
-    </message>
-    <message>
-        <source>Search</source>
-        <translation>搜索</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -189,6 +188,10 @@
         <source>Mark as unread</source>
         <translation>标为未读</translation>
     </message>
+    <message>
+        <source>Search</source>
+        <translation>搜索</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -197,12 +200,12 @@
         <translation>转发至</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>搜索聊天</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>没有可转发至的聊天</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>搜索</translation>
     </message>
 </context>
 <context>
@@ -492,16 +495,16 @@
         <translation>新聊天</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>搜索联系人</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>还没有联系人</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>从聊天列表扫描对方的邀请：二维码</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>搜索</translation>
     </message>
 </context>
 <context>
@@ -908,6 +911,14 @@
     <message>
         <source>Save to device</source>
         <translation>保存到设备</translation>
+    </message>
+</context>
+<context>
+    <name>VoiceBar</name>
+    <message>
+        <source>Recording %1</source>
+        <extracomment>Shown while a voice message records. %1 is the time so far, such as &quot;0:07&quot;.</extracomment>
+        <translation>正在录音 %1</translation>
     </message>
 </context>
 <context>

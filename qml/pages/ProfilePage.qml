@@ -287,6 +287,8 @@ Page {
 
                 Label {
                     objectName: "addressCaption"
+                    width: parent.width
+                    wrapMode: Text.Wrap
                     font.pixelSize: Theme.fontSizeExtraSmall
                     color: Theme.secondaryColor
                     text: qsTr("Address")

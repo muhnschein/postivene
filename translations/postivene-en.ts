@@ -16,11 +16,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Search contacts</source>
+        <source>Nobody matches</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Nobody matches</source>
+        <source>Search</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -72,6 +72,13 @@
     </message>
 </context>
 <context>
+    <name>CapturePage</name>
+    <message>
+        <source>The video could not be saved</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
@@ -99,14 +106,6 @@
     </message>
     <message>
         <source>Chats</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Search</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -189,6 +188,10 @@
         <source>Mark as unread</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Search</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -197,11 +200,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Search chats</source>
+        <source>No chats to forward to</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>No chats to forward to</source>
+        <source>Search</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -494,15 +497,15 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Search</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -912,6 +915,14 @@
     <message>
         <source>Save to device</source>
         <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>VoiceBar</name>
+    <message>
+        <source>Recording %1</source>
+        <extracomment>Shown while a voice message records. %1 is the time so far, such as &quot;0:07&quot;.</extracomment>
+        <translation>Recording %1</translation>
     </message>
 </context>
 <context>

@@ -16,12 +16,12 @@
         <translation>ઉમેરવા માટે કોઈ સંપર્ક નથી</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>સંપર્કો શોધો</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>કોઈ મેળ ખાતું નથી</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>શોધો</translation>
     </message>
 </context>
 <context>
@@ -72,6 +72,13 @@
     </message>
 </context>
 <context>
+    <name>CapturePage</name>
+    <message>
+        <source>The video could not be saved</source>
+        <translation>વિડિઓ સાચવી શકાયો નથી</translation>
+    </message>
+</context>
+<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
@@ -100,14 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>ચેટ</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>ચેટ શોધો</translation>
-    </message>
-    <message>
-        <source>Search</source>
-        <translation>શોધો</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -189,6 +188,10 @@
         <source>Mark as unread</source>
         <translation>ન વાંચેલ તરીકે નિશાન કરો</translation>
     </message>
+    <message>
+        <source>Search</source>
+        <translation>શોધો</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -197,12 +200,12 @@
         <translation>આમાં ફોરવર્ડ કરો</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>ચેટ શોધો</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>ફોરવર્ડ કરવા માટે કોઈ ચેટ નથી</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>શોધો</translation>
     </message>
 </context>
 <context>
@@ -494,16 +497,16 @@
         <translation>નવી ચેટ</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>સંપર્કો શોધો</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>હજી કોઈ સંપર્ક નથી</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>ચેટ સૂચિમાંથી કોઈનું આમંત્રણ સ્કૅન કરો: QR કોડ</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>શોધો</translation>
     </message>
 </context>
 <context>
@@ -912,6 +915,14 @@
     <message>
         <source>Save to device</source>
         <translation>ઉપકરણ પર સાચવો</translation>
+    </message>
+</context>
+<context>
+    <name>VoiceBar</name>
+    <message>
+        <source>Recording %1</source>
+        <extracomment>Shown while a voice message records. %1 is the time so far, such as &quot;0:07&quot;.</extracomment>
+        <translation>રેકોર્ડિંગ %1</translation>
     </message>
 </context>
 <context>

@@ -29,8 +29,14 @@ Rectangle {
     width: Theme.itemSizeSmall
     height: width
     radius: width / 2
-    color: avatar.monochrome ? Theme.rgba(Theme.primaryColor, 0.25)
-                             : ownColor.length > 0 ? ownColor : Theme.highlightColor
+    // The disc's own colour only when it is what is seen: behind a
+    // picture it showed as a tinted ring where the mask's edge is
+    // softened, and as a full tinted disc whenever the masked picture
+    // was not drawn for a frame -- a row highlighted under its context
+    // menu was where that was noticed.
+    color: avatar.picturePath.length > 0 ? "transparent"
+           : avatar.monochrome ? Theme.rgba(Theme.primaryColor, 0.25)
+           : ownColor.length > 0 ? ownColor : Theme.highlightColor
 
     Label {
         objectName: "avatarInitial"

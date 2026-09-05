@@ -116,6 +116,9 @@ Page {
             // Naming it would mean naming an enum on the type, which the
             // headless stub cannot carry.
             source: player
+            // A video taken upright is stored on its side with the turn
+            // written in; this turns it back, as the gallery does.
+            autoOrientation: true
 
             MouseArea {
                 anchors.fill: parent

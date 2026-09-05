@@ -1,0 +1,2 @@
+module QtSensors
+OrientationSensor 5.0 OrientationSensor.qml

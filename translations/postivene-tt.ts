@@ -16,12 +16,12 @@
         <translation>Өстәр өчен контактлар юк</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Контактларда эзләү</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Беркем дә туры килми</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Эзләү</translation>
     </message>
 </context>
 <context>
@@ -72,6 +72,13 @@
     </message>
 </context>
 <context>
+    <name>CapturePage</name>
+    <message>
+        <source>The video could not be saved</source>
+        <translation>Видеоны саклап булмады</translation>
+    </message>
+</context>
+<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
@@ -100,14 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Чатлар</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Чатларда эзләү</translation>
-    </message>
-    <message>
-        <source>Search</source>
-        <translation>Эзләү</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -189,6 +188,10 @@
         <source>Mark as unread</source>
         <translation>Укылмаган дип билгеләргә</translation>
     </message>
+    <message>
+        <source>Search</source>
+        <translation>Эзләү</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -197,12 +200,12 @@
         <translation>Кая җибәрергә</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Чатларда эзләү</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Җибәрер өчен чатлар юк</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Эзләү</translation>
     </message>
 </context>
 <context>
@@ -492,16 +495,16 @@
         <translation>Яңа чат</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Контактларда эзләү</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Контактлар әлегә юк</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Кемнеңдер чакыруын чатлар исемлегеннән сканерлагыз: QR-код</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Эзләү</translation>
     </message>
 </context>
 <context>
@@ -908,6 +911,14 @@
     <message>
         <source>Save to device</source>
         <translation>Җайланмага сакларга</translation>
+    </message>
+</context>
+<context>
+    <name>VoiceBar</name>
+    <message>
+        <source>Recording %1</source>
+        <extracomment>Shown while a voice message records. %1 is the time so far, such as &quot;0:07&quot;.</extracomment>
+        <translation>Язу %1</translation>
     </message>
 </context>
 <context>

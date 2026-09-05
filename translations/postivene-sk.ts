@@ -16,12 +16,12 @@
         <translation>Žiadne kontakty na pridanie</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Hľadať v kontaktoch</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Nikto nevyhovuje</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Hľadať</translation>
     </message>
 </context>
 <context>
@@ -72,6 +72,13 @@
     </message>
 </context>
 <context>
+    <name>CapturePage</name>
+    <message>
+        <source>The video could not be saved</source>
+        <translation>Video sa nepodarilo uložiť</translation>
+    </message>
+</context>
+<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
@@ -100,14 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Chaty</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Hľadať v chatoch</translation>
-    </message>
-    <message>
-        <source>Search</source>
-        <translation>Hľadať</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -189,6 +188,10 @@
         <source>Mark as unread</source>
         <translation>Označiť ako neprečítané</translation>
     </message>
+    <message>
+        <source>Search</source>
+        <translation>Hľadať</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -197,12 +200,12 @@
         <translation>Preposlať do</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Hľadať v chatoch</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Žiadne chaty na preposlanie</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Hľadať</translation>
     </message>
 </context>
 <context>
@@ -496,16 +499,16 @@
         <translation>Nový chat</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Hľadať v kontaktoch</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Zatiaľ žiadne kontakty</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Naskenujte niečiu pozvánku zo zoznamu chatov: QR kód</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Hľadať</translation>
     </message>
 </context>
 <context>
@@ -916,6 +919,14 @@
     <message>
         <source>Save to device</source>
         <translation>Uložiť do zariadenia</translation>
+    </message>
+</context>
+<context>
+    <name>VoiceBar</name>
+    <message>
+        <source>Recording %1</source>
+        <extracomment>Shown while a voice message records. %1 is the time so far, such as &quot;0:07&quot;.</extracomment>
+        <translation>Nahrávanie %1</translation>
     </message>
 </context>
 <context>

@@ -16,12 +16,12 @@
         <translation>Ei lisättäviä yhteystietoja</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Hae yhteystiedoista</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Ei osumia</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Hae</translation>
     </message>
 </context>
 <context>
@@ -72,6 +72,13 @@
     </message>
 </context>
 <context>
+    <name>CapturePage</name>
+    <message>
+        <source>The video could not be saved</source>
+        <translation>Videota ei voitu tallentaa</translation>
+    </message>
+</context>
+<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
@@ -100,14 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Keskustelut</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Hae keskusteluista</translation>
-    </message>
-    <message>
-        <source>Search</source>
-        <translation>Hae</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -189,6 +188,10 @@
         <source>Mark as unread</source>
         <translation>Merkitse lukemattomaksi</translation>
     </message>
+    <message>
+        <source>Search</source>
+        <translation>Hae</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -197,12 +200,12 @@
         <translation>Välitä keskusteluun</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Hae keskusteluista</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Ei keskusteluja, joihin välittää</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Hae</translation>
     </message>
 </context>
 <context>
@@ -494,16 +497,16 @@
         <translation>Uusi keskustelu</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Hae yhteystiedoista</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Ei vielä yhteystietoja</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Lue jonkun kutsu keskusteluluettelosta: QR-koodi</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Hae</translation>
     </message>
 </context>
 <context>
@@ -912,6 +915,14 @@
     <message>
         <source>Save to device</source>
         <translation>Tallenna laitteelle</translation>
+    </message>
+</context>
+<context>
+    <name>VoiceBar</name>
+    <message>
+        <source>Recording %1</source>
+        <extracomment>Shown while a voice message records. %1 is the time so far, such as &quot;0:07&quot;.</extracomment>
+        <translation>Äänitetään %1</translation>
     </message>
 </context>
 <context>

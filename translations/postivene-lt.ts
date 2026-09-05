@@ -16,12 +16,12 @@
         <translation>Nėra pridedamų kontaktų</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Ieškoti kontaktų</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Niekas neatitinka</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Ieškoti</translation>
     </message>
 </context>
 <context>
@@ -72,6 +72,13 @@
     </message>
 </context>
 <context>
+    <name>CapturePage</name>
+    <message>
+        <source>The video could not be saved</source>
+        <translation>Nepavyko išsaugoti vaizdo įrašo</translation>
+    </message>
+</context>
+<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
@@ -100,14 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Pokalbiai</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Ieškoti pokalbių</translation>
-    </message>
-    <message>
-        <source>Search</source>
-        <translation>Ieškoti</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -189,6 +188,10 @@
         <source>Mark as unread</source>
         <translation>Žymėti kaip neskaitytą</translation>
     </message>
+    <message>
+        <source>Search</source>
+        <translation>Ieškoti</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -197,12 +200,12 @@
         <translation>Persiųsti į</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Ieškoti pokalbių</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Nėra pokalbių, į kuriuos persiųsti</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Ieškoti</translation>
     </message>
 </context>
 <context>
@@ -496,16 +499,16 @@
         <translation>Naujas pokalbis</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Ieškoti kontaktų</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Kontaktų dar nėra</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Nuskaitykite kieno nors kvietimą iš pokalbių sąrašo: QR kodas</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Ieškoti</translation>
     </message>
 </context>
 <context>
@@ -916,6 +919,14 @@
     <message>
         <source>Save to device</source>
         <translation>Išsaugoti įrenginyje</translation>
+    </message>
+</context>
+<context>
+    <name>VoiceBar</name>
+    <message>
+        <source>Recording %1</source>
+        <extracomment>Shown while a voice message records. %1 is the time so far, such as &quot;0:07&quot;.</extracomment>
+        <translation>Įrašoma %1</translation>
     </message>
 </context>
 <context>

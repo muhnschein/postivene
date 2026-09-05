@@ -231,6 +231,11 @@ pub struct ChatMessages {
     /// into its blob directory, and sends -- so the picked file is free to
     /// go away afterwards.
     pub send_file: qt_method!(fn(&mut self, text: QString, file_path: QString)),
+    /// Send a recording as a voice message: the core's `Voice` view type,
+    /// which is what draws it as one at the other end rather than as a
+    /// music file. The core decides the type from the file otherwise, and
+    /// a recording is a sound file like any other to it.
+    pub send_voice: qt_method!(fn(&mut self, file_path: QString)),
     /// Mark every unread message now loaded as read. Called when the
     /// reader reaches the newest message.
     pub mark_seen_all: qt_method!(fn(&mut self)),
@@ -621,7 +626,19 @@ impl ChatMessages {
 
         match kind.as_str() {
             // New or changed content: take in what we do not have yet.
-            "IncomingMsg" | "MsgsChanged" | "MsgDeleted" => self.sync_rows(),
+            "IncomingMsg" | "MsgDeleted" => self.sync_rows(),
+            // The same, and one message re-read when the event names
+            // one. A download the limit held back lands as this event
+            // with the message's id and nothing else different: the id
+            // list is as it was, so a sync alone found nothing to do and
+            // the row said "Downloading…" until the chat was opened
+            // again. An edit made on another device arrives the same way.
+            "MsgsChanged" => {
+                self.sync_rows();
+                if let Some(message_id) = json::u32_opt(&payload, "msgId").filter(|id| *id != 0) {
+                    self.refresh_one(message_id);
+                }
+            }
             // The core dropped events it could not queue, so what this
             // model holds may already be wrong in ways no later event will
             // mention. Start again rather than patch.
@@ -1136,8 +1153,19 @@ impl ChatMessages {
         self.send_message(self.outgoing_text(&text.to_string()), Some((path, name)));
     }
 
+    /// Send a recording as a voice message.
+    pub fn send_voice(&mut self, file_path: QString) {
+        let path = local_path(&file_path.to_string());
+        if path.is_empty() {
+            self.error(QString::from("no recording to send"));
+            return;
+        }
+        self.send_message(String::new(), Some((path, String::new())));
+    }
+
     /// The one send. `file` is the path the core should attach and the name
-    /// the recipient should see.
+    /// the recipient should see -- an empty name for a voice message,
+    /// which is not named for anyone.
     fn send_message(&mut self, text: String, file: Option<(String, String)>) {
         // One at a time. The UI disables its button too, but the guard
         // belongs here: the button is not the only way in, and the model is
@@ -1198,14 +1226,44 @@ impl ChatMessages {
             }
         });
 
+        // A file with no name is a voice message: the one kind the core
+        // has to be told, since to it a recording is a sound file like any
+        // other. It takes the shape `send_msg` takes and `misc_send_msg`
+        // does not, and answers with the id alone, so the row is fetched
+        // the way every other row is.
+        let voice = matches!(&file, Some((_, name)) if name.is_empty());
         let (path, name) = file.unzip();
         runtime.spawn(async move {
-            // misc_send_msg params: account, chat, text, file, filename,
-            // location, quoted_message_id. Pinned against the real core by
-            // deltachat-jsonrpc/tests/real_server.rs, which sends one of
-            // each.
-            let result = rpc
-                .call::<_, (u32, serde_json::Value)>(
+            let result = if voice {
+                // send_msg params: account, chat, MessageData -- camelCase
+                // fields, the view type by its variant name. Pinned
+                // against the real core by
+                // deltachat-jsonrpc/tests/real_server.rs.
+                let data = serde_json::json!({
+                    "file": path,
+                    "viewtype": "Voice",
+                    "quotedMessageId": (quoted != 0).then_some(quoted),
+                });
+                match rpc
+                    .call::<_, u32>("send_msg", (account_id, chat_id, data))
+                    .await
+                {
+                    Ok(message_id) => fetch_messages(&rpc, account_id, &[message_id])
+                        .await
+                        .and_then(|items| {
+                            items
+                                .into_iter()
+                                .next()
+                                .ok_or_else(|| "the core lost the voice message".to_string())
+                        }),
+                    Err(err) => Err(err.to_string()),
+                }
+            } else {
+                // misc_send_msg params: account, chat, text, file, filename,
+                // location, quoted_message_id. Pinned against the real core by
+                // deltachat-jsonrpc/tests/real_server.rs, which sends one of
+                // each.
+                rpc.call::<_, (u32, serde_json::Value)>(
                     "misc_send_msg",
                     (
                         account_id,
@@ -1221,7 +1279,8 @@ impl ChatMessages {
                 )
                 .await
                 .map(|(message_id, message)| row_from(message_id, &message))
-                .map_err(|err| err.to_string());
+                .map_err(|err| err.to_string())
+            };
             done(result);
         });
     }
@@ -1389,6 +1448,11 @@ fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
         json::i32_at(message, "dimensionsHeight"),
     ) {
         (0, 0) if view_type == "Gif" => gif_dimensions(file_path).unwrap_or((0, 0)),
+        // Nothing sizes a video: the core does not probe one, and only
+        // some clients write the size in when they send. The file's own
+        // track header says, and with it the row is the video's shape,
+        // upright or not, rather than a 16:9 guess.
+        (0, 0) if view_type == "Video" => video_dimensions(file_path).unwrap_or((0, 0)),
         known => known,
     };
     MessageListItem {
@@ -1469,6 +1533,137 @@ fn gif_dimensions(path: &str) -> Option<(i32, i32)> {
     let width = i32::from(u16::from_le_bytes([header[6], header[7]]));
     let height = i32::from(u16::from_le_bytes([header[8], header[9]]));
     (width > 0 && height > 0).then_some((width, height))
+}
+
+/// A video's frame size as it is to be shown, from its MP4 track header.
+///
+/// The `tkhd` box carries the track's width and height and a matrix,
+/// and a phone stores a video taken upright on its side with a quarter
+/// turn in the matrix; so a matrix that turns is a swapped size. Only
+/// box headers are read, and nothing is decoded: the file is walked box
+/// by box (`ftyp`, then whatever comes, `mdat` skipped by its size,
+/// `moov` and its tracks stepped into), which works whether the movie
+/// header sits before or after the media. A file that is not there yet,
+/// not an ISO media file (MP4, MOV, 3GP), or without a video track is
+/// `None`.
+fn video_dimensions(path: &str) -> Option<(i32, i32)> {
+    if path.is_empty() {
+        return None;
+    }
+    let mut file = std::fs::File::open(path).ok()?;
+    let len = file.metadata().ok()?.len();
+    let mut at = 0;
+    let mut first = true;
+    while at + 8 <= len {
+        let (size, kind) = mp4::box_header(&mut file, at, len)?;
+        if first && &kind != b"ftyp" {
+            return None;
+        }
+        first = false;
+        if &kind == b"moov" {
+            return mp4::video_track_size(&mut file, at + 8, at + size);
+        }
+        at += size;
+    }
+    None
+}
+
+/// The little of the ISO media file layout that `video_dimensions` walks.
+mod mp4 {
+    use std::io::{Read, Seek, SeekFrom};
+
+    /// The box at `at`: its whole size, header included, and its type.
+    /// `None` for a size that cannot be right, which ends the walk.
+    pub(super) fn box_header(
+        file: &mut std::fs::File,
+        at: u64,
+        end: u64,
+    ) -> Option<(u64, [u8; 4])> {
+        let mut header = [0_u8; 8];
+        file.seek(SeekFrom::Start(at)).ok()?;
+        file.read_exact(&mut header).ok()?;
+        let kind = [header[4], header[5], header[6], header[7]];
+        let size = match u32::from_be_bytes([header[0], header[1], header[2], header[3]]) {
+            // To the end of the file.
+            0 => end.checked_sub(at)?,
+            // A 64-bit size follows the type.
+            1 => {
+                let mut large = [0_u8; 8];
+                file.read_exact(&mut large).ok()?;
+                u64::from_be_bytes(large)
+            }
+            size => u64::from(size),
+        };
+        (size >= 8 && at + size <= end).then_some((size, kind))
+    }
+
+    /// The first track between `from` and `to` with a size: audio tracks
+    /// have none.
+    pub(super) fn video_track_size(
+        file: &mut std::fs::File,
+        from: u64,
+        to: u64,
+    ) -> Option<(i32, i32)> {
+        let mut at = from;
+        while at + 8 <= to {
+            let (size, kind) = box_header(file, at, to)?;
+            if &kind == b"trak" {
+                if let Some(found) = track_size(file, at + 8, at + size) {
+                    return Some(found);
+                }
+            }
+            at += size;
+        }
+        None
+    }
+
+    /// The size the track's `tkhd` gives, turned as its matrix says.
+    fn track_size(file: &mut std::fs::File, from: u64, to: u64) -> Option<(i32, i32)> {
+        let mut at = from;
+        while at + 8 <= to {
+            let (size, kind) = box_header(file, at, to)?;
+            if &kind == b"tkhd" {
+                return header_size(file, at + 8, size - 8);
+            }
+            at += size;
+        }
+        None
+    }
+
+    /// The width and height in a `tkhd` body, swapped for a quarter
+    /// turn. The fields before the matrix are longer in version 1, whose
+    /// times are 64-bit; the matrix is nine 16.16 numbers, and a quarter
+    /// turn has zeros where the identity has ones.
+    fn header_size(file: &mut std::fs::File, at: u64, size: u64) -> Option<(i32, i32)> {
+        // Version 1's fields reach 96 bytes with the size at the end.
+        let mut body = [0_u8; 96];
+        let wanted = usize::try_from(size.min(96)).ok()?;
+        file.seek(SeekFrom::Start(at)).ok()?;
+        file.read_exact(&mut body[..wanted]).ok()?;
+        let matrix = if body[0] == 1 { 52 } else { 40 };
+        if wanted < matrix + 44 {
+            return None;
+        }
+        let fixed = |offset: usize| {
+            i32::from_be_bytes([
+                body[offset],
+                body[offset + 1],
+                body[offset + 2],
+                body[offset + 3],
+            ])
+        };
+        let (a, d) = (fixed(matrix), fixed(matrix + 16));
+        let width = fixed(matrix + 36) >> 16;
+        let height = fixed(matrix + 40) >> 16;
+        if width <= 0 || height <= 0 {
+            return None;
+        }
+        if a == 0 && d == 0 {
+            Some((height, width))
+        } else {
+            Some((width, height))
+        }
+    }
 }
 
 /// The reactions on a message, as the row carries them.
@@ -1572,8 +1767,128 @@ fn file_name_of(path: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{file_name_of, gif_dimensions, local_path, own_reaction, reactions_json};
+    use super::{
+        file_name_of, gif_dimensions, local_path, own_reaction, reactions_json, video_dimensions,
+    };
     use serde_json::json;
+
+    /// An ISO media box: its size and type, then its body.
+    fn mp4_box(kind: [u8; 4], body: &[u8]) -> Vec<u8> {
+        let mut out = Vec::new();
+        out.extend_from_slice(
+            &u32::try_from(body.len() + 8)
+                .expect("box size")
+                .to_be_bytes(),
+        );
+        out.extend_from_slice(&kind);
+        out.extend_from_slice(body);
+        out
+    }
+
+    /// A `tkhd` body, version 0, with a size and a matrix that either
+    /// leaves the picture alone or gives it a quarter turn.
+    fn tkhd(width: u32, height: u32, turned: bool) -> Vec<u8> {
+        let mut body = vec![0_u8; 40];
+        // Version 0 and flags, times, id, reserved, duration, more
+        // reserved, layer, group, volume, reserved: all zero here.
+        let one = 0x0001_0000_u32.to_be_bytes();
+        let (a, b, c, d) = if turned {
+            ([0; 4], one, (-0x0001_0000_i32).to_be_bytes(), [0; 4])
+        } else {
+            (one, [0; 4], [0; 4], one)
+        };
+        for part in [
+            a,
+            b,
+            [0; 4],
+            c,
+            d,
+            [0; 4],
+            [0; 4],
+            [0; 4],
+            0x4000_0000_u32.to_be_bytes(),
+        ] {
+            body.extend_from_slice(&part);
+        }
+        body.extend_from_slice(&(width << 16).to_be_bytes());
+        body.extend_from_slice(&(height << 16).to_be_bytes());
+        body
+    }
+
+    #[test]
+    fn a_videos_size_is_read_off_its_track_header_turned_as_the_matrix_says() {
+        let dir = std::env::temp_dir().join(format!("postivene-mp4-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        let ftyp = mp4_box(*b"ftyp", b"isom\0\0\0\0isomiso2mp41");
+        let mdat = mp4_box(*b"mdat", &[0_u8; 64]);
+        let audio = mp4_box(*b"trak", &mp4_box(*b"tkhd", &tkhd(0, 0, false)));
+
+        // The movie header after the media, as a camera writes it, with
+        // the audio track first: the video track's size is the answer.
+        let landscape = mp4_box(
+            *b"moov",
+            &[
+                audio.clone(),
+                mp4_box(*b"trak", &mp4_box(*b"tkhd", &tkhd(1920, 1080, false))),
+            ]
+            .concat(),
+        );
+        let plain = dir.join("landscape.mp4");
+        std::fs::write(&plain, [ftyp.clone(), mdat.clone(), landscape].concat()).expect("write");
+        assert_eq!(
+            video_dimensions(&plain.to_string_lossy()),
+            Some((1920, 1080))
+        );
+
+        // Taken upright: stored on its side, with the turn in the matrix.
+        let upright = mp4_box(
+            *b"moov",
+            &mp4_box(*b"trak", &mp4_box(*b"tkhd", &tkhd(1920, 1080, true))),
+        );
+        let turned = dir.join("upright.mp4");
+        std::fs::write(&turned, [ftyp.clone(), upright, mdat.clone()].concat()).expect("write");
+        assert_eq!(
+            video_dimensions(&turned.to_string_lossy()),
+            Some((1080, 1920))
+        );
+
+        // A media box with a 64-bit size is stepped over like any other.
+        let mut large = Vec::new();
+        large.extend_from_slice(&1_u32.to_be_bytes());
+        large.extend_from_slice(b"mdat");
+        large.extend_from_slice(&(16_u64 + 64).to_be_bytes());
+        large.extend_from_slice(&[0_u8; 64]);
+        let big = dir.join("large.mp4");
+        std::fs::write(
+            &big,
+            [
+                ftyp.clone(),
+                large,
+                mp4_box(
+                    *b"moov",
+                    &mp4_box(*b"trak", &mp4_box(*b"tkhd", &tkhd(640, 480, false))),
+                ),
+            ]
+            .concat(),
+        )
+        .expect("write");
+        assert_eq!(video_dimensions(&big.to_string_lossy()), Some((640, 480)));
+
+        // Not a movie, not there, no video track: nothing, rather than a
+        // guess.
+        let gif = dir.join("clip.gif");
+        std::fs::write(&gif, b"GIF89a\x2c\x01\x02\x00rest").expect("write");
+        assert_eq!(video_dimensions(&gif.to_string_lossy()), None);
+        let sound = dir.join("sound.mp4");
+        std::fs::write(&sound, [ftyp.clone(), mp4_box(*b"moov", &audio)].concat()).expect("write");
+        assert_eq!(video_dimensions(&sound.to_string_lossy()), None);
+        assert_eq!(
+            video_dimensions(&dir.join("missing.mp4").to_string_lossy()),
+            None
+        );
+        assert_eq!(video_dimensions(""), None);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn a_gifs_size_is_read_off_its_header_and_nothing_elses_is() {

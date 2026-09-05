@@ -77,7 +77,7 @@ Page {
                 id: searchField
                 objectName: "searchField"
                 width: parent.width
-                placeholderText: qsTr("Search contacts")
+                placeholderText: qsTr("Search")
                 onTextChanged: searchDebounce.restart()
             }
 

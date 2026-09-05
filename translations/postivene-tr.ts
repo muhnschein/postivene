@@ -16,12 +16,12 @@
         <translation>Eklenecek kişi yok</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Kişilerde ara</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Kimse eşleşmiyor</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Ara</translation>
     </message>
 </context>
 <context>
@@ -72,6 +72,13 @@
     </message>
 </context>
 <context>
+    <name>CapturePage</name>
+    <message>
+        <source>The video could not be saved</source>
+        <translation>Video kaydedilemedi</translation>
+    </message>
+</context>
+<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
@@ -100,14 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Sohbetler</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Sohbetlerde ara</translation>
-    </message>
-    <message>
-        <source>Search</source>
-        <translation>Ara</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -189,6 +188,10 @@
         <source>Mark as unread</source>
         <translation>Okunmadı olarak işaretle</translation>
     </message>
+    <message>
+        <source>Search</source>
+        <translation>Ara</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -197,12 +200,12 @@
         <translation>Şuraya ilet</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Sohbetlerde ara</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>İletilecek sohbet yok</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Ara</translation>
     </message>
 </context>
 <context>
@@ -492,16 +495,16 @@
         <translation>Yeni sohbet</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Kişilerde ara</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Henüz kişi yok</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Sohbet listesinden birinin davetini tarayın: QR kodu</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Ara</translation>
     </message>
 </context>
 <context>
@@ -908,6 +911,14 @@
     <message>
         <source>Save to device</source>
         <translation>Cihaza kaydet</translation>
+    </message>
+</context>
+<context>
+    <name>VoiceBar</name>
+    <message>
+        <source>Recording %1</source>
+        <extracomment>Shown while a voice message records. %1 is the time so far, such as &quot;0:07&quot;.</extracomment>
+        <translation>Kaydediliyor %1</translation>
     </message>
 </context>
 <context>

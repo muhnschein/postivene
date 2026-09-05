@@ -116,9 +116,9 @@ through the real validator.
   does not cover is one the picker can offer and the app cannot open --
   which is why the attach button needs `UserDirs` and the profile picture
   needed `Pictures` *and* `MediaIndexing`.
-- Whether the `Sailfish.Pickers`, `QtMultimedia` and `Nemo.Thumbnailer`
+- Whether the `Sailfish.Pickers`, `QtMultimedia`, `QtSensors` and `Nemo.Thumbnailer`
   types the conversation uses exist and behave on the target release.
-  Harbour's own `allowed_qmlimports.conf` permits all three, which settles
+  Harbour's own `allowed_qmlimports.conf` permits all four, which settles
   whether they may be used and says nothing about whether they work. The
   pickers are one page each so that a missing type costs one button
   (`qml/pages/Attach*Page.qml`); the media types are stubbed for tests in
@@ -291,10 +291,15 @@ removed from the store even after approval. Not an option.
    `sailjail /usr/bin/harbour-postivene`.
 4. Exercise every permission-dependent path under the sandbox: the
    profile picture picker needs both `Pictures` and `MediaIndexing`, the
-   attach button's four pickers need `UserDirs` for anything outside
-   `~/Pictures`, and playing a voice message needs `Audio`. Send one of
-   each kind -- photo, video, sound, document -- and open what arrives at
-   the other end.
+   attach tray's paper clip needs `UserDirs` for anything outside
+   `~/Pictures`, playing a voice message needs `Audio`, recording one --
+   and the sound on a video taken in the app -- needs `Microphone`, and
+   the camera page needs `Camera`. Send one of each kind -- photo, video,
+   sound, document -- and open what arrives at the other end; take a
+   picture, a video and a voice message in the app and send those too.
+   The recorder picks a codec from what GStreamer offers (AAC in MP4
+   first); the microphone button is not shown at all when it finds none,
+   which is the state the headless tests see.
 5. Delete the cache directory while the app runs; confirm nothing breaks.
 6. Kill `deltachat-rpc-server` from a terminal while the app is open. The
    banner should say it is reconnecting and then clear itself, and messages

@@ -16,12 +16,12 @@
         <translation>Ingen kontakter å legge til</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Søk i kontakter</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Ingen passer</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Søk</translation>
     </message>
 </context>
 <context>
@@ -72,6 +72,13 @@
     </message>
 </context>
 <context>
+    <name>CapturePage</name>
+    <message>
+        <source>The video could not be saved</source>
+        <translation>Videoen kunne ikke lagres</translation>
+    </message>
+</context>
+<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
@@ -100,14 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Chatter</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Søk i chatter</translation>
-    </message>
-    <message>
-        <source>Search</source>
-        <translation>Søk</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -189,6 +188,10 @@
         <source>Mark as unread</source>
         <translation>Merk som ulest</translation>
     </message>
+    <message>
+        <source>Search</source>
+        <translation>Søk</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -197,12 +200,12 @@
         <translation>Videresend til</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Søk i chatter</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Ingen chatter å videresende til</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Søk</translation>
     </message>
 </context>
 <context>
@@ -494,16 +497,16 @@
         <translation>Ny chat</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Søk i kontakter</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Ingen kontakter ennå</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Skann noens invitasjon fra chatlisten: QR-kode</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Søk</translation>
     </message>
 </context>
 <context>
@@ -912,6 +915,14 @@
     <message>
         <source>Save to device</source>
         <translation>Lagre på enheten</translation>
+    </message>
+</context>
+<context>
+    <name>VoiceBar</name>
+    <message>
+        <source>Recording %1</source>
+        <extracomment>Shown while a voice message records. %1 is the time so far, such as &quot;0:07&quot;.</extracomment>
+        <translation>Tar opp %1</translation>
     </message>
 </context>
 <context>

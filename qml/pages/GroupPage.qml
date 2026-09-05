@@ -343,7 +343,9 @@ Page {
 
                 Label {
                     x: plus.x + plus.width + Theme.paddingMedium
+                    width: parent.width - x - Theme.horizontalPageMargin
                     anchors.verticalCenter: plus.verticalCenter
+                    wrapMode: Text.Wrap
                     color: addMembersRow.highlighted ? Theme.highlightColor
                                                      : Theme.primaryColor
                     text: qsTr("Add members")

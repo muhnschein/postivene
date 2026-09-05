@@ -5,7 +5,8 @@ import Sailfish.Silica 1.0
  * The first screen: no address, no password -- a new Delta Chat user has
  * neither (docs/PROJECT.md), so the one thing to do here is add a
  * profile. Also the resume path: with a configured account it hands
- * straight over to the chat list.
+ * straight over to the chat list, on the profile the app was last
+ * closed on.
  */
 Page {
     id: page
@@ -37,9 +38,13 @@ Page {
 
         onAccounts_refreshed: {
             if (configured_count > 0) {
-                core.start_account_io(first_configured_id)
+                // Every profile, not only the one shown: each of them is
+                // one people write to, and the cover counts them all.
+                core.start_all_account_io()
+                // The profile the app was closed on, which the core
+                // remembers; the chat list tells it which on every open.
                 pageStack.replaceAbove(null, Qt.resolvedUrl("ChatListPage.qml"),
-                                       { accountId: first_configured_id })
+                                       { accountId: resume_account_id })
             } else {
                 page.probing = false
             }

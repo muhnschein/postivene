@@ -194,6 +194,14 @@ fn each_view_type_reaches_the_renderer_meant_for_it() {
     single_shot(Duration::from_secs(5), move || unsafe {
         (*steps_ptr).push(("video-showing", call!("showing")));
         (*steps_ptr).push(("video-height", call!("get", QString::from("height"))));
+        // Told the video's shape -- taken upright -- the box stands up.
+        call!("set", QString::from("imageWidth"), 720);
+        call!("set", QString::from("imageHeight"), 1280);
+        (*steps_ptr).push((
+            "video-upright-height",
+            call!("get", QString::from("height")),
+        ));
+        (*steps_ptr).push(("video-width", call!("get", QString::from("contentWidth"))));
         (*steps_ptr).push(("voice", show!("Voice", "/tmp/note.mp3", "note.mp3")));
     });
 
@@ -386,6 +394,14 @@ fn assert_outcome(steps: &[(&str, String)]) {
     assert!(
         height("video-height") > 0.0,
         "a video frame measured nothing. {context}"
+    );
+    assert!(
+        height("video-upright-height") > height("video-width"),
+        "a video taken upright is boxed on its side. {context}"
+    );
+    assert!(
+        height("video-upright-height") > 2.0 * height("video-height"),
+        "the box did not take the video's own shape. {context}"
     );
 
     assert_eq!(

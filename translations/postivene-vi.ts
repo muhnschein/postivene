@@ -16,12 +16,12 @@
         <translation>Không có liên hệ nào để thêm</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Tìm liên hệ</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Không ai khớp</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Tìm kiếm</translation>
     </message>
 </context>
 <context>
@@ -72,6 +72,13 @@
     </message>
 </context>
 <context>
+    <name>CapturePage</name>
+    <message>
+        <source>The video could not be saved</source>
+        <translation>Không thể lưu video</translation>
+    </message>
+</context>
+<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
@@ -100,14 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Trò chuyện</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Tìm cuộc trò chuyện</translation>
-    </message>
-    <message>
-        <source>Search</source>
-        <translation>Tìm kiếm</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -189,6 +188,10 @@
         <source>Mark as unread</source>
         <translation>Đánh dấu chưa đọc</translation>
     </message>
+    <message>
+        <source>Search</source>
+        <translation>Tìm kiếm</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -197,12 +200,12 @@
         <translation>Chuyển tiếp tới</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Tìm cuộc trò chuyện</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Không có cuộc trò chuyện nào để chuyển tiếp tới</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Tìm kiếm</translation>
     </message>
 </context>
 <context>
@@ -492,16 +495,16 @@
         <translation>Cuộc trò chuyện mới</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Tìm liên hệ</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Chưa có liên hệ nào</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Quét lời mời của ai đó từ danh sách trò chuyện: Mã QR</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Tìm kiếm</translation>
     </message>
 </context>
 <context>
@@ -908,6 +911,14 @@
     <message>
         <source>Save to device</source>
         <translation>Lưu vào thiết bị</translation>
+    </message>
+</context>
+<context>
+    <name>VoiceBar</name>
+    <message>
+        <source>Recording %1</source>
+        <extracomment>Shown while a voice message records. %1 is the time so far, such as &quot;0:07&quot;.</extracomment>
+        <translation>Đang ghi âm %1</translation>
     </message>
 </context>
 <context>

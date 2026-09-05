@@ -16,12 +16,12 @@
         <translation>ചേർക്കാൻ കോൺടാക്റ്റുകളില്ല</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>കോൺടാക്റ്റുകൾ തിരയുക</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>ആരും പൊരുത്തപ്പെടുന്നില്ല</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>തിരയുക</translation>
     </message>
 </context>
 <context>
@@ -72,6 +72,13 @@
     </message>
 </context>
 <context>
+    <name>CapturePage</name>
+    <message>
+        <source>The video could not be saved</source>
+        <translation>വീഡിയോ സംരക്ഷിക്കാനായില്ല</translation>
+    </message>
+</context>
+<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
@@ -100,14 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>ചാറ്റുകൾ</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>ചാറ്റുകൾ തിരയുക</translation>
-    </message>
-    <message>
-        <source>Search</source>
-        <translation>തിരയുക</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -189,6 +188,10 @@
         <source>Mark as unread</source>
         <translation>വായിക്കാത്തതായി അടയാളപ്പെടുത്തുക</translation>
     </message>
+    <message>
+        <source>Search</source>
+        <translation>തിരയുക</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -197,12 +200,12 @@
         <translation>ഇതിലേക്ക് ഫോർവേഡ് ചെയ്യുക</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>ചാറ്റുകൾ തിരയുക</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>ഫോർവേഡ് ചെയ്യാൻ ചാറ്റുകളില്ല</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>തിരയുക</translation>
     </message>
 </context>
 <context>
@@ -494,16 +497,16 @@
         <translation>പുതിയ ചാറ്റ്</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>കോൺടാക്റ്റുകൾ തിരയുക</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>ഇതുവരെ കോൺടാക്റ്റുകളില്ല</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>ചാറ്റ് പട്ടികയിൽ നിന്ന് ഒരാളുടെ ക്ഷണം സ്കാൻ ചെയ്യുക: QR കോഡ്</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>തിരയുക</translation>
     </message>
 </context>
 <context>
@@ -912,6 +915,14 @@
     <message>
         <source>Save to device</source>
         <translation>ഉപകരണത്തിൽ സംരക്ഷിക്കുക</translation>
+    </message>
+</context>
+<context>
+    <name>VoiceBar</name>
+    <message>
+        <source>Recording %1</source>
+        <extracomment>Shown while a voice message records. %1 is the time so far, such as &quot;0:07&quot;.</extracomment>
+        <translation>റെക്കോർഡിംഗ് %1</translation>
     </message>
 </context>
 <context>

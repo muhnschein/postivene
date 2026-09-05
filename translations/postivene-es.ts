@@ -16,12 +16,12 @@
         <translation>No hay contactos que añadir</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Buscar contactos</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Nadie coincide</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Buscar</translation>
     </message>
 </context>
 <context>
@@ -72,6 +72,13 @@
     </message>
 </context>
 <context>
+    <name>CapturePage</name>
+    <message>
+        <source>The video could not be saved</source>
+        <translation>No se pudo guardar el vídeo</translation>
+    </message>
+</context>
+<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
@@ -100,14 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Chats</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Buscar chats</translation>
-    </message>
-    <message>
-        <source>Search</source>
-        <translation>Buscar</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -189,6 +188,10 @@
         <source>Mark as unread</source>
         <translation>Marcar como no leído</translation>
     </message>
+    <message>
+        <source>Search</source>
+        <translation>Buscar</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -197,12 +200,12 @@
         <translation>Reenviar a</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Buscar chats</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>No hay chats a los que reenviar</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Buscar</translation>
     </message>
 </context>
 <context>
@@ -494,16 +497,16 @@
         <translation>Nuevo chat</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Buscar contactos</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Aún no hay contactos</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Escanea la invitación de alguien desde la lista de chats: Código QR</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Buscar</translation>
     </message>
 </context>
 <context>
@@ -912,6 +915,14 @@
     <message>
         <source>Save to device</source>
         <translation>Guardar en el dispositivo</translation>
+    </message>
+</context>
+<context>
+    <name>VoiceBar</name>
+    <message>
+        <source>Recording %1</source>
+        <extracomment>Shown while a voice message records. %1 is the time so far, such as &quot;0:07&quot;.</extracomment>
+        <translation>Grabando %1</translation>
     </message>
 </context>
 <context>

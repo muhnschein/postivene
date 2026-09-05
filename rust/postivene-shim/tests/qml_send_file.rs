@@ -74,6 +74,15 @@ const PROBE_QML: &str = r"
             button.open = !button.open
             return '' + button.open
         }
+        // A tap anywhere else while the tray is open lands on the area
+        // the page puts under it, and closes it. Its clicked() carries
+        // the event, and QML refuses to emit it without one.
+        function tapBesideTray() {
+            var area = findIn(loader.item, 'trayDismiss')
+            if (!area) { return 'missing:trayDismiss' }
+            area.clicked(null)
+            return 'ok'
+        }
     }
 ";
 
@@ -148,7 +157,12 @@ fn a_picked_file_shows_above_the_field_and_leaves_with_the_message() {
         probe!("bar-before", "attachmentBar", "visible");
         probe!("send-enabled-before", "sendButton", "enabled");
         probe!("tray-closed", "attachTray", "visible");
+        probe!("dismiss-before", "trayDismiss", "visible");
         (*steps_ptr).push(("tray-open", call!("toggleTray")));
+        probe!("dismiss-armed", "trayDismiss", "visible");
+        (*steps_ptr).push(("tap-beside", call!("tapBesideTray")));
+        probe!("tray-after-tap", "attachTray", "visible");
+        (*steps_ptr).push(("tray-open-again", call!("toggleTray")));
         (*steps_ptr).push(("settle", call!("settle")));
     });
 
@@ -181,20 +195,61 @@ fn a_picked_file_shows_above_the_field_and_leaves_with_the_message() {
 
     engine.exec();
 
+    assert_tray(&steps);
     assert_outcome(&steps, &journal);
+}
+
+/// What a run has to show for itself, read back by label.
+fn value_of<'a>(steps: &'a [(&str, String)], label: &str) -> &'a str {
+    steps
+        .iter()
+        .find(|(name, _)| *name == label)
+        .map_or("", |(_, value)| value.as_str())
+}
+
+/// The tray: closed until the plus is tapped, closed again by a tap
+/// anywhere beside it, and open again on the next plus.
+fn assert_tray(steps: &[(&str, String)]) {
+    let value = |label: &str| value_of(steps, label);
+    let context = format!("steps: {steps:?}");
+
+    assert_eq!(
+        value("tray-closed"),
+        "false",
+        "the attach tray is open before the plus was tapped, over the conversation. {context}"
+    );
+    assert_eq!(
+        value("tray-open"),
+        "true",
+        "the plus does not open the tray. {context}"
+    );
+    assert_eq!(
+        value("dismiss-before"),
+        "false",
+        "the area that closes the tray is there with the tray closed, and would eat a tap on the conversation. {context}"
+    );
+    assert_eq!(
+        value("dismiss-armed"),
+        "true",
+        "nothing under the open tray takes a tap beside it. {context}"
+    );
+    assert_eq!(
+        value("tray-after-tap"),
+        "false",
+        "a tap beside the open tray does not close it. {context}"
+    );
+    assert_eq!(
+        value("tray-open-again"),
+        "true",
+        "the plus does not open the tray a second time. {context}"
+    );
 }
 
 /// Everything the run has to show for itself, out of the test body: what a
 /// Qt harness can do in one function is bounded, and the assertions are the
 /// part worth reading.
 fn assert_outcome(steps: &[(&str, String)], journal: &std::path::Path) {
-    let value = |label: &str| {
-        steps
-            .iter()
-            .find(|(name, _)| *name == label)
-            .map(|(_, value)| value.clone())
-            .unwrap_or_default()
-    };
+    let value = |label: &str| value_of(steps, label);
     let context = format!("steps: {steps:?}");
 
     assert_eq!(value("load"), "ok", "the page did not load. {context}");
@@ -208,17 +263,6 @@ fn assert_outcome(steps: &[(&str, String)], journal: &std::path::Path) {
         "false",
         "an empty field with nothing attached still offers to send. {context}"
     );
-    assert_eq!(
-        value("tray-closed"),
-        "false",
-        "the attach tray is open before the plus was tapped, over the conversation. {context}"
-    );
-    assert_eq!(
-        value("tray-open"),
-        "true",
-        "the plus does not open the tray. {context}"
-    );
-
     assert_eq!(
         value("bar-after"),
         "true",

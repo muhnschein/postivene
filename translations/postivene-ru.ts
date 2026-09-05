@@ -16,12 +16,12 @@
         <translation>Нет контактов для добавления</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Поиск контактов</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Никто не подходит</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Поиск</translation>
     </message>
 </context>
 <context>
@@ -72,6 +72,13 @@
     </message>
 </context>
 <context>
+    <name>CapturePage</name>
+    <message>
+        <source>The video could not be saved</source>
+        <translation>Не удалось сохранить видео</translation>
+    </message>
+</context>
+<context>
     <name>ChatListPage</name>
     <message>
         <source>Lost the connection to the Delta Chat core. Reconnecting...</source>
@@ -100,14 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Чаты</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Поиск по чатам</translation>
-    </message>
-    <message>
-        <source>Search</source>
-        <translation>Поиск</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -189,6 +188,10 @@
         <source>Mark as unread</source>
         <translation>Отметить непрочитанным</translation>
     </message>
+    <message>
+        <source>Search</source>
+        <translation>Поиск</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -197,12 +200,12 @@
         <translation>Переслать в</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Поиск по чатам</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Нет чатов для пересылки</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Поиск</translation>
     </message>
 </context>
 <context>
@@ -496,16 +499,16 @@
         <translation>Новый чат</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Поиск контактов</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Контактов пока нет</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Отсканируйте чьё-то приглашение из списка чатов: QR-код</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Поиск</translation>
     </message>
 </context>
 <context>
@@ -916,6 +919,14 @@
     <message>
         <source>Save to device</source>
         <translation>Сохранить на устройство</translation>
+    </message>
+</context>
+<context>
+    <name>VoiceBar</name>
+    <message>
+        <source>Recording %1</source>
+        <extracomment>Shown while a voice message records. %1 is the time so far, such as &quot;0:07&quot;.</extracomment>
+        <translation>Запись %1</translation>
     </message>
 </context>
 <context>

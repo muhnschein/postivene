@@ -16,12 +16,12 @@
         <translation>Sem contactos para adicionar</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Procurar contactos</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Ninguém corresponde</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Pesquisar</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>Fotografia</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>Vídeo</translation>
+        <source>The video could not be saved</source>
+        <translation>Não foi possível guardar o vídeo</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Conversas</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Procurar conversas</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>Marcar como não lida</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>Pesquisar conversas, contactos e mensagens</translation>
+        <source>Search</source>
+        <translation>Pesquisar</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>Reencaminhar para</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Procurar conversas</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Sem conversas para reencaminhar</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Pesquisar</translation>
     </message>
 </context>
 <context>
@@ -505,16 +497,16 @@
         <translation>Nova conversa</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Procurar contactos</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Ainda sem contactos</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Leia o convite de alguém a partir da lista de conversas: Código QR</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Pesquisar</translation>
     </message>
 </context>
 <context>

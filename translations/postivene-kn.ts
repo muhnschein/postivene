@@ -16,12 +16,12 @@
         <translation>ಸೇರಿಸಲು ಸಂಪರ್ಕಗಳಿಲ್ಲ</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>ಸಂಪರ್ಕಗಳನ್ನು ಹುಡುಕಿ</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>ಯಾರೂ ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>ಹುಡುಕಿ</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>ಫೋಟೋ</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>ವೀಡಿಯೊ</translation>
+        <source>The video could not be saved</source>
+        <translation>ವೀಡಿಯೊವನ್ನು ಉಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>ಚಾಟ್‌ಗಳು</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>ಚಾಟ್‌ಗಳನ್ನು ಹುಡುಕಿ</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>ಓದಿಲ್ಲ ಎಂದು ಗುರುತಿಸಿ</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>ಚಾಟ್‌ಗಳು, ಸಂಪರ್ಕಗಳು ಮತ್ತು ಸಂದೇಶಗಳನ್ನು ಹುಡುಕಿ</translation>
+        <source>Search</source>
+        <translation>ಹುಡುಕಿ</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>ಇಲ್ಲಿಗೆ ಫಾರ್ವರ್ಡ್ ಮಾಡಿ</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>ಚಾಟ್‌ಗಳನ್ನು ಹುಡುಕಿ</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>ಫಾರ್ವರ್ಡ್ ಮಾಡಲು ಚಾಟ್‌ಗಳಿಲ್ಲ</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>ಹುಡುಕಿ</translation>
     </message>
 </context>
 <context>
@@ -505,16 +497,16 @@
         <translation>ಹೊಸ ಚಾಟ್</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>ಸಂಪರ್ಕಗಳನ್ನು ಹುಡುಕಿ</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>ಇನ್ನೂ ಸಂಪರ್ಕಗಳಿಲ್ಲ</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>ಚಾಟ್ ಪಟ್ಟಿಯಿಂದ ಯಾರದಾದರೂ ಆಹ್ವಾನವನ್ನು ಸ್ಕ್ಯಾನ್ ಮಾಡಿ: QR ಕೋಡ್</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>ಹುಡುಕಿ</translation>
     </message>
 </context>
 <context>

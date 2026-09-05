@@ -16,12 +16,12 @@
         <translation>ചേർക്കാൻ കോൺടാക്റ്റുകളില്ല</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>കോൺടാക്റ്റുകൾ തിരയുക</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>ആരും പൊരുത്തപ്പെടുന്നില്ല</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>തിരയുക</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>ഫോട്ടോ</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>വീഡിയോ</translation>
+        <source>The video could not be saved</source>
+        <translation>വീഡിയോ സംരക്ഷിക്കാനായില്ല</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>ചാറ്റുകൾ</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>ചാറ്റുകൾ തിരയുക</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>വായിക്കാത്തതായി അടയാളപ്പെടുത്തുക</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>ചാറ്റുകൾ, കോൺടാക്റ്റുകൾ, സന്ദേശങ്ങൾ എന്നിവ തിരയുക</translation>
+        <source>Search</source>
+        <translation>തിരയുക</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>ഇതിലേക്ക് ഫോർവേഡ് ചെയ്യുക</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>ചാറ്റുകൾ തിരയുക</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>ഫോർവേഡ് ചെയ്യാൻ ചാറ്റുകളില്ല</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>തിരയുക</translation>
     </message>
 </context>
 <context>
@@ -505,16 +497,16 @@
         <translation>പുതിയ ചാറ്റ്</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>കോൺടാക്റ്റുകൾ തിരയുക</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>ഇതുവരെ കോൺടാക്റ്റുകളില്ല</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>ചാറ്റ് പട്ടികയിൽ നിന്ന് ഒരാളുടെ ക്ഷണം സ്കാൻ ചെയ്യുക: QR കോഡ്</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>തിരയുക</translation>
     </message>
 </context>
 <context>

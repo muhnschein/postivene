@@ -16,12 +16,12 @@
         <translation>沒有可新增的聯絡人</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>搜尋聯絡人</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>沒有相符的聯絡人</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>搜尋</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>相片</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>影片</translation>
+        <source>The video could not be saved</source>
+        <translation>無法儲存影片</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>聊天</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>搜尋聊天</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>標示為未讀</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>搜尋聊天、聯絡人和訊息</translation>
+        <source>Search</source>
+        <translation>搜尋</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>轉寄至</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>搜尋聊天</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>沒有可轉寄至的聊天</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>搜尋</translation>
     </message>
 </context>
 <context>
@@ -503,16 +495,16 @@
         <translation>新聊天</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>搜尋聯絡人</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>還沒有聯絡人</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>從聊天清單掃描對方的邀請：QR code</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>搜尋</translation>
     </message>
 </context>
 <context>

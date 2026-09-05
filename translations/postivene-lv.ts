@@ -16,12 +16,12 @@
         <translation>Nav pievienojamu kontaktu</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Meklēt kontaktos</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Neviens neatbilst</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Meklēt</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>Foto</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>Video</translation>
+        <source>The video could not be saved</source>
+        <translation>Video neizdevās saglabāt</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Sarunas</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Meklēt sarunās</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>Atzīmēt kā nelasītu</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>Meklēt sarunās, kontaktos un ziņās</translation>
+        <source>Search</source>
+        <translation>Meklēt</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>Pārsūtīt uz</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Meklēt sarunās</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Nav sarunu, uz kurām pārsūtīt</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Meklēt</translation>
     </message>
 </context>
 <context>
@@ -507,16 +499,16 @@
         <translation>Jauna saruna</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Meklēt kontaktos</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Vēl nav kontaktu</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Skenējiet kāda ielūgumu no sarunu saraksta: QR kods</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Meklēt</translation>
     </message>
 </context>
 <context>

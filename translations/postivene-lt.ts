@@ -16,12 +16,12 @@
         <translation>Nėra pridedamų kontaktų</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Ieškoti kontaktų</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Niekas neatitinka</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Ieškoti</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>Nuotrauka</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>Vaizdo įrašas</translation>
+        <source>The video could not be saved</source>
+        <translation>Nepavyko išsaugoti vaizdo įrašo</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Pokalbiai</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Ieškoti pokalbių</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>Žymėti kaip neskaitytą</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>Ieškoti pokalbių, kontaktų ir žinučių</translation>
+        <source>Search</source>
+        <translation>Ieškoti</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>Persiųsti į</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Ieškoti pokalbių</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Nėra pokalbių, į kuriuos persiųsti</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Ieškoti</translation>
     </message>
 </context>
 <context>
@@ -507,16 +499,16 @@
         <translation>Naujas pokalbis</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Ieškoti kontaktų</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Kontaktų dar nėra</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Nuskaitykite kieno nors kvietimą iš pokalbių sąrašo: QR kodas</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Ieškoti</translation>
     </message>
 </context>
 <context>

@@ -15,7 +15,15 @@ QtObject {
     /// How many focus searches were asked for.
     property int searches: 0
     function start() { running = true }
-    function stop() { running = false }
+    // Stopping the camera stops a recording with it, finished or not: what
+    // the page falls back on when the recorder ignores its own stop.
+    function stop() {
+        running = false
+        if (videoRecorder.recorderState === 1) {
+            videoRecorder.recorderState = 0
+            videoRecorder.recorderStatus = 3
+        }
+    }
     function searchAndLock() { searches += 1 }
     function unlock() { }
 }

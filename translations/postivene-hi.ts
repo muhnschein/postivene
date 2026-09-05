@@ -16,12 +16,12 @@
         <translation>जोड़ने के लिए कोई संपर्क नहीं</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>संपर्क खोजें</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>कोई मेल नहीं खाता</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>खोजें</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>फ़ोटो</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>वीडियो</translation>
+        <source>The video could not be saved</source>
+        <translation>वीडियो सहेजा नहीं जा सका</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>चैट</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>चैट खोजें</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>अपठित चिह्नित करें</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>चैट, संपर्क और संदेश खोजें</translation>
+        <source>Search</source>
+        <translation>खोजें</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>इसे अग्रेषित करें</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>चैट खोजें</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>अग्रेषित करने के लिए कोई चैट नहीं</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>खोजें</translation>
     </message>
 </context>
 <context>
@@ -505,16 +497,16 @@
         <translation>नई चैट</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>संपर्क खोजें</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>अभी कोई संपर्क नहीं</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>चैट सूची से किसी का आमंत्रण स्कैन करें: QR कोड</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>खोजें</translation>
     </message>
 </context>
 <context>

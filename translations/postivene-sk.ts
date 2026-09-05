@@ -16,12 +16,12 @@
         <translation>Žiadne kontakty na pridanie</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Hľadať v kontaktoch</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Nikto nevyhovuje</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Hľadať</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>Fotka</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>Video</translation>
+        <source>The video could not be saved</source>
+        <translation>Video sa nepodarilo uložiť</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Chaty</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Hľadať v chatoch</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>Označiť ako neprečítané</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>Hľadať v chatoch, kontaktoch a správach</translation>
+        <source>Search</source>
+        <translation>Hľadať</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>Preposlať do</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Hľadať v chatoch</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Žiadne chaty na preposlanie</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Hľadať</translation>
     </message>
 </context>
 <context>
@@ -507,16 +499,16 @@
         <translation>Nový chat</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Hľadať v kontaktoch</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Zatiaľ žiadne kontakty</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Naskenujte niečiu pozvánku zo zoznamu chatov: QR kód</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Hľadať</translation>
     </message>
 </context>
 <context>

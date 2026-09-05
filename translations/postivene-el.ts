@@ -16,12 +16,12 @@
         <translation>Δεν υπάρχουν επαφές για προσθήκη</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Αναζήτηση επαφών</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Κανείς δεν ταιριάζει</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Αναζήτηση</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>Φωτογραφία</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>Βίντεο</translation>
+        <source>The video could not be saved</source>
+        <translation>Δεν ήταν δυνατή η αποθήκευση του βίντεο</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Συνομιλίες</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Αναζήτηση συνομιλιών</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>Σήμανση ως μη αναγνωσμένο</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>Αναζήτηση σε συνομιλίες, επαφές και μηνύματα</translation>
+        <source>Search</source>
+        <translation>Αναζήτηση</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>Προώθηση σε</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Αναζήτηση συνομιλιών</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Δεν υπάρχουν συνομιλίες για προώθηση</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Αναζήτηση</translation>
     </message>
 </context>
 <context>
@@ -505,16 +497,16 @@
         <translation>Νέα συνομιλία</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Αναζήτηση επαφών</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Δεν υπάρχουν ακόμη επαφές</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Σαρώστε την πρόσκληση κάποιου από τη λίστα συνομιλιών: Κωδικός QR</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Αναζήτηση</translation>
     </message>
 </context>
 <context>

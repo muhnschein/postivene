@@ -16,12 +16,12 @@
         <translation>Ei lisättäviä yhteystietoja</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Hae yhteystiedoista</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Ei osumia</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Hae</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>Kuva</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>Video</translation>
+        <source>The video could not be saved</source>
+        <translation>Videota ei voitu tallentaa</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Keskustelut</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Hae keskusteluista</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>Merkitse lukemattomaksi</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>Hae keskusteluista, yhteystiedoista ja viesteistä</translation>
+        <source>Search</source>
+        <translation>Hae</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>Välitä keskusteluun</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Hae keskusteluista</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Ei keskusteluja, joihin välittää</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Hae</translation>
     </message>
 </context>
 <context>
@@ -505,16 +497,16 @@
         <translation>Uusi keskustelu</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Hae yhteystiedoista</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Ei vielä yhteystietoja</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Lue jonkun kutsu keskusteluluettelosta: QR-koodi</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Hae</translation>
     </message>
 </context>
 <context>

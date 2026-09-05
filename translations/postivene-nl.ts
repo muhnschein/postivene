@@ -16,12 +16,12 @@
         <translation>Geen contacten om toe te voegen</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Contacten zoeken</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Niemand komt overeen</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Zoeken</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>Foto</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>Video</translation>
+        <source>The video could not be saved</source>
+        <translation>De video kon niet worden opgeslagen</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Chats</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Chats zoeken</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>Markeren als ongelezen</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>Zoek in chats, contacten en berichten</translation>
+        <source>Search</source>
+        <translation>Zoeken</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>Doorsturen naar</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Chats zoeken</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Geen chats om naar door te sturen</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Zoeken</translation>
     </message>
 </context>
 <context>
@@ -505,16 +497,16 @@
         <translation>Nieuwe chat</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Contacten zoeken</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Nog geen contacten</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Scan iemands uitnodiging vanuit de chatlijst: QR-code</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Zoeken</translation>
     </message>
 </context>
 <context>

@@ -5,7 +5,8 @@
 //! Driven through the `QtMultimedia` stubs, which record what the page
 //! asked for and let the test answer the way the backend does: a still
 //! lands where it was asked to go, a video is finalised after it is
-//! stopped and only then has a location.
+//! stopped and only then has a location -- and a recorder that ignores
+//! its stop, which a phone's did, is finished by stopping the camera.
 
 // Qt harness: see qml_chat_list.rs.
 #![allow(
@@ -81,13 +82,20 @@ const PROBE_QML: &str = r"
             item.clicked(null)
             return 'ok'
         }
-        function setMode(index) { loader.item.mode = index; return '' + loader.item.mode }
+        // A tap on an IconButton, whose clicked() carries nothing.
+        function tap(name) {
+            var item = findIn(loader.item, name)
+            if (!item) { return 'missing:' + name }
+            item.clicked()
+            return '' + loader.item.mode
+        }
         // What the page asked the camera for.
         function requestedStill() { return camera().imageCapture.requested }
         function requestedVideo() { return '' + camera().videoRecorder.outputLocation }
         // The backend's answers.
         function stillWritten() { camera().imageCapture.saved(); return 'ok' }
         function videoFinished() { camera().videoRecorder.finish(); return 'ok' }
+        function ignoreStops() { camera().videoRecorder.stopsOnRequest = false; return 'ok' }
         function recorderState() { return '' + camera().videoRecorder.recorderState }
         function pickedPath() { return picked }
         function leave() { loader.item.status = PageStatus.Deactivating; return 'ok' }
@@ -138,6 +146,14 @@ fn a_still_and_a_video_are_reported_once_written_and_the_page_leaves() {
             (*steps_ptr).push(($label, $value))
         };
     }
+    macro_rules! probe {
+        ($label:expr, $name:expr, $property:expr) => {
+            record!(
+                $label,
+                call!("get", QString::from($name), QString::from($property))
+            )
+        };
+    }
 
     single_shot(Duration::from_secs(1), move || unsafe {
         record!(
@@ -147,10 +163,7 @@ fn a_still_and_a_video_are_reported_once_written_and_the_page_leaves() {
         // A page loaded on its own is the one on screen, so the camera
         // runs from the start.
         record!("running", call!("running"));
-        record!(
-            "mode",
-            call!("get", QString::from("modeRow"), QString::from("enabled"))
-        );
+        probe!("mode", "modeColumn", "enabled");
         record!("shutter", call!("click", QString::from("shutterTap")));
         record!("still-asked", call!("requestedStill"));
         // Nothing reported until the file is on disk.
@@ -169,26 +182,17 @@ fn a_still_and_a_video_are_reported_once_written_and_the_page_leaves() {
             "reload",
             call!("load", QString::from(common::page_url("CapturePage.qml")))
         );
-        record!("video-mode", call!("setMode", 1));
+        // The mode is switched from the stacked buttons, and the camera
+        // is running again afterwards.
+        record!("video-mode", call!("tap", QString::from("modeOption1")));
+        record!("running-in-video-mode", call!("running"));
         record!("record", call!("click", QString::from("shutterTap")));
-        record!(
-            "recording",
-            call!("get", QString::from("shutter"), QString::from("color"))
-        );
+        // What the page shows is the recorder's state, not its own.
+        probe!("recording", "shutter", "color");
+        probe!("time-shown", "recordingIndicator", "visible");
         record!("video-asked", call!("requestedVideo"));
-        record!(
-            "time-shown",
-            call!(
-                "get",
-                QString::from("recordingTime"),
-                QString::from("visible")
-            )
-        );
         // The mode cannot be switched under a running recording.
-        record!(
-            "mode-locked",
-            call!("get", QString::from("modeRow"), QString::from("enabled"))
-        );
+        probe!("mode-locked", "modeColumn", "enabled");
         record!("stop", call!("click", QString::from("shutterTap")));
         record!("stopped-state", call!("recorderState"));
         // Stopped is not finished: nothing is reported yet.
@@ -202,6 +206,30 @@ fn a_still_and_a_video_are_reported_once_written_and_the_page_leaves() {
     });
 
     single_shot(Duration::from_secs(3), move || unsafe {
+        // A recorder that does not act on its stop: the page stops the
+        // camera a moment later, which finishes the file.
+        record!(
+            "reload-stubborn",
+            call!("load", QString::from(common::page_url("CapturePage.qml")))
+        );
+        record!("ignore-stops", call!("ignoreStops"));
+        record!("stubborn-mode", call!("tap", QString::from("modeOption1")));
+        record!(
+            "stubborn-record",
+            call!("click", QString::from("shutterTap"))
+        );
+        record!("stubborn-stop", call!("click", QString::from("shutterTap")));
+        record!("stubborn-state", call!("recorderState"));
+        probe!("stubborn-busy", "writing", "running");
+        record!("stubborn-early", call!("pickedPath"));
+    });
+
+    single_shot(Duration::from_secs(6), move || unsafe {
+        record!("stubborn-picked", call!("pickedPath"));
+        record!(
+            "stubborn-pops",
+            (*stack_ptr).pinned().borrow().pops.to_string()
+        );
         // Leaving the page stops the camera.
         record!(
             "reload-again",
@@ -270,7 +298,12 @@ fn a_still_and_a_video_are_reported_once_written_and_the_page_leaves() {
     assert_eq!(
         value("video-mode"),
         "1",
-        "video mode did not take. {context}"
+        "the video button did not switch the mode. {context}"
+    );
+    assert_eq!(
+        value("running-in-video-mode"),
+        "true",
+        "the camera was left stopped after the switch to video. {context}"
     );
     let video = value("video-asked");
     assert!(
@@ -278,6 +311,11 @@ fn a_still_and_a_video_are_reported_once_written_and_the_page_leaves() {
             && video.contains("/captures/video-")
             && video.rsplit('.').next() == Some("mp4"),
         "the video was not asked for in the captures directory as a video: {video:?}. {context}"
+    );
+    assert_ne!(
+        value("recording"),
+        "",
+        "the shutter has no colour while a video records. {context}"
     );
     assert_eq!(
         value("time-shown"),
@@ -308,6 +346,31 @@ fn a_still_and_a_video_are_reported_once_written_and_the_page_leaves() {
         value("video-pops"),
         "2",
         "the page did not leave once it had a video to report. {context}"
+    );
+
+    assert_eq!(
+        value("stubborn-state"),
+        "1",
+        "the stub acted on the stop it was told to ignore. {context}"
+    );
+    assert_eq!(
+        value("stubborn-busy"),
+        "true",
+        "nothing shows that the stop is being waited on. {context}"
+    );
+    assert_eq!(
+        value("stubborn-early"),
+        "",
+        "a recording the recorder had not finished was reported. {context}"
+    );
+    assert!(
+        value("stubborn-picked").contains("/captures/video-"),
+        "a stop the recorder ignored was not made good by stopping the camera. {context}"
+    );
+    assert_eq!(
+        value("stubborn-pops"),
+        "3",
+        "the page did not leave with the video the camera's stop finished. {context}"
     );
     assert_eq!(value("before-leaving"), "true", "{context}");
     assert_eq!(

@@ -16,11 +16,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Search contacts</source>
+        <source>Nobody matches</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Nobody matches</source>
+        <source>Search</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -74,11 +74,7 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Video</source>
+        <source>The video could not be saved</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -94,10 +90,6 @@
     </message>
     <message>
         <source>Chats</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Search chats</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -197,7 +189,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
+        <source>Search</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -208,11 +200,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Search chats</source>
+        <source>No chats to forward to</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>No chats to forward to</source>
+        <source>Search</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -499,10 +491,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation type="unfinished"></translation>
     </message>
@@ -512,6 +500,10 @@
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Search</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

@@ -291,8 +291,8 @@ removed from the store even after approval. Not an option.
    `sailjail /usr/bin/harbour-postivene`.
 4. Exercise every permission-dependent path under the sandbox: the
    profile picture picker needs both `Pictures` and `MediaIndexing`, the
-   attach button's four pickers need `UserDirs` for anything outside
-   `~/Pictures`, playing a voice message needs `Audio`, recording one --
+   attach tray's library and file pickers need `UserDirs` for anything
+   outside `~/Pictures`, playing a voice message needs `Audio`, recording one --
    and the sound on a video taken in the app -- needs `Microphone`, and
    the camera page needs `Camera`. Send one of each kind -- photo, video,
    sound, document -- and open what arrives at the other end; take a

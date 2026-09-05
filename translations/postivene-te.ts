@@ -16,12 +16,12 @@
         <translation>చేర్చడానికి పరిచయాలు లేవు</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>పరిచయాలను వెతుకు</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>ఎవరూ సరిపోలడం లేదు</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>వెతకండి</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>ఫోటో</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>వీడియో</translation>
+        <source>The video could not be saved</source>
+        <translation>వీడియోను సేవ్ చేయలేకపోయాము</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>చాట్‌లు</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>చాట్‌లను వెతుకు</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>చదవనట్లు గుర్తించు</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>చాట్‌లు, పరిచయాలు మరియు సందేశాలను వెతుకు</translation>
+        <source>Search</source>
+        <translation>వెతకండి</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>దీనికి ఫార్వర్డ్ చేయి</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>చాట్‌లను వెతుకు</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>ఫార్వర్డ్ చేయడానికి చాట్‌లు లేవు</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>వెతకండి</translation>
     </message>
 </context>
 <context>
@@ -505,16 +497,16 @@
         <translation>కొత్త చాట్</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>పరిచయాలను వెతుకు</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>ఇంకా పరిచయాలు లేవు</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>చాట్ జాబితా నుండి ఎవరిదైనా ఆహ్వానాన్ని స్కాన్ చేయండి: QR కోడ్</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>వెతకండి</translation>
     </message>
 </context>
 <context>

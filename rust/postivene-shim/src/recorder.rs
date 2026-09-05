@@ -113,6 +113,10 @@ pub struct VoiceRecorder {
     /// The extension a recording will have, from the codec chosen:
     /// `ogg`, `m4a` or `wav`. Empty when nothing can be recorded.
     pub extension: qt_property!(QString; READ extension_name),
+    /// What is recording, for the reader to see under the time: the
+    /// codec, the container and the audio input, as `GStreamer` names
+    /// them. Empty when nothing can be recorded.
+    pub format: qt_property!(QString; READ format_name),
 
     /// True from `start` until the recording is reported or dropped.
     pub recording: qt_property!(bool; NOTIFY recording_changed),
@@ -147,7 +151,10 @@ pub struct VoiceRecorder {
     /// `stop` has been called and the file is still being finished.
     finishing: bool,
     /// Cached from the recorder, so QML's bindings need not ask C++.
-    format: Option<(String, String, &'static str)>,
+    chosen: Option<(String, String, &'static str)>,
+    /// The audio input the recorder was told to use; empty for its own
+    /// default.
+    input: String,
     probed: bool,
 }
 
@@ -155,17 +162,31 @@ impl VoiceRecorder {
     /// Whether anything can be recorded at all.
     pub fn is_available(&mut self) -> bool {
         self.probe();
-        self.format.is_some()
+        self.chosen.is_some()
     }
 
     /// The extension a recording will have.
     pub fn extension_name(&mut self) -> QString {
         self.probe();
-        self.format
+        self.chosen
             .as_ref()
             .map_or_else(QString::default, |(_, _, extension)| {
                 QString::from(*extension)
             })
+    }
+
+    /// The codec, container and input in use, for the reader to see.
+    pub fn format_name(&mut self) -> QString {
+        self.probe();
+        let Some((codec, container, _)) = &self.chosen else {
+            return QString::default();
+        };
+        let input = if self.input.is_empty() {
+            "default input"
+        } else {
+            self.input.as_str()
+        };
+        QString::from(format!("{codec} \u{b7} {container} \u{b7} {input}"))
     }
 
     /// Make the recorder if it is not there yet, and find out what it
@@ -179,9 +200,15 @@ impl VoiceRecorder {
         if handle == 0 {
             return;
         }
-        let codecs = read_list(handle, true);
-        let containers = read_list(handle, false);
-        self.format = choose_format(&codecs, &containers);
+        let codecs = read_list(handle, ListKind::Codecs);
+        let containers = read_list(handle, ListKind::Containers);
+        self.chosen = choose_format(&codecs, &containers);
+        let inputs = read_list(handle, ListKind::Inputs);
+        let default = read_default_input(handle);
+        if let Some(input) = choose_input(&inputs, &default) {
+            set_input(handle, &input);
+            self.input = input;
+        }
     }
 
     /// The `QAudioRecorder`, made on first use. 0 when there is no
@@ -210,7 +237,7 @@ impl VoiceRecorder {
             return;
         }
         self.probe();
-        let Some((codec, container, _)) = self.format.clone() else {
+        let Some((codec, container, _)) = self.chosen.clone() else {
             self.error(QString::from("nothing here can record sound"));
             return;
         };
@@ -342,14 +369,27 @@ impl Drop for VoiceRecorder {
     }
 }
 
-/// What the recorder can write: its codecs, or its containers.
-fn read_list(handle: usize, codecs: bool) -> Vec<String> {
+/// The lists a recorder has: what it can write, and what it can read.
+#[derive(Clone, Copy)]
+enum ListKind {
+    Codecs,
+    Containers,
+    Inputs,
+}
+
+/// One of the recorder's lists, by name.
+fn read_list(handle: usize, kind: ListKind) -> Vec<String> {
     let recorder = handle as *mut c_void;
+    let kind = kind as i32;
     // SAFETY: `recorder` is a live QAudioRecorder owned by the caller's
     // object; the answer is joined into one QString owned by this frame.
-    let joined = cpp!(unsafe [recorder as "QAudioRecorder*", codecs as "bool"] -> QString as "QString" {
-        QStringList names = codecs ? recorder->supportedAudioCodecs()
-                                   : recorder->supportedContainers();
+    let joined = cpp!(unsafe [recorder as "QAudioRecorder*", kind as "int"] -> QString as "QString" {
+        QStringList names;
+        switch (kind) {
+        case 0: names = recorder->supportedAudioCodecs(); break;
+        case 1: names = recorder->supportedContainers(); break;
+        default: names = recorder->audioInputs(); break;
+        }
         return names.join(QLatin1Char('\n'));
     });
     joined
@@ -358,6 +398,45 @@ fn read_list(handle: usize, codecs: bool) -> Vec<String> {
         .filter(|line| !line.is_empty())
         .map(ToString::to_string)
         .collect()
+}
+
+/// The input the recorder would use left to itself.
+fn read_default_input(handle: usize) -> String {
+    let recorder = handle as *mut c_void;
+    // SAFETY: as `read_list`.
+    let name = cpp!(unsafe [recorder as "QAudioRecorder*"] -> QString as "QString" {
+        return recorder->defaultAudioInput();
+    });
+    name.to_string()
+}
+
+/// Tell the recorder which input to record from.
+fn set_input(handle: usize, input: &str) {
+    let recorder = handle as *mut c_void;
+    let input = QString::from(input);
+    // SAFETY: as `read_list`; the QString is owned by this frame and
+    // read by value.
+    cpp!(unsafe [recorder as "QAudioRecorder*", input as "QString"] {
+        recorder->setAudioInput(input);
+    });
+}
+
+/// Pick the audio input from what the recorder offers.
+///
+/// The sound server by name where it is offered: on a device that is
+/// `PulseAudio`, which is what the microphone is reached through. The
+/// backend's own default is a `GStreamer` element that picks a source
+/// for itself, and a recording made through it came out silent on a
+/// phone. Failing that, the backend's default, and failing that the
+/// first thing on the list. Nothing offered is `None`, and the recorder
+/// is left alone.
+fn choose_input(inputs: &[String], default: &str) -> Option<String> {
+    inputs
+        .iter()
+        .find(|name| name.to_ascii_lowercase().contains("pulse"))
+        .or_else(|| inputs.iter().find(|name| name.as_str() == default))
+        .or_else(|| inputs.first())
+        .cloned()
 }
 
 /// Ask the recorder to stop. The file is finished a moment later.
@@ -413,7 +492,7 @@ fn read_actual_location(handle: usize) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::choose_format;
+    use super::{choose_format, choose_input};
 
     fn names(list: &[&str]) -> Vec<String> {
         list.iter().map(ToString::to_string).collect()
@@ -456,5 +535,29 @@ mod tests {
         // Nothing offered, as headlessly: nothing chosen.
         assert_eq!(choose_format(&[], &containers), None);
         assert_eq!(choose_format(&codecs, &[]), None);
+    }
+
+    #[test]
+    fn the_sound_server_is_the_input_where_it_is_offered() {
+        // What Qt's GStreamer backend lists on a device: its own
+        // automatic source first, then the sound server, then ALSA.
+        let inputs = names(&["default:", "pulseaudio:", "alsa:hw:0,0"]);
+        assert_eq!(
+            choose_input(&inputs, "default:"),
+            Some("pulseaudio:".to_string())
+        );
+        // No sound server: the backend's default, where it is listed.
+        let without = names(&["alsa:hw:0,0", "default:"]);
+        assert_eq!(
+            choose_input(&without, "default:"),
+            Some("default:".to_string())
+        );
+        // A default that is not on the list: the first thing that is.
+        assert_eq!(
+            choose_input(&without, "oss:"),
+            Some("alsa:hw:0,0".to_string())
+        );
+        // Nothing at all, as headlessly: nothing chosen.
+        assert_eq!(choose_input(&[], "default:"), None);
     }
 }

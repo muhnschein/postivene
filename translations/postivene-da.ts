@@ -16,12 +16,12 @@
         <translation>Ingen kontakter at tilføje</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Søg i kontakter</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Ingen matcher</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Søg</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>Foto</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>Video</translation>
+        <source>The video could not be saved</source>
+        <translation>Videoen kunne ikke gemmes</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Chats</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Søg i chats</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>Markér som ulæst</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>Søg i chats, kontakter og beskeder</translation>
+        <source>Search</source>
+        <translation>Søg</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>Videresend til</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Søg i chats</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Ingen chats at videresende til</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Søg</translation>
     </message>
 </context>
 <context>
@@ -505,16 +497,16 @@
         <translation>Ny chat</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Søg i kontakter</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Ingen kontakter endnu</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Scan nogens invitation fra chatlisten: QR-kode</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Søg</translation>
     </message>
 </context>
 <context>

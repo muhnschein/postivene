@@ -52,6 +52,10 @@ const PROBE_QML: &str = r"
             var recorder = findIn(loader.item, 'recorder')
             return recorder ? '' + recorder.extension : 'missing:recorder'
         }
+        function format() {
+            var label = findIn(loader.item, 'recordingFormat')
+            return label ? '' + label.text : 'missing:recordingFormat'
+        }
     }
 ";
 
@@ -93,6 +97,7 @@ fn a_machine_that_cannot_record_is_told_so_and_records_nothing() {
         ));
         (*steps_ptr).push(("available", call!("get", QString::from("available"))));
         (*steps_ptr).push(("extension", call!("extension")));
+        (*steps_ptr).push(("format", call!("format")));
         (*steps_ptr).push(("hidden", call!("get", QString::from("visible"))));
         (*steps_ptr).push(("height", call!("get", QString::from("height"))));
         (*steps_ptr).push(("start", call!("start")));
@@ -126,6 +131,11 @@ fn a_machine_that_cannot_record_is_told_so_and_records_nothing() {
         value("extension"),
         "",
         "a recorder with no encoder names an extension. {context}"
+    );
+    assert_eq!(
+        value("format"),
+        "",
+        "a recorder with no encoder describes a format. {context}"
     );
     assert_eq!(
         value("hidden"),

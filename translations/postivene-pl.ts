@@ -16,12 +16,12 @@
         <translation>Brak kontaktów do dodania</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Szukaj kontaktów</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Nikt nie pasuje</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Szukaj</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>Zdjęcie</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>Wideo</translation>
+        <source>The video could not be saved</source>
+        <translation>Nie udało się zapisać filmu</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Czaty</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Szukaj czatów</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>Oznacz jako nieprzeczytane</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>Szukaj w czatach, kontaktach i wiadomościach</translation>
+        <source>Search</source>
+        <translation>Szukaj</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>Przekaż do</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Szukaj czatów</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Brak czatów, do których można przekazać</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Szukaj</translation>
     </message>
 </context>
 <context>
@@ -507,16 +499,16 @@
         <translation>Nowy czat</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Szukaj kontaktów</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Nie ma jeszcze kontaktów</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Zeskanuj czyjeś zaproszenie z listy czatów: Kod QR</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Szukaj</translation>
     </message>
 </context>
 <context>

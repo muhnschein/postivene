@@ -16,12 +16,12 @@
         <translation>Không có liên hệ nào để thêm</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Tìm liên hệ</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Không ai khớp</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Tìm kiếm</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>Ảnh</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>Video</translation>
+        <source>The video could not be saved</source>
+        <translation>Không thể lưu video</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Trò chuyện</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Tìm cuộc trò chuyện</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>Đánh dấu chưa đọc</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>Tìm trò chuyện, liên hệ và tin nhắn</translation>
+        <source>Search</source>
+        <translation>Tìm kiếm</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>Chuyển tiếp tới</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Tìm cuộc trò chuyện</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Không có cuộc trò chuyện nào để chuyển tiếp tới</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Tìm kiếm</translation>
     </message>
 </context>
 <context>
@@ -503,16 +495,16 @@
         <translation>Cuộc trò chuyện mới</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Tìm liên hệ</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Chưa có liên hệ nào</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Quét lời mời của ai đó từ danh sách trò chuyện: Mã QR</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Tìm kiếm</translation>
     </message>
 </context>
 <context>

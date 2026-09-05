@@ -16,12 +16,12 @@
         <translation>ਸ਼ਾਮਲ ਕਰਨ ਲਈ ਕੋਈ ਸੰਪਰਕ ਨਹੀਂ</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>ਸੰਪਰਕ ਖੋਜੋ</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>ਕੋਈ ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>ਖੋਜੋ</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>ਫੋਟੋ</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>ਵੀਡੀਓ</translation>
+        <source>The video could not be saved</source>
+        <translation>ਵੀਡੀਓ ਸੰਭਾਲਿਆ ਨਹੀਂ ਜਾ ਸਕਿਆ</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>ਚੈਟਾਂ</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>ਚੈਟਾਂ ਖੋਜੋ</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>ਅਣਪੜ੍ਹੀ ਵਜੋਂ ਨਿਸ਼ਾਨ ਲਗਾਓ</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>ਚੈਟਾਂ, ਸੰਪਰਕ ਅਤੇ ਸੁਨੇਹੇ ਖੋਜੋ</translation>
+        <source>Search</source>
+        <translation>ਖੋਜੋ</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>ਇੱਥੇ ਅੱਗੇ ਭੇਜੋ</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>ਚੈਟਾਂ ਖੋਜੋ</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>ਅੱਗੇ ਭੇਜਣ ਲਈ ਕੋਈ ਚੈਟ ਨਹੀਂ</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>ਖੋਜੋ</translation>
     </message>
 </context>
 <context>
@@ -505,16 +497,16 @@
         <translation>ਨਵੀਂ ਚੈਟ</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>ਸੰਪਰਕ ਖੋਜੋ</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>ਹਾਲੇ ਕੋਈ ਸੰਪਰਕ ਨਹੀਂ</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>ਚੈਟ ਸੂਚੀ ਤੋਂ ਕਿਸੇ ਦਾ ਸੱਦਾ ਸਕੈਨ ਕਰੋ: QR ਕੋਡ</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>ਖੋਜੋ</translation>
     </message>
 </context>
 <context>

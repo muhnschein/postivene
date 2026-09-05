@@ -143,11 +143,16 @@ Item {
                  attachment.wantsFullWidth && root.hasFile ? root.maxWidth : 0,
                  Theme.itemSizeSmall))
 
-    // The chips hang half below the bubble, and that half is the row's
-    // to make room for: without it they draw over the next message.
+    // The chips hang below the bubble, and what hangs is the row's to
+    // make room for: without it they draw over the next message.
     height: (root.isInfo ? infoLabel.height : bubble.height)
-            + (reactionRow.visible ? reactionRow.height / 2 : 0)
+            + (reactionRow.visible ? reactionRow.height - root.chipOverlap : 0)
             + 2 * Theme.paddingSmall
+
+    /// How far the chips reach up over the bubble's bottom edge: enough
+    /// to read as hung on it, and no more, since the footer's time sits
+    /// in that corner and the chips went over it at half their height.
+    readonly property real chipOverlap: Theme.paddingSmall
 
     // Where the next part goes: right below the last one that is there,
     // with a gap only when both are.
@@ -410,9 +415,10 @@ Item {
     // Who reacted with what, one chip per emoji, ours lit. Hung off the
     // bubble's bottom corner rather than laid out inside it -- the
     // inside corner, towards the middle of the screen, the way the
-    // reference clients hang theirs: half over the bubble and half
-    // below it, so a reaction reads as something put on the message
-    // rather than a line of it. Laid out by hand rather than in a Row,
+    // reference clients hang theirs: just over the bubble's edge and
+    // mostly below it, so a reaction reads as something put on the
+    // message rather than a line of it, and the time in that corner
+    // stays readable. Laid out by hand rather than in a Row,
     // for the reason at the top of the file: each chip sits after the
     // ones before it, and reads their widths so a chip that grows
     // pushes the rest along. One line, clipped: a message with more
@@ -426,7 +432,7 @@ Item {
         // middle of the screen.
         x: root.isOutgoing ? bubble.x + Theme.paddingMedium
                            : bubble.x + bubble.width - width - Theme.paddingMedium
-        y: bubble.height - height / 2
+        y: bubble.height - root.chipOverlap
         // Never wider than the bubble, which sizes itself to fit the
         // chips where it can.
         width: Math.min(wantedWidth, root.contentWidth)

@@ -16,12 +16,12 @@
         <translation>சேர்க்கக் கூடிய தொடர்புகள் இல்லை</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>தொடர்புகளைத் தேடு</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>யாரும் பொருந்தவில்லை</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>தேடு</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>புகைப்படம்</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>வீடியோ</translation>
+        <source>The video could not be saved</source>
+        <translation>வீடியோவைச் சேமிக்க முடியவில்லை</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>அரட்டைகள்</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>அரட்டைகளைத் தேடு</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>படிக்காததாகக் குறி</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>அரட்டைகள், தொடர்புகள் மற்றும் செய்திகளைத் தேடு</translation>
+        <source>Search</source>
+        <translation>தேடு</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>இதற்கு முன்னனுப்பு</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>அரட்டைகளைத் தேடு</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>முன்னனுப்பக் கூடிய அரட்டைகள் இல்லை</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>தேடு</translation>
     </message>
 </context>
 <context>
@@ -505,16 +497,16 @@
         <translation>புதிய அரட்டை</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>தொடர்புகளைத் தேடு</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>இன்னும் தொடர்புகள் இல்லை</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>அரட்டைப் பட்டியலிலிருந்து ஒருவரின் அழைப்பை ஸ்கேன் செய்யவும்: QR குறியீடு</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>தேடு</translation>
     </message>
 </context>
 <context>

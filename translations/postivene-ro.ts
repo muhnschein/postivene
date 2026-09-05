@@ -16,12 +16,12 @@
         <translation>Niciun contact de adăugat</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Caută contacte</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Nimeni nu se potrivește</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Caută</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>Fotografie</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>Video</translation>
+        <source>The video could not be saved</source>
+        <translation>Videoclipul nu a putut fi salvat</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Conversații</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Caută conversații</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>Marchează ca necitit</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>Caută în conversații, contacte și mesaje</translation>
+        <source>Search</source>
+        <translation>Caută</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>Redirecționează către</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Caută conversații</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Nicio conversație către care să redirecționezi</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Caută</translation>
     </message>
 </context>
 <context>
@@ -507,16 +499,16 @@
         <translation>Conversație nouă</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Caută contacte</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Niciun contact încă</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Scanează invitația cuiva din lista de conversații: Cod QR</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Caută</translation>
     </message>
 </context>
 <context>

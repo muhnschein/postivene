@@ -16,12 +16,12 @@
         <translation>Nincs hozzáadható névjegy</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Névjegyek keresése</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Senki sem felel meg</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Keresés</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>Fotó</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>Videó</translation>
+        <source>The video could not be saved</source>
+        <translation>A videót nem sikerült menteni</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Csevegések</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Csevegések keresése</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>Megjelölés olvasatlanként</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>Keresés a csevegésekben, névjegyekben és üzenetekben</translation>
+        <source>Search</source>
+        <translation>Keresés</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>Továbbítás ide</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Csevegések keresése</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Nincs csevegés, ahová továbbítani lehetne</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Keresés</translation>
     </message>
 </context>
 <context>
@@ -503,16 +495,16 @@
         <translation>Új csevegés</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Névjegyek keresése</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Még nincs névjegy</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Olvassa be valaki meghívóját a csevegéslistából: QR-kód</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Keresés</translation>
     </message>
 </context>
 <context>

@@ -293,11 +293,9 @@ Page {
                 // no way to clear the field and get the list back.
                 visible: !page.archived || chats.count > 0
                          || searchField.text.length > 0
-                // Every search field says what it searches, in the same
-                // shape; this one searches all three kinds and says so.
-                placeholderText: page.archived
-                                 ? qsTr("Search chats")
-                                 : qsTr("Search chats, contacts and messages")
+                // The one word every search field in the app says; what
+                // each searches is what the page it is on shows.
+                placeholderText: qsTr("Search")
                 onTextChanged: searchDebounce.restart()
             }
         }

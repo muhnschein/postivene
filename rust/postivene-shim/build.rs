@@ -8,6 +8,13 @@
 //! and `QT_LIBRARY_PATH` the spec sets.
 
 fn main() {
+    // The C++ compiler's crate names the environment it watches, which
+    // turns off cargo's own rule of re-running on any change in the
+    // package; so the two files with `cpp!` blocks are named here, or a
+    // block added to them is not compiled until the next clean build.
+    println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=src/lib.rs");
+    println!("cargo:rerun-if-changed=src/recorder.rs");
     let Ok(include) = std::env::var("DEP_QT_INCLUDE_PATH") else {
         panic!("qttypes found no Qt; its build script says why above");
     };

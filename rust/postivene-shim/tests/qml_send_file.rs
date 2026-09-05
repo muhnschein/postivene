@@ -74,6 +74,15 @@ const PROBE_QML: &str = r"
             button.open = !button.open
             return '' + button.open
         }
+        // A tap anywhere else while the tray is open lands on the area
+        // the page puts under it, and closes it. Its clicked() carries
+        // the event, and QML refuses to emit it without one.
+        function tapBesideTray() {
+            var area = findIn(loader.item, 'trayDismiss')
+            if (!area) { return 'missing:trayDismiss' }
+            area.clicked(null)
+            return 'ok'
+        }
     }
 ";
 
@@ -148,7 +157,12 @@ fn a_picked_file_shows_above_the_field_and_leaves_with_the_message() {
         probe!("bar-before", "attachmentBar", "visible");
         probe!("send-enabled-before", "sendButton", "enabled");
         probe!("tray-closed", "attachTray", "visible");
+        probe!("dismiss-before", "trayDismiss", "visible");
         (*steps_ptr).push(("tray-open", call!("toggleTray")));
+        probe!("dismiss-armed", "trayDismiss", "visible");
+        (*steps_ptr).push(("tap-beside", call!("tapBesideTray")));
+        probe!("tray-after-tap", "attachTray", "visible");
+        (*steps_ptr).push(("tray-open-again", call!("toggleTray")));
         (*steps_ptr).push(("settle", call!("settle")));
     });
 
@@ -217,6 +231,26 @@ fn assert_outcome(steps: &[(&str, String)], journal: &std::path::Path) {
         value("tray-open"),
         "true",
         "the plus does not open the tray. {context}"
+    );
+    assert_eq!(
+        value("dismiss-before"),
+        "false",
+        "the area that closes the tray is there with the tray closed, and would eat a tap on the conversation. {context}"
+    );
+    assert_eq!(
+        value("dismiss-armed"),
+        "true",
+        "nothing under the open tray takes a tap beside it. {context}"
+    );
+    assert_eq!(
+        value("tray-after-tap"),
+        "false",
+        "a tap beside the open tray does not close it. {context}"
+    );
+    assert_eq!(
+        value("tray-open-again"),
+        "true",
+        "the plus does not open the tray a second time. {context}"
     );
 
     assert_eq!(

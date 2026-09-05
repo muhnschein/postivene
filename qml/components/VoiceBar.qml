@@ -83,7 +83,7 @@ Item {
     }
 
     visible: recorder.recording
-    height: visible ? Math.max(timeLabel.height, cancelButton.height) : 0
+    height: visible ? Math.max(timeLabel.height + formatLabel.height, cancelButton.height) : 0
 
     // The red dot: recording is under way.
     Rectangle {
@@ -116,12 +116,30 @@ Item {
             leftMargin: Theme.paddingMedium
             right: cancelButton.left
             rightMargin: Theme.paddingMedium
-            verticalCenter: parent.verticalCenter
+            bottom: parent.verticalCenter
         }
         truncationMode: TruncationMode.Fade
         color: Theme.primaryColor
         //: Shown while a voice message records. %1 is the time so far, such as "0:07".
         text: qsTr("Recording %1").arg(root.clock(recorder.duration_ms))
+    }
+
+    // What is recording, in the platform's own words: the codec, the
+    // container and the input. Small, and there so that a recording that
+    // comes out wrong can be described without a debugger.
+    Label {
+        id: formatLabel
+        objectName: "recordingFormat"
+        anchors {
+            left: timeLabel.left
+            right: timeLabel.right
+            top: parent.verticalCenter
+        }
+        truncationMode: TruncationMode.Fade
+        font.pixelSize: Theme.fontSizeExtraSmall
+        color: Theme.secondaryColor
+        textFormat: Text.PlainText
+        text: recorder.format
     }
 
     IconButton {

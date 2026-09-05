@@ -16,12 +16,12 @@
         <translation>ઉમેરવા માટે કોઈ સંપર્ક નથી</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>સંપર્કો શોધો</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>કોઈ મેળ ખાતું નથી</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>શોધો</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>ફોટો</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>વિડિઓ</translation>
+        <source>The video could not be saved</source>
+        <translation>વિડિઓ સાચવી શકાયો નથી</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>ચેટ</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>ચેટ શોધો</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>ન વાંચેલ તરીકે નિશાન કરો</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>ચેટ, સંપર્કો અને સંદેશા શોધો</translation>
+        <source>Search</source>
+        <translation>શોધો</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>આમાં ફોરવર્ડ કરો</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>ચેટ શોધો</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>ફોરવર્ડ કરવા માટે કોઈ ચેટ નથી</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>શોધો</translation>
     </message>
 </context>
 <context>
@@ -505,16 +497,16 @@
         <translation>નવી ચેટ</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>સંપર્કો શોધો</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>હજી કોઈ સંપર્ક નથી</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>ચેટ સૂચિમાંથી કોઈનું આમંત્રણ સ્કૅન કરો: QR કોડ</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>શોધો</translation>
     </message>
 </context>
 <context>

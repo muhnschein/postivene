@@ -16,12 +16,12 @@
         <translation>Ni stikov za dodajanje</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Išči po stikih</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Nihče ne ustreza</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Išči</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>Fotografija</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>Video</translation>
+        <source>The video could not be saved</source>
+        <translation>Videoposnetka ni bilo mogoče shraniti</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Klepeti</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Išči po klepetih</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>Označi kot neprebrano</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>Išči po klepetih, stikih in sporočilih</translation>
+        <source>Search</source>
+        <translation>Išči</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>Posreduj v</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Išči po klepetih</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Ni klepetov, v katere bi lahko posredovali</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Išči</translation>
     </message>
 </context>
 <context>
@@ -509,16 +501,16 @@
         <translation>Nov klepet</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Išči po stikih</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Ni še stikov</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Skenirajte povabilo nekoga s seznama klepetov: Koda QR</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Išči</translation>
     </message>
 </context>
 <context>

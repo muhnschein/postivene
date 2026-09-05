@@ -16,12 +16,20 @@ import "../components"
  * sent file into its own directory, and the page that sent it discards
  * the capture afterwards.
  *
- * Two modes, switched under the viewfinder the way the QR page switches
- * its two sides: a still, taken with one tap; and a video, started and
- * stopped with the same button, with the time running beside it. The
- * still is written where it is asked to go; the video is written where
- * the recorder decides to put it, which is asked for once the recorder
- * says it has finished writing -- stopping is not the end of the file.
+ * Laid out as the platform's own camera lays itself out: the viewfinder
+ * on black, letterboxed to the sensor's frame rather than stretched to
+ * the screen, and the controls in the black below it -- the two modes
+ * stacked on the left with the current one lit, the shutter in the
+ * middle, the other camera on the right. The time runs over the top of
+ * the viewfinder while a video records.
+ *
+ * A still is written where it is asked to go. A video is written where
+ * the recorder decides to put it, and is not done when it is stopped:
+ * the recorder finalises the file first, and only then is it reported.
+ * The recorder's own state is what the page draws from -- a tap on
+ * record that the pipeline did not take leaves nothing half-armed --
+ * and a stop the recorder ignores is followed by stopping the camera,
+ * which finishes the file the way leaving the page does.
  *
  * The camera runs only while this page is the one on screen, and the
  * page takes itself down once it has something to report: a capture is
@@ -35,17 +43,26 @@ Page {
 
     /// 0 for a still, 1 for a video.
     property int mode: 0
-    /// A video is being recorded.
-    property bool recording: false
+    /// A video is being recorded: the recorder's word, not the page's.
+    readonly property bool recording:
+        camera.videoRecorder.recorderState === page.recordingState
+    /// A recording was asked for and no file has been reported yet.
+    property bool videoWanted: false
+    /// The recorder has been asked to stop, and the file is on its way.
+    property bool stopping: false
     /// Something has been made and reported; nothing more is taken.
     property bool done: false
+    /// Seconds recorded so far, counted here: the recorder's own
+    /// duration stayed at nothing on a device.
+    property int seconds: 0
     property string errorMessage: ""
 
-    /// `CameraRecorder.RecordingState`, and `CameraRecorder.FinalizingStatus`,
+    /// `CameraRecorder.RecordingState` and `CameraRecorder.FinalizingStatus`,
     /// written as their values: the enums live on the type, and the
     /// headless stub that stands in for QtMultimedia cannot declare one
     /// on Qt 5.6. See AttachmentPreview for the same problem.
     readonly property int recordingState: 1
+    readonly property int recordingStatus: 5
     readonly property int finalizingStatus: 7
 
     /// Where the next capture goes.
@@ -58,10 +75,10 @@ Page {
     Camera {
         id: camera
         objectName: "camera"
-        // The still pipeline for a picture and the video one for a
-        // video; switched with the mode, so the viewfinder is the one
-        // the capture will come from.
-        captureMode: page.mode === 0 ? Camera.CaptureStillImage : Camera.CaptureVideo
+        // Set by `setMode`, with the camera stopped, rather than bound:
+        // the pipeline is rebuilt for the other mode, and a recording
+        // asked for while that was under way was taken and not reported.
+        captureMode: Camera.CaptureStillImage
         focus {
             focusMode: Camera.FocusContinuous
             focusPointMode: Camera.FocusPointAuto
@@ -73,12 +90,31 @@ Page {
         }
 
         videoRecorder {
-            // Stopping is asked for; the file is done when the recorder
-            // says so, and that is when it is reported. The status runs
-            // Recording, Finalizing, Loaded; the first Loaded after a
-            // recording is the file.
+            // The status runs Recording, Finalizing, Loaded; the first
+            // Loaded after a stop was asked for is the file. The location
+            // is set as recording starts in the platform's backend, so it
+            // alone says nothing.
             onRecorderStatusChanged: page.checkVideo()
             onRecorderStateChanged: page.checkVideo()
+            onActualLocationChanged: page.checkVideo()
+            // A record the pipeline would not take says why here, and
+            // nowhere else: the state simply stays stopped.
+            onError: page.errorMessage = errorString
+        }
+    }
+
+    /// Switch between a still and a video. Done with the camera stopped,
+    /// which is how the platform's own camera does it.
+    function setMode(index) {
+        if (index === page.mode || page.recording || page.stopping || page.done) {
+            return
+        }
+        camera.stop()
+        page.mode = index
+        camera.captureMode = index === 0 ? Camera.CaptureStillImage
+                                         : Camera.CaptureVideo
+        if (page.status === PageStatus.Active) {
+            camera.start()
         }
     }
 
@@ -93,35 +129,73 @@ Page {
                 camera.imageCapture.captureToLocation(path)
             }
         } else if (page.recording) {
-            camera.videoRecorder.stop()
-        } else {
+            page.stopRecording()
+        } else if (!page.stopping) {
             var target = captures.new_path("video", "mp4")
             if (target.length > 0) {
                 camera.videoRecorder.outputLocation = Qt.resolvedUrl("file://" + target)
+                page.seconds = 0
+                page.videoWanted = true
                 camera.videoRecorder.record()
-                page.recording = true
             }
         }
     }
 
-    /// The recorder has moved: a video that has finished writing is the
-    /// answer.
+    function stopRecording() {
+        page.stopping = true
+        camera.videoRecorder.stop()
+        // A stop the recorder does not act on within a moment is made
+        // good by stopping the camera, which finishes the file: that is
+        // what leaving the page did, and it worked where the button did
+        // not.
+        stopFallback.restart()
+    }
+
+    Timer {
+        id: stopFallback
+        objectName: "stopFallback"
+        interval: 2000
+        onTriggered: {
+            if (page.stopping && !page.done) {
+                camera.stop()
+                giveUp.restart()
+            }
+        }
+    }
+
+    // Nothing came of that either: say so, and let the reader try again
+    // with the camera running.
+    Timer {
+        id: giveUp
+        interval: 3000
+        onTriggered: {
+            if (page.stopping && !page.done) {
+                page.stopping = false
+                page.videoWanted = false
+                page.errorMessage = qsTr("The video could not be saved")
+                if (page.status === PageStatus.Active) {
+                    camera.start()
+                }
+            }
+        }
+    }
+
+    /// The recorder has moved: a video that has finished writing, after
+    /// a stop was asked for, is the answer.
     function checkVideo() {
-        if (!page.recording || page.done) {
+        if (!page.videoWanted || !page.stopping || page.done) {
             return
         }
         var recorder = camera.videoRecorder
         if (recorder.recorderState === page.recordingState
+                || recorder.recorderStatus === page.recordingStatus
                 || recorder.recorderStatus === page.finalizingStatus) {
             return
         }
-        // Stopped and no longer finalising: the file is where the
-        // recorder says it is.
         var where = "" + recorder.actualLocation
         if (where.length === 0) {
             return
         }
-        page.recording = false
         page.report(where.indexOf("file://") === 0 ? where.substring(7) : where)
     }
 
@@ -131,6 +205,8 @@ Page {
             return
         }
         page.done = true
+        stopFallback.stop()
+        giveUp.stop()
         camera.stop()
         page.picked(decodeURIComponent(path))
         // The answer given, the page goes: Silica's own pickers do the
@@ -156,11 +232,19 @@ Page {
         }
     }
 
-    /// m:ss from milliseconds, which is what QtMultimedia reports.
-    function clock(milliseconds) {
-        var total = Math.floor(milliseconds / 1000)
-        var seconds = total % 60
-        return Math.floor(total / 60) + ":" + (seconds < 10 ? "0" : "") + seconds
+    // The clock for a video, counted here.
+    Timer {
+        objectName: "stopwatch"
+        interval: 1000
+        repeat: true
+        running: page.recording
+        onTriggered: page.seconds += 1
+    }
+
+    /// m:ss from seconds.
+    function clock(seconds) {
+        var rest = seconds % 60
+        return Math.floor(seconds / 60) + ":" + (rest < 10 ? "0" : "") + rest
     }
 
     Rectangle {
@@ -168,15 +252,53 @@ Page {
         color: "black"
     }
 
+    // Over the viewfinder's top edge: the time, while a video runs.
+    Item {
+        id: topBar
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+        }
+        height: Theme.itemSizeSmall
+
+        Row {
+            objectName: "recordingIndicator"
+            anchors.centerIn: parent
+            spacing: Theme.paddingMedium
+            visible: page.recording || page.stopping
+
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                width: Theme.paddingMedium
+                height: width
+                radius: width / 2
+                color: Theme.errorColor
+            }
+
+            Label {
+                objectName: "recordingTime"
+                anchors.verticalCenter: parent.verticalCenter
+                color: Theme.primaryColor
+                font.pixelSize: Theme.fontSizeMedium
+                text: page.clock(page.seconds)
+            }
+        }
+    }
+
+    // The sensor's frame, on black, as tall as its shape makes it and
+    // never over the controls.
     VideoOutput {
         id: viewfinder
         objectName: "viewfinder"
-        anchors.fill: parent
+        anchors {
+            top: topBar.bottom
+            left: parent.left
+            right: parent.right
+        }
+        height: Math.min(width * 4 / 3, controls.y - topBar.height)
         source: camera
-        // Filled rather than fitted: a viewfinder with bars is a smaller
-        // viewfinder, and the capture is the sensor's whole frame either
-        // way.
-        fillMode: VideoOutput.PreserveAspectCrop
+        fillMode: VideoOutput.PreserveAspectFit
 
         // Tap to focus on what is under the finger, as the scanner does.
         MouseArea {
@@ -191,48 +313,49 @@ Page {
         }
     }
 
-    // The controls, over the bottom of the viewfinder: the mode switch,
-    // the shutter, and the time while a video runs.
-    Rectangle {
+    // The controls, in the black under the viewfinder.
+    Item {
         id: controls
         anchors {
             left: parent.left
             right: parent.right
             bottom: parent.bottom
         }
-        height: shutter.height + modeRow.height + 3 * Theme.paddingLarge
-        color: Theme.rgba("black", 0.5)
+        height: Theme.itemSizeLarge + 2 * Theme.paddingLarge
 
-        // Which kind, said in words, the way the QR page names its two
-        // sides. Not while a video runs: the pipeline it would switch is
-        // the one recording.
-        Row {
-            id: modeRow
-            objectName: "modeRow"
+        // The two modes, stacked, the current one on a lit disc. Not
+        // while a video runs: the pipeline it would switch is the one
+        // recording.
+        Column {
+            id: modes
+            objectName: "modeColumn"
             anchors {
-                top: parent.top
-                topMargin: Theme.paddingLarge
-                horizontalCenter: parent.horizontalCenter
+                left: parent.left
+                leftMargin: Theme.horizontalPageMargin
+                verticalCenter: parent.verticalCenter
             }
-            spacing: Theme.paddingLarge
-            enabled: !page.recording
+            spacing: Theme.paddingSmall
+            enabled: !page.recording && !page.stopping
 
             Repeater {
-                model: [qsTr("Photo"), qsTr("Video")]
+                model: ["image://theme/icon-m-camera", "image://theme/icon-m-video"]
 
-                MouseArea {
-                    objectName: "modeOption" + index
-                    width: modeLabel.implicitWidth + 2 * Theme.paddingLarge
-                    height: modeLabel.implicitHeight + 2 * Theme.paddingSmall
-                    onClicked: page.mode = index
+                Item {
+                    width: Theme.itemSizeSmall
+                    height: width
 
-                    Label {
-                        id: modeLabel
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: width / 2
+                        visible: page.mode === index
+                        color: Theme.highlightBackgroundColor
+                    }
+
+                    IconButton {
+                        objectName: "modeOption" + index
                         anchors.centerIn: parent
-                        font.pixelSize: Theme.fontSizeSmall
-                        color: page.mode === index ? Theme.highlightColor
-                                                   : Theme.secondaryColor
-                        text: modelData
+                        icon.source: modelData
+                        onClicked: page.setMode(index)
                     }
                 }
             }
@@ -242,11 +365,7 @@ Page {
         Rectangle {
             id: shutter
             objectName: "shutter"
-            anchors {
-                top: modeRow.bottom
-                topMargin: Theme.paddingLarge
-                horizontalCenter: parent.horizontalCenter
-            }
+            anchors.centerIn: parent
             width: Theme.itemSizeMedium
             height: width
             radius: width / 2
@@ -272,30 +391,16 @@ Page {
             }
         }
 
-        // How long the video has run, beside the shutter.
-        Label {
-            objectName: "recordingTime"
-            visible: page.recording
-            anchors {
-                left: shutter.right
-                leftMargin: Theme.paddingLarge
-                verticalCenter: shutter.verticalCenter
-            }
-            color: Theme.primaryColor
-            font.pixelSize: Theme.fontSizeMedium
-            text: page.clock(camera.videoRecorder.duration)
-        }
-
-        // The other camera: the one facing the reader, for a picture of
-        // themselves. Not while a video runs.
+        // The other camera: the one facing the reader. Not while a video
+        // runs.
         IconButton {
             objectName: "flipButton"
             anchors {
                 right: parent.right
                 rightMargin: Theme.horizontalPageMargin
-                verticalCenter: shutter.verticalCenter
+                verticalCenter: parent.verticalCenter
             }
-            enabled: !page.recording
+            enabled: !page.recording && !page.stopping
             icon.source: "image://theme/icon-m-refresh"
             onClicked: camera.position = camera.position === Camera.FrontFace
                                          ? Camera.BackFace : Camera.FrontFace
@@ -305,8 +410,8 @@ Page {
     // The capture is being written: nothing to tap meanwhile.
     BusyIndicator {
         objectName: "writing"
-        anchors.centerIn: parent
-        running: page.done || camera.imageCapture.capturing
+        anchors.centerIn: viewfinder
+        running: page.done || page.stopping || camera.imageCapture.capturing
         size: BusyIndicatorSize.Large
     }
 

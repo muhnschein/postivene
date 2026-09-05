@@ -96,6 +96,9 @@ Page {
             // is exactly when the debounce below has not fired yet, and
             // that was the whole complaint.
             page.storeDraft()
+            // A tray left open under a picker is open again on the way
+            // back, over the file just picked.
+            attachButton.close()
         } else if (page.status === PageStatus.Active) {
             listView.restorePlace()
             page.attachInfo()
@@ -469,15 +472,19 @@ Page {
         onDismissed: notice.text = ""
     }
 
-    // What the send button does: the text and the file when there is
-    // either, and a voice message otherwise. The microphone stands where
-    // send does because it is what send means for an empty field, the
-    // way the other clients have it -- and a tap on it turns the row
-    // into the recording strip, where the same button sends.
+    /// The text and the file: what send has to send.
     readonly property bool hasSomethingToSend:
         textField.text.trim().length > 0 || page.attachmentPath.length > 0
-    readonly property bool offersVoice:
-        voiceBar.available && !page.hasSomethingToSend
+
+    // A tap anywhere but the tray closes the tray: over everything
+    // declared above -- the list, the bars -- and under the input row,
+    // which is declared after it. Silica's own menus close the same way.
+    MouseArea {
+        objectName: "trayDismiss"
+        anchors.fill: parent
+        visible: attachButton.open
+        onClicked: attachButton.close()
+    }
 
     Row {
         id: inputRow
@@ -522,38 +529,35 @@ Page {
             // closed and reopened, and so the chat list can say which
             // chats are holding one.
             onTextChanged: draftDebounce.restart()
+            // Typing is not a tap on the tray either.
+            onActiveFocusChanged: if (activeFocus) attachButton.close()
         }
 
         AttachButton {
             id: attachButton
             objectName: "attachButton"
             visible: !voiceBar.recording
+            voiceAvailable: voiceBar.available
             onCameraRequested: page.pickWith("CapturePage.qml")
-            onPhotoRequested: page.pickWith("AttachPhotoPage.qml")
-            onVideoRequested: page.pickWith("AttachVideoPage.qml")
-            onAudioRequested: page.pickWith("AttachAudioPage.qml")
+            onLibraryRequested: page.pickWith("AttachLibraryPage.qml")
             onFileRequested: page.pickWith("AttachFilePage.qml")
+            onVoiceRequested: voiceBar.start()
         }
 
         IconButton {
             id: sendButton
             objectName: "sendButton"
             // Hidden rather than greyed while a send is in flight: the
-            // indicator takes its place, so the row keeps its shape. The
-            // microphone when there is nothing to send but a voice.
-            icon.source: messages.sending ? ""
-                         : page.offersVoice && !voiceBar.recording
-                           ? "image://theme/icon-m-mic"
-                           : "image://theme/icon-m-send"
+            // indicator takes its place, so the row keeps its shape.
+            icon.source: messages.sending ? "" : "image://theme/icon-m-send"
             // A file on its own is a message; an empty field with nothing
-            // attached is not, and neither is one holding only spaces --
-            // unless the button is the microphone, which a tap starts.
-            // And nothing is sendable twice: copying a large video into
-            // the core's blob directory takes long enough for a second
-            // tap to land, and that sent the whole thing again.
+            // attached is not, and neither is one holding only spaces. A
+            // recording under way is what send stops and sends. And
+            // nothing is sendable twice: copying a large video into the
+            // core's blob directory takes long enough for a second tap to
+            // land, and that sent the whole thing again.
             enabled: !messages.sending
-                     && (page.hasSomethingToSend || page.offersVoice
-                         || voiceBar.recording)
+                     && (page.hasSomethingToSend || voiceBar.recording)
             onClicked: page.sendCurrentText()
 
             BusyIndicator {
@@ -597,14 +601,9 @@ Page {
         if (messages.sending) {
             return
         }
-        // A recording under way is what the button sends; the microphone
-        // starts one.
+        // A recording under way is what the button sends.
         if (voiceBar.recording) {
             voiceBar.send()
-            return
-        }
-        if (page.offersVoice) {
-            voiceBar.start()
             return
         }
         // The bars are cleared from `onSent`, with the model's own copy:

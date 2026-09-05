@@ -10,30 +10,36 @@ import Sailfish.Silica 1.0
  * one-handed reach right -- the choices appear directly under the thumb
  * that opened them.
  *
- * Five choices: the camera, and one per library the sandbox grants --
- * the gallery, the video library, the music library, and the file system
- * for everything else. The media ones are not redundant with the file
- * picker -- they browse the index rather than the filesystem, which is
- * how anyone actually finds a photo taken last Tuesday. The camera is at
- * the top, nearest the thumb: a picture taken now is the commonest thing
- * to send. A voice message is not here: it is the microphone where the
- * send button is, on the page.
+ * Four choices, nearest the thumb first: the camera, for a picture or a
+ * video taken now; the library, which is the platform's own picker over
+ * everything the phone has indexed -- pictures, videos, music, documents
+ * -- rather than one entry per kind; the file system, for anything the
+ * index does not know; and the microphone, for a voice message, offered
+ * only where something can record one.
  *
  * Nothing is opened here. The page that owns the pageStack pushes the
- * pickers, the way ConversationPage already handles forwarding -- which
- * keeps this component loadable, and testable, on its own.
+ * pickers and starts the recording, the way ConversationPage already
+ * handles forwarding -- which keeps this component loadable, and
+ * testable, on its own. The page also closes the tray: a tap anywhere
+ * else on it is a tap that did not mean the tray.
  */
 Item {
     id: root
 
     /// Whether the tray is showing.
     property bool open: false
+    /// Whether a voice message can be recorded here. Without it the
+    /// microphone is not offered at all.
+    property bool voiceAvailable: false
     /// A picture or a video, taken now.
     signal cameraRequested()
-    signal photoRequested()
-    signal videoRequested()
-    signal audioRequested()
+    /// Something the phone has indexed: a picture, a video, a song, a
+    /// document.
+    signal libraryRequested()
+    /// Anything else, from the file system.
     signal fileRequested()
+    /// A voice message, recorded now.
+    signal voiceRequested()
 
     function close() {
         root.open = false
@@ -94,29 +100,11 @@ Item {
             }
 
             IconButton {
-                objectName: "attachPhoto"
+                objectName: "attachLibrary"
                 icon.source: "image://theme/icon-m-image"
                 onClicked: {
                     root.close()
-                    root.photoRequested()
-                }
-            }
-
-            IconButton {
-                objectName: "attachVideo"
-                icon.source: "image://theme/icon-m-video"
-                onClicked: {
-                    root.close()
-                    root.videoRequested()
-                }
-            }
-
-            IconButton {
-                objectName: "attachAudio"
-                icon.source: "image://theme/icon-m-music"
-                onClicked: {
-                    root.close()
-                    root.audioRequested()
+                    root.libraryRequested()
                 }
             }
 
@@ -126,6 +114,16 @@ Item {
                 onClicked: {
                     root.close()
                     root.fileRequested()
+                }
+            }
+
+            IconButton {
+                objectName: "attachVoice"
+                visible: root.voiceAvailable
+                icon.source: "image://theme/icon-m-mic"
+                onClicked: {
+                    root.close()
+                    root.voiceRequested()
                 }
             }
         }

@@ -16,12 +16,12 @@
         <translation>Žádné kontakty k přidání</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Hledat v kontaktech</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Nikdo nevyhovuje</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Hledat</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>Fotka</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>Video</translation>
+        <source>The video could not be saved</source>
+        <translation>Video se nepodařilo uložit</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Chaty</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Hledat v chatech</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>Označit jako nepřečtené</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>Hledat v chatech, kontaktech a zprávách</translation>
+        <source>Search</source>
+        <translation>Hledat</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>Přeposlat do</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Hledat v chatech</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Žádné chaty k přeposlání</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Hledat</translation>
     </message>
 </context>
 <context>
@@ -507,16 +499,16 @@
         <translation>Nový chat</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Hledat v kontaktech</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Zatím žádné kontakty</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Naskenujte něčí pozvánku ze seznamu chatů: QR kód</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Hledat</translation>
     </message>
 </context>
 <context>

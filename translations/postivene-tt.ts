@@ -16,12 +16,12 @@
         <translation>Өстәр өчен контактлар юк</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Контактларда эзләү</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Беркем дә туры килми</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Эзләү</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>Фото</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>Видео</translation>
+        <source>The video could not be saved</source>
+        <translation>Видеоны саклап булмады</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Чатлар</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Чатларда эзләү</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>Укылмаган дип билгеләргә</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>Чатларда, контактларда һәм хәбәрләрдә эзләү</translation>
+        <source>Search</source>
+        <translation>Эзләү</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>Кая җибәрергә</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Чатларда эзләү</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Җибәрер өчен чатлар юк</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Эзләү</translation>
     </message>
 </context>
 <context>
@@ -503,16 +495,16 @@
         <translation>Яңа чат</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Контактларда эзләү</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Контактлар әлегә юк</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Кемнеңдер чакыруын чатлар исемлегеннән сканерлагыз: QR-код</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Эзләү</translation>
     </message>
 </context>
 <context>

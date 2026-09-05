@@ -16,12 +16,12 @@
         <translation>Няма контакти за добавяне</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Търсене в контактите</translation>
-    </message>
-    <message>
         <source>Nobody matches</source>
         <translation>Никой не отговаря на търсенето</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Търсене</translation>
     </message>
 </context>
 <context>
@@ -74,12 +74,8 @@
 <context>
     <name>CapturePage</name>
     <message>
-        <source>Photo</source>
-        <translation>Снимка</translation>
-    </message>
-    <message>
-        <source>Video</source>
-        <translation>Видео</translation>
+        <source>The video could not be saved</source>
+        <translation>Видеото не можа да бъде запазено</translation>
     </message>
 </context>
 <context>
@@ -111,10 +107,6 @@
     <message>
         <source>Chats</source>
         <translation>Чатове</translation>
-    </message>
-    <message>
-        <source>Search chats</source>
-        <translation>Търсене в чатовете</translation>
     </message>
     <message>
         <source>Pinned</source>
@@ -197,8 +189,8 @@
         <translation>Отбелязване като непрочетено</translation>
     </message>
     <message>
-        <source>Search chats, contacts and messages</source>
-        <translation>Търсене в чатове, контакти и съобщения</translation>
+        <source>Search</source>
+        <translation>Търсене</translation>
     </message>
 </context>
 <context>
@@ -208,12 +200,12 @@
         <translation>Препращане към</translation>
     </message>
     <message>
-        <source>Search chats</source>
-        <translation>Търсене в чатовете</translation>
-    </message>
-    <message>
         <source>No chats to forward to</source>
         <translation>Няма чатове, към които да се препрати</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Търсене</translation>
     </message>
 </context>
 <context>
@@ -505,16 +497,16 @@
         <translation>Нов чат</translation>
     </message>
     <message>
-        <source>Search contacts</source>
-        <translation>Търсене в контактите</translation>
-    </message>
-    <message>
         <source>No contacts yet</source>
         <translation>Все още няма контакти</translation>
     </message>
     <message>
         <source>Scan someone&apos;s invite from the chat list: QR code</source>
         <translation>Сканирайте нечия покана от списъка с чатове: QR код</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Търсене</translation>
     </message>
 </context>
 <context>

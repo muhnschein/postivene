@@ -118,7 +118,7 @@ through the real validator.
   needed `Pictures` *and* `MediaIndexing`.
 - Whether the `Sailfish.Pickers`, `QtMultimedia`, `QtSensors` and `Nemo.Thumbnailer`
   types the conversation uses exist and behave on the target release.
-  Harbour's own `allowed_qmlimports.conf` permits all three, which settles
+  Harbour's own `allowed_qmlimports.conf` permits all four, which settles
   whether they may be used and says nothing about whether they work. The
   pickers are one page each so that a missing type costs one button
   (`qml/pages/Attach*Page.qml`); the media types are stubbed for tests in

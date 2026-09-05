@@ -76,6 +76,10 @@ Item {
                                     || root.viewType === "Sticker"
     readonly property bool isAnimated: root.viewType === "Gif"
     readonly property bool isVideo: root.viewType === "Video"
+    /// Height over width for a video: its own, within reason, or 16:9.
+    readonly property real videoAspect:
+        root.imageWidth > 0 && root.imageHeight > 0
+        ? Math.min(root.imageHeight / root.imageWidth, 16 / 9) : 9 / 16
     readonly property bool isSound: root.viewType === "Audio"
                                     || root.viewType === "Voice"
     readonly property bool isCard: root.viewType === "Vcard"
@@ -301,9 +305,11 @@ Item {
         visible: root.isVideo && root.hasFile
         y: 0
         width: visible ? root.contentWidth : 0
-        // 16:9, because the thumbnailer crops to whatever it is given and
-        // the core does not report video dimensions.
-        height: visible ? Math.round(width * 9 / 16) : 0
+        // The video's own shape where it is known -- what the sender
+        // wrote in, or the file's track header read by the model -- so a
+        // video taken upright stands upright; 16:9 where it is not. The
+        // thumbnailer crops to whatever it is given.
+        height: visible ? Math.round(width * root.videoAspect) : 0
 
         Rectangle {
             anchors.fill: parent

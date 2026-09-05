@@ -136,6 +136,9 @@ CoverBackground {
             margins: Theme.paddingLarge
             rightMargin: Theme.paddingMedium
         }
+        // The two lines are one heading: closer than their own leading
+        // would put them.
+        spacing: -Theme.paddingSmall
 
         // Wrapped rather than faded: a cover is narrow, and the word
         // for "Messages" is a long one in several of the languages the
@@ -198,7 +201,7 @@ CoverBackground {
             left: parent.left
             right: parent.right
             bottom: parent.bottom
-            topMargin: Theme.paddingMedium
+            topMargin: Theme.paddingLarge
         }
         clip: true
 

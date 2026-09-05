@@ -155,10 +155,6 @@ pub struct VoiceRecorder {
     /// The extension a recording will have, from the codec chosen:
     /// `ogg`, `m4a` or `wav`. Empty when nothing can be recorded.
     pub extension: qt_property!(QString; READ extension_name),
-    /// What is recording, for the reader to see under the time: the
-    /// codec, the container and the audio input, as `GStreamer` names
-    /// them. Empty when nothing can be recorded.
-    pub format: qt_property!(QString; READ format_name),
 
     /// True from `start` until the recording is reported or dropped.
     pub recording: qt_property!(bool; NOTIFY recording_changed),
@@ -194,9 +190,6 @@ pub struct VoiceRecorder {
     finishing: bool,
     /// Cached from the recorder, so QML's bindings need not ask C++.
     chosen: Option<Format>,
-    /// The audio input the recorder was told to use; empty for its own
-    /// default.
-    input: String,
     probed: bool,
 }
 
@@ -213,23 +206,6 @@ impl VoiceRecorder {
         self.chosen
             .as_ref()
             .map_or_else(QString::default, |format| QString::from(format.extension))
-    }
-
-    /// The codec, container and input in use, for the reader to see.
-    pub fn format_name(&mut self) -> QString {
-        self.probe();
-        let Some(format) = &self.chosen else {
-            return QString::default();
-        };
-        let input = if self.input.is_empty() {
-            "default input"
-        } else {
-            self.input.as_str()
-        };
-        QString::from(format!(
-            "{} \u{b7} {} \u{b7} {input}",
-            format.codec, format.container
-        ))
     }
 
     /// Make the recorder if it is not there yet, and find out what it
@@ -250,7 +226,6 @@ impl VoiceRecorder {
         let default = read_default_input(handle);
         if let Some(input) = choose_input(&inputs, &default) {
             set_input(handle, &input);
-            self.input = input;
         }
     }
 

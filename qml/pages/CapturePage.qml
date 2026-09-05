@@ -370,7 +370,10 @@ Page {
             right: parent.right
             bottom: parent.bottom
         }
-        height: Theme.itemSizeLarge + 2 * Theme.paddingLarge
+        // Tall enough for the two stacked modes with a margin, which
+        // the shutter's own size is not: the lower mode sat on the
+        // screen's edge.
+        height: modes.height + 2 * Theme.paddingLarge
 
         // The two modes, stacked, the current one on a lit disc. Not
         // while a video runs: the pipeline it would switch is the one

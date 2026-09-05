@@ -7,4 +7,5 @@ import QtQuick 2.0
 Item {
     property var source
     property var fillMode
+    property bool autoOrientation: false
 }

@@ -98,6 +98,7 @@ const PROBE_QML: &str = r"
         function ignoreStops() { camera().videoRecorder.stopsOnRequest = false; return 'ok' }
         function recorderState() { return '' + camera().videoRecorder.recorderState }
         function pickedPath() { return picked }
+        function shutterIcon() { return loader.item.shutterIcon }
         function leave() { loader.item.status = PageStatus.Deactivating; return 'ok' }
         // The phone is turned: the sensor reports it, and the page writes
         // the turn into the next capture.
@@ -170,6 +171,7 @@ fn a_still_and_a_video_are_reported_once_written_and_the_page_leaves() {
         // runs from the start.
         record!("running", call!("running"));
         probe!("mode", "modeColumn", "enabled");
+        record!("still-face", call!("shutterIcon"));
         // Held upright, the sensor's landscape frame needs a quarter turn;
         // on its left side, none; on its right, a half. The stub's sensor
         // is mounted at 90 degrees, as a phone's back camera is.
@@ -179,7 +181,7 @@ fn a_still_and_a_video_are_reported_once_written_and_the_page_leaves() {
         record!("turn-upside-down", call!("turn", 2));
         // Face down says nothing about the turn: the last one stays.
         record!("turn-face-down", call!("turn", 6));
-        record!("shutter", call!("click", QString::from("shutterTap")));
+        record!("shutter", call!("tap", QString::from("shutter")));
         record!("still-asked", call!("requestedStill"));
         // Nothing reported until the file is on disk.
         record!("still-early", call!("pickedPath"));
@@ -201,14 +203,14 @@ fn a_still_and_a_video_are_reported_once_written_and_the_page_leaves() {
         // is running again afterwards.
         record!("video-mode", call!("tap", QString::from("modeOption1")));
         record!("running-in-video-mode", call!("running"));
-        record!("record", call!("click", QString::from("shutterTap")));
+        record!("record", call!("tap", QString::from("shutter")));
         // What the page shows is the recorder's state, not its own.
-        probe!("recording", "shutter", "color");
+        record!("recording", call!("shutterIcon"));
         probe!("time-shown", "recordingIndicator", "visible");
         record!("video-asked", call!("requestedVideo"));
         // The mode cannot be switched under a running recording.
         probe!("mode-locked", "modeColumn", "enabled");
-        record!("stop", call!("click", QString::from("shutterTap")));
+        record!("stop", call!("tap", QString::from("shutter")));
         record!("stopped-state", call!("recorderState"));
         // Stopped is not finished: nothing is reported yet.
         record!("video-early", call!("pickedPath"));
@@ -229,11 +231,8 @@ fn a_still_and_a_video_are_reported_once_written_and_the_page_leaves() {
         );
         record!("ignore-stops", call!("ignoreStops"));
         record!("stubborn-mode", call!("tap", QString::from("modeOption1")));
-        record!(
-            "stubborn-record",
-            call!("click", QString::from("shutterTap"))
-        );
-        record!("stubborn-stop", call!("click", QString::from("shutterTap")));
+        record!("stubborn-record", call!("tap", QString::from("shutter")));
+        record!("stubborn-stop", call!("tap", QString::from("shutter")));
         record!("stubborn-state", call!("recorderState"));
         probe!("stubborn-busy", "writing", "running");
         record!("stubborn-early", call!("pickedPath"));
@@ -338,10 +337,13 @@ fn a_still_and_a_video_are_reported_once_written_and_the_page_leaves() {
             && video.rsplit('.').next() == Some("mp4"),
         "the video was not asked for in the captures directory as a video: {video:?}. {context}"
     );
-    assert_ne!(
-        value("recording"),
-        "",
-        "the shutter has no colour while a video records. {context}"
+    assert!(
+        value("still-face").ends_with("icon-camera-shutter"),
+        "the shutter does not wear the platform's own face for a picture. {context}"
+    );
+    assert!(
+        value("recording").ends_with("icon-camera-video-shutter-off"),
+        "the shutter does not show a stop while a video records. {context}"
     );
     assert_eq!(
         value("time-shown"),

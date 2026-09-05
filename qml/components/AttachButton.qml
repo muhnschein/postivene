@@ -10,12 +10,11 @@ import Sailfish.Silica 1.0
  * one-handed reach right -- the choices appear directly under the thumb
  * that opened them.
  *
- * Four choices, nearest the thumb first: the camera, for a picture or a
- * video taken now; the library, which is the platform's own picker over
- * everything the phone has indexed -- pictures, videos, music, documents
- * -- rather than one entry per kind; the file system, for anything the
- * index does not know; and the microphone, for a voice message, offered
- * only where something can record one.
+ * Three choices, nearest the thumb first: the camera, for a picture or
+ * a video taken now; the paper clip, which is the platform's own picker
+ * over everything the phone has indexed -- pictures, videos, music,
+ * documents -- rather than one entry per kind; and the microphone, for
+ * a voice message, offered only where something can record one.
  *
  * Nothing is opened here. The page that owns the pageStack pushes the
  * pickers and starts the recording, the way ConversationPage already
@@ -36,8 +35,6 @@ Item {
     /// Something the phone has indexed: a picture, a video, a song, a
     /// document.
     signal libraryRequested()
-    /// Anything else, from the file system.
-    signal fileRequested()
     /// A voice message, recorded now.
     signal voiceRequested()
 
@@ -101,19 +98,10 @@ Item {
 
             IconButton {
                 objectName: "attachLibrary"
-                icon.source: "image://theme/icon-m-image"
-                onClicked: {
-                    root.close()
-                    root.libraryRequested()
-                }
-            }
-
-            IconButton {
-                objectName: "attachFile"
                 icon.source: "image://theme/icon-m-attach"
                 onClicked: {
                     root.close()
-                    root.fileRequested()
+                    root.libraryRequested()
                 }
             }
 

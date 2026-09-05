@@ -391,10 +391,12 @@ Page {
         }
     }
 
-    // Only up when the reader has scrolled away from the newest message.
+    // Only up when the reader has scrolled away from the newest message
+    // and something has arrived below them meanwhile: a reader browsing
+    // the history knows where the end is.
     JumpButton {
         objectName: "jumpButton"
-        visible: !listView.stickToBottom
+        visible: !listView.stickToBottom && listView.missedCount > 0
         count: listView.missedCount
         anchors {
             right: parent.right
@@ -495,6 +497,9 @@ Page {
             // same on this side the send button sits nearer the edge.
             rightMargin: Theme.horizontalPageMargin
             bottom: parent.bottom
+            // The field carries room below its text; the recording strip
+            // does not, and sat on the screen's edge without this.
+            bottomMargin: voiceBar.recording ? Theme.paddingLarge : 0
         }
         spacing: Theme.paddingSmall
 
@@ -540,7 +545,6 @@ Page {
             voiceAvailable: voiceBar.available
             onCameraRequested: page.pickWith("CapturePage.qml")
             onLibraryRequested: page.pickWith("AttachLibraryPage.qml")
-            onFileRequested: page.pickWith("AttachFilePage.qml")
             onVoiceRequested: voiceBar.start()
         }
 

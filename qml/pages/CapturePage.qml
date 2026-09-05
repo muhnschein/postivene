@@ -72,6 +72,13 @@ Page {
     readonly property int recordingStatus: 5
     readonly property int finalizingStatus: 7
 
+    /// The shutter's face: the platform's own, a ring for a picture, a
+    /// red dot to start a video and a square to stop it.
+    readonly property string shutterIcon:
+        page.mode === 0 ? "image://theme/icon-camera-shutter"
+                        : page.recording ? "image://theme/icon-camera-video-shutter-off"
+                                         : "image://theme/icon-camera-video-shutter-on"
+
     /// How far the phone is turned from upright, clockwise: 0, 90, 180
     /// or 270. From the orientation sensor, which the platform's camera
     /// reads too; the page itself stays put, as that camera does.
@@ -380,7 +387,7 @@ Page {
             enabled: !page.recording && !page.stopping
 
             Repeater {
-                model: ["image://theme/icon-m-camera", "image://theme/icon-m-video"]
+                model: ["image://theme/icon-camera-camera-mode", "image://theme/icon-camera-video"]
 
                 Item {
                     width: Theme.itemSizeSmall
@@ -403,34 +410,14 @@ Page {
             }
         }
 
-        // The shutter: a disc, red while a video runs.
-        Rectangle {
+        // The shutter, in the platform's own drawing.
+        IconButton {
             id: shutter
             objectName: "shutter"
             anchors.centerIn: parent
-            width: Theme.itemSizeMedium
-            height: width
-            radius: width / 2
-            color: page.recording ? Theme.errorColor : Theme.primaryColor
-            border.width: Theme.paddingSmall
-            border.color: Theme.rgba(Theme.primaryColor, 0.5)
-
-            // A square while recording, the way a stop button is drawn.
-            Rectangle {
-                anchors.centerIn: parent
-                visible: page.recording
-                width: parent.width / 3
-                height: width
-                radius: Theme.paddingSmall / 2
-                color: Theme.primaryColor
-            }
-
-            MouseArea {
-                objectName: "shutterTap"
-                anchors.fill: parent
-                enabled: !page.done
-                onClicked: page.shutter()
-            }
+            enabled: !page.done
+            icon.source: page.shutterIcon
+            onClicked: page.shutter()
         }
 
         // The other camera: the one facing the reader. Not while a video
@@ -443,7 +430,7 @@ Page {
                 verticalCenter: parent.verticalCenter
             }
             enabled: !page.recording && !page.stopping
-            icon.source: "image://theme/icon-m-refresh"
+            icon.source: "image://theme/icon-camera-switch"
             onClicked: camera.position = camera.position === Camera.FrontFace
                                          ? Camera.BackFace : Camera.FrontFace
         }

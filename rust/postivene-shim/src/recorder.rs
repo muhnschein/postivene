@@ -9,9 +9,10 @@
 //! enough to be checked by reading.
 //!
 //! What is recorded goes through `GStreamer` on a device, in whatever
-//! codec and container it offers: AAC in MP4 where it can, which is what
-//! the Android client records and what every client plays, Opus in Ogg
-//! after that, and down the list from there. The file lands
+//! codec and container it offers, in the order every client can play:
+//! AAC, which the phone clients record, then MP3 and FLAC, and only
+//! then Opus or Vorbis in Ogg, which the iOS client shows as a file
+//! rather than a voice message (`CODECS` says more). The file lands
 //! in the captures directory (`capture.rs`) and is sent as a voice
 //! message -- the core's `Voice` view type, which is what draws it as one
 //! at the other end rather than as a music file.
@@ -43,37 +44,69 @@ cpp! {{
     #include <QtMultimedia/QMediaRecorder>
 }}
 
-/// The codecs worth recording a voice message in, best first, each with
-/// the container that carries it and the extension that names it. What
-/// `GStreamer` calls them: a codec is matched by whether its name contains
-/// the word, since the exact strings vary between releases.
-const CODECS: [(&str, &str, &str); 5] = [
-    // AAC, which GStreamer names as MPEG-4 audio: what the Android
-    // client records (`voice.m4a`) and the one format every client,
-    // iOS included, plays. Matched on the version, since MP3 is
+/// A codec and container to record in, and what the file is then.
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct Format {
+    /// The codec, as the recorder names it.
+    codec: String,
+    /// The container, as the recorder names it.
+    container: String,
+    /// The extension that names the file, which is what the other end
+    /// goes by.
+    extension: &'static str,
+    /// Samples per second to ask for, or 0 for the backend's default.
+    sample_rate: i32,
+}
+
+/// The codecs worth recording a voice message in, best first: the words
+/// that pick one out of the recorder's list (any of them), the word that
+/// picks its container, the extension, and the sample rate.
+///
+/// What the recorder calls them varies: Qt's capture plugin names a
+/// codec `audio/opus` or `audio/FLAC` and a container `ogg` or `raw`,
+/// and a build that reads `GStreamer`'s own names says `audio/x-opus`
+/// and `application/ogg`. So a name is matched on whether it contains
+/// the word, in lower case.
+///
+/// The order is what plays at the other end. Every Delta Chat client
+/// plays AAC and MP3; iOS plays FLAC but shows Ogg -- Opus or Vorbis --
+/// as a file rather than a voice message, so those come after it, and
+/// WAV is the last resort of a phone with no encoder at all.
+const CODECS: [(&[&str], &str, &str, i32); 6] = [
+    // AAC, which GStreamer names as MPEG-4 audio: what the Android and
+    // iOS clients record. Matched on the version, since MP3 is
     // `audio/mpeg` too.
-    ("mpegversion=(int)4", "mp4", "m4a"),
-    // What the desktop client records.
-    ("opus", "ogg", "ogg"),
-    ("vorbis", "ogg", "ogg"),
-    ("flac", "ogg", "ogg"),
+    (&["mpegversion=(int)4", "audio/aac"], "mp4", "m4a", 0),
+    // MP3, as an elementary stream -- a file of MPEG audio frames is an
+    // MP3 file -- which is what the desktop client records.
+    (&["audio/mpeg"], "raw", "mp3", 22050),
+    // FLAC, likewise a stream of its own: lossless, so the voice band's
+    // sample rate keeps it small.
+    (&["flac"], "raw", "flac", 16000),
+    (&["opus"], "ogg", "ogg", 0),
+    (&["vorbis"], "ogg", "ogg", 0),
     // Uncompressed, and large, but a phone with nothing else still
     // records.
-    ("wav", "wav", "wav"),
+    (&["pcm", "x-raw"], "wav", "wav", 16000),
 ];
+
+/// The word that marks AAC among the `audio/mpeg` names: a codec that
+/// carries it is AAC and nothing else.
+const AAC_MARK: &str = "mpegversion=(int)4";
 
 /// Pick a codec and container from what the recorder offers.
 ///
 /// A codec that has no container to go in is skipped, and nothing at
 /// all -- the headless test runner, or a phone with no `GStreamer`
 /// encoders -- is `None`, which the page shows as no microphone button.
-fn choose_format(
-    codecs: &[String],
-    containers: &[String],
-) -> Option<(String, String, &'static str)> {
+fn choose_format(codecs: &[String], containers: &[String]) -> Option<Format> {
     let lower = |name: &String| name.to_ascii_lowercase();
-    for (codec, container, extension) in CODECS {
-        let Some(found_codec) = codecs.iter().find(|name| lower(name).contains(codec)) else {
+    for (words, container, extension, sample_rate) in CODECS {
+        let wants_aac = words.contains(&AAC_MARK);
+        let Some(found_codec) = codecs.iter().find(|name| {
+            let name = lower(name);
+            words.iter().any(|word| name.contains(word)) && (wants_aac || !name.contains(AAC_MARK))
+        }) else {
             continue;
         };
         let Some(found_container) = containers.iter().find(|name| {
@@ -84,7 +117,12 @@ fn choose_format(
         }) else {
             continue;
         };
-        return Some((found_codec.clone(), found_container.clone(), extension));
+        return Some(Format {
+            codec: found_codec.clone(),
+            container: found_container.clone(),
+            extension,
+            sample_rate,
+        });
     }
     None
 }
@@ -155,7 +193,7 @@ pub struct VoiceRecorder {
     /// `stop` has been called and the file is still being finished.
     finishing: bool,
     /// Cached from the recorder, so QML's bindings need not ask C++.
-    chosen: Option<(String, String, &'static str)>,
+    chosen: Option<Format>,
     /// The audio input the recorder was told to use; empty for its own
     /// default.
     input: String,
@@ -174,15 +212,13 @@ impl VoiceRecorder {
         self.probe();
         self.chosen
             .as_ref()
-            .map_or_else(QString::default, |(_, _, extension)| {
-                QString::from(*extension)
-            })
+            .map_or_else(QString::default, |format| QString::from(format.extension))
     }
 
     /// The codec, container and input in use, for the reader to see.
     pub fn format_name(&mut self) -> QString {
         self.probe();
-        let Some((codec, container, _)) = &self.chosen else {
+        let Some(format) = &self.chosen else {
             return QString::default();
         };
         let input = if self.input.is_empty() {
@@ -190,7 +226,10 @@ impl VoiceRecorder {
         } else {
             self.input.as_str()
         };
-        QString::from(format!("{codec} \u{b7} {container} \u{b7} {input}"))
+        QString::from(format!(
+            "{} \u{b7} {} \u{b7} {input}",
+            format.codec, format.container
+        ))
     }
 
     /// Make the recorder if it is not there yet, and find out what it
@@ -241,7 +280,7 @@ impl VoiceRecorder {
             return;
         }
         self.probe();
-        let Some((codec, container, _)) = self.chosen.clone() else {
+        let Some(format) = self.chosen.clone() else {
             self.error(QString::from("nothing here can record sound"));
             return;
         };
@@ -255,19 +294,24 @@ impl VoiceRecorder {
             self.error(QString::from("nothing here can record sound"));
             return;
         }
-        let codec = QString::from(codec);
-        let container = QString::from(container);
+        let codec = QString::from(format.codec);
+        let container = QString::from(format.container);
+        let sample_rate = format.sample_rate;
         let location = QString::from(path.clone());
         let recorder = handle as *mut c_void;
         // SAFETY: `recorder` is the QAudioRecorder this object made and
         // still owns; the three QStrings are owned by this frame and read
         // by value.
         let started = cpp!(unsafe [recorder as "QAudioRecorder*", codec as "QString",
-                                   container as "QString", location as "QString"] -> bool as "bool" {
+                                   container as "QString", sample_rate as "int",
+                                   location as "QString"] -> bool as "bool" {
             QAudioEncoderSettings settings;
             settings.setCodec(codec);
             // One channel: a voice, and half the bytes of two.
             settings.setChannelCount(1);
+            if (sample_rate > 0) {
+                settings.setSampleRate(sample_rate);
+            }
             settings.setEncodingMode(QMultimedia::ConstantQualityEncoding);
             settings.setQuality(QMultimedia::NormalQuality);
             recorder->setEncodingSettings(settings, QVideoEncoderSettings(), container);
@@ -496,47 +540,78 @@ fn read_actual_location(handle: usize) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{choose_format, choose_input};
+    use super::{choose_format, choose_input, Format};
 
     fn names(list: &[&str]) -> Vec<String> {
         list.iter().map(ToString::to_string).collect()
     }
 
+    fn format(codec: &str, container: &str, extension: &'static str, sample_rate: i32) -> Format {
+        Format {
+            codec: codec.into(),
+            container: container.into(),
+            extension,
+            sample_rate,
+        }
+    }
+
     #[test]
-    fn aac_in_mp4_is_chosen_where_it_can_be_and_the_list_walked_otherwise() {
-        // What a Sailfish GStreamer reports, near enough: MP3 too, which
-        // is `audio/mpeg` as well and must not pass for AAC.
+    fn the_list_is_walked_in_the_order_the_other_end_can_play() {
+        // What Qt's capture plugin lists on a Sailfish phone: its own
+        // names, MP3 as plain `audio/mpeg`, and no AAC.
         let codecs = names(&[
+            "audio/mpeg",
+            "audio/vorbis",
+            "audio/opus",
+            "audio/FLAC",
+            "audio/PCM",
+        ]);
+        let containers = names(&["ogg", "wav", "raw", "matroska"]);
+        assert_eq!(
+            choose_format(&codecs, &containers),
+            Some(format("audio/mpeg", "raw", "mp3", 22050))
+        );
+        // No MP3 encoder: FLAC, still a stream of its own.
+        let without_mp3 = names(&["audio/vorbis", "audio/opus", "audio/FLAC", "audio/PCM"]);
+        assert_eq!(
+            choose_format(&without_mp3, &containers),
+            Some(format("audio/FLAC", "raw", "flac", 16000))
+        );
+        // Neither: opus in ogg, which plays everywhere but iOS.
+        let ogg_only = names(&["audio/vorbis", "audio/opus"]);
+        assert_eq!(
+            choose_format(&ogg_only, &containers),
+            Some(format("audio/opus", "ogg", "ogg", 0))
+        );
+        // A build that reads GStreamer's own names: AAC first, matched
+        // on its version, and MP3 -- `audio/mpeg` as well -- not taken
+        // for it.
+        let gst = names(&[
             "audio/mpeg, mpegversion=(int)1, layer=(int)3",
             "audio/x-flac",
-            "audio/x-vorbis",
             "audio/x-opus",
             "audio/mpeg, mpegversion=(int)4, stream-format=(string)raw",
         ]);
-        let containers = names(&[
-            "audio/ogg",
+        let gst_containers = names(&[
+            "application/ogg",
             "video/quicktime, variant=(string)iso",
             "audio/x-wav",
         ]);
         assert_eq!(
-            choose_format(&codecs, &containers),
-            Some((
-                "audio/mpeg, mpegversion=(int)4, stream-format=(string)raw".into(),
-                "video/quicktime, variant=(string)iso".into(),
-                "m4a"
+            choose_format(&gst, &gst_containers),
+            Some(format(
+                "audio/mpeg, mpegversion=(int)4, stream-format=(string)raw",
+                "video/quicktime, variant=(string)iso",
+                "m4a",
+                0
             ))
         );
-        // No AAC: opus, in ogg.
-        let without_aac = names(&["audio/x-vorbis", "audio/x-opus"]);
+        // AAC with no MP4 container is not MP3 in a raw stream either:
+        // it is skipped for the next thing that fits.
+        let no_mp4 = names(&["application/ogg", "audio/x-wav"]);
         assert_eq!(
-            choose_format(&without_aac, &containers),
-            Some(("audio/x-opus".into(), "audio/ogg".into(), "ogg"))
-        );
-        // A codec whose container is missing is skipped for one that fits.
-        let no_mp4 = names(&["audio/ogg", "audio/x-wav"]);
-        assert_eq!(
-            choose_format(&codecs, &no_mp4),
-            Some(("audio/x-opus".into(), "audio/ogg".into(), "ogg"))
+            choose_format(&gst, &no_mp4),
+            Some(format("audio/x-opus", "application/ogg", "ogg", 0))
         );
         // Nothing offered, as headlessly: nothing chosen.
         assert_eq!(choose_format(&[], &containers), None);

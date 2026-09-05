@@ -1,4 +1,4 @@
-//! The three picker pages, loaded on their own.
+//! The two picker pages, loaded on their own.
 //!
 //! They are pages rather than Components inside `ConversationPage`, precisely
 //! so that a `Sailfish.Pickers` type that is not there costs one button
@@ -49,15 +49,14 @@ const PROBE_QML: &str = r"
 
 /// Each picker page, and the file a test hands it. The photo picker is
 /// the profile and group pages' (a picture, and nothing else); the
-/// library picker is the attach tray's, and takes a video as readily as
-/// a picture.
-const PICKERS: [(&str, &str); 3] = [
+/// library picker is the attach tray's paper clip, and takes a document
+/// or a video as readily as a picture.
+const PICKERS: [(&str, &str); 2] = [
     (
         "AttachPhotoPage.qml",
         "/home/user/Pictures/holiday photo.png",
     ),
-    ("AttachLibraryPage.qml", "/home/user/Videos/clip.mp4"),
-    ("AttachFilePage.qml", "/home/user/Documents/report.pdf"),
+    ("AttachLibraryPage.qml", "/home/user/Documents/report.pdf"),
 ];
 
 #[test]

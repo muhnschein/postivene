@@ -1,10 +1,11 @@
 //! The cover, with people in it, across two profiles.
 //!
 //! Two of its three states: the staggered grid of everyone in grey while
-//! nothing is new, and whoever wrote lit up in colour where they stand in
-//! it, with the count, once something is -- counted and drawn across both
-//! profiles the fake core is told to have. The third state -- nobody yet
-//! -- is `qml_cover_empty.rs`, since it takes a core seeded differently.
+//! nothing is new, and whoever wrote lit up in the ambience's own
+//! highlight -- in the cells worth having -- with the count, once
+//! something is; counted and drawn across both profiles the fake core is
+//! told to have. The third state -- nobody yet -- is
+//! `qml_cover_empty.rs`, since it takes a core seeded differently.
 
 // Qt harness: needs `unsafe` for `env::set_var` before Qt starts
 // (`unused_unsafe` because it is only unsafe from edition 2024 on),
@@ -67,9 +68,52 @@ pub const PROBE_QML: &str = r"
             var cells = allIn(loader.item, 'gridCell', [])
             var total = 0
             for (var i = 0; i < cells.length; i++) {
-                if (!cells[i].monochrome) { total += 1 }
+                if (cells[i].highlight) { total += 1 }
             }
             return '' + total
+        }
+        // Anyone drawn in their own colour rather than the phone's:
+        // neither grey nor the ambience's highlight.
+        function ownColoured() {
+            var cells = allIn(loader.item, 'gridCell', [])
+            var total = 0
+            for (var i = 0; i < cells.length; i++) {
+                if (!cells[i].monochrome && !cells[i].highlight) {
+                    total += 1
+                }
+            }
+            return '' + total
+        }
+        // Whether each lit cell is drawn whole inside the grid: the
+        // shifted rows hang off both edges, and the bottom row is cut.
+        function litPlaces() {
+            var cells = allIn(loader.item, 'gridCell', [])
+            var grid = findIn(loader.item, 'avatarGrid')
+            var out = []
+            for (var i = 0; i < cells.length; i++) {
+                if (!cells[i].highlight) { continue }
+                var whole = cells[i].x >= 0
+                            && cells[i].x + cells[i].width <= grid.width
+                            && cells[i].y + cells[i].height <= grid.height
+                out.push(whole ? 'whole' : 'cut')
+            }
+            return out.join(';')
+        }
+        // The worst place a lit face was given against the best a grey
+        // one took, by the cover's own reckoning of a cell.
+        function litOrder() {
+            var cells = loader.item.cells
+            var worstLit = -1
+            var bestQuiet = 1000000
+            for (var i = 0; i < cells.length; i++) {
+                var place = loader.item.prominence(cells[i].row, cells[i].col)
+                if (cells[i].loud) {
+                    worstLit = Math.max(worstLit, place)
+                } else {
+                    bestQuiet = Math.min(bestQuiet, place)
+                }
+            }
+            return worstLit + '|' + bestQuiet
         }
         // The leftmost cell: a shifted row starts half a cell off the edge.
         function leftmost() {
@@ -164,6 +208,7 @@ fn the_cover_draws_everyone_and_lights_whoever_wrote() {
         record!("planned", call!("planned"));
         record!("drawn-quiet", call!("drawn"));
         record!("lit-quiet", call!("lit"));
+        record!("own-quiet", call!("ownColoured"));
         record!("leftmost", call!("leftmost"));
         // Someone writes under each profile.
         record!("mark-first", call!("markUnread", 0, 1));
@@ -175,6 +220,9 @@ fn the_cover_draws_everyone_and_lights_whoever_wrote() {
         record!("drawn-loud", call!("drawn"));
         record!("planned-loud", call!("planned"));
         record!("lit-loud", call!("lit"));
+        record!("own-loud", call!("ownColoured"));
+        record!("lit-places", call!("litPlaces"));
+        record!("lit-order", call!("litOrder"));
         (*engine_ptr).quit();
     });
 
@@ -197,7 +245,7 @@ fn the_cover_draws_everyone_and_lights_whoever_wrote() {
     );
     assert_eq!(
         value("brand"),
-        "Delta",
+        "postivene",
         "the cover does not name the app in its corner. {context}"
     );
     assert_eq!(
@@ -238,7 +286,7 @@ fn the_cover_draws_everyone_and_lights_whoever_wrote() {
     assert_eq!(
         value("lit-quiet"),
         "0",
-        "someone is drawn in colour with nothing unread. {context}"
+        "someone is lit with nothing unread. {context}"
     );
     let leftmost: f64 = value("leftmost").parse().unwrap_or(0.0);
     assert!(
@@ -265,8 +313,39 @@ fn the_cover_draws_everyone_and_lights_whoever_wrote() {
     assert_eq!(
         value("lit-loud"),
         "2",
-        "the two who wrote are not the two drawn in colour, once each, in \
-         the grid. {context}"
+        "the two who wrote are not the two lit, once each, in the grid. \
+         {context}"
+    );
+    // Nobody is ever drawn in their own colour here: a cover belongs to
+    // the phone, so the two who wrote wear the ambience's highlight and
+    // everyone else is grey.
+    for label in ["own-quiet", "own-loud"] {
+        assert_eq!(
+            value(label),
+            "0",
+            "someone on the cover is drawn in their own colour rather \
+             than the ambience's ({label}). {context}"
+        );
+    }
+    assert_eq!(
+        value("lit-places"),
+        "whole;whole",
+        "a lit face was put in a cell the cover only draws part of. \
+         {context}"
+    );
+    let order = value("lit-order");
+    let (worst_lit, best_quiet) = order
+        .split_once('|')
+        .map_or((f64::MAX, 0.0), |(lit, quiet)| {
+            (
+                lit.parse::<f64>().unwrap_or(f64::MAX),
+                quiet.parse::<f64>().unwrap_or(0.0),
+            )
+        });
+    assert!(
+        worst_lit < best_quiet,
+        "a grey face was given a better place than a lit one ({order}). \
+         {context}"
     );
 }
 

@@ -22,9 +22,16 @@ Rectangle {
     /// Path to the picture, empty when there is none.
     property string picturePath
     /// Drawn without its colour: grey behind the initial, the picture
-    /// desaturated. For the cover's grid of everyone, where colour is
-    /// kept for whoever has something new.
+    /// desaturated. For the cover's grid of everyone, where nobody is
+    /// drawn in their own colours.
     property bool monochrome: false
+    /// Drawn in the ambience's own colour instead of the subject's:
+    /// `Theme.highlightColor` behind the initial, the picture through
+    /// the same colour. What the cover does for whoever has written, so
+    /// a face with something new reads as the phone's own highlight --
+    /// the colour the unread badge in the chat list is already drawn in
+    /// -- rather than as one more photograph among grey ones.
+    property bool highlight: false
 
     width: Theme.itemSizeSmall
     height: width
@@ -35,6 +42,7 @@ Rectangle {
     // was not drawn for a frame -- a row highlighted under its context
     // menu was where that was noticed.
     color: avatar.picturePath.length > 0 ? "transparent"
+           : avatar.highlight ? Theme.highlightColor
            : avatar.monochrome ? Theme.rgba(Theme.primaryColor, 0.25)
            : ownColor.length > 0 ? ownColor : Theme.highlightColor
 
@@ -71,9 +79,13 @@ Rectangle {
     }
 
     OpacityMask {
+        id: masked
         objectName: "avatarMasked"
         anchors.fill: parent
-        visible: avatar.picturePath.length > 0
+        // Hidden while it is what the tint below is drawn from: an
+        // effect draws its source itself, and both on screen would be
+        // the same face twice.
+        visible: avatar.picturePath.length > 0 && !avatar.highlight
         source: picture
         maskSource: mask
         // An effect re-runs its shader whenever what it draws is redrawn,
@@ -83,10 +95,25 @@ Rectangle {
         cached: true
         // The colour taken out on the way to the screen, as a layer over
         // the masked picture, so the mask and the desaturation are one
-        // texture rather than two effects drawn over each other.
-        layer.enabled: avatar.monochrome
+        // texture rather than two effects drawn over each other. Taken
+        // out for the tint too: what goes through the highlight colour
+        // is a grey face, not a green one.
+        layer.enabled: avatar.monochrome || avatar.highlight
         layer.effect: Desaturate {
             desaturation: 1.0
         }
+    }
+
+    // The picture in the ambience's colour: the grey masked face with
+    // the highlight over it, rather than the face's own colours. Kept
+    // to a part of the way so the face is still a face -- a full
+    // overlay is a silhouette, which says nothing about who wrote.
+    ColorOverlay {
+        objectName: "avatarTinted"
+        anchors.fill: parent
+        visible: avatar.picturePath.length > 0 && avatar.highlight
+        source: masked
+        color: Theme.rgba(Theme.highlightColor, 0.75)
+        cached: true
     }
 }

@@ -14,7 +14,7 @@ use qmetaobject::*;
 use crate::core::connection;
 use crate::json;
 use crate::models::{MessageListItem, MessageListModel};
-use crate::{links, markdown};
+use crate::{links, markdown, webxdc};
 
 /// `DC_STATE_IN_FRESH` and `DC_STATE_IN_NOTICED`: an incoming message the
 /// account has not read yet.
@@ -643,11 +643,12 @@ impl ChatMessages {
             // model holds may already be wrong in ways no later event will
             // mention. Start again rather than patch.
             "EventChannelOverflow" => self.reload(),
-            // Delivery state only: refresh the one row it names. A
-            // reaction is the same shape of change -- the id list is
-            // untouched, since a reaction is a hidden message, and only the
-            // row it lands on has anything new to show.
-            "MsgDelivered" | "MsgRead" | "MsgFailed" | "ReactionsChanged" => {
+            // Delivery state, a reaction, and what a webxdc says about
+            // itself -- "3 votes", a score -- which is on its row whether
+            // or not anyone has the app open. None of them changes the id
+            // list, and each names the one row that has something new.
+            "MsgDelivered" | "MsgRead" | "MsgFailed" | "ReactionsChanged"
+            | "WebxdcStatusUpdate" => {
                 if let Some(message_id) = json::u32_opt(&payload, "msgId") {
                     self.refresh_one(message_id);
                 }
@@ -1263,23 +1264,34 @@ impl ChatMessages {
                 // location, quoted_message_id. Pinned against the real core by
                 // deltachat-jsonrpc/tests/real_server.rs, which sends one of
                 // each.
-                rpc.call::<_, (u32, serde_json::Value)>(
-                    "misc_send_msg",
-                    (
-                        account_id,
-                        chat_id,
-                        // A caption-only send is a text message; an empty
-                        // string here would be a message whose body is "".
-                        (!text.is_empty()).then_some(text),
-                        path,
-                        name,
-                        Option::<(f64, f64)>::None,
-                        (quoted != 0).then_some(quoted),
-                    ),
-                )
-                .await
-                .map(|(message_id, message)| row_from(message_id, &message))
-                .map_err(|err| err.to_string())
+                let sent = rpc
+                    .call::<_, (u32, serde_json::Value)>(
+                        "misc_send_msg",
+                        (
+                            account_id,
+                            chat_id,
+                            // A caption-only send is a text message; an empty
+                            // string here would be a message whose body is "".
+                            (!text.is_empty()).then_some(text),
+                            path,
+                            name,
+                            Option::<(f64, f64)>::None,
+                            (quoted != 0).then_some(quoted),
+                        ),
+                    )
+                    .await
+                    .map_err(|err| err.to_string());
+                match sent {
+                    Ok((message_id, message)) => {
+                        let mut row = row_from(message_id, &message);
+                        // A .xdc sent from here is an app on its own row
+                        // at once, rather than a file until the chat is
+                        // next opened.
+                        with_webxdc(&rpc, account_id, &mut row).await;
+                        Ok(row)
+                    }
+                    Err(err) => Err(err),
+                }
             };
             done(result);
         });
@@ -1347,7 +1359,7 @@ pub(crate) async fn fetch_messages(
         .call("get_messages", (account_id, ids))
         .await
         .map_err(|err| err.to_string())?;
-    Ok(ids
+    let mut rows: Vec<MessageListItem> = ids
         .iter()
         .filter_map(|id| {
             let message = loaded.get(id)?;
@@ -1358,7 +1370,27 @@ pub(crate) async fn fetch_messages(
             }
             Some(row_from(*id, message))
         })
-        .collect())
+        .collect();
+    for row in &mut rows {
+        with_webxdc(rpc, account_id, row).await;
+    }
+    Ok(rows)
+}
+
+/// Fill in what a webxdc row draws, for the rows that are one.
+///
+/// A second round trip per app, and none at all for every other kind of
+/// message: an app is rare in a chat, and a row that showed only the
+/// file name would be the thing this feature exists to replace.
+async fn with_webxdc(rpc: &RpcClient, account_id: u32, row: &mut MessageListItem) {
+    if row.view_type.to_string() != "Webxdc" {
+        return;
+    }
+    let extras = webxdc::extras(rpc, account_id, row.message_id).await;
+    row.webxdc_name = extras.name.into();
+    row.webxdc_document = extras.document.into();
+    row.webxdc_summary = extras.summary.into();
+    row.webxdc_icon = extras.icon_path.into();
 }
 
 /// Mark the incoming messages among these read: clears their fresh state
@@ -1510,6 +1542,10 @@ fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
         vcard_color: json::text(message, "/vcardContact/color"),
         reactions: reactions_json(message).into(),
         my_reaction: own_reaction(message).into(),
+        // Filled in by `with_webxdc` for the rows that are an app: it
+        // takes another call to the core, and this is the shape of one
+        // message rather than a place to make one.
+        ..MessageListItem::default()
     }
 }
 

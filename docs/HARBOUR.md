@@ -116,12 +116,16 @@ through the real validator.
   does not cover is one the picker can offer and the app cannot open --
   which is why the attach button needs `UserDirs` and the profile picture
   needed `Pictures` *and* `MediaIndexing`.
-- Whether the `Sailfish.Pickers`, `QtMultimedia`, `QtSensors` and `Nemo.Thumbnailer`
-  types the conversation uses exist and behave on the target release.
-  Harbour's own `allowed_qmlimports.conf` permits all four, which settles
+- Whether the `Sailfish.Pickers`, `QtMultimedia`, `QtSensors`,
+  `Nemo.Thumbnailer` and `Sailfish.WebView` types the conversation uses
+  exist and behave on the target release.
+  Harbour's own `allowed_qmlimports.conf` permits all five, which settles
   whether they may be used and says nothing about whether they work. The
   pickers are one page each so that a missing type costs one button
-  (`qml/pages/Attach*Page.qml`); the media types are stubbed for tests in
+  (`qml/pages/Attach*Page.qml`), and `Sailfish.WebView` is named in
+  `WebxdcPage.qml` alone for the same reason: the browser engine is a
+  package of its own, and without it that page breaks rather than the
+  conversation. The media types are stubbed for tests in
   `tests/silica-stubs`, which proves what this app asks of them and
   nothing about what they answer.
 - Everything in the quality bar QA applies by hand — no placeholder
@@ -293,13 +297,18 @@ removed from the store even after approval. Not an option.
    profile picture picker needs both `Pictures` and `MediaIndexing`, the
    attach tray's paper clip needs `UserDirs` for anything outside
    `~/Pictures`, playing a voice message needs `Audio`, recording one --
-   and the sound on a video taken in the app -- needs `Microphone`, and
-   the camera page needs `Camera`. Send one of each kind -- photo, video,
-   sound, document -- and open what arrives at the other end; take a
-   picture, a video and a voice message in the app and send those too.
-   The recorder picks a codec from what GStreamer offers (AAC in MP4
-   first); the microphone button is not shown at all when it finds none,
-   which is the state the headless tests see.
+   and the sound on a video taken in the app -- needs `Microphone`, the
+   camera page needs `Camera`, and running a webxdc app needs `WebView`.
+   Send one of each kind -- photo, video, sound, document -- and open what
+   arrives at the other end; take a picture, a video and a voice message
+   in the app and send those too. The recorder picks a codec from what
+   GStreamer offers (AAC in MP4 first); the microphone button is not shown
+   at all when it finds none, which is the state the headless tests see.
+   A webxdc is the path nothing off-device can vouch for at all: send a
+   .xdc from the tray, open it, and check that it draws, that a move
+   reaches the other end and comes back, that its row shows what the app
+   says about itself, and that leaving the page stops it -- `ss -ltn`
+   should show no loopback port of ours afterwards.
 5. Delete the cache directory while the app runs; confirm nothing breaks.
 6. Kill `deltachat-rpc-server` from a terminal while the app is open. The
    banner should say it is reconnecting and then clear itself, and messages

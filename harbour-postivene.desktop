@@ -41,7 +41,13 @@ Categories=Network;InstantMessaging;
 # up to the phone -- and for a picture or a video taken to send.
 # ScanView.qml and CapturePage.qml are the only files that open it, and
 # only while they are on screen.
+#
+# WebView is for running a webxdc app, which is a small web page somebody
+# sent (WebxdcPage.qml). It is what lets the app use the platform's
+# browser engine; the app itself reaches nothing but the loopback address
+# the shim serves it on, and a content-security-policy keeps it there
+# (webxdc_host.rs).
 [X-Sailjail]
-Permissions=Internet;Pictures;MediaIndexing;UserDirs;Audio;Microphone;Camera
+Permissions=Internet;Pictures;MediaIndexing;UserDirs;Audio;Microphone;Camera;WebView
 OrganizationName=postivene
 ApplicationName=postivene

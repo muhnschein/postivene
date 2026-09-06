@@ -75,6 +75,22 @@ const PROBE_QML: &str = r"
             return found
         }
         function themedIconCount() { return '' + themedIcons(loader.item) }
+        // What the tray reports when one of its choices is taken, and
+        // whether it puts itself away afterwards.
+        property string asked: ''
+        function watchTray() {
+            asked = ''
+            loader.item.appRequested.connect(function () { asked += 'app;' })
+            loader.item.libraryRequested.connect(function () { asked += 'library;' })
+            return 'ok'
+        }
+        function askedSoFar() { return asked }
+        function tap(name) {
+            var item = findIn(loader.item, name)
+            if (!item) { return 'missing:' + name }
+            item.clicked()
+            return 'ok'
+        }
     }
 ";
 
@@ -255,6 +271,23 @@ fn the_reply_bar_wraps_the_jump_button_is_opaque_and_a_notice_is_quiet() {
             "tone-info-colour",
             call!("get", QString::from("errorLabel"), QString::from("color"))
         );
+
+        // The attach tray: four choices, and the one that sends an app
+        // says so and puts the tray away rather than leaving it over the
+        // picker it opens.
+        record!(
+            "tray-load",
+            call!("load", QString::from(component_url("AttachButton.qml")))
+        );
+        record!("tray-watch", call!("watchTray"));
+        call!("set", QString::from("open"), true);
+        record!("tray-open", call!("own", QString::from("open")));
+        record!("tray-tap", call!("tap", QString::from("attachApp")));
+    });
+
+    single_shot(Duration::from_secs(6), move || unsafe {
+        record!("tray-asked", call!("askedSoFar"));
+        record!("tray-closed", call!("own", QString::from("open")));
         (*engine_ptr).quit();
     });
 
@@ -264,6 +297,7 @@ fn the_reply_bar_wraps_the_jump_button_is_opaque_and_a_notice_is_quiet() {
 }
 
 /// Each piece does the one thing it is there for.
+#[allow(clippy::too_many_lines)]
 fn assert_outcome(steps: &[(&str, String)]) {
     let value = |label: &str| {
         steps
@@ -377,5 +411,31 @@ fn assert_outcome(steps: &[(&str, String)]) {
         "a confirmation is dressed as a failure: switching tone left the \
          colour where it was ({}). {context}",
         value("tone-info-colour")
+    );
+
+    assert_eq!(
+        value("tray-load"),
+        "ok",
+        "the attach tray did not load. {context}"
+    );
+    assert_eq!(
+        value("tray-open"),
+        "true",
+        "the tray did not open. {context}"
+    );
+    assert_eq!(
+        value("tray-tap"),
+        "ok",
+        "the tray offers no way to send an app. {context}"
+    );
+    assert_eq!(
+        value("tray-asked"),
+        "app;",
+        "tapping the app entry asked for something else. {context}"
+    );
+    assert_eq!(
+        value("tray-closed"),
+        "false",
+        "the tray stayed open over the picker it opened. {context}"
     );
 }

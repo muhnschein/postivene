@@ -370,6 +370,7 @@ Page {
         }
         onOpenRequested: page.openAttachment(fileUrl, fileName, viewType,
                                              previewWidth)
+        onAppRequested: page.openApp(messageId)
         onDownloadRequested: messages.download_full(messageId)
         // On or off is the model's call: it knows what the reader already
         // sent, and the core takes the whole list either way.
@@ -546,6 +547,9 @@ Page {
             onCameraRequested: page.pickWith("CapturePage.qml")
             onLibraryRequested: page.pickWith("AttachLibraryPage.qml")
             onVoiceRequested: voiceBar.start()
+            // A .xdc goes out as any other file does: the core sees what
+            // it is and sends it as an app.
+            onAppRequested: page.pickWith("AttachAppPage.qml")
         }
 
         IconButton {
@@ -596,6 +600,17 @@ Page {
         } else {
             Qt.openUrlExternally(fileUrl)
         }
+    }
+
+    // A webxdc app, run here. Pushed by URL and given the message rather
+    // than the file: the app's files come from the core, which knows it
+    // by the message it arrived as, and the page needs a `Sailfish.WebView`
+    // that costs itself rather than the conversation if it is missing.
+    function openApp(messageId) {
+        pageStack.push(Qt.resolvedUrl("WebxdcPage.qml"), {
+            accountId: page.accountId,
+            messageId: messageId
+        })
     }
 
     function sendCurrentText() {

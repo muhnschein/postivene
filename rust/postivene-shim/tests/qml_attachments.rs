@@ -76,7 +76,8 @@ const PROBE_QML: &str = r"
         // set rather than on one member of it: two at once is the bug.
         function showing() {
             var names = ['attachmentImage', 'attachmentAnimation', 'attachmentVideo',
-                         'attachmentAudio', 'attachmentVcard', 'attachmentLabel']
+                         'attachmentAudio', 'attachmentVcard', 'attachmentApp',
+                         'attachmentLabel']
             var out = []
             for (var i = 0; i < names.length; i++) {
                 var item = findIn(loader.item, names[i])
@@ -278,6 +279,39 @@ fn each_view_type_reaches_the_renderer_meant_for_it() {
         // And stops by itself.
         (*steps_ptr).push(("new-gif-ran-showing", call!("showing")));
         (*steps_ptr).push(("new-gif-ran-marked", call!("marked")));
+
+        // The same .xdc once the core has read the app inside it: its own
+        // card rather than the paperclip row, with the name and the line
+        // the app keeps about itself.
+        (*steps_ptr).push(("app", show!("Webxdc", "/tmp/game.xdc", "game.xdc")));
+        call!(
+            "set",
+            QString::from("webxdcName"),
+            QString::from("Checkers")
+        );
+        call!(
+            "set",
+            QString::from("webxdcSummary"),
+            QString::from("3 votes")
+        );
+    });
+
+    single_shot(Duration::from_secs(10), move || unsafe {
+        (*steps_ptr).push(("app-showing", call!("showing")));
+        (*steps_ptr).push((
+            "app-name",
+            call!("textOf", QString::from("webxdcName"), QString::from("text")),
+        ));
+        (*steps_ptr).push((
+            "app-state",
+            call!(
+                "textOf",
+                QString::from("webxdcSummary"),
+                QString::from("text")
+            ),
+        ));
+        // A tap runs it rather than handing the file to another app.
+        (*steps_ptr).push(("app-is-app", call!("get", QString::from("isApp"))));
         (*engine_ptr).quit();
     });
 
@@ -328,6 +362,7 @@ fn assert_outcome(steps: &[(&str, String)]) {
         ("voice-showing", "attachmentAudio"),
         ("card-showing", "attachmentVcard"),
         ("xdc-showing", "attachmentLabel"),
+        ("app-showing", "attachmentApp"),
     ] {
         assert_eq!(
             value(label),
@@ -335,6 +370,25 @@ fn assert_outcome(steps: &[(&str, String)]) {
             "{label} drew the wrong set of renderers. {context}"
         );
     }
+
+    // The app card is the core's answer drawn: its name, and what it says
+    // about itself now.
+    assert_eq!(
+        value("app-name"),
+        "Checkers",
+        "the app card does not name the app. {context}"
+    );
+    assert_eq!(
+        value("app-state"),
+        "3 votes",
+        "the app card does not say what the app says about itself. {context}"
+    );
+    assert_eq!(
+        value("app-is-app"),
+        "true",
+        "a webxdc is not marked as one, so a tap would hand the .xdc to \
+         another app rather than run it. {context}"
+    );
 
     assert!(
         height("image-height") > 0.0,

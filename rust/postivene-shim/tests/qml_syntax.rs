@@ -326,7 +326,7 @@ fn the_conversation_page_uses_the_pieces_that_are_tested() {
 fn text_from_the_other_end_is_pinned_to_plain() {
     // Bindings the core fills in from a message, a contact or a chat.
     // Anything reading one of these is showing remote input.
-    const REMOTE: [&str; 24] = [
+    const REMOTE: [&str; 27] = [
         "model.",
         "root.messageText",
         "root.quoteText",
@@ -347,6 +347,9 @@ fn text_from_the_other_end_is_pinned_to_plain() {
         "root.initial",
         "root.vcardName",
         "root.vcardAddr",
+        "root.webxdcName",
+        "root.webxdcDocument",
+        "root.webxdcSummary",
         "root.genericText",
         "page.chatName",
         "page.fileName",
@@ -535,6 +538,40 @@ fn only_the_picker_pages_import_sailfish_pickers() {
          a picker type that is missing takes the whole page down rather than \
          one button; push the picker page by URL and connect to its `picked` \
          signal, as SettingsPage.pickPicture does:\n  {}",
+        offenders.join("\n  ")
+    );
+}
+
+/// Only `WebxdcPage` names a `Sailfish.WebView` type.
+///
+/// The same rule as the pickers above, for the same reason and a sharper
+/// case: the browser engine is a separate package, and a release without
+/// it -- or a device where it is not installed -- would take down every
+/// file naming the type. Here that is the page that runs one app, pushed
+/// by URL from the conversation, so a chat still opens and every other
+/// attachment still works.
+#[test]
+fn only_the_webxdc_page_imports_sailfish_webview() {
+    let mut offenders = Vec::new();
+    for file in qml_files() {
+        let name = file
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        let code = code_only(&fs::read_to_string(&file).expect("read qml"));
+        let imports_webview = code
+            .lines()
+            .any(|line| line.trim_start().starts_with("import Sailfish.WebView"));
+        if imports_webview && name != "WebxdcPage.qml" {
+            offenders.push(file.display().to_string());
+        }
+    }
+    assert!(
+        offenders.is_empty(),
+        "these import Sailfish.WebView outside WebxdcPage.qml, so a missing \
+         browser engine takes the whole page down rather than the one app it \
+         runs; push WebxdcPage.qml by URL instead, as \
+         ConversationPage.openApp does:\n  {}",
         offenders.join("\n  ")
     );
 }

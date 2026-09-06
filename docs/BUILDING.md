@@ -124,6 +124,12 @@ it would cost.
 | `qrcode` | an invite drawn as a code | one crate, no dependencies |
 | `rqrr` (+ `g2p`, `lru`) | a code read off the camera | a QR decoder is not a small thing to vendor |
 
+`tokio`'s `net` feature is what the webxdc host binds its loopback socket
+with, and it brings `socket2` -- tokio's own platform layer for sockets,
+and the only crate the whole feature adds. The alternative was a zip
+reader and an inflate implementation, to unpack an app the core can
+already read.
+
 What is not there any more, and where the line is: `thiserror` was two
 crates for a dozen lines of `Display`, so the transport's errors are
 written out; the fake servers build their tokio runtime by hand, so

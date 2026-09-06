@@ -52,6 +52,13 @@ Item {
     property string vcardName: ""
     property string vcardAddr: ""
     property string vcardColor: ""
+    /// A webxdc app, for `Webxdc`: what the core reads out of the app
+    /// itself. The name is what says the app could be read at all; a
+    /// .xdc the core would not open has none, and draws as a file.
+    property string webxdcName: ""
+    property string webxdcDocument: ""
+    property string webxdcSummary: ""
+    property string webxdcIcon: ""
     /// How wide the bubble lets this be.
     property real contentWidth: 0
 
@@ -83,12 +90,17 @@ Item {
     readonly property bool isSound: root.viewType === "Audio"
                                     || root.viewType === "Voice"
     readonly property bool isCard: root.viewType === "Vcard"
+    /// An app somebody sent. A tap on one runs it rather than handing it
+    /// to another app, so the row says so whether or not the core could
+    /// read enough of it to draw a card.
+    readonly property bool isApp: root.viewType === "Webxdc"
     /// A picture of some kind.
     readonly property bool isPicture: root.isStill || root.isAnimated
     /// True when this kind reads better filling the bubble than hugging
     /// its own text, which is what the bubble sizes itself by otherwise.
     readonly property bool wantsFullWidth: root.isPicture || root.isVideo
                                            || root.isSound || root.isCard
+                                           || app.visible
     /// The text the fallback row shows, so the bubble can measure it
     /// without reaching inside here for the label.
     readonly property string genericText: generic.text
@@ -114,7 +126,7 @@ Item {
     // animation is inside the still image rather than beside it, so it is
     // not in this sum.
     height: still.height + video.height + sound.height
-            + card.height + generic.height
+            + card.height + app.height + generic.height
 
     /// A file size a person can read: Format.readableSize, reachable on
     /// the preview because the fallback row is where a size is shown.
@@ -509,15 +521,113 @@ Item {
         }
     }
 
+    // A webxdc app: its own icon, its name, and the line it keeps about
+    // itself -- "3 votes", a score -- which changes as the chat plays
+    // with it. All three are the core's, read out of the app; a tap runs
+    // it (MessageDelegate).
+    Item {
+        id: app
+        objectName: "attachmentApp"
+        visible: root.isApp && root.webxdcName.length > 0
+        y: 0
+        width: visible ? root.contentWidth : 0
+        height: visible
+                ? Math.max(appIcon.height,
+                           appName.height + appState.height
+                           + 2 * Theme.paddingSmall)
+                : 0
+
+        Rectangle {
+            id: appIcon
+            objectName: "webxdcIcon"
+            anchors.verticalCenter: parent.verticalCenter
+            width: Theme.itemSizeSmall
+            height: width
+            radius: width / 8
+            color: Theme.rgba(Theme.highlightBackgroundColor,
+                              Theme.highlightBackgroundOpacity)
+
+            // The app's own icon when it has one. The mark stands in
+            // where it has not, so the row is never a blank square.
+            Label {
+                anchors.centerIn: parent
+                visible: root.webxdcIcon.length === 0
+                text: "⚙"
+                font.pixelSize: Theme.fontSizeLarge
+                color: Theme.primaryColor
+            }
+
+            Image {
+                objectName: "webxdcIconImage"
+                anchors.fill: parent
+                anchors.margins: Theme.paddingSmall
+                fillMode: Image.PreserveAspectFit
+                asynchronous: true
+                // Encoded a segment at a time, as every file URL here is.
+                source: root.webxdcIcon.length > 0
+                        ? Qt.resolvedUrl("file://" + root.webxdcIcon.split("/")
+                                             .map(encodeURIComponent).join("/"))
+                        : ""
+            }
+        }
+
+        Label {
+            id: appName
+            objectName: "webxdcName"
+            anchors {
+                left: appIcon.right
+                leftMargin: Theme.paddingMedium
+                right: parent.right
+                top: parent.top
+                topMargin: Theme.paddingSmall
+            }
+            truncationMode: TruncationMode.Fade
+            color: Theme.primaryColor
+            // The app named itself; it is the sender's text like any
+            // other.
+            textFormat: Text.PlainText
+            text: root.webxdcName
+        }
+
+        Label {
+            id: appState
+            objectName: "webxdcSummary"
+            anchors {
+                left: appName.left
+                right: parent.right
+                top: appName.bottom
+            }
+            // An app that has said nothing about itself takes no line for
+            // saying so.
+            visible: text.length > 0
+            height: visible ? implicitHeight : 0
+            truncationMode: TruncationMode.Fade
+            font.pixelSize: Theme.fontSizeExtraSmall
+            color: Theme.secondaryColor
+            textFormat: Text.PlainText
+            // The document it is editing, then what it says about itself.
+            text: {
+                var parts = []
+                if (root.webxdcDocument.length > 0) {
+                    parts.push(root.webxdcDocument)
+                }
+                if (root.webxdcSummary.length > 0) {
+                    parts.push(root.webxdcSummary)
+                }
+                return parts.join(" · ")
+            }
+        }
+    }
+
     // Everything else that has a file: named, sized, and handed to the
-    // system on a tap on the row. Webxdc apps land here -- Postivene
-    // cannot run one, and a row that pretended otherwise would be worse
-    // than this.
+    // system on a tap on the row. A webxdc the core could not read enough
+    // of to draw as an app lands here too, marked as one.
     Label {
         id: generic
         objectName: "attachmentLabel"
         visible: root.hasFile && !root.isStill && !root.isAnimated
                  && !root.isVideo && !root.isSound && !root.isCard
+                 && !app.visible
         y: 0
         height: visible ? implicitHeight : 0
         width: root.contentWidth

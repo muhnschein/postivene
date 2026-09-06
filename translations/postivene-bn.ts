@@ -926,6 +926,27 @@
     </message>
 </context>
 <context>
+    <name>WebxdcPage</name>
+    <message>
+        <source>Starting the app</source>
+        <extracomment>Shown while a webxdc app is being made ready to run.</extracomment>
+        <translation>অ্যাপ চালু হচ্ছে</translation>
+    </message>
+</context>
+<context>
+    <name>WebxdcStorePage</name>
+    <message>
+        <source>Apps</source>
+        <extracomment>The heading over the webxdc app store.</extracomment>
+        <translation>অ্যাপ</translation>
+    </message>
+    <message>
+        <source>From the phone</source>
+        <extracomment>Button under the app store: pick a .xdc file already on the phone.</extracomment>
+        <translation>ফোন থেকে</translation>
+    </message>
+</context>
+<context>
     <name>WelcomePage</name>
     <message>
         <source>Postivene</source>

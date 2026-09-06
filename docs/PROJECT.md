@@ -51,6 +51,40 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   away from CFFI. The OpenRPC spec is the interface contract.
 - **Core events run off the main thread**, marshalled to the Qt main thread
   via queued signals.
+- **A webxdc app is served, not unpacked.** An app somebody sent is a zip
+  with an index.html in it, and the core reads the archive
+  (`get_webxdc_blob`). So the shim puts one app on a loopback address of
+  its own while it is open and answers every request out of the core
+  (`webxdc_host.rs`); the `WebView` is pointed at that address and needs
+  nothing else. The same host carries the app's own API -- `sendUpdate` is
+  a POST, the updates from everyone else are a poll -- so the bridge is
+  not a Gecko frame script, and no archive format is parsed here.
+  Where a new app comes from is the store, a website
+  (`WebxdcStorePage.qml`); a tap on a link to a `.xdc` is caught before
+  the engine can download it and fetched through the core instead
+  (`get_http_response`), which is deltachat-android's shape too. It
+  catches the tap where the tap happens: `qml/webxdc/catch.js` is a frame
+  script loaded into the engine's own world, and it stops the click and
+  sends the address back. deltachat-android decides every navigation in
+  `shouldOverrideUrlLoading`; this `WebView` has no such hook, and
+  watching where the view goes is not one -- a `.xdc` is a download, and
+  a download is not a navigation, which is why the first version of that
+  page did nothing on a phone.
+- **The `WebView`'s own bindings are left alone.** Silica's `WebView.qml`
+  decides when the engine renders from the page's status and whether the
+  app is in front. Overriding `active` cost a device build: the view was
+  never activated by the page transition and drew as a grey rectangle.
+  `tests/qml_syntax.rs` keeps it that way. Where the view is pointed is a
+  plain `url:` binding for the same sort of reason -- the store page,
+  which draws, has always had one, and the app page, which did not, was
+  pointed from a signal handler instead.
+- **A `WebView` that draws nothing says why.** Nothing about the browser
+  engine can be tested off a phone, so a failure is put where the app
+  would have been: the host answers a refused blob with the core's own
+  reason rather than an empty body, and the page keeps that reason on
+  the screen. The banner clears itself after a few seconds, which is
+  right for something that happened and wrong for a view that never drew
+  anything.
 - **What is made on the phone is made by the platform.** A picture or a
   video comes from QML's `Camera`; a voice message from `QAudioRecorder`,
   which QML on Qt 5.6 does not offer and the shim reaches through the
@@ -85,6 +119,21 @@ In order of what matters:
    pages; add-as-second-device and restore-from-backup.
 3. **Message polish**: avatars on bubbles, an unread divider, and a way
    to react with an emoji the quick row does not offer.
-4. **Running a webxdc app.** Sending one already works, but is not shown in
-   the GUI; running it needs `Sailfish.WebView`, the `WebView` permission
-   and the webxdc bridge.
+4. **The rest of the webxdc API.** Apps are sent, shown and run
+   (`webxdc.rs`, `WebxdcPage.qml`), and status updates go both ways. What
+   is not offered is the newer calls -- `sendToChat`, `importFiles`,
+   realtime channels -- which are absent rather than present and failing,
+   so an app that feature-tests for one takes its own other path. Nor is
+   an app's `source_code_url` shown anywhere: the page has no pulley to
+   put it in (a WebView cannot sit in the flickable one needs), and a tap
+   on the app's own name that opens a URL its sender chose is a worse
+   answer than none.
+5. **The store page loads itself.** The app a reader takes from the store
+   is fetched by the core, but the store's own page is loaded by the
+   engine straight off the web -- so that one page does not follow
+   whatever the core has been told to reach the network through, and the
+   site sees the device rather than the core. deltachat-android proxies
+   every request through `get_http_response`; doing the same here means
+   serving the site from the shim's own loopback host and rewriting the
+   links in it, which is a page-shaped guess this repository cannot test
+   against.

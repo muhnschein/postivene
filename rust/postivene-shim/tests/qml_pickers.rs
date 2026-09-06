@@ -50,13 +50,16 @@ const PROBE_QML: &str = r"
 /// Each picker page, and the file a test hands it. The photo picker is
 /// the profile and group pages' (a picture, and nothing else); the
 /// library picker is the attach tray's paper clip, and takes a document
-/// or a video as readily as a picture.
-const PICKERS: [(&str, &str); 2] = [
+/// or a video as readily as a picture; the app picker is the tray's
+/// webxdc entry, which browses for a .xdc rather than listing what the
+/// media index knows.
+const PICKERS: [(&str, &str); 3] = [
     (
         "AttachPhotoPage.qml",
         "/home/user/Pictures/holiday photo.png",
     ),
     ("AttachLibraryPage.qml", "/home/user/Documents/report.pdf"),
+    ("AttachAppPage.qml", "/home/user/Downloads/checkers.xdc"),
 ];
 
 #[test]

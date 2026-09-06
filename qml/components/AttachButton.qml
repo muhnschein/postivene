@@ -10,11 +10,12 @@ import Sailfish.Silica 1.0
  * one-handed reach right -- the choices appear directly under the thumb
  * that opened them.
  *
- * Three choices, nearest the thumb first: the camera, for a picture or
+ * Four choices, nearest the thumb first: the camera, for a picture or
  * a video taken now; the paper clip, which is the platform's own picker
  * over everything the phone has indexed -- pictures, videos, music,
- * documents -- rather than one entry per kind; and the microphone, for
- * a voice message, offered only where something can record one.
+ * documents -- rather than one entry per kind; the microphone, for
+ * a voice message, offered only where something can record one; and the
+ * grid of squares that means "apps", for sending a webxdc one.
  *
  * Nothing is opened here. The page that owns the pageStack pushes the
  * pickers and starts the recording, the way ConversationPage already
@@ -37,6 +38,8 @@ Item {
     signal libraryRequested()
     /// A voice message, recorded now.
     signal voiceRequested()
+    /// A webxdc app: a .xdc file off the phone, to play in the chat.
+    signal appRequested()
 
     function close() {
         root.open = false
@@ -112,6 +115,27 @@ Item {
                 onClicked: {
                     root.close()
                     root.voiceRequested()
+                }
+            }
+
+            // Drawn rather than named: see AppMark for why this one
+            // cannot be a theme icon.
+            BackgroundItem {
+                id: appChoice
+                objectName: "attachApp"
+                width: toggle.width
+                height: toggle.height
+
+                AppMark {
+                    anchors.centerIn: parent
+                    size: Theme.iconSizeSmall
+                    color: appChoice.highlighted ? Theme.highlightColor
+                                                 : Theme.primaryColor
+                }
+
+                onClicked: {
+                    root.close()
+                    root.appRequested()
                 }
             }
         }

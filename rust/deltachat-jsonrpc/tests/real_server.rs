@@ -91,6 +91,119 @@ async fn send_file(
     messages[&message_id].clone()
 }
 
+/// CRC-32 as zip stores it, so an archive built here is one a reader
+/// will not reject.
+fn crc32(bytes: &[u8]) -> u32 {
+    let mut crc = 0xffff_ffff_u32;
+    for byte in bytes {
+        crc ^= u32::from(*byte);
+        for _ in 0..8 {
+            // The polynomial, applied only where the low bit was set.
+            let mask = (crc & 1).wrapping_neg();
+            crc = (crc >> 1) ^ (0xedb8_8320 & mask);
+        }
+    }
+    !crc
+}
+
+/// A length as a zip field. The archive is a few hundred bytes written by
+/// this file, so one that does not fit is a mistake here rather than a
+/// case to carry a `Result` for.
+fn field32(value: usize) -> u32 {
+    match u32::try_from(value) {
+        Ok(value) => value,
+        Err(err) => panic!("the archive does not fit a zip: {err}"),
+    }
+}
+
+/// The same, for the fields that are half as wide.
+fn field16(value: usize) -> u16 {
+    match u16::try_from(value) {
+        Ok(value) => value,
+        Err(err) => panic!("the archive does not fit a zip: {err}"),
+    }
+}
+
+/// A .xdc: a zip of stored entries, which is all a webxdc is. Built here
+/// rather than checked in, so what the core is asked about is readable.
+///
+/// Stored, not deflated: this repository has no compressor and wants
+/// none -- the core reads the archive, and nothing in the app does.
+fn webxdc(entries: &[(&str, &[u8])]) -> Vec<u8> {
+    let mut out = Vec::new();
+    let mut directory = Vec::new();
+    for (name, body) in entries {
+        let offset = field32(out.len());
+        let crc = crc32(body);
+        let size = field32(body.len());
+        let name_len = field16(name.len());
+        // Local file header, then the bytes themselves.
+        out.extend_from_slice(&0x0403_4b50_u32.to_le_bytes());
+        for field in [20_u16, 0, 0, 0, 0x21] {
+            // version needed, flags, method (stored), time, date
+            out.extend_from_slice(&field.to_le_bytes());
+        }
+        out.extend_from_slice(&crc.to_le_bytes());
+        out.extend_from_slice(&size.to_le_bytes());
+        out.extend_from_slice(&size.to_le_bytes());
+        out.extend_from_slice(&name_len.to_le_bytes());
+        out.extend_from_slice(&0_u16.to_le_bytes());
+        out.extend_from_slice(name.as_bytes());
+        out.extend_from_slice(body);
+
+        // And its entry in the central directory, which is what a reader
+        // looks at first.
+        directory.extend_from_slice(&0x0201_4b50_u32.to_le_bytes());
+        for field in [20_u16, 20, 0, 0, 0, 0x21] {
+            // made by, version needed, flags, method, time, date
+            directory.extend_from_slice(&field.to_le_bytes());
+        }
+        directory.extend_from_slice(&crc.to_le_bytes());
+        directory.extend_from_slice(&size.to_le_bytes());
+        directory.extend_from_slice(&size.to_le_bytes());
+        directory.extend_from_slice(&name_len.to_le_bytes());
+        for field in [0_u16, 0, 0, 0] {
+            // extra, comment, disk, internal attributes
+            directory.extend_from_slice(&field.to_le_bytes());
+        }
+        directory.extend_from_slice(&0_u32.to_le_bytes());
+        directory.extend_from_slice(&offset.to_le_bytes());
+        directory.extend_from_slice(name.as_bytes());
+    }
+    let directory_at = field32(out.len());
+    let directory_size = field32(directory.len());
+    let count = field16(entries.len());
+    out.extend_from_slice(&directory);
+    out.extend_from_slice(&0x0605_4b50_u32.to_le_bytes());
+    for field in [0_u16, 0, count, count] {
+        // disk, first disk, entries here, entries in total
+        out.extend_from_slice(&field.to_le_bytes());
+    }
+    out.extend_from_slice(&directory_size.to_le_bytes());
+    out.extend_from_slice(&directory_at.to_le_bytes());
+    out.extend_from_slice(&0_u16.to_le_bytes());
+    out
+}
+
+/// Standard base64 without padding, which is how the core hands a blob
+/// over. Written out so a blob can be compared with the bytes it was made
+/// from; the shim reads the same encoding (`webxdc_host.rs`).
+fn base64(bytes: &[u8]) -> String {
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::new();
+    for chunk in bytes.chunks(3) {
+        let mut block = [0_u8; 3];
+        block[..chunk.len()].copy_from_slice(chunk);
+        let packed = (u32::from(block[0]) << 16) | (u32::from(block[1]) << 8) | u32::from(block[2]);
+        for index in 0..=chunk.len() {
+            out.push(char::from(
+                ALPHABET[((packed >> (18 - 6 * index)) & 0x3f) as usize],
+            ));
+        }
+    }
+    out
+}
+
 /// Resolve the gate's value, treating a relative path as relative to the
 /// repository root rather than to the process's working directory.
 ///
@@ -808,6 +921,152 @@ async fn offline_round_trip_against_real_core() {
              built from: {sent_card:?}"
         );
     }
+
+    // A webxdc app, and the four calls running one is made of. Nothing in
+    // this repository opens the archive: the shim serves an app out of
+    // `get_webxdc_blob` (postivene-shim/src/webxdc_host.rs), so a wrong
+    // assumption about any of these is a blank page on a phone and
+    // nothing anywhere else.
+    let app_file = std::env::temp_dir().join("postivene-real-server-checkers.xdc");
+    let page = b"<html><head></head><body>board</body></html>";
+    std::fs::write(
+        &app_file,
+        webxdc(&[
+            ("index.html", page),
+            (
+                "manifest.toml",
+                b"name = \"Checkers\"\nsource_code_url = \"https://example.org/checkers\"\n",
+            ),
+            ("icon.png", ONE_PIXEL_PNG),
+        ]),
+    )
+    .expect("write webxdc");
+    // Sent as a plain file, the way the attach tray sends one: the core
+    // is what turns a .xdc into an app.
+    let (app_id, _): (u32, Value) = client
+        .call(
+            "misc_send_msg",
+            (
+                sender_id,
+                saved,
+                Option::<String>::None,
+                Some(app_file.to_string_lossy().into_owned()),
+                Some("checkers.xdc".to_string()),
+                Option::<(f64, f64)>::None,
+                Option::<u32>::None,
+            ),
+        )
+        .await
+        .expect("misc_send_msg with a webxdc");
+    let apps: std::collections::HashMap<u32, Value> = client
+        .call("get_messages", (sender_id, vec![app_id]))
+        .await
+        .expect("get_messages for the webxdc");
+    let sent_app = &apps[&app_id];
+    assert_eq!(
+        sent_app.get("viewType").and_then(Value::as_str),
+        Some("Webxdc"),
+        "the core did not turn a .xdc sent as a file into an app, so the \
+         attach tray would send a paperclip: {sent_app:?}"
+    );
+
+    // What the row draws, and what the app is told about itself.
+    let app_info: Value = client
+        .call("get_webxdc_info", (sender_id, app_id))
+        .await
+        .expect("get_webxdc_info");
+    assert_eq!(
+        app_info.get("name").and_then(Value::as_str),
+        Some("Checkers"),
+        "the core did not read the app's name out of its manifest: {app_info:?}"
+    );
+    assert_eq!(
+        app_info.get("icon").and_then(Value::as_str),
+        Some("icon.png"),
+        "the icon is not named as a path inside the archive, which is the \
+         only way to ask for it: {app_info:?}"
+    );
+    assert_eq!(
+        app_info.get("sourceCodeUrl").and_then(Value::as_str),
+        Some("https://example.org/checkers"),
+        "unexpected source-code field: {app_info:?}"
+    );
+    assert_eq!(
+        app_info.get("internetAccess").and_then(Value::as_bool),
+        Some(false),
+        "an ordinary app is being granted the internet: {app_info:?}"
+    );
+    assert!(
+        app_info
+            .get("selfAddr")
+            .and_then(Value::as_str)
+            .is_some_and(|addr| !addr.is_empty()),
+        "no selfAddr, which is what the app sees as its own identity: {app_info:?}"
+    );
+    for field in ["sendUpdateInterval", "sendUpdateMaxSize"] {
+        assert!(
+            app_info.get(field).and_then(Value::as_u64).is_some(),
+            "no {field}, which the app is handed as its own limit: {app_info:?}"
+        );
+    }
+
+    // The files, as the host serves them: base64 without padding, which
+    // is what the shim's decoder is written for.
+    let encoded_page: String = client
+        .call("get_webxdc_blob", (sender_id, app_id, "index.html"))
+        .await
+        .expect("get_webxdc_blob");
+    assert_eq!(
+        encoded_page,
+        base64(page),
+        "the core encodes a blob differently than the host decodes it"
+    );
+    let encoded_icon: String = client
+        .call("get_webxdc_blob", (sender_id, app_id, "icon.png"))
+        .await
+        .expect("get_webxdc_blob for the icon");
+    assert_eq!(
+        encoded_icon,
+        base64(ONE_PIXEL_PNG),
+        "the icon a row draws is not the one in the archive"
+    );
+
+    // Updates both ways: the POST the bridge sends, and the poll it
+    // collects with.
+    let update = "{\"payload\":{\"move\":\"e4\"}}";
+    client
+        .call::<_, Value>(
+            "send_webxdc_status_update",
+            (sender_id, app_id, update, Option::<String>::None),
+        )
+        .await
+        .expect("send_webxdc_status_update");
+    let sent_updates: String = client
+        .call("get_webxdc_status_updates", (sender_id, app_id, 0))
+        .await
+        .expect("get_webxdc_status_updates");
+    // A JSON *string*, not an array: the host hands it to the app
+    // unread, so its shape is the app's contract rather than ours.
+    let collected: Value =
+        serde_json::from_str(&sent_updates).expect("the updates are a JSON array");
+    assert_eq!(
+        collected.pointer("/0/payload/move").and_then(Value::as_str),
+        Some("e4"),
+        "the update did not come back as it was sent: {collected:?}"
+    );
+    assert!(
+        collected
+            .pointer("/0/serial")
+            .and_then(Value::as_u64)
+            .is_some_and(|serial| serial > 0),
+        "an update came back without a serial, which is what the app asks \
+         for the next one from: {collected:?}"
+    );
+    assert!(
+        collected.pointer("/0/max_serial").is_some(),
+        "no max_serial, which the webxdc API passes to the app as it is \
+         spelled here: {collected:?}"
+    );
 
     // Chat kind, which decides whether a message names its sender.
     let group: u32 = client

@@ -326,7 +326,7 @@ fn the_conversation_page_uses_the_pieces_that_are_tested() {
 fn text_from_the_other_end_is_pinned_to_plain() {
     // Bindings the core fills in from a message, a contact or a chat.
     // Anything reading one of these is showing remote input.
-    const REMOTE: [&str; 24] = [
+    const REMOTE: [&str; 27] = [
         "model.",
         "root.messageText",
         "root.quoteText",
@@ -347,6 +347,9 @@ fn text_from_the_other_end_is_pinned_to_plain() {
         "root.initial",
         "root.vcardName",
         "root.vcardAddr",
+        "root.webxdcName",
+        "root.webxdcDocument",
+        "root.webxdcSummary",
         "root.genericText",
         "page.chatName",
         "page.fileName",
@@ -539,6 +542,136 @@ fn only_the_picker_pages_import_sailfish_pickers() {
     );
 }
 
+/// The two webxdc pages are the only files naming a `Sailfish.WebView`
+/// type.
+///
+/// The same rule as the pickers above, for the same reason and a sharper
+/// case: the browser engine is a separate package, and a release without
+/// it -- or a device where it is not installed -- would take down every
+/// file naming the type. Here that is the page that runs one app, pushed
+/// by URL from the conversation, so a chat still opens and every other
+/// attachment still works.
+#[test]
+fn only_the_webxdc_pages_import_sailfish_webview() {
+    const ALLOWED: [&str; 2] = ["WebxdcPage.qml", "WebxdcStorePage.qml"];
+    let mut offenders = Vec::new();
+    for file in qml_files() {
+        let name = file
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        let code = code_only(&fs::read_to_string(&file).expect("read qml"));
+        let imports_webview = code
+            .lines()
+            .any(|line| line.trim_start().starts_with("import Sailfish.WebView"));
+        if imports_webview && !ALLOWED.contains(&name.as_str()) {
+            offenders.push(file.display().to_string());
+        }
+    }
+    assert!(
+        offenders.is_empty(),
+        "these import Sailfish.WebView outside {ALLOWED:?}, so a missing \
+         browser engine takes the whole page down rather than the one app it \
+         runs; push the page by URL instead, as ConversationPage.openApp \
+         does:\n  {}",
+        offenders.join("\n  ")
+    );
+}
+
+/// Neither webxdc page may decide when its `WebView` is active.
+///
+/// `Sailfish.WebView`'s own `WebView.qml` binds `active` to the page's
+/// status and to whether the app is in front -- which is what decides
+/// when the engine renders and when it hands the GPU back. Binding it
+/// here overrides that, and a view whose activation no longer follows the
+/// page transition draws as a grey rectangle where the app should be.
+/// That is what the first device build did.
+#[test]
+fn the_webxdc_pages_leave_the_views_activation_alone() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/pages");
+    for name in ["WebxdcPage.qml", "WebxdcStorePage.qml"] {
+        let code = code_only(&fs::read_to_string(root.join(name)).expect("read the page"));
+        let offender = code
+            .lines()
+            .enumerate()
+            .find(|(_, line)| line.trim_start().starts_with("active:"));
+        assert!(
+            offender.is_none(),
+            "{name} sets `active` (line {}), which overrides the binding \
+             Sailfish's own WebView.qml makes on it; the view then does not \
+             follow the page's status and draws grey",
+            offender.map_or(0, |(number, _)| number + 1)
+        );
+    }
+}
+
+/// Every frame script a page hands the browser engine is a file that
+/// ships.
+///
+/// `loadFrameScript` takes a URL and says nothing about whether anything
+/// is there: a renamed or unpackaged script is a store that quietly stops
+/// catching taps on an app, on a phone and nowhere else. Nothing else can
+/// notice -- the stub view records what it was asked to load without
+/// looking -- so the path is checked here, against the tree the package
+/// is built from.
+#[test]
+fn the_frame_scripts_the_pages_load_are_there() {
+    let mut loaded = Vec::new();
+    for file in qml_files() {
+        let code = code_only_keeping_strings(&fs::read_to_string(&file).expect("read qml"));
+        for line in code.lines() {
+            let Some(rest) = line.split_once("loadFrameScript(") else {
+                continue;
+            };
+            let Some(path) = rest.1.split('"').nth(1) else {
+                panic!(
+                    "{}: loadFrameScript with no path in it: {line}",
+                    file.display()
+                );
+            };
+            // `Qt.resolvedUrl` reads the path against the file that
+            // names it, so this walks the same way: one directory up for
+            // every `../`, then whatever is left.
+            let mut here = file.parent().expect("a file is in a directory");
+            let mut rest = path;
+            while let Some(above) = rest.strip_prefix("../") {
+                here = here.parent().expect("qml/ has a parent");
+                rest = above;
+            }
+            let script = here.join(rest.trim_start_matches("./"));
+            assert!(
+                script.is_file(),
+                "{} loads the frame script {path}, which is not in the tree \
+                 at {}",
+                file.display(),
+                script.display()
+            );
+            loaded.push(path.to_string());
+        }
+    }
+    assert!(
+        loaded.contains(&"../webxdc/catch.js".to_string()),
+        "the store no longer loads the frame script that catches a tap on \
+         an app; if that moved, this list moves with it: {loaded:?}"
+    );
+}
+
+/// The file with its comments blanked out and its strings left alone.
+///
+/// `code_only` cannot be used where the string is the point: the paths
+/// this scans for are string literals.
+fn code_only_keeping_strings(text: &str) -> String {
+    text.lines()
+        .map(|line| match line.split_once("//") {
+            // A `//` inside a string is not a comment: the only ones here
+            // are in URLs, which are not what this scans for.
+            Some((code, _)) if !code.contains('"') => code,
+            _ => line,
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 /// The file with every comment and string body blanked out, newlines kept.
 ///
 /// A scan that does not do this reads prose and translated text as code:
@@ -713,7 +846,7 @@ fn qualified_uses(code: &str) -> Vec<(usize, String)> {
 #[test]
 fn qml_reads_no_name_that_is_not_there() {
     // What QML puts in scope without the file saying so.
-    const IN_SCOPE: [&str; 19] = [
+    const IN_SCOPE: [&str; 20] = [
         // Grouped properties, and properties of the element being
         // configured read without qualifying them.
         "anchors",
@@ -751,6 +884,9 @@ fn qml_reads_no_name_that_is_not_there() {
         // ContentPickerPage hands its answer to the handler under this
         // name; see AttachPhotoPage.
         "selectedContentProperties",
+        // What a WebView's `recvAsyncMessage` carries beside the message
+        // name: whatever the frame script sent. See WebxdcStorePage.
+        "data",
     ];
 
     let files = qml_files();

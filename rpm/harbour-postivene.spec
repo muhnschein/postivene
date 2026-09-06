@@ -84,6 +84,17 @@ Requires:   nemo-qml-plugin-dbus-qt5
 # Nemo.Configuration, for the settings that belong to no profile: they
 # live in dconf, so a change on the settings page reaches every open page.
 Requires:   nemo-qml-plugin-configuration-qt5
+# Sailfish.WebView, for running a webxdc app and for the store it comes
+# from (qml/pages/Webxdc*Page.qml). The only two pages that name the type,
+# so a device without the browser engine loses those and nothing else --
+# but the package says it needs it rather than hoping.
+#
+# The other two are not imported here: Silica's own WebView.qml imports
+# Sailfish.WebView.Popups and .Pickers, and a WebView that cannot resolve
+# them is a page that will not load at all.
+Requires:   sailfish-components-webview-qt5
+Requires:   sailfish-components-webview-qt5-popups
+Requires:   sailfish-components-webview-qt5-pickers
 
 # Harbour allows no Provides: at all, and rpm generates one from any shared
 # library it finds in the package. Neither of the app's private directories

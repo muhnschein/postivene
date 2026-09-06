@@ -32,6 +32,9 @@ Item {
     /// The reader asked for the rest of a message the core holds only
     /// the header of.
     signal downloadRequested()
+    /// The reader tapped a webxdc app. Running one is a page of its own,
+    /// which is the conversation's to push.
+    signal appRequested()
     /// The reader tapped a reaction chip: put that emoji on the message,
     /// or take it off again when it is already theirs. The model decides
     /// which; the row only says what was tapped.
@@ -48,7 +51,11 @@ Item {
     /// surface now -- a tap opens what there is to open, a long press
     /// opens the menu -- and the two cannot fight over a pixel.
     function tapped() {
-        if (attachment.openable) {
+        if (attachment.isApp) {
+            // An app is run here rather than handed to whatever the
+            // system thinks opens a .xdc, which is nothing.
+            root.appRequested()
+        } else if (attachment.openable) {
             root.openRequested(attachment.fileUrl, root.fileName, root.viewType,
                                attachment.contentWidth)
         } else if (root.canDownload) {
@@ -106,6 +113,11 @@ Item {
     property string vcardName: ""
     property string vcardAddr: ""
     property string vcardColor: ""
+    // A webxdc app, read out of the app by the core.
+    property string webxdcName: ""
+    property string webxdcDocument: ""
+    property string webxdcSummary: ""
+    property string webxdcIcon: ""
 
     property bool hasFile: filePath.length > 0
     // A sticker is a picture with no bubble behind it, which is the whole
@@ -341,6 +353,10 @@ Item {
             vcardName: root.vcardName
             vcardAddr: root.vcardAddr
             vcardColor: root.vcardColor
+            webxdcName: root.webxdcName
+            webxdcDocument: root.webxdcDocument
+            webxdcSummary: root.webxdcSummary
+            webxdcIcon: root.webxdcIcon
             // A long press on one of its own controls is the row's menu.
             onMenuRequested: root.menuRequested()
         }

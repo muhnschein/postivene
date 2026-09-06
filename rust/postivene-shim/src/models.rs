@@ -140,6 +140,18 @@ pub struct MessageListItem {
     /// The reaction this account put on the message, empty when none.
     /// What a second tap on the same emoji takes off again.
     pub my_reaction: QString,
+    /// A webxdc app's name, empty for every other kind of message. The
+    /// core reads it out of the app's manifest (`webxdc.rs`); a row that
+    /// has none draws as the file it is.
+    pub webxdc_name: QString,
+    /// The document a webxdc app is editing, empty when it edits none.
+    pub webxdc_document: QString,
+    /// What a webxdc app says about itself -- "3 votes", a score -- which
+    /// changes as the chat plays with it.
+    pub webxdc_summary: QString,
+    /// A path to the app's icon, written into the cache the first time a
+    /// row asks for it. Empty when the app has none.
+    pub webxdc_icon: QString,
 }
 
 /// Conversation model bound to a `SilicaListView` from QML.

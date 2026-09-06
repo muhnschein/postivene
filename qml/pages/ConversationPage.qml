@@ -370,6 +370,7 @@ Page {
         }
         onOpenRequested: page.openAttachment(fileUrl, fileName, viewType,
                                              previewWidth)
+        onAppRequested: page.openApp(messageId)
         onDownloadRequested: messages.download_full(messageId)
         // On or off is the model's call: it knows what the reader already
         // sent, and the core takes the whole list either way.
@@ -546,6 +547,10 @@ Page {
             onCameraRequested: page.pickWith("CapturePage.qml")
             onLibraryRequested: page.pickWith("AttachLibraryPage.qml")
             onVoiceRequested: voiceBar.start()
+            // A .xdc goes out as any other file does: the core sees what
+            // it is and sends it as an app. Where one comes from is the
+            // store's business.
+            onAppRequested: page.pickApp()
         }
 
         IconButton {
@@ -596,6 +601,29 @@ Page {
         } else {
             Qt.openUrlExternally(fileUrl)
         }
+    }
+
+    // Where an app comes from: the store, which reports the file it put
+    // on the phone the way a picker reports the file that was chosen.
+    // Pushed by URL like the pickers, since it names a `Sailfish.WebView`
+    // type and should cost this button rather than the conversation.
+    function pickApp() {
+        var store = pageStack.push(Qt.resolvedUrl("WebxdcStorePage.qml"),
+                                   { accountId: page.accountId })
+        if (store) {
+            store.picked.connect(page.attach)
+        }
+    }
+
+    // A webxdc app, run here. Pushed by URL and given the message rather
+    // than the file: the app's files come from the core, which knows it
+    // by the message it arrived as, and the page needs a `Sailfish.WebView`
+    // that costs itself rather than the conversation if it is missing.
+    function openApp(messageId) {
+        pageStack.push(Qt.resolvedUrl("WebxdcPage.qml"), {
+            accountId: page.accountId,
+            messageId: messageId
+        })
     }
 
     function sendCurrentText() {

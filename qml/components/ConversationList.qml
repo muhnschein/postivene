@@ -93,6 +93,9 @@ SilicaListView {
     /// The reader asked for the rest of a message the download limit
     /// held back.
     signal downloadRequested(int messageId)
+    /// The reader tapped a webxdc app. Running one is a page, which is
+    /// the page's to push.
+    signal appRequested(int messageId)
     /// The reader picked an emoji for a message, from the menu or from a
     /// chip already on it. Whether that puts it on or takes it off is the
     /// model's to decide, from what it knows the reader already sent.
@@ -640,9 +643,14 @@ SilicaListView {
             vcardName: model.vcard_name
             vcardAddr: model.vcard_addr
             vcardColor: model.vcard_color
+            webxdcName: model.webxdc_name
+            webxdcDocument: model.webxdc_document
+            webxdcSummary: model.webxdc_summary
+            webxdcIcon: model.webxdc_icon
             reactions: model.reactions
             onOpenRequested: root.openRequested(fileUrl, fileName, viewType,
                                                 previewWidth)
+            onAppRequested: root.appRequested(model.message_id)
             onDownloadRequested: root.downloadRequested(model.message_id)
             onReactionRequested: root.reactionRequested(model.message_id, emoji)
             // A long press on a chip, the download offer or a play

@@ -82,6 +82,10 @@ struct State {
     /// The file and view type of a message sent with `send_msg`, so
     /// `get_messages` can say what was sent.
     sent_files: std::collections::BTreeMap<u32, (Value, String)>,
+    /// Status updates per webxdc instance, in the order they were sent.
+    /// The real core numbers them from 1 and hands out everything after
+    /// the serial it is asked from; so does this.
+    webxdc_updates: std::collections::BTreeMap<u32, Vec<Value>>,
 }
 
 impl State {
@@ -387,6 +391,35 @@ fn day_start(timestamp: i64) -> i64 {
         .and_hms_opt(0, 0, 0)
         .and_then(|midnight| midnight.and_local_timezone(Local).earliest())
         .map_or(timestamp, |midnight| midnight.timestamp())
+}
+
+/// What the fake archive holds: a page that names the API it was served
+/// with, and an icon. Anything else is not in this webxdc.
+fn webxdc_file(path: &str) -> Option<Vec<u8>> {
+    match path {
+        "index.html" => {
+            Some(b"<html><head><title>Checkers</title></head><body>board</body></html>".to_vec())
+        }
+        "icon.png" => Some(b"\x89PNG\r\n\x1a\n icon".to_vec()),
+        _ => None,
+    }
+}
+
+/// Standard base64 without padding, which is what the core encodes a
+/// blob as. Written out rather than depended on: this is a test double.
+fn base64(bytes: &[u8]) -> String {
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::new();
+    for chunk in bytes.chunks(3) {
+        let mut block = [0_u8; 3];
+        block[..chunk.len()].copy_from_slice(chunk);
+        let packed = (u32::from(block[0]) << 16) | (u32::from(block[1]) << 8) | u32::from(block[2]);
+        for index in 0..=chunk.len() {
+            let shift = 18 - 6 * index;
+            out.push(ALPHABET[((packed >> shift) & 0x3f) as usize] as char);
+        }
+    }
+    out
 }
 
 fn message_object(msg: u64) -> Value {
@@ -1396,8 +1429,20 @@ async fn serve() {
                         let view_type = match extension.as_deref() {
                             _ if file.is_null() => "Text",
                             Some("png" | "jpg" | "jpeg") => "Image",
+                            Some("xdc") => "Webxdc",
                             _ => "File",
                         };
+                        // Remembered for the same reason `send_msg` does:
+                        // the row is fetched again after it is sent, and
+                        // a message that arrived as an app has to still
+                        // be one then.
+                        if view_type == "Webxdc" {
+                            state
+                                .lock()
+                                .await
+                                .sent_files
+                                .insert(msg, (file.clone(), view_type.to_string()));
+                        }
                         ok(
                             &id,
                             &json!([
@@ -1435,6 +1480,120 @@ async fn serve() {
                         let msg = state.add_message(account, chat);
                         state.sent_files.insert(msg, (file, view_type));
                         ok(&id, &json!(msg))
+                    }
+                }
+                // Anything off the web, fetched by the core rather than by
+                // the app: how an app is taken from the store.
+                "get_http_response" => {
+                    let url = positional(1).as_str().unwrap_or_default().to_string();
+                    if should_fail(&url) {
+                        err(&id, "could not reach the store")
+                    } else {
+                        ok(
+                            &id,
+                            &json!({
+                                "blob": base64(b"PK\x03\x04 a fake app"),
+                                "mimetype": "application/octet-stream",
+                                "encoding": Value::Null,
+                            }),
+                        )
+                    }
+                }
+                // What the app is called and what it says about itself.
+                // The summary counts the updates sent to it, so a test
+                // can watch a row follow the chat.
+                "get_webxdc_info" => {
+                    let msg = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let sent = state
+                        .lock()
+                        .await
+                        .webxdc_updates
+                        .get(&msg)
+                        .map_or(0, Vec::len);
+                    ok(
+                        &id,
+                        &json!({
+                            "name": "Checkers",
+                            "icon": "icon.png",
+                            "document": null,
+                            "summary": if sent == 0 {
+                                Value::Null
+                            } else {
+                                json!(format!("{sent} move(s)"))
+                            },
+                            "sourceCodeUrl": "https://example.org/checkers",
+                            "internetAccess": false,
+                            "selfAddr": "self@example.org",
+                            "isAppSender": true,
+                            "isBroadcast": false,
+                            "sendUpdateInterval": 1000,
+                            "sendUpdateMaxSize": 102_400,
+                        }),
+                    )
+                }
+                // One file out of the archive, base64 as the real core
+                // encodes it (STANDARD_NO_PAD). Two files exist here: the
+                // page and its icon.
+                "get_webxdc_blob" => {
+                    let path = positional(2).as_str().unwrap_or_default().to_string();
+                    match webxdc_file(&path) {
+                        Some(bytes) => ok(&id, &json!(base64(&bytes))),
+                        None => err(&id, "no such file in the webxdc"),
+                    }
+                }
+                // Everything after the serial asked for, as one JSON
+                // *string*: the real core hands the array over already
+                // encoded.
+                "get_webxdc_status_updates" => {
+                    let msg = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let serial = positional(2)
+                        .as_u64()
+                        .and_then(|value| usize::try_from(value).ok())
+                        .unwrap_or_default();
+                    let state = state.lock().await;
+                    let updates = state.webxdc_updates.get(&msg).cloned().unwrap_or_default();
+                    let after: Vec<Value> = updates.iter().skip(serial).cloned().collect();
+                    ok(&id, &json!(serde_json::to_string(&after).unwrap_or_default()))
+                }
+                "send_webxdc_status_update" => {
+                    let account = account_id();
+                    let msg = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let update: Value = positional(2)
+                        .as_str()
+                        .and_then(|text| serde_json::from_str(text).ok())
+                        .unwrap_or(Value::Null);
+                    if update.is_null() {
+                        err(&id, "the update is not JSON")
+                    } else {
+                        let mut state = state.lock().await;
+                        let kept = state.webxdc_updates.entry(msg).or_default();
+                        let serial = kept.len() + 1;
+                        // The core hands an update back with the two
+                        // serials on it, and the app's own send is one of
+                        // the updates it then receives.
+                        kept.push(json!({
+                            "payload": update.get("payload").cloned().unwrap_or(Value::Null),
+                            "serial": serial,
+                            "max_serial": serial,
+                        }));
+                        state.events.push_back(json!({
+                            "contextId": account,
+                            "event": {
+                                "kind": "WebxdcStatusUpdate",
+                                "msgId": msg,
+                                "statusUpdateSerial": serial,
+                            },
+                        }));
+                        ok(&id, &Value::Null)
                     }
                 }
                 "get_next_event_batch" => {

@@ -270,6 +270,17 @@ pub struct ChatMessages {
     pub sending: qt_property!(bool; NOTIFY sending_changed),
     /// Emitted when [`Self::sending`] changes.
     pub sending_changed: qt_signal!(),
+    /// The message the "new messages" line is drawn above, or 0 when the
+    /// chat had nothing new in it when it was opened.
+    ///
+    /// Read from the core once per chat and then left alone. Everything
+    /// on the screen is marked read a moment after a chat opens, so a
+    /// line that followed what is unread *now* would be gone before it
+    /// was seen; what a reader wants is where they left off.
+    pub unread_from: qt_property!(u32; NOTIFY unread_from_changed),
+    /// Emitted when the line moves -- which is when a chat is opened.
+    pub unread_from_changed: qt_signal!(),
+
     /// A message of ours reached the core and is in `rows`.
     pub sent: qt_signal!(message_id: u32),
     /// This many messages from other people were just added. Said outright
@@ -277,6 +288,12 @@ pub struct ChatMessages {
     /// moves too -- and which does not move at all when a removal and an
     /// arrival land in the same reload.
     pub arrived: qt_signal!(count: u32),
+
+    /// Which chat `unread_from` was read for. A reload that is not a
+    /// change of chat -- the core coming up, an overflow, a reorder --
+    /// keeps the line where it was rather than asking again and being
+    /// told, correctly, that there is nothing unread any more.
+    unread_marked_chat: u32,
 }
 
 impl ChatMessages {
@@ -290,10 +307,67 @@ impl ChatMessages {
         if self.account_id != account_id {
             self.account_id = account_id;
             self.loaded = false;
+            self.clear_unread_mark();
             self.loaded_changed();
             self.chat_changed();
             self.reload();
         }
+    }
+
+    /// Forget where the last chat's unread run started.
+    fn clear_unread_mark(&mut self) {
+        self.unread_marked_chat = 0;
+        if self.unread_from != 0 {
+            self.unread_from = 0;
+            self.unread_from_changed();
+        }
+    }
+
+    /// Ask the core where the reader left off in this chat.
+    ///
+    /// Once per chat: the answer is kept under `unread_marked_chat`, and
+    /// a second reload of the same chat -- the core coming up again, an
+    /// overflow, a reorder -- does not ask. Issued from `reload`, ahead
+    /// of the fetch whose answer is what gets marked read, so what comes
+    /// back is the state the reader arrived to.
+    fn load_unread_mark(&mut self) {
+        let (account_id, chat_id) = (self.account_id, self.chat_id);
+        if account_id == 0 || chat_id == 0 || self.unread_marked_chat == chat_id {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            return;
+        };
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |first: Option<u32>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            // The reader can leave while this runs, and an answer about
+            // the chat they left is not about the one they are in.
+            if this.borrow().chat_id != chat_id {
+                return;
+            }
+            let changed = {
+                let mut this_mut = this.borrow_mut();
+                this_mut.unread_marked_chat = chat_id;
+                let mark = first.unwrap_or(0);
+                let changed = this_mut.unread_from != mark;
+                this_mut.unread_from = mark;
+                changed
+            };
+            if changed {
+                this.borrow().unread_from_changed();
+            }
+        });
+
+        runtime.spawn(async move {
+            let first = rpc
+                .call::<_, Option<u32>>("get_first_unread_message_of_chat", (account_id, chat_id))
+                .await
+                .ok()
+                .flatten();
+            done(first);
+        });
     }
 
     /// Set the chat and reload if it changed.
@@ -303,6 +377,7 @@ impl ChatMessages {
             self.loaded = false;
             // Whatever the last chat was holding is not this one's.
             self.draft = QString::default();
+            self.clear_unread_mark();
             self.loaded_changed();
             self.draft_changed();
             self.chat_changed();
@@ -423,6 +498,9 @@ impl ChatMessages {
         // prefetch does not carry it, and the page opens with the name the
         // list handed it anyway.
         self.refresh_name();
+        // Where the reader left off, likewise: asked here so the question
+        // is in flight before anything on either path is marked read.
+        self.load_unread_mark();
         // Already loaded, by whoever opened this page: take it and skip
         // the round trip entirely. This is what lets the transition start
         // with the rows in place rather than fill in behind it.

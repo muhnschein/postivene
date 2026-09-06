@@ -269,6 +269,11 @@
         <source>Deleting</source>
         <translation>Siliniyor</translation>
     </message>
+    <message>
+        <source>New messages</source>
+        <extracomment>The line in a conversation above the first message that arrived while the reader was away.</extracomment>
+        <translation>Yeni iletiler</translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>
@@ -895,6 +900,19 @@
     <message>
         <source>Only that something arrived</source>
         <translation>Yalnızca bir şey geldiğini</translation>
+    </message>
+</context>
+<context>
+    <name>ShareTarget</name>
+    <message>
+        <source>Send in a chat</source>
+        <extracomment>Shown in the phone&apos;s share sheet, for a file shared to this app.</extracomment>
+        <translation>Sohbete gönder</translation>
+    </message>
+    <message>
+        <source>Send as a message</source>
+        <extracomment>Shown in the phone&apos;s share sheet, for text or a link shared to this app.</extracomment>
+        <translation>İleti olarak gönder</translation>
     </message>
 </context>
 <context>

@@ -605,6 +605,145 @@ fn the_webxdc_pages_leave_the_views_activation_alone() {
     }
 }
 
+/// The share methods the desktop file offers are the ones the app
+/// answers.
+///
+/// An app is in the phone's share sheet because its desktop file says so
+/// -- `X-Share-Methods`, and a group per method -- and what arrives goes
+/// to a `ShareProvider` of the same name inside the app. A name in one
+/// file and not the other is an entry in the sheet that does nothing, or
+/// a provider nothing ever reaches; neither shows up anywhere but on a
+/// phone.
+///
+/// The words are checked too: the sheet reads them from the desktop
+/// file, which no catalogue reaches, so `ShareTarget.qml` carries the
+/// same strings under `qsTr` for `lupdate` to collect. A description
+/// that drifts from the one beside it is a share method translated
+/// nowhere.
+#[test]
+fn the_share_methods_and_what_answers_them_agree() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let desktop =
+        fs::read_to_string(root.join("harbour-postivene.desktop")).expect("read the desktop entry");
+    let target =
+        fs::read_to_string(root.join("qml/share/ShareTarget.qml")).expect("read the share target");
+
+    // The desktop entry's side: the list, and a group for each name.
+    let offered: Vec<String> = desktop
+        .lines()
+        .find_map(|line| line.trim().strip_prefix("X-Share-Methods="))
+        .map(|value| {
+            value
+                .split(';')
+                .filter(|name| !name.is_empty())
+                .map(str::to_string)
+                .collect()
+        })
+        .unwrap_or_default();
+    assert!(
+        !offered.is_empty(),
+        "the desktop entry offers no share methods, so the app is not in \
+         the phone's share sheet at all"
+    );
+
+    // The app's side: one provider per method.
+    // Comments blanked and strings kept: the names are string literals,
+    // which `code_only` blanks along with everything else quoted.
+    let answered: Vec<String> = code_only_keeping_strings(&target)
+        .lines()
+        .filter_map(|line| {
+            line.trim()
+                .strip_prefix("method:")
+                .map(|value| value.trim().trim_matches('"').to_string())
+        })
+        .collect();
+    for name in &offered {
+        assert!(
+            answered.contains(name),
+            "the desktop entry offers the share method {name:?} and no \
+             ShareProvider answers it: {answered:?}"
+        );
+        let group = format!("[X-Share Method {name}]");
+        let description = block_of(&desktop, &group)
+            .lines()
+            .find_map(|line| line.trim().strip_prefix("Description="))
+            .map(str::to_string)
+            .unwrap_or_default();
+        assert!(
+            !description.is_empty(),
+            "the share method {name:?} has no {group} group with a \
+             Description= in it, so the sheet has nothing to call it"
+        );
+        assert!(
+            target.contains(&format!("qsTr(\"{description}\")")),
+            "the share method {name:?} is called {description:?} in the \
+             desktop entry and that string is not under qsTr in \
+             ShareTarget.qml, so no catalogue carries it"
+        );
+    }
+    for name in &answered {
+        assert!(
+            offered.contains(name),
+            "a ShareProvider answers {name:?}, which the desktop entry does \
+             not offer, so nothing will ever reach it: {offered:?}"
+        );
+    }
+}
+
+/// `Sailfish.Share` is named in the share target alone.
+///
+/// The same rule as the pickers and the webxdc pages, for the same
+/// reason: the import resolves only on a release that ships the module,
+/// and a file that names it is a file that fails without it. Here that
+/// file is loaded by a `Loader` from the window, so a release without it
+/// costs sharing rather than the app.
+#[test]
+fn only_the_share_target_imports_sailfish_share() {
+    let mut offenders = Vec::new();
+    for file in qml_files() {
+        let name = file
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        let code = code_only(&fs::read_to_string(&file).expect("read qml"));
+        let imports = code
+            .lines()
+            .any(|line| line.trim_start().starts_with("import Sailfish.Share"));
+        if imports && name != "ShareTarget.qml" {
+            offenders.push(file.display().to_string());
+        }
+    }
+    assert!(
+        offenders.is_empty(),
+        "these import Sailfish.Share outside ShareTarget.qml, so a release \
+         without the module takes them down with it; load the share target \
+         from a Loader instead, as postivene.qml does:\n  {}",
+        offenders.join("\n  ")
+    );
+}
+
+/// The app's own name on the cover is not a string to be translated.
+///
+/// A name is the same word in every language, and a catalogue with this
+/// string in it is an invitation to translate it -- one `qsTr` here and
+/// some language ships a cover calling the app something else. It is a
+/// literal, and this is what keeps it one.
+#[test]
+fn the_covers_name_is_the_apps_own_and_never_translated() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/cover/CoverPage.qml");
+    let text = fs::read_to_string(&path).expect("read the cover");
+    let brand = block_of(&text, "objectName: \"brand\"");
+    assert!(
+        brand.contains("text: \"Postivene\""),
+        "the cover does not name the app in its heading:\n{brand}"
+    );
+    assert!(
+        !brand.contains("qsTr"),
+        "the app's name on the cover is run through a translation \
+         catalogue:\n{brand}"
+    );
+}
+
 /// Every frame script a page hands the browser engine is a file that
 /// ships.
 ///

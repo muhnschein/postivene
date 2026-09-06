@@ -179,6 +179,13 @@ Page {
         // this page. The archived list is the same profile's.
         if (!page.archived) {
             core.select_account(page.accountId)
+            // And the window, which is where a share arrives: it has no
+            // page of its own to read the profile off. Behind the check
+            // this page already needs for `appWindow`, which a page
+            // loaded on its own in a test does not have.
+            if (typeof appWindow !== "undefined") {
+                appWindow.accountId = page.accountId
+            }
         }
     }
 

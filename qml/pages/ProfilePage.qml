@@ -99,12 +99,13 @@ Page {
     }
 
     // Leaving is the other moment worth saving at: a back-swipe within
-    // the pause above would otherwise drop what was typed. The name goes
-    // back to being a name on the way out too.
+    // the pause above would otherwise drop what was typed. The cursor
+    // leaves the field on the way out, so the keyboard does not follow
+    // the page.
     onStatusChanged: {
         if (status === PageStatus.Deactivating) {
             page.applyEdits()
-            nameField.editing = false
+            nameField.done()
         }
     }
 
@@ -253,15 +254,12 @@ Page {
                 }
             }
 
-            // The name on every message, under the picture, with the
-            // badge that turns it into a field. The field is what is
-            // read and written; see EditableName.qml.
+            // The name on every message, under the picture. The field
+            // is what is read and written; see EditableName.qml.
             EditableName {
                 id: nameField
                 objectName: "profileNameControl"
-                labelObjectName: "profileName"
                 fieldObjectName: "profileNameField"
-                badgeObjectName: "nameEditBadge"
                 hintObjectName: "nameHint"
                 placeholderText: qsTr("Your name")
                 hint: qsTr("The name on every message you send")

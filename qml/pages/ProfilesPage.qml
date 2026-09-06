@@ -195,20 +195,10 @@ Page {
             width: listView.width
             contentHeight: Theme.itemSizeSmall + 2 * Theme.paddingMedium
 
-            Rectangle {
+            PlusMark {
                 id: plus
                 x: Theme.horizontalPageMargin
                 y: Theme.paddingMedium
-                width: Theme.itemSizeSmall
-                height: width
-                radius: width / 2
-                color: Theme.rgba(Theme.highlightBackgroundColor,
-                                  Theme.highlightBackgroundOpacity)
-
-                Image {
-                    anchors.centerIn: parent
-                    source: "image://theme/icon-m-add"
-                }
             }
 
             Label {

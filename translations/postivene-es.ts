@@ -269,6 +269,11 @@
         <source>Deleting</source>
         <translation>Eliminando</translation>
     </message>
+    <message>
+        <source>New messages</source>
+        <extracomment>The line in a conversation above the first message that arrived while the reader was away.</extracomment>
+        <translation>Mensajes nuevos</translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>
@@ -899,6 +904,19 @@
     <message>
         <source>Only that something arrived</source>
         <translation>Solo que ha llegado algo</translation>
+    </message>
+</context>
+<context>
+    <name>ShareTarget</name>
+    <message>
+        <source>Send in a chat</source>
+        <extracomment>Shown in the phone&apos;s share sheet, for a file shared to this app.</extracomment>
+        <translation>Enviar a un chat</translation>
+    </message>
+    <message>
+        <source>Send as a message</source>
+        <extracomment>Shown in the phone&apos;s share sheet, for text or a link shared to this app.</extracomment>
+        <translation>Enviar como mensaje</translation>
     </message>
 </context>
 <context>

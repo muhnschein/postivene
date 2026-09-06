@@ -14,6 +14,11 @@ SilicaListView {
 
     // Groups have to say who is speaking; one-to-one chats do not.
     property bool showSender: false
+
+    /// The message the "new messages" line is drawn above, 0 for none.
+    /// The model reads it from the core when the chat is opened and does
+    /// not move it afterwards; see `ChatMessages.unread_from`.
+    property int unreadFrom: 0
     property string placeholderText
     /// How a message body is drawn: 0 Markdown, 1 its words only, 2 as
     /// written. The page binds it from the reader's setting.
@@ -551,7 +556,7 @@ SilicaListView {
         // length before any of it has been read. The day heading, when
         // this row carries one, is part of that height rather than
         // something the view has to find room for.
-        contentHeight: dayHeading.height
+        contentHeight: dayHeading.height + unreadLine.height
                        + (model.loaded ? body.height : Theme.itemSizeExtraSmall)
 
         // One surface: a tap opens whatever the message has to open, a
@@ -607,13 +612,65 @@ SilicaListView {
             }
         }
 
+        /// Where the reader left off: everything below this line arrived
+        /// while they were away.
+        ///
+        /// Inside the row for the reason the day heading is -- see
+        /// `section.property` above -- and under the day heading when a
+        /// row carries both, so the order reads "Tuesday, and here is
+        /// what is new".
+        Item {
+            id: unreadLine
+            objectName: "unreadLine"
+            width: parent.width
+            y: dayHeading.height
+            visible: root.unreadFrom > 0 && model.message_id === root.unreadFrom
+            height: visible ? unreadLabel.implicitHeight + 2 * Theme.paddingMedium : 0
+
+            Rectangle {
+                anchors {
+                    left: parent.left
+                    leftMargin: Theme.horizontalPageMargin
+                    right: unreadLabel.left
+                    rightMargin: Theme.paddingMedium
+                    verticalCenter: unreadLabel.verticalCenter
+                }
+                height: 1
+                color: Theme.rgba(Theme.highlightColor, 0.4)
+            }
+
+            Label {
+                id: unreadLabel
+                objectName: "unreadLabel"
+                anchors.centerIn: parent
+                font.pixelSize: Theme.fontSizeExtraSmall
+                color: Theme.highlightColor
+                textFormat: Text.PlainText
+                //: The line in a conversation above the first message that
+                //: arrived while the reader was away.
+                text: qsTr("New messages")
+            }
+
+            Rectangle {
+                anchors {
+                    left: unreadLabel.right
+                    leftMargin: Theme.paddingMedium
+                    right: parent.right
+                    rightMargin: Theme.horizontalPageMargin
+                    verticalCenter: unreadLabel.verticalCenter
+                }
+                height: 1
+                color: Theme.rgba(Theme.highlightColor, 0.4)
+            }
+        }
+
         // Only what is on screen is built, so this is not the whole chat's
         // worth of delegates -- but a placeholder must not try to draw a
         // message it has not got.
         MessageDelegate {
             id: body
             visible: model.loaded
-            y: dayHeading.height
+            y: dayHeading.height + unreadLine.height
             width: parent.width
             messageText: model.text
             styledText: model.styled_text

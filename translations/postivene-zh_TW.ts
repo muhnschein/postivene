@@ -269,6 +269,11 @@
         <source>Deleting</source>
         <translation>正在刪除</translation>
     </message>
+    <message>
+        <source>New messages</source>
+        <extracomment>The line in a conversation above the first message that arrived while the reader was away.</extracomment>
+        <translation>新訊息</translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>
@@ -895,6 +900,19 @@
     <message>
         <source>Only that something arrived</source>
         <translation>只顯示有訊息送達</translation>
+    </message>
+</context>
+<context>
+    <name>ShareTarget</name>
+    <message>
+        <source>Send in a chat</source>
+        <extracomment>Shown in the phone&apos;s share sheet, for a file shared to this app.</extracomment>
+        <translation>傳送到聊天</translation>
+    </message>
+    <message>
+        <source>Send as a message</source>
+        <extracomment>Shown in the phone&apos;s share sheet, for text or a link shared to this app.</extracomment>
+        <translation>以訊息傳送</translation>
     </message>
 </context>
 <context>

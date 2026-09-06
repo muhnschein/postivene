@@ -121,7 +121,7 @@ Page {
     onStatusChanged: {
         if (status === PageStatus.Deactivating) {
             page.applyEdits()
-            nameField.editing = false
+            nameField.done()
         }
     }
 
@@ -234,15 +234,12 @@ Page {
                 }
             }
 
-            // The name, under the picture, with the badge that turns it
-            // into a field -- on a group this account is still in. The
-            // field is what is read and written; see EditableName.qml.
+            // The name, under the picture: a field, on a group this
+            // account is still in. See EditableName.qml.
             EditableName {
                 id: nameField
                 objectName: "groupNameControl"
-                labelObjectName: "groupName"
                 fieldObjectName: "groupNameField"
-                badgeObjectName: "nameEditBadge"
                 hintObjectName: "nameHint"
                 placeholderText: qsTr("Group name")
                 hint: qsTr("Everyone in the group sees the name")
@@ -250,8 +247,9 @@ Page {
                 onTextChanged: page.noteEdit()
             }
 
-            // Room under the name, so the badge at its corner does not
-            // sit on the setting below.
+            // A gap between who they are and what the chat does: two
+            // different kinds of thing, and the column's own spacing does
+            // not say so.
             Item {
                 width: 1
                 height: Theme.paddingLarge
@@ -325,20 +323,10 @@ Page {
                 width: column.width
                 contentHeight: Theme.itemSizeSmall + 2 * Theme.paddingMedium
 
-                Rectangle {
+                PlusMark {
                     id: plus
                     x: Theme.horizontalPageMargin
                     y: Theme.paddingMedium
-                    width: Theme.itemSizeSmall
-                    height: width
-                    radius: width / 2
-                    color: Theme.rgba(Theme.highlightBackgroundColor,
-                                      Theme.highlightBackgroundOpacity)
-
-                    Image {
-                        anchors.centerIn: parent
-                        source: "image://theme/icon-m-add"
-                    }
                 }
 
                 Label {

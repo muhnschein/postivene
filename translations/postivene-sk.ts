@@ -269,6 +269,11 @@
         <source>Deleting</source>
         <translation>Odstraňuje sa</translation>
     </message>
+    <message>
+        <source>New messages</source>
+        <extracomment>The line in a conversation above the first message that arrived while the reader was away.</extracomment>
+        <translation>Nové správy</translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>
@@ -903,6 +908,19 @@
     <message>
         <source>Only that something arrived</source>
         <translation>Len to, že niečo prišlo</translation>
+    </message>
+</context>
+<context>
+    <name>ShareTarget</name>
+    <message>
+        <source>Send in a chat</source>
+        <extracomment>Shown in the phone&apos;s share sheet, for a file shared to this app.</extracomment>
+        <translation>Odoslať do chatu</translation>
+    </message>
+    <message>
+        <source>Send as a message</source>
+        <extracomment>Shown in the phone&apos;s share sheet, for text or a link shared to this app.</extracomment>
+        <translation>Odoslať ako správu</translation>
     </message>
 </context>
 <context>

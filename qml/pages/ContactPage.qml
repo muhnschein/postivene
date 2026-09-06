@@ -112,12 +112,13 @@ Page {
     }
 
     // Leaving is the other moment worth saving at: a back-swipe within
-    // the pause above would otherwise drop what was typed. The field
-    // goes back to being a name on the way out too.
+    // the pause above would otherwise drop what was typed. The cursor
+    // leaves the field on the way out, so the keyboard does not follow
+    // the page.
     onStatusChanged: {
         if (status === PageStatus.Deactivating) {
             page.applyEdits()
-            nameField.editing = false
+            nameField.done()
         }
     }
 
@@ -173,16 +174,13 @@ Page {
                 }
             }
 
-            // What to call them here. The name shows what they chose
-            // until one is given; the field, when it is up, holds only
-            // what was given, with theirs standing in the empty field --
-            // which is also what a blank field goes back to.
+            // What to call them here. The field holds only what was
+            // given; the name they chose for themselves stands in the
+            // empty field, and is what a blank field goes back to.
             EditableName {
                 id: nameField
                 objectName: "contactNameControl"
-                labelObjectName: "contactName"
                 fieldObjectName: "contactNameField"
-                badgeObjectName: "nameEditBadge"
                 hintObjectName: "nameHint"
                 fallbackText: page.ownName
                 placeholderText: page.ownName.length > 0 ? page.ownName : qsTr("Name")
@@ -190,9 +188,25 @@ Page {
                 onTextChanged: page.noteEdit()
             }
 
+            // What they wrote about themselves, when they did: their own
+            // words, under their name, before anything this app has to
+            // say about them. Pinned to plain text, being theirs.
+            Label {
+                objectName: "statusLabel"
+                visible: page.statusLine.length > 0
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
+                textFormat: Text.PlainText
+                color: Theme.primaryColor
+                text: page.statusLine
+            }
+
             // The same two facts the chat list marks a row with, said in
             // words: whether the connection is encrypted, and whether it
-            // was checked in person.
+            // was checked in person. A caption under the person, in the
+            // size and colour a caption is drawn in.
             Label {
                 objectName: "encryptionLabel"
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -211,22 +225,9 @@ Page {
                         : qsTr("Not encrypted: a plain email contact")
             }
 
-            // What they wrote about themselves, when they did. Their
-            // words, so pinned to plain text.
-            Label {
-                objectName: "statusLabel"
-                visible: page.statusLine.length > 0
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: parent.width - 2 * Theme.horizontalPageMargin
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.Wrap
-                textFormat: Text.PlainText
-                color: Theme.primaryColor
-                text: page.statusLine
-            }
-
-            // Room under the name, so the badge at its corner does not
-            // sit on what follows.
+            // A gap between who they are and what the chat does: two
+            // different kinds of thing, and the column's own spacing does
+            // not say so.
             Item {
                 width: 1
                 height: Theme.paddingLarge

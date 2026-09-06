@@ -99,6 +99,13 @@ const PROBE_QML: &str = r"
         }
         // A tap on a MouseArea: its clicked() carries the event, and
         // QML refuses to emit it without one.
+        // Put the cursor in a name field, as a tap on it does.
+        function edit(name) {
+            var item = findIn(loader.item, name)
+            if (!item) { return 'missing:' + name }
+            item.edit()
+            return '' + item.editing
+        }
         function tap(name) {
             var item = findIn(loader.item, name)
             if (!item) { return 'missing:' + name }
@@ -215,10 +222,9 @@ fn the_profile_page_round_trips_the_profile() {
         record!("invite", call!("click", QString::from("inviteButton")));
         // The name: a name with a badge, and a field with a hint once
         // the badge is tapped.
-        record!("name-badge", get!("nameEditBadge", "visible"));
         record!("hint-before", get!("nameHint", "visible"));
         record!("field-before", get!("profileNameField", "visible"));
-        record!("edit", call!("tap", QString::from("nameTap")));
+        record!("edit", call!("edit", QString::from("profileNameControl")));
         record!("hint-editing", get!("nameHint", "visible"));
         record!("field-editing", get!("profileNameField", "visible"));
         record!(
@@ -272,8 +278,8 @@ fn the_profile_page_round_trips_the_profile() {
     single_shot(Duration::from_secs(10), move || unsafe {
         record!("receipts-after", get!("profile", "read_receipts"));
         record!("refilled", get!("profileNameField", "text"));
-        // A page opened anew shows the name as a name again.
-        record!("name-reopened", get!("profileName", "text"));
+        // A page opened anew holds the saved name.
+        record!("name-reopened", get!("profileNameField", "text"));
         record!("hint-reopened", get!("nameHint", "visible"));
         record!(
             "edited-after-refill",
@@ -451,10 +457,9 @@ fn assert_page_says_what_the_relay_said(steps: &[(&str, String)], navigation: &s
          says it. {context}"
     );
     for (label, expected) in [
-        ("name-badge", "true"),
         ("hint-before", "false"),
-        ("field-before", "false"),
-        ("edit", "ok"),
+        ("field-before", "true"),
+        ("edit", "true"),
         ("hint-editing", "true"),
         ("field-editing", "true"),
         ("hint-reopened", "false"),
@@ -462,8 +467,8 @@ fn assert_page_says_what_the_relay_said(steps: &[(&str, String)], navigation: &s
         assert_eq!(
             value(label),
             expected,
-            "the name is not a name with a badge that turns it into a field: \
-             {label}. {context}"
+            "the name is not a field that says what it is for while it is \
+             being typed in: {label}. {context}"
         );
     }
     assert_eq!(

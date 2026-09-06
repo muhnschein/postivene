@@ -20,6 +20,14 @@ Page {
     property int accountId
     property string errorMessage: ""
 
+    /// Whether picking a chat closes this page.
+    ///
+    /// True for forwarding, which stays where it was and sends from
+    /// there. False for a share, which puts the chosen chat in this
+    /// page's place -- and a page that popped itself first would take
+    /// the chat with it.
+    property bool closeOnPick: true
+
     /// The reader picked this chat.
     signal chatPicked(int chatId, string chatName)
 
@@ -101,7 +109,9 @@ Page {
 
             onClicked: {
                 page.chatPicked(model.chat_id, model.name)
-                pageStack.pop()
+                if (page.closeOnPick) {
+                    pageStack.pop()
+                }
             }
         }
 

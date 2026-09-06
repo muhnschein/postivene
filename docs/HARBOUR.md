@@ -122,7 +122,10 @@ through the real validator.
   Harbour's own `allowed_qmlimports.conf` permits all five, which settles
   whether they may be used and says nothing about whether they work. The
   pickers are one page each so that a missing type costs one button
-  (`qml/pages/Attach*Page.qml`), and `Sailfish.WebView` is named in
+  (`qml/pages/Attach*Page.qml`), `Sailfish.Share` is named in
+  `qml/share/ShareTarget.qml` alone -- loaded by a `Loader` from the
+  window, so a release without it costs sharing rather than the app --
+  and `Sailfish.WebView` is named in
   `WebxdcPage.qml` and `WebxdcStorePage.qml` alone for the same reason:
   the browser engine is a package of its own, and without it those pages
   break rather than the conversation. The store also hands the engine a
@@ -307,6 +310,14 @@ removed from the store even after approval. Not an option.
    in the app and send those too. The recorder picks a codec from what
    GStreamer offers (AAC in MP4 first); the microphone button is not shown
    at all when it finds none, which is the state the headless tests see.
+   Sharing *to* the app is a device path of its own, and the sandbox is
+   half of it: share a picture from the gallery, a document from the file
+   manager and a link from the browser, and check that Postivene is in
+   the sheet under both of its entries, that picking a chat opens that
+   chat with the file already on the attachment bar (or the text in the
+   field), and that sending it works -- a file the sandbox will not let
+   the app read fails here and nowhere else, which is what `UserDirs` and
+   `Pictures` are for.
    A webxdc is the path nothing off-device can vouch for at all: open the
    tray's app entry, take one from the store, send it, open it, and check
    that it draws, that a move reaches the other end and comes back, that

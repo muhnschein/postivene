@@ -5,6 +5,9 @@
 //! only to the bounding box, so the picture is drawn through an
 //! `OpacityMask` instead. This pins that: the raw image must not be what
 //! is on screen.
+//!
+//! And what an avatar is drawn *in*: its own colour on a page, the
+//! ambience's where the cover lights up whoever has written.
 
 // Qt harness: see qml_chat_row.rs.
 #![allow(
@@ -48,6 +51,8 @@ const PROBE_QML: &str = r"
             if (!item) { return 'missing:' + name }
             return '' + item[property]
         }
+        // The loaded component itself, which has no name to be found by.
+        function root(property) { return '' + loader.item[property] }
     }
 ";
 

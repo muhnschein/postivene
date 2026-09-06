@@ -12,7 +12,8 @@ import "../components"
  * core which it is on, and that is the profile the app opens on next
  * time. Picking the profile already shown does nothing. A row's
  * menu leads to the profile's page -- picture, name, address, the rest --
- * and to deleting it.
+ * and to deleting it. Another profile is made from the plus under the
+ * last row, where the group pages put "add members".
  *
  * Deleting counts down on the row, and the list is refreshed in place
  * rather than rebuilt when the deletion lands (core.rs): a rebuild
@@ -58,17 +59,6 @@ Page {
         objectName: "profileList"
         anchors.fill: parent
         model: core.account_list
-
-        // Another profile is made the way the first was: the welcome
-        // page's own flow, which replaces the stack with the new
-        // profile's chat list once the core has it.
-        PullDownMenu {
-            MenuItem {
-                objectName: "addProfileMenuItem"
-                text: qsTr("Add profile")
-                onClicked: pageStack.push(Qt.resolvedUrl("AddProfileDialog.qml"), {})
-            }
-        }
 
         header: PageHeader {
             title: qsTr("Profiles")
@@ -190,6 +180,53 @@ Page {
             }
         }
 
+        // The way to another profile, where the next one would be
+        // listed: a row shaped like a profile's, with a plus for a
+        // picture, as the group pages offer another member. Under the
+        // last row rather than in the pulley, which is where a reader
+        // who has just read the list is already looking.
+        //
+        // What it opens is the welcome page's own flow, which replaces
+        // the stack with the new profile's chat list once the core has
+        // it.
+        footer: ListItem {
+            id: addProfileRow
+            objectName: "addProfileButton"
+            width: listView.width
+            contentHeight: Theme.itemSizeSmall + 2 * Theme.paddingMedium
+
+            Rectangle {
+                id: plus
+                x: Theme.horizontalPageMargin
+                y: Theme.paddingMedium
+                width: Theme.itemSizeSmall
+                height: width
+                radius: width / 2
+                color: Theme.rgba(Theme.highlightBackgroundColor,
+                                  Theme.highlightBackgroundOpacity)
+
+                Image {
+                    anchors.centerIn: parent
+                    source: "image://theme/icon-m-add"
+                }
+            }
+
+            Label {
+                x: plus.x + plus.width + Theme.paddingMedium
+                width: parent.width - x - Theme.horizontalPageMargin
+                anchors.verticalCenter: plus.verticalCenter
+                wrapMode: Text.Wrap
+                color: addProfileRow.highlighted ? Theme.highlightColor
+                                                 : Theme.primaryColor
+                text: qsTr("Add profile")
+            }
+
+            onClicked: pageStack.push(Qt.resolvedUrl("AddProfileDialog.qml"), {})
+        }
+
+        // Counted off the model, not off what is drawn: the plus is the
+        // view's own row rather than a profile, so a list with nothing
+        // in it still has a row on it.
         ViewPlaceholder {
             enabled: listView.count === 0
             text: qsTr("No profiles")

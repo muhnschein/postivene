@@ -138,10 +138,10 @@ const PROBE_QML: &str = r"
             row.clicked()
             return 'ok'
         }
-        // The pulley's way to another profile.
+        // The plus under the last row: the way to another profile.
         function addProfile() {
-            var item = findIn(loader.item, 'addProfileMenuItem')
-            if (!item) { return 'missing:addProfileMenuItem' }
+            var item = findIn(loader.item, 'addProfileButton')
+            if (!item) { return 'missing:addProfileButton' }
             item.clicked()
             return 'ok'
         }
@@ -218,7 +218,8 @@ fn switching_profile_leaves_one_chat_list_on_the_stack() {
 
     single_shot(Duration::from_secs(7), move || unsafe {
         (*steps_ptr).push(("seeded", (*stack_ptr).pinned().borrow().stack.to_string()));
-        // Another profile is made from the pulley, on top of this page.
+        // Another profile is made from the plus under the list, on top
+        // of this page.
         (*steps_ptr).push(("add", call!("addProfile")));
         (*steps_ptr).push(("added", (*stack_ptr).pinned().borrow().stack.to_string()));
         (*steps_ptr).push(("tap", call!("tapFirstRow")));
@@ -268,7 +269,7 @@ fn switching_profile_leaves_one_chat_list_on_the_stack() {
     assert_eq!(
         value("add"),
         "ok",
-        "the pulley offers no way to add a profile. {context}"
+        "no plus under the profile list, so no way to add a profile. {context}"
     );
     assert!(
         value("added").ends_with(",AddProfileDialog.qml"),

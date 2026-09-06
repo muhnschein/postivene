@@ -174,19 +174,8 @@ Page {
         running: !page.drew && page.errorMessage.length === 0
     }
 
-    // What is happening until the app has drawn something. A reader who
-    // sees nothing at all should be told which half is not answering:
-    // the shim, which has not served the app yet, or the engine, which
-    // has been given an address and not arrived. Gone the moment the app
-    // is up.
-    //
-    // Three things, once there is an address: where the app is being
-    // served, how far the engine says it has got, and how many requests
-    // the host has answered. The last is the one a phone cannot be asked
-    // for otherwise -- a view that stays empty having asked for nothing
-    // is not the same fault as one that was handed an app and drew
-    // none of it -- so it is on the screen rather than in a log nobody
-    // can reach.
+    // What is happening until the app has drawn something, and why when
+    // it will not. Gone the moment the app is up.
     Label {
         objectName: "webxdcWaiting"
         anchors {
@@ -208,26 +197,8 @@ Page {
         // on a view that never drew anything leaves the reader looking at
         // the same grey rectangle as before with nothing to read.
         //: Shown while a webxdc app is being made ready to run.
-        text: page.errorMessage.length > 0
-              ? page.errorMessage
-              : app.url.length === 0
-                ? qsTr("Starting the app")
-                : page.authorityOf(app.url) + " · " + view.loadProgress
-                  + "% · " + app.served
-    }
-
-    // The host answers on threads of its own and counts what it has
-    // answered; this is what reads the count. Only while the app is
-    // coming up -- once it is up the number is no longer news, and an
-    // app that is running should not be asked anything every half
-    // second.
-    Timer {
-        objectName: "webxdcPoll"
-        interval: 500
-        repeat: true
-        running: !page.drew && app.url.length > 0
-                 && page.errorMessage.length === 0
-        onTriggered: app.poll()
+        text: page.errorMessage.length > 0 ? page.errorMessage
+                                           : qsTr("Starting the app")
     }
 
     Banner {

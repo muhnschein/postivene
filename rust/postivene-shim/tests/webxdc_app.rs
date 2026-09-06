@@ -61,9 +61,6 @@ const PROBE_QML: &str = r"
                    + (app.icon_path.length > 0 ? 'icon' : 'no-icon')
         }
         function stop() { app.stop(); return app.url }
-        // What the page shows while an app is coming up: how much of
-        // itself the app has asked for.
-        function served() { app.poll(); return '' + app.served }
         function said() { return log }
     }
 ";
@@ -228,7 +225,6 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
             get(&authority, &format!("/{token}/webxdc-api/updates?serial=0"))
                 .unwrap_or_else(|err| err)
         );
-        record!("served", call!("served"));
     });
 
     // The event the send produced has had a turn of the loop to arrive,
@@ -242,7 +238,6 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
             "after-stop",
             get(&authority, &format!("/{token}/index.html")).unwrap_or_else(|err| err)
         );
-        record!("served-after-stop", call!("served"));
         record!("log", call!("said"));
         (*engine_ptr).quit();
     });
@@ -329,21 +324,6 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
         !value("after-stop").starts_with("HTTP/1.1 200"),
         "a closed app still answers: {}. {context}",
         value("after-stop")
-    );
-    // Nine requests were made of the host above, refusals among them, and
-    // the page's own account of what an app is doing has to count all of
-    // them: it is what tells a phone the difference between an engine
-    // that never asked for the app and an app that was served and drew
-    // nothing.
-    assert_eq!(
-        value("served"),
-        "9",
-        "the host did not count what it answered. {context}"
-    );
-    assert_eq!(
-        value("served-after-stop"),
-        "0",
-        "a stopped app still had a count of its own. {context}"
     );
     assert_eq!(value("log"), "", "the app reported: {}", value("log"));
 

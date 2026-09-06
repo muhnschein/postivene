@@ -208,10 +208,6 @@ fn the_page_runs_the_app_the_shim_serves_and_stops_it_on_the_way_out() {
             "serving-said",
             call!("get", QString::from("webxdcWaiting"), QString::from("text"))
         );
-        record!(
-            "polling",
-            call!("get", QString::from("webxdcPoll"), QString::from("running"))
-        );
         // A reason to show instead: the banner clears itself after a few
         // seconds, and a view that never drew anything would be left
         // saying nothing at all.
@@ -249,10 +245,6 @@ fn the_page_runs_the_app_the_shim_serves_and_stops_it_on_the_way_out() {
                 QString::from("webxdcWaiting"),
                 QString::from("visible")
             )
-        );
-        record!(
-            "still-polling",
-            call!("get", QString::from("webxdcPoll"), QString::from("running"))
         );
         record!(
             "title",
@@ -328,19 +320,11 @@ fn the_page_runs_the_app_the_shim_serves_and_stops_it_on_the_way_out() {
         "the page stopped saying it was working while the app had still \
          drawn nothing. {context}"
     );
-    // The three things a phone cannot otherwise be asked: where the app
-    // is, how far the engine got, and how much of the app it asked for.
-    assert!(
-        value("serving-said").starts_with("127.0.0.1:")
-            && value("serving-said").ends_with("· 0% · 0"),
-        "the page did not say what it was waiting on: {}. {context}",
-        value("serving-said")
-    );
     assert_eq!(
-        value("polling"),
-        "true",
-        "nothing was reading how much of the app had been asked for. \
-         {context}"
+        value("serving-said"),
+        "Starting the app",
+        "the page did not say it was working while the app had drawn \
+         nothing. {context}"
     );
     assert_eq!(value("failed"), "ok", "the page took no reason. {context}");
     assert_eq!(
@@ -376,11 +360,6 @@ fn the_page_runs_the_app_the_shim_serves_and_stops_it_on_the_way_out() {
         "false",
         "the page is still saying what it is waiting for after the app \
          came up. {context}"
-    );
-    assert_eq!(
-        value("still-polling"),
-        "false",
-        "a running app is still being asked how it is getting on. {context}"
     );
     assert_eq!(
         value("title"),

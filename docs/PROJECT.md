@@ -79,13 +79,12 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   which draws, has always had one, and the app page, which did not, was
   pointed from a signal handler instead.
 - **A `WebView` that draws nothing says why.** Nothing about the browser
-  engine can be tested off a phone, so the page carries its own account
-  of what it is waiting for: the address the app is served on, the
-  engine's load progress, and how many requests the host has answered
-  (`WebxdcApp.served`, counted in `webxdc_host.rs` and read by a poll
-  while the app comes up). Zero requests is an engine that never asked
-  for the app; a count with nothing drawn is an app that was served and
-  drew nothing. A phone cannot be asked which of those it is.
+  engine can be tested off a phone, so a failure is put where the app
+  would have been: the host answers a refused blob with the core's own
+  reason rather than an empty body, and the page keeps that reason on
+  the screen. The banner clears itself after a few seconds, which is
+  right for something that happened and wrong for a view that never drew
+  anything.
 - **What is made on the phone is made by the platform.** A picture or a
   video comes from QML's `Camera`; a voice message from `QAudioRecorder`,
   which QML on Qt 5.6 does not offer and the shim reaches through the

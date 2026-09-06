@@ -314,12 +314,8 @@ removed from the store even after approval. Not an option.
    stops it -- `ss -ltn` should show no loopback port of ours afterwards.
    An app that will not open says why rather than drawing grey: the host
    answers with the core's own reason, the engine's error page is left
-   alone rather than turned back, and while an app is coming up the page
-   shows the address it is served on, the engine's progress and how many
-   requests the host has answered. Those three are what to read off the
-   screen when it does draw grey: `127.0.0.1:PORT · 0% · 0` is an engine
-   that never asked for the app, and a count above zero with nothing
-   drawn is an app that was served and drew nothing.
+   alone rather than turned back, and the reason stays on the screen
+   after the banner has cleared itself.
 5. Delete the cache directory while the app runs; confirm nothing breaks.
 6. Kill `deltachat-rpc-server` from a terminal while the app is open. The
    banner should say it is reconnecting and then clear itself, and messages

@@ -62,6 +62,13 @@ const PROBE_QML: &str = r"
         }
         // A tap on a MouseArea: its clicked() carries the event, and
         // QML refuses to emit it without one.
+        // Put the cursor in a name field, as a tap on it does.
+        function edit(name) {
+            var item = findIn(loader.item, name)
+            if (!item) { return 'missing:' + name }
+            item.edit()
+            return '' + item.editing
+        }
         function tap(name) {
             var item = findIn(loader.item, name)
             if (!item) { return 'missing:' + name }
@@ -162,7 +169,7 @@ fn the_contact_page_names_the_contact_and_no_address() {
 
     single_shot(Duration::from_secs(3), move || unsafe {
         record!("loaded", get!("chat", "loaded"));
-        record!("name", get!("contactName", "text"));
+        record!("name", get!("contactNameField", "placeholderText"));
         record!("initial", get!("avatarInitial", "text"));
         record!("status", get!("statusLabel", "text"));
         record!("status-shown", get!("statusLabel", "visible"));
@@ -173,12 +180,11 @@ fn the_contact_page_names_the_contact_and_no_address() {
         // themselves stands in it.
         record!("given", get!("contactNameField", "text"));
         record!("own", get!("contactNameField", "placeholderText"));
-        // A name until the badge is tapped; a field, with the hint under
-        // it, after.
+        // A field from the start, with the hint under it once the
+        // cursor is in it and not before.
         record!("hint-before", get!("nameHint", "visible"));
         record!("field-before", get!("contactNameField", "visible"));
-        record!("edit", call!("tap", QString::from("nameTap")));
-        record!("name-editing", get!("contactName", "visible"));
+        record!("edit", call!("edit", QString::from("contactNameControl")));
         record!("hint-editing", get!("nameHint", "visible"));
         record!("field-editing", get!("contactNameField", "visible"));
         record!(
@@ -193,9 +199,9 @@ fn the_contact_page_names_the_contact_and_no_address() {
     });
 
     single_shot(Duration::from_secs(5), move || unsafe {
-        // The core reloaded behind the save, so the name on the page is
-        // the one given -- and a name again, the page having been left.
-        record!("renamed", get!("contactName", "text"));
+        // The core reloaded behind the save, so the name in the field is
+        // the one given.
+        record!("renamed", get!("contactNameField", "text"));
         record!("hint-after-leave", get!("nameHint", "visible"));
         record!("field-kept", get!("contactNameField", "text"));
         record!(
@@ -210,7 +216,7 @@ fn the_contact_page_names_the_contact_and_no_address() {
     });
 
     single_shot(Duration::from_secs(7), move || unsafe {
-        record!("theirs-again", get!("contactName", "text"));
+        record!("theirs-again", get!("contactNameField", "placeholderText"));
         (*engine_ptr).quit();
     });
 
@@ -241,13 +247,17 @@ fn assert_rename(steps: &[(&str, String)], calls: &[(String, Value)]) {
         "ada",
         "the field does not show what the contact calls themselves. {context}"
     );
-    for step in ["edit", "typed", "leave", "blanked", "leave-again"] {
+    for step in ["typed", "leave", "blanked", "leave-again"] {
         assert_eq!(value(step), "ok", "step {step} failed. {context}");
     }
+    assert_eq!(
+        value("edit"),
+        "true",
+        "the cursor did not go into the name field. {context}"
+    );
     for (label, expected) in [
         ("hint-before", "false"),
-        ("field-before", "false"),
-        ("name-editing", "false"),
+        ("field-before", "true"),
         ("hint-editing", "true"),
         ("field-editing", "true"),
         ("hint-after-leave", "false"),
@@ -255,8 +265,8 @@ fn assert_rename(steps: &[(&str, String)], calls: &[(String, Value)]) {
         assert_eq!(
             value(label),
             expected,
-            "the name is not a name with a badge that turns it into a field: \
-             {label}. {context}"
+            "the name is not a field that says what it is for while it is \
+             being typed in: {label}. {context}"
         );
     }
     let renames: Vec<&Value> = calls

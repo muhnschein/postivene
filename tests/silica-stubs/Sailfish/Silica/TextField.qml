@@ -16,6 +16,10 @@ Item {
     property bool labelVisible: true
     property int textTopMargin: 0
     property font font
+    // Silica draws the text and the placeholder in its own colours, and
+    // the name fields ask for others.
+    property color color: "#ffffff"
+    property color placeholderColor: "#a0a0a0"
     signal clicked()
     implicitWidth: 400
     implicitHeight: 60

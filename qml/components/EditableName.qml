@@ -2,118 +2,103 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 
 /*
- * A name under a picture, and the way to change it.
+ * A name under a picture: a field, always.
  *
- * Drawn as a name: centred, in the highlight colour, with an edit badge
- * at the bottom right of the text -- the same badge the picture above it
- * wears, at the same corner. A tap on the badge turns the name into a
- * field, centred where the name was, with a line under it saying what
- * the field means; the badge turns into a tick at the end of what is
- * typed, and a tap on that puts the name back. Leaving the page puts it
- * back too (the page does that), so a name left blank is a name again
- * the next time the page is seen, not an empty field.
+ * It used to be a label with an edit badge at the corner of the text,
+ * which turned it into a field and back. Two states, a badge that had to
+ * be found, and a tap before anything could be typed -- for a page whose
+ * whole purpose is the name. It is a field now: centred under the
+ * picture, in the same size and colour the name was drawn in, with the
+ * line under it a field has.
  *
- * The field is what the page reads and writes: `text` is its text, so
- * the page fills it from the core and saves what is typed the way it did
- * when the field stood on its own. What the name shows is the text, or
- * `fallbackText` when there is none -- the name a contact chose for
- * themselves -- or the placeholder, dimmed, when there is neither.
+ * `text` is what was given here, which is what the page reads and
+ * writes. An empty field shows `fallbackText` -- the name a contact
+ * chose for themselves -- or the placeholder when there is no such
+ * thing, both dimmed, as a field shows a placeholder. So a blank field
+ * still says what the name will be.
+ *
+ * `hint` sits under it while the field has the cursor and not otherwise:
+ * what the field means is worth a line to somebody about to type, and
+ * clutter to everybody else.
  *
  * Used for a contact's name on their page, the reader's own on the
- * profile page and a group's on the group page. Each names the inner
- * items for its tests through the *ObjectName properties, the way Banner
- * does.
+ * profile page, and a group's on both of its. Each names the inner items
+ * for its tests through the *ObjectName properties, the way Banner does.
  */
 Item {
     id: root
 
     /// The field's text: the name given here.
     property alias text: field.text
-    /// Shown as the name when the text is empty. For a contact, the name
-    /// they chose for themselves.
+    /// Shown in the empty field. For a contact, the name they chose for
+    /// themselves.
     property string fallbackText: ""
-    /// The field's placeholder, and what the name shows, dimmed, when
-    /// there is neither text nor fallback.
+    /// Shown in the empty field when there is no fallback either.
     property string placeholderText: ""
-    /// Said under the field while editing, and only then.
+    /// Said under the field while it has the cursor.
     property string hint: ""
-    /// Whether the badge is offered at all.
+    /// Whether the name can be changed at all. A group this account has
+    /// left keeps its name on the screen and takes no edits.
     property bool canEdit: true
-    /// The field is up. The badge sets and clears it; the page clears it
-    /// on the way out.
-    property bool editing: false
 
-    property alias labelObjectName: nameLabel.objectName
     property alias fieldObjectName: field.objectName
-    property alias badgeObjectName: badge.objectName
     property alias hintObjectName: hintLabel.objectName
 
-    /// What the name shows: the text, their own, or the placeholder.
-    readonly property string shownText:
-        root.text.length > 0 ? root.text
-                             : root.fallbackText.length > 0 ? root.fallbackText
-                                                            : root.placeholderText
-    /// The placeholder is standing in, so it is drawn dimmed.
-    readonly property bool showingPlaceholder:
-        root.text.length === 0 && root.fallbackText.length === 0
+    /// Whether the field has been given the cursor. What the hint
+    /// follows, and what a page can ask before it decides the reader is
+    /// done.
+    ///
+    /// `focus` rather than `activeFocus`: what the field was told, not
+    /// whether the window agrees. Within a page they are the same thing
+    /// -- focus is exclusive, so typing in the field below takes it away
+    /// -- and `activeFocus` needs a window, which the tests have not
+    /// got.
+    readonly property bool editing: field.focus
 
     width: parent ? parent.width : 0
-    // The badge hangs half below the name, and is part of what this takes
-    // up: whatever follows starts under it, not under the text.
-    height: root.editing ? editor.height : nameLabel.height + badge.height / 2
+    height: column.height
 
-    // Opening the field puts the cursor in it; closing it drops the
-    // keyboard with it.
-    onEditingChanged: {
-        if (root.editing) {
-            field.forceActiveFocus()
-        } else if (field.activeFocus) {
-            field.focus = false
-        }
+    /// Put the cursor in the field, for a page that opens on an empty
+    /// one.
+    function edit() {
+        field.forceActiveFocus()
     }
 
-    // The name. Its width is its own, up to the room left beside the
-    // badge, so the badge sits at the end of the text rather than at
-    // the edge of the page.
-    Label {
-        id: nameLabel
-        visible: !root.editing
-        anchors.horizontalCenter: parent.horizontalCenter
-        width: Math.min(implicitWidth,
-                        root.width - 2 * Theme.horizontalPageMargin
-                        - badge.width - Theme.paddingSmall)
-        horizontalAlignment: Text.AlignHCenter
-        wrapMode: Text.Wrap
-        // A name is whatever the other end chose, so it is drawn as
-        // written.
-        textFormat: Text.PlainText
-        font.pixelSize: Theme.fontSizeLarge
-        color: root.showingPlaceholder ? Theme.secondaryHighlightColor
-                                       : Theme.highlightColor
-        text: root.shownText
+    /// Take it out again: what a page does on the way out, so the
+    /// keyboard does not follow it.
+    function done() {
+        field.focus = false
     }
 
-    // The field, where the name was. A field draws what it holds as
-    // text and nothing else, so it needs no pinning to plain.
     Column {
-        id: editor
-        visible: root.editing
+        id: column
         width: parent.width
 
+        // Full width, as Silica's fields are given it: a TextField keeps
+        // its own text and its line inside `textLeftMargin`, so insetting
+        // it here would inset it twice -- and the bio field below it on
+        // the profile page would no longer line up with it.
         TextField {
             id: field
             width: parent.width
             horizontalAlignment: TextInput.AlignHCenter
-            placeholderText: root.placeholderText
+            // The size and colour the name was drawn in when it was a
+            // label: this is still a heading, whatever it is made of.
+            font.pixelSize: Theme.fontSizeLarge
+            color: Theme.highlightColor
+            placeholderColor: Theme.secondaryHighlightColor
+            placeholderText: root.fallbackText.length > 0 ? root.fallbackText
+                                                          : root.placeholderText
             readOnly: !root.canEdit
-            // No label under the text: the hint below says what the
-            // field is, and only while it is up.
+            // Silica's own label would sit above the text, left-aligned,
+            // under a centred name. The hint below says the same thing
+            // where it reads.
             labelVisible: false
         }
 
         Label {
             id: hintLabel
-            visible: root.hint.length > 0
+            visible: root.hint.length > 0 && root.editing
             x: Theme.horizontalPageMargin
             width: parent.width - 2 * Theme.horizontalPageMargin
             horizontalAlignment: Text.AlignHCenter
@@ -122,71 +107,5 @@ Item {
             color: Theme.secondaryColor
             text: root.hint
         }
-    }
-
-    // Where the field's text ends: the field centres it, and says nothing
-    // about how wide it is, so it is measured with the field's own font
-    // on a label that is never shown. (TextMetrics would do the same,
-    // and needs a QtQuick newer than the device's.) The placeholder
-    // stands in for an empty field, as it does on screen.
-    Label {
-        id: typed
-        visible: false
-        font: field.font
-        textFormat: Text.PlainText
-        text: field.text.length > 0 ? field.text : root.placeholderText
-    }
-
-    // The badge: at the bottom right of the text, whether that is the
-    // name or what has been typed into the field. The same round badge
-    // the picture wears, a pencil to open and a tick to close. Kept on
-    // the page when the typed text runs past it.
-    Rectangle {
-        id: badge
-        visible: root.canEdit
-        x: root.editing
-           ? Math.min(field.width / 2 + typed.implicitWidth / 2 + Theme.paddingSmall,
-                      root.width - Theme.horizontalPageMargin - width)
-           : nameLabel.x + nameLabel.width + Theme.paddingSmall
-        y: root.editing
-           ? field.y + field.textTopMargin + typed.implicitHeight - height / 2
-           : nameLabel.y + nameLabel.height - height / 2
-        width: Theme.iconSizeMedium
-        height: width
-        radius: width / 2
-        color: root.editing ? Theme.highlightColor : Theme.highlightBackgroundColor
-
-        Image {
-            anchors.centerIn: parent
-            // The medium tick drawn at the small size: there is no small
-            // one, and a pencil is not a way to say "done".
-            width: Theme.iconSizeSmall
-            height: width
-            fillMode: Image.PreserveAspectFit
-            source: root.editing ? "image://theme/icon-m-accept"
-                                 : "image://theme/icon-s-edit"
-        }
-    }
-
-    // The name and its badge open the field; the badge alone closes it,
-    // so a tap on the field is a tap in the field.
-    MouseArea {
-        objectName: "nameTap"
-        visible: !root.editing && root.canEdit
-        anchors {
-            left: nameLabel.left
-            right: badge.right
-            top: nameLabel.top
-            bottom: badge.bottom
-        }
-        onClicked: root.editing = true
-    }
-
-    MouseArea {
-        objectName: "doneTap"
-        visible: root.editing
-        anchors.fill: badge
-        anchors.margins: -Theme.paddingMedium
-        onClicked: root.editing = false
     }
 }

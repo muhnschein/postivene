@@ -115,15 +115,15 @@ Page {
         }
         page.errorMessage = ""
         page.creating = true
-        nameField.editing = false
+        nameField.done()
         contacts.create_group(name, page.members, page.picturePath)
     }
 
-    // The name is what a new group needs first, so the field is up and
-    // focused when the page arrives, rather than a tap away.
+    // The name is what a new group needs first, so the cursor is in the
+    // field when the page arrives.
     onStatusChanged: {
         if (status === PageStatus.Active && nameField.text.length === 0) {
-            nameField.editing = true
+            nameField.edit()
         }
     }
 
@@ -212,19 +212,10 @@ Page {
             EditableName {
                 id: nameField
                 objectName: "groupNameControl"
-                labelObjectName: "groupName"
                 fieldObjectName: "nameField"
-                badgeObjectName: "nameEditBadge"
                 hintObjectName: "nameHint"
                 placeholderText: qsTr("Group name")
                 hint: qsTr("Everyone in the group sees the name")
-            }
-
-            // Room under the name, so the badge at its corner does not
-            // sit on the heading below.
-            Item {
-                width: 1
-                height: Theme.paddingLarge
             }
 
             Banner {

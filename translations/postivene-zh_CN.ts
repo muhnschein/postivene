@@ -903,6 +903,19 @@
     </message>
 </context>
 <context>
+    <name>ShareTarget</name>
+    <message>
+        <source>Send in a chat</source>
+        <extracomment>Shown in the phone&apos;s share sheet, for a file shared to this app.</extracomment>
+        <translation>发送到聊天</translation>
+    </message>
+    <message>
+        <source>Send as a message</source>
+        <extracomment>Shown in the phone&apos;s share sheet, for text or a link shared to this app.</extracomment>
+        <translation>作为消息发送</translation>
+    </message>
+</context>
+<context>
     <name>VideoPage</name>
     <message>
         <source>Saved to Videos</source>

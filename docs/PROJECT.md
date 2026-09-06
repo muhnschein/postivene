@@ -70,6 +70,17 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   watching where the view goes is not one -- a `.xdc` is a download, and
   a download is not a navigation, which is why the first version of that
   page did nothing on a phone.
+- **The app is in the phone's share sheet, and installs nothing to be
+  in it.** A picture from the gallery or a link from the browser can be
+  shared to Postivene because the desktop entry says so --
+  `X-Share-Methods`, and a group per method saying what it is called and
+  what it takes -- and because a `ShareProvider` of the same name is
+  running in the app (`qml/share/ShareTarget.qml`). The older way, a
+  transfer-engine plugin, is a `.so` in a system directory and is not
+  open to a Harbour package; this is, and `tests/qml_syntax.rs` checks
+  that the names in the two files still agree. What arrives goes to the
+  window, which asks which chat it is for and opens that chat with the
+  file on its attachment bar or the text in its field.
 - **The `WebView`'s own bindings are left alone.** Silica's `WebView.qml`
   decides when the engine renders from the page's status and whether the
   app is in front. Overriding `active` cost a device build: the view was

@@ -83,7 +83,26 @@ Page {
     // `reading_history` has been bound, or the model would see the default
     // `false`, take it for a reader looking at the screen, and mark the
     // chat read before the page is even on it.
-    Component.onCompleted: messages.chat_id = page.chatId
+    /// What a share handed this chat, when the page was opened from one:
+    /// a file to put on the attachment bar, text to put in the field.
+    /// See qml/share/ShareTarget.qml.
+    property string sharedFile: ""
+    property string sharedText: ""
+
+    Component.onCompleted: {
+        messages.chat_id = page.chatId
+        // A share opens the chat with what was shared already in it,
+        // for the reader to add a caption or a word to and send. Before
+        // the draft arrives, which only fills a field that is empty --
+        // so a chat holding a draft keeps it under what was shared
+        // rather than over it.
+        if (page.sharedFile.length > 0) {
+            page.attach(page.sharedFile)
+        }
+        if (page.sharedText.length > 0) {
+            textField.text = page.sharedText
+        }
+    }
 
     // A page pushed over this one takes the list's place in it with them:
     // it is torn down far enough to forget where it was, and comes back at

@@ -605,6 +605,73 @@ fn the_webxdc_pages_leave_the_views_activation_alone() {
     }
 }
 
+/// Every frame script a page hands the browser engine is a file that
+/// ships.
+///
+/// `loadFrameScript` takes a URL and says nothing about whether anything
+/// is there: a renamed or unpackaged script is a store that quietly stops
+/// catching taps on an app, on a phone and nowhere else. Nothing else can
+/// notice -- the stub view records what it was asked to load without
+/// looking -- so the path is checked here, against the tree the package
+/// is built from.
+#[test]
+fn the_frame_scripts_the_pages_load_are_there() {
+    let mut loaded = Vec::new();
+    for file in qml_files() {
+        let code = code_only_keeping_strings(&fs::read_to_string(&file).expect("read qml"));
+        for line in code.lines() {
+            let Some(rest) = line.split_once("loadFrameScript(") else {
+                continue;
+            };
+            let Some(path) = rest.1.split('"').nth(1) else {
+                panic!(
+                    "{}: loadFrameScript with no path in it: {line}",
+                    file.display()
+                );
+            };
+            // `Qt.resolvedUrl` reads the path against the file that
+            // names it, so this walks the same way: one directory up for
+            // every `../`, then whatever is left.
+            let mut here = file.parent().expect("a file is in a directory");
+            let mut rest = path;
+            while let Some(above) = rest.strip_prefix("../") {
+                here = here.parent().expect("qml/ has a parent");
+                rest = above;
+            }
+            let script = here.join(rest.trim_start_matches("./"));
+            assert!(
+                script.is_file(),
+                "{} loads the frame script {path}, which is not in the tree \
+                 at {}",
+                file.display(),
+                script.display()
+            );
+            loaded.push(path.to_string());
+        }
+    }
+    assert!(
+        loaded.contains(&"../webxdc/catch.js".to_string()),
+        "the store no longer loads the frame script that catches a tap on \
+         an app; if that moved, this list moves with it: {loaded:?}"
+    );
+}
+
+/// The file with its comments blanked out and its strings left alone.
+///
+/// `code_only` cannot be used where the string is the point: the paths
+/// this scans for are string literals.
+fn code_only_keeping_strings(text: &str) -> String {
+    text.lines()
+        .map(|line| match line.split_once("//") {
+            // A `//` inside a string is not a comment: the only ones here
+            // are in URLs, which are not what this scans for.
+            Some((code, _)) if !code.contains('"') => code,
+            _ => line,
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 /// The file with every comment and string body blanked out, newlines kept.
 ///
 /// A scan that does not do this reads prose and translated text as code:
@@ -779,7 +846,7 @@ fn qualified_uses(code: &str) -> Vec<(usize, String)> {
 #[test]
 fn qml_reads_no_name_that_is_not_there() {
     // What QML puts in scope without the file saying so.
-    const IN_SCOPE: [&str; 19] = [
+    const IN_SCOPE: [&str; 20] = [
         // Grouped properties, and properties of the element being
         // configured read without qualifying them.
         "anchors",
@@ -817,6 +884,9 @@ fn qml_reads_no_name_that_is_not_there() {
         // ContentPickerPage hands its answer to the handler under this
         // name; see AttachPhotoPage.
         "selectedContentProperties",
+        // What a WebView's `recvAsyncMessage` carries beside the message
+        // name: whatever the frame script sent. See WebxdcStorePage.
+        "data",
     ];
 
     let files = qml_files();

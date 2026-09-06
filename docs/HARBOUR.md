@@ -123,9 +123,12 @@ through the real validator.
   whether they may be used and says nothing about whether they work. The
   pickers are one page each so that a missing type costs one button
   (`qml/pages/Attach*Page.qml`), and `Sailfish.WebView` is named in
-  `WebxdcPage.qml` alone for the same reason: the browser engine is a
-  package of its own, and without it that page breaks rather than the
-  conversation. The media types are stubbed for tests in
+  `WebxdcPage.qml` and `WebxdcStorePage.qml` alone for the same reason:
+  the browser engine is a package of its own, and without it those pages
+  break rather than the conversation. The store also hands the engine a
+  frame script of its own (`qml/webxdc/catch.js`, installed with the QML
+  by the spec), which is a file this package ships rather than anything
+  Harbour has an opinion about. The media types are stubbed for tests in
   `tests/silica-stubs`, which proves what this app asks of them and
   nothing about what they answer.
 - Everything in the quality bar QA applies by hand — no placeholder
@@ -309,9 +312,14 @@ removed from the store even after approval. Not an option.
    that it draws, that a move reaches the other end and comes back, that
    its row shows what the app says about itself, and that leaving the page
    stops it -- `ss -ltn` should show no loopback port of ours afterwards.
-   An app that will not open now says why rather than drawing grey: the
-   host answers with the core's own reason, and the engine's error page is
-   left alone rather than turned back.
+   An app that will not open says why rather than drawing grey: the host
+   answers with the core's own reason, the engine's error page is left
+   alone rather than turned back, and while an app is coming up the page
+   shows the address it is served on, the engine's progress and how many
+   requests the host has answered. Those three are what to read off the
+   screen when it does draw grey: `127.0.0.1:PORT · 0% · 0` is an engine
+   that never asked for the app, and a count above zero with nothing
+   drawn is an app that was served and drew nothing.
 5. Delete the cache directory while the app runs; confirm nothing breaks.
 6. Kill `deltachat-rpc-server` from a terminal while the app is open. The
    banner should say it is reconnecting and then clear itself, and messages

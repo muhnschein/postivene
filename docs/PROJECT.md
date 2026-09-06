@@ -60,14 +60,32 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   a POST, the updates from everyone else are a poll -- so the bridge is
   not a Gecko frame script, and no archive format is parsed here.
   Where a new app comes from is the store, a website
-  (`WebxdcStorePage.qml`); following a link to a `.xdc` is caught before
+  (`WebxdcStorePage.qml`); a tap on a link to a `.xdc` is caught before
   the engine can download it and fetched through the core instead
-  (`get_http_response`), which is deltachat-android's shape too.
+  (`get_http_response`), which is deltachat-android's shape too. It
+  catches the tap where the tap happens: `qml/webxdc/catch.js` is a frame
+  script loaded into the engine's own world, and it stops the click and
+  sends the address back. deltachat-android decides every navigation in
+  `shouldOverrideUrlLoading`; this `WebView` has no such hook, and
+  watching where the view goes is not one -- a `.xdc` is a download, and
+  a download is not a navigation, which is why the first version of that
+  page did nothing on a phone.
 - **The `WebView`'s own bindings are left alone.** Silica's `WebView.qml`
   decides when the engine renders from the page's status and whether the
   app is in front. Overriding `active` cost a device build: the view was
   never activated by the page transition and drew as a grey rectangle.
-  `tests/qml_syntax.rs` keeps it that way.
+  `tests/qml_syntax.rs` keeps it that way. Where the view is pointed is a
+  plain `url:` binding for the same sort of reason -- the store page,
+  which draws, has always had one, and the app page, which did not, was
+  pointed from a signal handler instead.
+- **A `WebView` that draws nothing says why.** Nothing about the browser
+  engine can be tested off a phone, so the page carries its own account
+  of what it is waiting for: the address the app is served on, the
+  engine's load progress, and how many requests the host has answered
+  (`WebxdcApp.served`, counted in `webxdc_host.rs` and read by a poll
+  while the app comes up). Zero requests is an engine that never asked
+  for the app; a count with nothing drawn is an app that was served and
+  drew nothing. A phone cannot be asked which of those it is.
 - **What is made on the phone is made by the platform.** A picture or a
   video comes from QML's `Camera`; a voice message from `QAudioRecorder`,
   which QML on Qt 5.6 does not offer and the shim reaches through the

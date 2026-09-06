@@ -196,6 +196,22 @@ pub struct WebxdcApp {
     /// Emitted when the app starts or stops being served.
     pub url_changed: qt_signal!(),
 
+    /// How many requests the app has made of its own host: its index,
+    /// its scripts, its pictures, every update it asks for.
+    ///
+    /// Read by `poll` rather than pushed: the host answers on its own
+    /// threads and this is a number for a page to show, not something to
+    /// wake the interface up for. A page shows it while an app is coming
+    /// up, because a `WebView` that stays empty says nothing about why --
+    /// and zero here says the engine never asked for the app at all,
+    /// which is a different fault from an app that was served and drew
+    /// nothing.
+    pub served: qt_property!(u32; NOTIFY served_changed),
+    /// Emitted when `poll` finds a new number.
+    pub served_changed: qt_signal!(),
+    /// Read how many requests the host has answered.
+    pub poll: qt_method!(fn(&mut self)),
+
     /// Something failed. The message is the core's own.
     pub error: qt_signal!(message: QString),
     /// The message this app came in is gone, so there is nothing left to
@@ -347,6 +363,22 @@ impl WebxdcApp {
         if self.host.take().is_some() {
             self.url = QString::default();
             self.url_changed();
+        }
+        if self.served != 0 {
+            self.served = 0;
+            self.served_changed();
+        }
+    }
+
+    /// Read how many requests the host has answered.
+    ///
+    /// A page asks while it is waiting; there is nothing to ask once the
+    /// app is up, and nothing to answer when it is not being served.
+    pub fn poll(&mut self) {
+        let served = self.host.as_ref().map_or(0, Host::served);
+        if self.served != served {
+            self.served = served;
+            self.served_changed();
         }
     }
 

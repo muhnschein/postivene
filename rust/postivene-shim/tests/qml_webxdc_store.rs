@@ -6,9 +6,12 @@
 //! what lands is a file on the phone with the store's own name on it,
 //! and that the page reports it the way a picker reports a chosen file.
 //!
-//! The view is a stub, so nothing here says the store draws. The
-//! navigation it fakes is the one the engine really makes: `url` changes
-//! to the link that was followed.
+//! The view is a stub, so nothing here says the store draws. What it
+//! fakes is how the tap arrives: the frame script the page loads into the
+//! engine stops the click and sends the address back as a message, which
+//! is the route that works on a phone -- a .xdc is downloaded rather than
+//! navigated to, so watching the view's address never hears about it.
+//! A navigation is faked too, to prove the same app is not taken twice.
 
 // Qt harness: see qml_pages.rs.
 #![allow(
@@ -88,7 +91,14 @@ const PROBE_QML: &str = r"
             if (!item) { return 'missing:' + name }
             return '' + item[property]
         }
-        // Following a link, as the engine reports it.
+        // The frame script's message, as the engine delivers it.
+        function deliver(message, where) {
+            var view = findIn(loader.item, 'storeView')
+            if (!view) { return 'missing:storeView' }
+            view.recvAsyncMessage(message, { uri: where })
+            return 'ok'
+        }
+        // A navigation that commits, as the engine reports it.
         function follow(where) {
             var view = findIn(loader.item, 'storeView')
             if (!view) { return 'missing:storeView' }
@@ -186,11 +196,29 @@ fn a_tapped_app_is_fetched_by_the_core_and_reported_as_a_file() {
                 QString::from("text")
             )
         );
-        // A link to an app, followed.
         record!(
-            "follow",
+            "listeners",
             call!(
-                "follow",
+                "get",
+                QString::from("storeView"),
+                QString::from("listeners")
+            )
+        );
+        record!(
+            "frame-scripts",
+            call!(
+                "get",
+                QString::from("storeView"),
+                QString::from("frameScripts")
+            )
+        );
+        // A link to an app, tapped: the frame script stopped it and said
+        // where it went.
+        record!(
+            "tapped",
+            call!(
+                "deliver",
+                QString::from("postivene:app"),
                 QString::from("https://webxdc.org/apps/checkers.xdc?v=2")
             )
         );
@@ -202,6 +230,15 @@ fn a_tapped_app_is_fetched_by_the_core_and_reported_as_a_file() {
         record!(
             "banner",
             call!("get", QString::from("errorBanner"), QString::from("text"))
+        );
+        // The same tap, arriving again the other way. One app was taken;
+        // this is not a second one.
+        record!(
+            "follow",
+            call!(
+                "follow",
+                QString::from("https://webxdc.org/apps/checkers.xdc?v=2")
+            )
         );
         // The way out when the store cannot be reached: the file browser.
         record!("tap-phone", call!("tap", QString::from("fromPhoneButton")));
@@ -246,6 +283,23 @@ fn a_tapped_app_is_fetched_by_the_core_and_reported_as_a_file() {
          also the way out when the store cannot be reached. {context}"
     );
 
+    assert!(
+        value("listeners").contains("postivene:app"),
+        "the page did not listen for its frame script's message, so a \
+         tapped app would never reach it: {}. {context}",
+        value("listeners")
+    );
+    assert!(
+        value("frame-scripts").contains("webxdc/catch.js"),
+        "the page did not load the frame script that catches a tap on an \
+         app: {}. {context}",
+        value("frame-scripts")
+    );
+    assert_eq!(
+        value("tapped"),
+        "ok",
+        "the tapped app was not delivered. {context}"
+    );
     assert_eq!(
         value("follow"),
         "ok",
@@ -291,8 +345,8 @@ fn a_tapped_app_is_fetched_by_the_core_and_reported_as_a_file() {
     assert_eq!(
         fetched.len(),
         1,
-        "the app should have been fetched exactly once, through the core: \
-         {calls:?}"
+        "the app should have been fetched exactly once, through the core, \
+         however many ways the same tap arrived: {calls:?}"
     );
     assert_eq!(
         fetched[0]

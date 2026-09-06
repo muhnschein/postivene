@@ -28,7 +28,7 @@
 
 use std::io::Read;
 use std::net::{Ipv4Addr, SocketAddr};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
 
 use deltachat_jsonrpc::RpcClient;
@@ -100,6 +100,12 @@ struct Shared {
     /// Cleared when the app is closed. A connection accepted just before
     /// that stops rather than reaching the core.
     running: Arc<AtomicBool>,
+    /// How many requests have been answered. Counted for the page, which
+    /// says so while an app is coming up: a view that stays empty is a
+    /// different fault depending on whether the engine ever asked for
+    /// anything, and on a phone that is the one thing nothing else can
+    /// tell us.
+    served: Arc<AtomicU32>,
 }
 
 /// A served app: the URL to point a `WebView` at, and the task serving it.
@@ -109,6 +115,7 @@ pub(crate) struct Host {
     /// Where the app is. What `WebxdcApp.url` hands to QML.
     url: String,
     running: Arc<AtomicBool>,
+    served: Arc<AtomicU32>,
     task: JoinHandle<()>,
 }
 
@@ -116,6 +123,11 @@ impl Host {
     /// Where the app is being served.
     pub(crate) fn url(&self) -> &str {
         &self.url
+    }
+
+    /// How many requests this host has answered, refusals included.
+    pub(crate) fn served(&self) -> u32 {
+        self.served.load(Ordering::SeqCst)
     }
 }
 
@@ -145,15 +157,22 @@ pub(crate) async fn start(rpc: Arc<RpcClient>, instance: Instance) -> Result<Hos
     let authority = format!("127.0.0.1:{}", address.port());
     let url = format!("http://{authority}/{token}/index.html");
     let running = Arc::new(AtomicBool::new(true));
+    let served = Arc::new(AtomicU32::new(0));
     let shared = Arc::new(Shared {
         rpc,
         instance,
         prefix: format!("/{token}"),
         authority,
         running: Arc::clone(&running),
+        served: Arc::clone(&served),
     });
     let task = tokio::spawn(accept(listener, shared));
-    Ok(Host { url, running, task })
+    Ok(Host {
+        url,
+        running,
+        served,
+        task,
+    })
 }
 
 /// One connection at a time is not enough: a page loads its script, its
@@ -180,6 +199,11 @@ async fn answer(mut stream: TcpStream, shared: Arc<Shared>) -> std::io::Result<(
         Some(request) => route(&shared, &request).await,
         None => Response::empty("400 Bad Request"),
     };
+    // Counted before the write rather than after it: what the page is
+    // being told is that the engine got this far, and a write that fails
+    // on a connection the engine dropped is still an answer that was
+    // asked for.
+    shared.served.fetch_add(1, Ordering::SeqCst);
     write_response(&mut stream, &response).await
 }
 

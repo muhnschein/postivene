@@ -13,11 +13,23 @@ import Postivene 1.0
  * deltachat-android opens the store instead, and so does this.
  *
  * The store is an ordinary website. What is not ordinary is what happens
- * when a link to an app is followed: the engine would download it into
- * the browser's world, where this app cannot reach it, so the navigation
- * is stopped and the file fetched through the core instead
- * (`WebxdcStore`). That is deltachat-android's shape too, done with the
- * one hook this WebView offers -- watching where it is going.
+ * when a link to an app is followed: a .xdc is a download to the engine,
+ * which would save it into the browser's world where this app cannot
+ * reach it -- and a download is not a navigation, so watching where the
+ * view goes never hears about it at all. That was this page's first
+ * answer and it did nothing on a phone.
+ *
+ * deltachat-android decides every navigation itself
+ * (`shouldOverrideUrlLoading`) and fetches an .xdc through the core.
+ * There is no such hook here, so the tap is caught where it happens: a
+ * frame script in the engine's own world (qml/webxdc/catch.js) stops a
+ * click on a link to an app and sends the address back over the message
+ * channel, and the file is fetched through the core (`WebxdcStore`).
+ * Everything else is left alone, so the store browses as a website.
+ *
+ * Three ways in, because only the first is certain: the frame script's
+ * message, the view's own `linkClicked`, and a navigation that does
+ * commit. An app is taken once however it arrives.
  *
  * Pushed by URL and reporting on `picked`, as the picker pages are and
  * for the same reason: `Sailfish.WebView` resolves only where the browser
@@ -39,6 +51,11 @@ Page {
 
     property string errorMessage: ""
 
+    /// An app has been taken and the page is on its way out. The same tap
+    /// can arrive by more than one route, and the second one is not a
+    /// second app.
+    property bool taken: false
+
     WebxdcStore {
         id: store
         objectName: "store"
@@ -47,22 +64,29 @@ Page {
             page.picked(path)
             pageStack.pop()
         }
-        onError: page.errorMessage = message
+        onError: {
+            // Nothing was taken after all, so the next tap is a real one.
+            page.taken = false
+            page.errorMessage = message
+        }
     }
 
-    /// Take the app the reader tapped rather than letting the engine
-    /// download it.
+    /// Take the app at `where` rather than letting the engine download
+    /// it.
     ///
-    /// The store's own links end in `.xdc`, and following one is a
-    /// navigation before it is a download -- which is the moment this
-    /// gets, and where deltachat-android does the same thing from
-    /// `shouldOverrideUrlLoading`.
-    function catchApp() {
-        var here = "" + view.url
+    /// Called for every address the page hears about -- a click the frame
+    /// script stopped, a link the view reports, a navigation that
+    /// happened -- and it is this that decides which of them is an app.
+    function catchApp(where) {
+        var here = "" + where
         var path = here.split("#")[0].split("?")[0]
-        if (path.slice(-4).toLowerCase() !== ".xdc" || store.fetching) {
+        if (path.slice(-4).toLowerCase() !== ".xdc"
+                || page.taken || store.fetching) {
             return
         }
+        page.taken = true
+        // For the navigation that got as far as starting: a click the
+        // frame script stopped never began one.
         view.stop()
         store.fetch(here)
     }
@@ -104,7 +128,35 @@ Page {
             bottom: fromPhone.top
         }
         url: page.storeUrl
-        onUrlChanged: page.catchApp()
+        // A navigation that commits. Not how an app arrives -- a .xdc is
+        // downloaded rather than navigated to -- but a redirect that ends
+        // on one would come this way.
+        onUrlChanged: page.catchApp(view.url)
+        // The view's own account of a tapped link, before the engine has
+        // decided what the link is. `url` here is the signal's, not the
+        // view's.
+        onLinkClicked: page.catchApp(url)
+    }
+
+    // The frame script, and the message it sends back. Registered from
+    // the page rather than on the view: a `Component.onCompleted` written
+    // on the view would replace WebView.qml's own, which is where it
+    // registers the messages it needs to work at all.
+    Component.onCompleted: {
+        view.addMessageListener("postivene:app")
+        view.loadFrameScript(Qt.resolvedUrl("../webxdc/catch.js"))
+    }
+
+    // Connections rather than a handler on the view, for the same reason:
+    // this listens beside WebView.qml's own handler instead of taking its
+    // place.
+    Connections {
+        target: view
+        onRecvAsyncMessage: {
+            if (message === "postivene:app" && data) {
+                page.catchApp(data.uri)
+            }
+        }
     }
 
     // Below the store rather than in a pulley: a pulley wants a

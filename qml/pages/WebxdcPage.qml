@@ -34,47 +34,52 @@ Page {
 
     property string errorMessage: ""
 
-    /// Everything the app is allowed to be: the directory it is served
-    /// from, token and all. Empty until it is being served.
-    readonly property string origin: app.url.length > 0
-        ? app.url.substring(0, app.url.lastIndexOf("/") + 1) : ""
+    /// The app has drawn at least once. What the page waits for, and it
+    /// only waits once: an app that loads something of its own later
+    /// should not have this page's own spinner put back over the top of
+    /// it. The view carries one of its own for that.
+    property bool drew: false
 
-    /// Point the view somewhere. The view's `url` is assigned rather than
-    /// bound, and only from here: an app that navigates itself away has
-    /// to be put back, and a binding whose value has not changed cannot
-    /// be made to fire again.
-    function show(where) {
-        view.url = where
+    /// The address the app is served on, `127.0.0.1:port`. What the app
+    /// may not leave.
+    function authorityOf(where) {
+        var at = ("" + where).indexOf("//")
+        if (at < 0) {
+            return ""
+        }
+        var rest = ("" + where).substring(at + 2)
+        var slash = rest.indexOf("/")
+        return slash < 0 ? rest : rest.substring(0, slash)
     }
 
-    Connections {
-        target: app
-        onUrl_changed: page.show(app.url)
-    }
-
-    /// Put the view back if the app navigates off the address it was
-    /// served on.
+    /// Put the view back if the app takes itself to another address.
     ///
     /// A webxdc has no network -- the policy it is served under permits
-    /// this origin and nothing else -- but a policy does not stop the
+    /// its own origin and nothing else -- but a policy does not stop the
     /// page itself moving, and an app that set `window.location` to the
     /// open web would be showing it inside a page wearing that app's
     /// name. So: it stays where it was put.
     ///
-    /// Only a real navigation counts. The engine's own pages are not
-    /// ones the app chose: `about:blank` is where a view starts, and
-    /// `about:neterror` is how it says the load failed -- turning that
-    /// one back would replace the reason with a blank page, and then do
-    /// it again for as long as the load kept failing.
+    /// The address is what is compared, not the whole URL. The engine's
+    /// own pages have no address at all -- `about:blank` is where a view
+    /// starts and `about:neterror` is how it says a load failed -- and
+    /// turning those back would replace the reason with a blank page and
+    /// keep doing it. Anything the engine does to the URL short of
+    /// changing where it points is likewise none of this function's
+    /// business.
     function keepInside() {
-        var here = "" + view.url
-        var web = here.indexOf("http://") === 0 || here.indexOf("https://") === 0
-        if (page.origin.length === 0 || !web
-                || here.indexOf(page.origin) === 0) {
+        var here = page.authorityOf(view.url)
+        var ours = page.authorityOf(app.url)
+        if (ours.length === 0 || here.length === 0 || here === ours) {
             return
         }
         view.stop()
-        page.show(app.url)
+        // The binding below, written again: an app that moved the view
+        // wrote over it, and a binding only re-runs when what it reads
+        // changes -- which `app.url` has not. Putting the binding back
+        // rather than the address means the view still follows the app
+        // afterwards, so closing the page still empties it.
+        view.url = Qt.binding(function () { return app.url })
     }
 
     WebxdcApp {
@@ -138,6 +143,12 @@ Page {
     // decides when the engine renders and when it lets go of the GPU;
     // overriding it left a view that was never activated by the page
     // transition -- a grey rectangle where the app should be.
+    //
+    // The address is a binding, and nothing assigns it on the way in.
+    // The first version pointed the view from a handler on the shim's
+    // signal and drew grey on a phone where the store page -- the same
+    // type, a plain `url:` binding -- drew a website; whatever the engine
+    // makes of the difference, this is the shape that works.
     WebView {
         id: view
         objectName: "webxdcView"
@@ -147,19 +158,35 @@ Page {
             right: parent.right
             bottom: parent.bottom
         }
+        url: app.url
         onUrlChanged: page.keepInside()
+        onLoadedChanged: {
+            if (view.loaded) {
+                page.drew = true
+            }
+        }
     }
 
     BusyIndicator {
         objectName: "webxdcBusy"
         anchors.centerIn: view
         size: BusyIndicatorSize.Large
-        running: app.url.length === 0 && page.errorMessage.length === 0
+        running: !page.drew && page.errorMessage.length === 0
     }
 
-    // What the app is being served from, while it is still coming up.
-    // A reader who sees nothing at all should at least be told what the
-    // app is waiting for; the address is this device's own.
+    // What is happening until the app has drawn something. A reader who
+    // sees nothing at all should be told which half is not answering:
+    // the shim, which has not served the app yet, or the engine, which
+    // has been given an address and not arrived. Gone the moment the app
+    // is up.
+    //
+    // Three things, once there is an address: where the app is being
+    // served, how far the engine says it has got, and how many requests
+    // the host has answered. The last is the one a phone cannot be asked
+    // for otherwise -- a view that stays empty having asked for nothing
+    // is not the same fault as one that was handed an app and drew
+    // none of it -- so it is on the screen rather than in a log nobody
+    // can reach.
     Label {
         objectName: "webxdcWaiting"
         anchors {
@@ -167,11 +194,29 @@ Page {
             topMargin: Theme.paddingLarge
             horizontalCenter: parent.horizontalCenter
         }
-        visible: app.url.length === 0 && page.errorMessage.length === 0
+        visible: !page.drew && page.errorMessage.length === 0
         font.pixelSize: Theme.fontSizeExtraSmall
         color: Theme.secondaryColor
+        textFormat: Text.PlainText
         //: Shown while a webxdc app is being made ready to run.
-        text: qsTr("Starting the app")
+        text: app.url.length === 0
+              ? qsTr("Starting the app")
+              : page.authorityOf(app.url) + " · " + view.loadProgress
+                + "% · " + app.served
+    }
+
+    // The host answers on threads of its own and counts what it has
+    // answered; this is what reads the count. Only while the app is
+    // coming up -- once it is up the number is no longer news, and an
+    // app that is running should not be asked anything every half
+    // second.
+    Timer {
+        objectName: "webxdcPoll"
+        interval: 500
+        repeat: true
+        running: !page.drew && app.url.length > 0
+                 && page.errorMessage.length === 0
+        onTriggered: app.poll()
     }
 
     Banner {

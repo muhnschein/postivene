@@ -83,6 +83,15 @@ const PROBE_QML: &str = r"
                              JSON.stringify({ msgId: 5 }))
             return 'ok'
         }
+        // The view saying it has arrived, which is the engine's job and
+        // the one thing a stub cannot do by itself.
+        function arrived() {
+            var view = findIn(loader.item, 'webxdcView')
+            if (!view) { return 'missing:webxdcView' }
+            view.loadProgress = 100
+            view.loaded = true
+            return 'ok'
+        }
         // An app trying to take the view somewhere else, which is what
         // window.location does.
         function wander(where) {
@@ -184,9 +193,37 @@ fn the_page_runs_the_app_the_shim_serves_and_stops_it_on_the_way_out() {
             "url",
             call!("get", QString::from("webxdcView"), QString::from("url"))
         );
+        // Served, but not drawn yet: the page is still saying so, and
+        // saying what it is waiting on.
+        record!(
+            "serving-busy",
+            call!("get", QString::from("webxdcBusy"), QString::from("running"))
+        );
+        record!(
+            "serving-said",
+            call!("get", QString::from("webxdcWaiting"), QString::from("text"))
+        );
+        record!(
+            "polling",
+            call!("get", QString::from("webxdcPoll"), QString::from("running"))
+        );
+        // The engine says it has the app.
+        record!("arrived", call!("arrived"));
         record!(
             "busy",
             call!("get", QString::from("webxdcBusy"), QString::from("running"))
+        );
+        record!(
+            "said",
+            call!(
+                "get",
+                QString::from("webxdcWaiting"),
+                QString::from("visible")
+            )
+        );
+        record!(
+            "still-polling",
+            call!("get", QString::from("webxdcPoll"), QString::from("running"))
         );
         record!(
             "title",
@@ -257,9 +294,41 @@ fn the_page_runs_the_app_the_shim_serves_and_stops_it_on_the_way_out() {
         value("url")
     );
     assert_eq!(
+        value("serving-busy"),
+        "true",
+        "the page stopped saying it was working while the app had still \
+         drawn nothing. {context}"
+    );
+    // The three things a phone cannot otherwise be asked: where the app
+    // is, how far the engine got, and how much of the app it asked for.
+    assert!(
+        value("serving-said").starts_with("127.0.0.1:")
+            && value("serving-said").ends_with("· 0% · 0"),
+        "the page did not say what it was waiting on: {}. {context}",
+        value("serving-said")
+    );
+    assert_eq!(
+        value("polling"),
+        "true",
+        "nothing was reading how much of the app had been asked for. \
+         {context}"
+    );
+    assert_eq!(value("arrived"), "ok", "the view did not arrive. {context}");
+    assert_eq!(
         value("busy"),
         "false",
         "the page is still saying it is working after the app came up. {context}"
+    );
+    assert_eq!(
+        value("said"),
+        "false",
+        "the page is still saying what it is waiting for after the app \
+         came up. {context}"
+    );
+    assert_eq!(
+        value("still-polling"),
+        "false",
+        "a running app is still being asked how it is getting on. {context}"
     );
     assert_eq!(
         value("title"),

@@ -60,9 +60,16 @@ Page {
     /// page itself moving, and an app that set `window.location` to the
     /// open web would be showing it inside a page wearing that app's
     /// name. So: it stays where it was put.
+    ///
+    /// Only a real navigation counts. The engine's own pages are not
+    /// ones the app chose: `about:blank` is where a view starts, and
+    /// `about:neterror` is how it says the load failed -- turning that
+    /// one back would replace the reason with a blank page, and then do
+    /// it again for as long as the load kept failing.
     function keepInside() {
         var here = "" + view.url
-        if (page.origin.length === 0 || here.length === 0
+        var web = here.indexOf("http://") === 0 || here.indexOf("https://") === 0
+        if (page.origin.length === 0 || !web
                 || here.indexOf(page.origin) === 0) {
             return
         }
@@ -125,6 +132,12 @@ Page {
     // Where the app draws. Nothing is loaded until the host answers with
     // an address, and an empty URL is a WebView showing nothing rather
     // than a blank page from somewhere else.
+    //
+    // `active` is deliberately not set here. WebView.qml binds it to the
+    // page's own status and to whether the app is in front, which is what
+    // decides when the engine renders and when it lets go of the GPU;
+    // overriding it left a view that was never activated by the page
+    // transition -- a grey rectangle where the app should be.
     WebView {
         id: view
         objectName: "webxdcView"
@@ -134,7 +147,6 @@ Page {
             right: parent.right
             bottom: parent.bottom
         }
-        active: app.url.length > 0
         onUrlChanged: page.keepInside()
     }
 
@@ -143,6 +155,23 @@ Page {
         anchors.centerIn: view
         size: BusyIndicatorSize.Large
         running: app.url.length === 0 && page.errorMessage.length === 0
+    }
+
+    // What the app is being served from, while it is still coming up.
+    // A reader who sees nothing at all should at least be told what the
+    // app is waiting for; the address is this device's own.
+    Label {
+        objectName: "webxdcWaiting"
+        anchors {
+            top: parent.verticalCenter
+            topMargin: Theme.paddingLarge
+            horizontalCenter: parent.horizontalCenter
+        }
+        visible: app.url.length === 0 && page.errorMessage.length === 0
+        font.pixelSize: Theme.fontSizeExtraSmall
+        color: Theme.secondaryColor
+        //: Shown while a webxdc app is being made ready to run.
+        text: qsTr("Starting the app")
     }
 
     Banner {

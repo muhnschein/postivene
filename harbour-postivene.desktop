@@ -42,11 +42,13 @@ Categories=Network;InstantMessaging;
 # ScanView.qml and CapturePage.qml are the only files that open it, and
 # only while they are on screen.
 #
-# WebView is for running a webxdc app, which is a small web page somebody
-# sent (WebxdcPage.qml). It is what lets the app use the platform's
-# browser engine; the app itself reaches nothing but the loopback address
+# WebView is for webxdc apps: running one, which is a small web page
+# somebody sent (WebxdcPage.qml), and the store one is fetched from
+# (WebxdcStorePage.qml). It is what lets the app use the platform's
+# browser engine. A running app reaches nothing but the loopback address
 # the shim serves it on, and a content-security-policy keeps it there
-# (webxdc_host.rs).
+# (webxdc_host.rs); the store is an ordinary website, and the app it
+# hands over is fetched by the core rather than downloaded by the engine.
 [X-Sailjail]
 Permissions=Internet;Pictures;MediaIndexing;UserDirs;Audio;Microphone;Camera;WebView
 OrganizationName=postivene

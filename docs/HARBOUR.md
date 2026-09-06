@@ -304,11 +304,14 @@ removed from the store even after approval. Not an option.
    in the app and send those too. The recorder picks a codec from what
    GStreamer offers (AAC in MP4 first); the microphone button is not shown
    at all when it finds none, which is the state the headless tests see.
-   A webxdc is the path nothing off-device can vouch for at all: send a
-   .xdc from the tray, open it, and check that it draws, that a move
-   reaches the other end and comes back, that its row shows what the app
-   says about itself, and that leaving the page stops it -- `ss -ltn`
-   should show no loopback port of ours afterwards.
+   A webxdc is the path nothing off-device can vouch for at all: open the
+   tray's app entry, take one from the store, send it, open it, and check
+   that it draws, that a move reaches the other end and comes back, that
+   its row shows what the app says about itself, and that leaving the page
+   stops it -- `ss -ltn` should show no loopback port of ours afterwards.
+   An app that will not open now says why rather than drawing grey: the
+   host answers with the core's own reason, and the engine's error page is
+   left alone rather than turned back.
 5. Delete the cache directory while the app runs; confirm nothing breaks.
 6. Kill `deltachat-rpc-server` from a terminal while the app is open. The
    banner should say it is reconnecting and then clear itself, and messages

@@ -207,13 +207,41 @@ impl Response {
         }
     }
 
+    /// A refusal, carrying its own reason. An answer with nothing in it
+    /// draws as a blank page, and a blank page in a `WebView` cannot be
+    /// told apart from an app that came up and did nothing.
     fn empty(status: &'static str) -> Self {
         Self {
             status,
             content_type: "text/plain; charset=utf-8".to_string(),
-            body: Vec::new(),
+            body: status.as_bytes().to_vec(),
         }
     }
+
+    /// The app itself could not be read. This fills the view in its
+    /// place, so a reader is told what happened rather than shown grey.
+    fn failed(status: &'static str, reason: &str) -> Self {
+        let body = format!(
+            "<!doctype html><html><head><meta charset=\"utf-8\">\
+             <meta name=\"viewport\" content=\"width=device-width\">\
+             <title>{status}</title></head>\
+             <body style=\"font-family:sans-serif;padding:1.5em;color:#808080\">\
+             <p>This app could not be opened.</p><p>{}</p></body></html>",
+            escape(reason)
+        );
+        Self {
+            status,
+            content_type: "text/html; charset=utf-8".to_string(),
+            body: body.into_bytes(),
+        }
+    }
+}
+
+/// The core's own words, put in a page as text rather than as markup.
+fn escape(text: &str) -> String {
+    text.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
 }
 
 /// A request whose head fits, or `None` for one that does not parse.
@@ -322,11 +350,14 @@ async fn route(shared: &Shared, request: &Request) -> Response {
 /// The app's own front page, with the API put in front of it.
 async fn index(shared: &Shared) -> Response {
     match file(shared, "index.html").await {
-        Some(bytes) => {
+        Ok(bytes) => {
             let html = String::from_utf8_lossy(&bytes);
             Response::new("text/html; charset=utf-8", inject(&html).into_bytes())
         }
-        None => Response::empty("404 Not Found"),
+        // The one refusal worth spelling out: without index.html there
+        // is no app, and the core's reason is the only thing anybody can
+        // act on. A blank page here reads as a broken app.
+        Err(reason) => Response::failed("502 Bad Gateway", &reason),
     }
 }
 
@@ -336,8 +367,8 @@ async fn blob(shared: &Shared, path: &str) -> Response {
         return Response::empty("404 Not Found");
     };
     match file(shared, &name).await {
-        Some(bytes) => Response::new(content_type(&name), bytes),
-        None => Response::empty("404 Not Found"),
+        Ok(bytes) => Response::new(content_type(&name), bytes),
+        Err(_) => Response::empty("404 Not Found"),
     }
 }
 
@@ -396,8 +427,10 @@ async fn send(shared: &Shared, body: &[u8]) -> Response {
     }
 }
 
-/// One file from the archive, through the core.
-async fn file(shared: &Shared, name: &str) -> Option<Vec<u8>> {
+/// One file from the archive, through the core. The error is the core's
+/// own words: the message is gone, the archive holds no such name, or the
+/// attachment was never downloaded.
+async fn file(shared: &Shared, name: &str) -> Result<Vec<u8>, String> {
     let answer: Result<String, _> = shared
         .rpc
         .call(
@@ -405,7 +438,8 @@ async fn file(shared: &Shared, name: &str) -> Option<Vec<u8>> {
             (shared.instance.account_id, shared.instance.message_id, name),
         )
         .await;
-    decode_base64(&answer.ok()?)
+    let encoded = answer.map_err(|err| err.to_string())?;
+    decode_base64(&encoded).ok_or_else(|| format!("{name} came back as something unreadable"))
 }
 
 /// The bridge with this instance's own values in it.
@@ -624,7 +658,9 @@ async fn write_response(stream: &mut TcpStream, response: &Response) -> std::io:
 
 #[cfg(test)]
 mod tests {
-    use super::{archive_path, content_type, decode_base64, inject, percent_decode, token};
+    use super::{
+        archive_path, content_type, decode_base64, inject, percent_decode, token, Response,
+    };
 
     #[test]
     fn base64_reads_with_or_without_padding_and_refuses_anything_else() {
@@ -700,6 +736,28 @@ mod tests {
         assert_eq!(content_type("icon.png"), "image/png");
         assert_eq!(content_type("data"), "application/octet-stream");
         assert_eq!(content_type("archive.tar.gz"), "application/octet-stream");
+    }
+
+    #[test]
+    fn a_refusal_says_what_happened_rather_than_drawing_blank() {
+        // Every refusal carries its reason: a body with nothing in it is
+        // a blank page, and that is what a broken app looks like too.
+        let refused = Response::empty("404 Not Found");
+        assert_eq!(refused.body, b"404 Not Found");
+
+        // The app's own page is the one worth a sentence, and the core's
+        // words go in it as text.
+        let failed = Response::failed("502 Bad Gateway", "no <b>file</b> & no message");
+        let page = String::from_utf8_lossy(&failed.body);
+        assert!(
+            page.contains("This app could not be opened."),
+            "the failure page does not say what went wrong: {page}"
+        );
+        assert!(
+            page.contains("no &lt;b&gt;file&lt;/b&gt; &amp; no message"),
+            "the core's words were not escaped into the page: {page}"
+        );
+        assert_eq!(failed.content_type, "text/html; charset=utf-8");
     }
 
     #[test]

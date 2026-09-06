@@ -1482,6 +1482,23 @@ async fn serve() {
                         ok(&id, &json!(msg))
                     }
                 }
+                // Anything off the web, fetched by the core rather than by
+                // the app: how an app is taken from the store.
+                "get_http_response" => {
+                    let url = positional(1).as_str().unwrap_or_default().to_string();
+                    if should_fail(&url) {
+                        err(&id, "could not reach the store")
+                    } else {
+                        ok(
+                            &id,
+                            &json!({
+                                "blob": base64(b"PK\x03\x04 a fake app"),
+                                "mimetype": "application/octet-stream",
+                                "encoding": Value::Null,
+                            }),
+                        )
+                    }
+                }
                 // What the app is called and what it says about itself.
                 // The summary counts the updates sent to it, so a test
                 // can watch a row follow the chat.

@@ -15,8 +15,7 @@ import Sailfish.Silica 1.0
  * over everything the phone has indexed -- pictures, videos, music,
  * documents -- rather than one entry per kind; the microphone, for
  * a voice message, offered only where something can record one; and the
- * mark a webxdc app is drawn with everywhere else in the app, for
- * sending one.
+ * grid of squares that means "apps", for sending a webxdc one.
  *
  * Nothing is opened here. The page that owns the pageStack pushes the
  * pickers and starts the recording, the way ConversationPage already
@@ -119,21 +118,17 @@ Item {
                 }
             }
 
-            // The mark rather than a theme icon: it is the one an app is
-            // drawn with on a message row that cannot draw its own
-            // (AttachmentPreview), and every icon name this tree asks the
-            // theme for is one it has been seen to have. A name that is
-            // not there is an entry nobody can see.
+            // Drawn rather than named: see AppMark for why this one
+            // cannot be a theme icon.
             BackgroundItem {
                 id: appChoice
                 objectName: "attachApp"
                 width: toggle.width
                 height: toggle.height
 
-                Label {
+                AppMark {
                     anchors.centerIn: parent
-                    text: "⚙"
-                    font.pixelSize: Theme.fontSizeLarge
+                    size: Theme.iconSizeSmall
                     color: appChoice.highlighted ? Theme.highlightColor
                                                  : Theme.primaryColor
                 }

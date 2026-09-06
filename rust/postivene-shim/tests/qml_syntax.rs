@@ -542,7 +542,8 @@ fn only_the_picker_pages_import_sailfish_pickers() {
     );
 }
 
-/// Only `WebxdcPage` names a `Sailfish.WebView` type.
+/// The two webxdc pages are the only files naming a `Sailfish.WebView`
+/// type.
 ///
 /// The same rule as the pickers above, for the same reason and a sharper
 /// case: the browser engine is a separate package, and a release without
@@ -551,7 +552,8 @@ fn only_the_picker_pages_import_sailfish_pickers() {
 /// by URL from the conversation, so a chat still opens and every other
 /// attachment still works.
 #[test]
-fn only_the_webxdc_page_imports_sailfish_webview() {
+fn only_the_webxdc_pages_import_sailfish_webview() {
+    const ALLOWED: [&str; 2] = ["WebxdcPage.qml", "WebxdcStorePage.qml"];
     let mut offenders = Vec::new();
     for file in qml_files() {
         let name = file
@@ -562,18 +564,45 @@ fn only_the_webxdc_page_imports_sailfish_webview() {
         let imports_webview = code
             .lines()
             .any(|line| line.trim_start().starts_with("import Sailfish.WebView"));
-        if imports_webview && name != "WebxdcPage.qml" {
+        if imports_webview && !ALLOWED.contains(&name.as_str()) {
             offenders.push(file.display().to_string());
         }
     }
     assert!(
         offenders.is_empty(),
-        "these import Sailfish.WebView outside WebxdcPage.qml, so a missing \
+        "these import Sailfish.WebView outside {ALLOWED:?}, so a missing \
          browser engine takes the whole page down rather than the one app it \
-         runs; push WebxdcPage.qml by URL instead, as \
-         ConversationPage.openApp does:\n  {}",
+         runs; push the page by URL instead, as ConversationPage.openApp \
+         does:\n  {}",
         offenders.join("\n  ")
     );
+}
+
+/// Neither webxdc page may decide when its `WebView` is active.
+///
+/// `Sailfish.WebView`'s own `WebView.qml` binds `active` to the page's
+/// status and to whether the app is in front -- which is what decides
+/// when the engine renders and when it hands the GPU back. Binding it
+/// here overrides that, and a view whose activation no longer follows the
+/// page transition draws as a grey rectangle where the app should be.
+/// That is what the first device build did.
+#[test]
+fn the_webxdc_pages_leave_the_views_activation_alone() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/pages");
+    for name in ["WebxdcPage.qml", "WebxdcStorePage.qml"] {
+        let code = code_only(&fs::read_to_string(root.join(name)).expect("read the page"));
+        let offender = code
+            .lines()
+            .enumerate()
+            .find(|(_, line)| line.trim_start().starts_with("active:"));
+        assert!(
+            offender.is_none(),
+            "{name} sets `active` (line {}), which overrides the binding \
+             Sailfish's own WebView.qml makes on it; the view then does not \
+             follow the page's status and draws grey",
+            offender.map_or(0, |(number, _)| number + 1)
+        );
+    }
 }
 
 /// The file with every comment and string body blanked out, newlines kept.

@@ -25,6 +25,10 @@ use crate::json;
 use crate::qr::cache_file;
 use crate::webxdc_host::{decode_base64, Host, Instance};
 
+/// The directory under the cache an app picked from the store waits in
+/// until it has been sent.
+const STORE_DIR: &str = "webxdc/store";
+
 /// The directory under the cache the app icons live in.
 const ICONS_DIR: &str = "webxdc";
 
@@ -371,6 +375,117 @@ impl WebxdcApp {
     }
 }
 
+/// Picking an app from the store.
+///
+/// The store is a website, and choosing an app there is downloading a
+/// .xdc. The page itself is the `WebView`'s to load; this is the other
+/// half -- fetching the file the reader tapped, which goes through the
+/// core rather than the engine, so what lands is a file this app can
+/// hand to a chat rather than a download somewhere in the browser's
+/// world. It is how deltachat-android does it too.
+///
+/// ```qml
+/// WebxdcStore { id: store; account_id: page.accountId }
+/// // store.fetch(url) -> onPicked: attach(path)
+/// ```
+#[derive(QObject, Default)]
+pub struct WebxdcStore {
+    base: qt_base_class!(trait QObject),
+
+    /// Which account does the fetching. The core fetches per account,
+    /// through whatever it has been told to reach the network with.
+    pub account_id: qt_property!(u32),
+
+    /// True while a download is in flight. One at a time: the reader
+    /// tapped one app.
+    pub fetching: qt_property!(bool; NOTIFY fetching_changed),
+    /// Emitted when a download starts or ends.
+    pub fetching_changed: qt_signal!(),
+
+    /// Fetch the .xdc at `url` and put it on the phone. Answers on
+    /// `picked`.
+    pub fetch: qt_method!(fn(&mut self, url: QString)),
+
+    /// The app is on the phone at this path, ready to be sent.
+    pub picked: qt_signal!(path: QString),
+    /// Something failed. The message is the core's own.
+    pub error: qt_signal!(message: QString),
+}
+
+impl WebxdcStore {
+    /// Fetch the app at `url`.
+    pub fn fetch(&mut self, url: QString) {
+        let account_id = self.account_id;
+        if account_id == 0 || self.fetching {
+            return;
+        }
+        let url = url.to_string();
+        let Some((rpc, runtime)) = connection() else {
+            self.error(QString::from("not started"));
+            return;
+        };
+        self.fetching = true;
+        self.fetching_changed();
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<String, String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            this.borrow_mut().fetching = false;
+            this.borrow().fetching_changed();
+            match result {
+                Ok(path) => this.borrow().picked(path.into()),
+                Err(err) => this.borrow().error(err.into()),
+            }
+        });
+
+        runtime.spawn(async move {
+            done(download(&rpc, account_id, &url).await);
+        });
+    }
+}
+
+/// One app off the store, through the core and onto the phone.
+async fn download(rpc: &RpcClient, account_id: u32, url: &str) -> Result<String, String> {
+    let answer: serde_json::Value = rpc
+        .call("get_http_response", (account_id, url))
+        .await
+        .map_err(|err| err.to_string())?;
+    let bytes = decode_base64(json::str_at(&answer, "blob"))
+        .ok_or_else(|| "the app came back as something unreadable".to_string())?;
+    if bytes.is_empty() {
+        return Err("the app came back empty".to_string());
+    }
+    let path = cache_file(&format!("{STORE_DIR}/{}", app_file_name(url)))?;
+    std::fs::write(&path, bytes).map_err(|err| format!("cannot save the app: {err}"))?;
+    Ok(path.to_string_lossy().into_owned())
+}
+
+/// What to call a downloaded app: the last part of its URL, kept to what
+/// a file may be named, and always a .xdc.
+///
+/// The name is the one the other end of a chat sees, so it is worth
+/// keeping -- and it comes off a web page, so none of it reaches a path
+/// unfiltered.
+fn app_file_name(url: &str) -> String {
+    let name: String = url
+        .split(['?', '#'])
+        .next()
+        .unwrap_or(url)
+        .rsplit('/')
+        .next()
+        .unwrap_or_default()
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_' || *c == '.')
+        .take(48)
+        .collect();
+    let stem = name.strip_suffix(".xdc").unwrap_or(&name).trim_matches('.');
+    if stem.is_empty() {
+        "app.xdc".to_string()
+    } else {
+        format!("{stem}.xdc")
+    }
+}
+
 /// Everything the host needs about one app, gathered and started.
 async fn host_for(rpc: &Arc<RpcClient>, account_id: u32, message_id: u32) -> Result<Host, String> {
     let info = fetch_info(rpc, account_id, message_id).await?;
@@ -400,4 +515,36 @@ async fn host_for(rpc: &Arc<RpcClient>, account_id: u32, message_id: u32) -> Res
         },
     )
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::app_file_name;
+
+    #[test]
+    fn an_app_keeps_the_name_the_store_gave_it_and_nothing_else() {
+        assert_eq!(
+            app_file_name("https://webxdc.org/apps/checkers.xdc"),
+            "checkers.xdc"
+        );
+        assert_eq!(
+            app_file_name("https://webxdc.org/apps/checkers.xdc?v=2#top"),
+            "checkers.xdc"
+        );
+        // Anything that is not a file name is not kept: what is written
+        // here is two literals and what survives the filter.
+        assert_eq!(
+            app_file_name("https://example.org/../../etc/passwd"),
+            "passwd.xdc"
+        );
+        assert_eq!(
+            app_file_name("https://example.org/%2e%2e%2fboom"),
+            "2e2e2fboom.xdc"
+        );
+        assert_eq!(app_file_name("https://example.org/"), "app.xdc");
+        assert_eq!(app_file_name("https://example.org/..."), "app.xdc");
+        // A name longer than a name is cut rather than refused.
+        let long = format!("https://example.org/{}.xdc", "a".repeat(200));
+        assert!(app_file_name(&long).len() <= 52);
+    }
 }

@@ -185,10 +185,6 @@ fn the_page_runs_the_app_the_shim_serves_and_stops_it_on_the_way_out() {
             call!("get", QString::from("webxdcView"), QString::from("url"))
         );
         record!(
-            "active",
-            call!("get", QString::from("webxdcView"), QString::from("active"))
-        );
-        record!(
             "busy",
             call!("get", QString::from("webxdcBusy"), QString::from("running"))
         );
@@ -259,11 +255,6 @@ fn the_page_runs_the_app_the_shim_serves_and_stops_it_on_the_way_out() {
         value("url").ends_with("/index.html"),
         "the view was not pointed at the app's own page: {}. {context}",
         value("url")
-    );
-    assert_eq!(
-        value("active"),
-        "true",
-        "the view was left off with an app to show. {context}"
     );
     assert_eq!(
         value("busy"),

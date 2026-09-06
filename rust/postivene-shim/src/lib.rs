@@ -48,7 +48,7 @@ pub use crate::qr::{QrCode, QrScanner};
 pub use crate::recorder::VoiceRecorder;
 pub use crate::saver::FileSaver;
 pub use crate::search::SearchResults;
-pub use crate::webxdc::WebxdcApp;
+pub use crate::webxdc::{WebxdcApp, WebxdcStore};
 
 /// Register the shim's QML-instantiable types. The app and the tests share
 /// this so a page cannot work in one and not the other.
@@ -80,10 +80,11 @@ pub fn register_qml_types() {
     ) else {
         return;
     };
-    let (Ok(captures), Ok(recorder), Ok(webxdc)) = (
+    let (Ok(captures), Ok(recorder), Ok(webxdc), Ok(store)) = (
         std::ffi::CStr::from_bytes_with_nul(b"Captures\0"),
         std::ffi::CStr::from_bytes_with_nul(b"VoiceRecorder\0"),
         std::ffi::CStr::from_bytes_with_nul(b"WebxdcApp\0"),
+        std::ffi::CStr::from_bytes_with_nul(b"WebxdcStore\0"),
     ) else {
         return;
     };
@@ -100,6 +101,7 @@ pub fn register_qml_types() {
     qmetaobject::qml_register_type::<Captures>(uri, 1, 0, captures);
     qmetaobject::qml_register_type::<VoiceRecorder>(uri, 1, 0, recorder);
     qmetaobject::qml_register_type::<WebxdcApp>(uri, 1, 0, webxdc);
+    qmetaobject::qml_register_type::<WebxdcStore>(uri, 1, 0, store);
 }
 pub use models::{
     AccountItem, ChatListItem, ChatListModel, ContactItem, ContactListModel, MessageListItem,

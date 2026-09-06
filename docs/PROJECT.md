@@ -59,6 +59,15 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   nothing else. The same host carries the app's own API -- `sendUpdate` is
   a POST, the updates from everyone else are a poll -- so the bridge is
   not a Gecko frame script, and no archive format is parsed here.
+  Where a new app comes from is the store, a website
+  (`WebxdcStorePage.qml`); following a link to a `.xdc` is caught before
+  the engine can download it and fetched through the core instead
+  (`get_http_response`), which is deltachat-android's shape too.
+- **The `WebView`'s own bindings are left alone.** Silica's `WebView.qml`
+  decides when the engine renders from the page's status and whether the
+  app is in front. Overriding `active` cost a device build: the view was
+  never activated by the page transition and drew as a grey rectangle.
+  `tests/qml_syntax.rs` keeps it that way.
 - **What is made on the phone is made by the platform.** A picture or a
   video comes from QML's `Camera`; a voice message from `QAudioRecorder`,
   which QML on Qt 5.6 does not offer and the shim reaches through the
@@ -102,3 +111,12 @@ In order of what matters:
    put it in (a WebView cannot sit in the flickable one needs), and a tap
    on the app's own name that opens a URL its sender chose is a worse
    answer than none.
+5. **The store page loads itself.** The app a reader takes from the store
+   is fetched by the core, but the store's own page is loaded by the
+   engine straight off the web -- so that one page does not follow
+   whatever the core has been told to reach the network through, and the
+   site sees the device rather than the core. deltachat-android proxies
+   every request through `get_http_response`; doing the same here means
+   serving the site from the shim's own loopback host and rewriting the
+   links in it, which is a page-shaped guess this repository cannot test
+   against.

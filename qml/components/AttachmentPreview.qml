@@ -549,12 +549,10 @@ Item {
 
             // The app's own icon when it has one. The mark stands in
             // where it has not, so the row is never a blank square.
-            Label {
+            AppMark {
                 anchors.centerIn: parent
                 visible: root.webxdcIcon.length === 0
-                text: "⚙"
-                font.pixelSize: Theme.fontSizeLarge
-                color: Theme.primaryColor
+                size: Theme.itemSizeSmall / 2
             }
 
             Image {
@@ -642,8 +640,11 @@ Item {
             // both common and not someone Delta Chat can open a chat
             // with -- and a paperclip makes that look like a mystery
             // blob rather than a contact this app cannot use.
-            var mark = root.viewType === "Webxdc" ? "⚙"
-                       : root.fileMime === "text/vcard" ? "📇" : "📎"
+            //
+            // A .xdc that got this far is one the core would not open
+            // as an app, so it is drawn as the file it turned out to be
+            // rather than as an app that does not work.
+            var mark = root.fileMime === "text/vcard" ? "📇" : "📎"
             var name = root.fileName.length > 0 ? root.fileName : root.filePath
             var size = root.readableSize(root.fileBytes)
             return mark + " " + name + (size.length > 0 ? " (" + size + ")" : "")

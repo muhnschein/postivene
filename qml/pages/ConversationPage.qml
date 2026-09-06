@@ -548,8 +548,9 @@ Page {
             onLibraryRequested: page.pickWith("AttachLibraryPage.qml")
             onVoiceRequested: voiceBar.start()
             // A .xdc goes out as any other file does: the core sees what
-            // it is and sends it as an app.
-            onAppRequested: page.pickWith("AttachAppPage.qml")
+            // it is and sends it as an app. Where one comes from is the
+            // store's business.
+            onAppRequested: page.pickApp()
         }
 
         IconButton {
@@ -599,6 +600,18 @@ Page {
             })
         } else {
             Qt.openUrlExternally(fileUrl)
+        }
+    }
+
+    // Where an app comes from: the store, which reports the file it put
+    // on the phone the way a picker reports the file that was chosen.
+    // Pushed by URL like the pickers, since it names a `Sailfish.WebView`
+    // type and should cost this button rather than the conversation.
+    function pickApp() {
+        var store = pageStack.push(Qt.resolvedUrl("WebxdcStorePage.qml"),
+                                   { accountId: page.accountId })
+        if (store) {
+            store.picked.connect(page.attach)
         }
     }
 

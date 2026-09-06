@@ -98,12 +98,22 @@ async fn fetch_icon(rpc: &RpcClient, account_id: u32, message_id: u32, icon: &st
     if icon.is_empty() {
         return String::new();
     }
-    let extension = icon.rsplit_once('.').map_or("png", |(_, tail)| tail);
-    let extension: String = extension
-        .chars()
-        .filter(char::is_ascii_alphanumeric)
-        .take(8)
-        .collect();
+    // The name the file is written under is built from two numbers and
+    // one of five literals: the icon is named inside an archive somebody
+    // sent, and nothing of what they wrote reaches a path here. Qt reads
+    // the picture itself either way, so the extension only has to be
+    // plausible.
+    let extension = match icon
+        .rsplit_once('.')
+        .map(|(_, tail)| tail.to_ascii_lowercase())
+        .as_deref()
+    {
+        Some("jpg" | "jpeg") => "jpg",
+        Some("gif") => "gif",
+        Some("webp") => "webp",
+        Some("svg") => "svg",
+        _ => "png",
+    };
     let name = format!("{ICONS_DIR}/{account_id}-{message_id}.{extension}");
     let Ok(path) = cache_file(&name) else {
         return String::new();

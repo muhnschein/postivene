@@ -4,9 +4,6 @@
 //! The title on the line the page indicator sits on, right-aligned, as
 //! wide as its text and no wider than the page less its margins, and in
 //! the page's own colour once the header leads somewhere.
-//!
-//! And clear of a display cutout, which Silica's own headers pad
-//! themselves for and this one has to pad itself for.
 
 // Qt harness: see qml_chat_list.rs.
 #![allow(
@@ -55,17 +52,6 @@ const PROBE_QML: &str = r"
         function setInteractive(on) {
             loader.item.interactive = on
             return 'ok'
-        }
-        // A phone with a notch, as Silica reports one.
-        function setCutout(bottom) {
-            Screen.topCutout = Qt.rect(180, 0, 180, bottom)
-            return '' + loader.item.cutout
-        }
-        // Where the title sits, top and bottom.
-        function titleBand() {
-            var label = findIn(loader.item, 'headerTitle')
-            if (!label) { return 'missing:headerTitle' }
-            return label.y + ',' + (label.y + label.height)
         }
     }
 ";
@@ -120,12 +106,6 @@ fn the_header_is_laid_out_as_a_page_header() {
         record!("short", call!("layout"));
         call!("setInteractive", true);
         record!("leads", call!("layout"));
-        // Nothing to avoid, and then a notch a third of the way across
-        // the top.
-        record!("band-plain", call!("titleBand"));
-        record!("cutout", call!("setCutout", 60));
-        record!("cutout-layout", call!("layout"));
-        record!("band-cutout", call!("titleBand"));
         (*engine_ptr).quit();
     });
 
@@ -186,37 +166,5 @@ fn assert_layout(steps: &[(&str, String)]) {
     assert_eq!(
         colour, "primary",
         "a header that leads somewhere is not drawn in the page's colour. {context}"
-    );
-
-    // A cutout 60 tall: the header grows by exactly that, and the title
-    // moves down by it rather than being squeezed -- the band it sits in
-    // is the one it would have on a screen without a notch.
-    assert_eq!(
-        value("cutout"),
-        "60",
-        "the header did not read the display's cutout. {context}"
-    );
-    let (height, _, _, _) = layout("cutout-layout");
-    assert!(
-        close(height, 180.0),
-        "the header did not make room for the cutout: {height}. {context}"
-    );
-    let band = |label: &str| -> (f64, f64) {
-        let text = value(label);
-        let mut parts = text.split(',');
-        let mut number = || parts.next().and_then(|n| n.parse().ok()).unwrap_or(-1.0);
-        (number(), number())
-    };
-    let (plain_top, plain_bottom) = band("band-plain");
-    let (moved_top, moved_bottom) = band("band-cutout");
-    assert!(
-        plain_top > 0.0 && close(moved_top - plain_top, 60.0),
-        "the title did not move clear of the cutout: {plain_top} -> \
-         {moved_top}. {context}"
-    );
-    assert!(
-        close(moved_bottom - plain_bottom, 60.0),
-        "the title was squeezed rather than moved: {plain_bottom} -> \
-         {moved_bottom}. {context}"
     );
 }

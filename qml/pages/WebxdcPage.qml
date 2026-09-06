@@ -192,17 +192,28 @@ Page {
         anchors {
             top: parent.verticalCenter
             topMargin: Theme.paddingLarge
-            horizontalCenter: parent.horizontalCenter
+            left: parent.left
+            leftMargin: Theme.horizontalPageMargin
+            right: parent.right
+            rightMargin: Theme.horizontalPageMargin
         }
-        visible: !page.drew && page.errorMessage.length === 0
+        horizontalAlignment: Text.AlignHCenter
+        wrapMode: Text.Wrap
+        visible: !page.drew
         font.pixelSize: Theme.fontSizeExtraSmall
         color: Theme.secondaryColor
         textFormat: Text.PlainText
+        // The reason, when there is one, rather than the wait: the banner
+        // says it too and then clears itself after a few seconds, which
+        // on a view that never drew anything leaves the reader looking at
+        // the same grey rectangle as before with nothing to read.
         //: Shown while a webxdc app is being made ready to run.
-        text: app.url.length === 0
-              ? qsTr("Starting the app")
-              : page.authorityOf(app.url) + " · " + view.loadProgress
-                + "% · " + app.served
+        text: page.errorMessage.length > 0
+              ? page.errorMessage
+              : app.url.length === 0
+                ? qsTr("Starting the app")
+                : page.authorityOf(app.url) + " · " + view.loadProgress
+                  + "% · " + app.served
     }
 
     // The host answers on threads of its own and counts what it has

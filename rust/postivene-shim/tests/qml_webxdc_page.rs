@@ -83,6 +83,11 @@ const PROBE_QML: &str = r"
                              JSON.stringify({ msgId: 5 }))
             return 'ok'
         }
+        // Something went wrong, as the shim's own signal reports it.
+        function fail(message) {
+            loader.item.errorMessage = message
+            return 'ok'
+        }
         // The view saying it has arrived, which is the engine's job and
         // the one thing a stub cannot do by itself.
         function arrived() {
@@ -207,6 +212,30 @@ fn the_page_runs_the_app_the_shim_serves_and_stops_it_on_the_way_out() {
             "polling",
             call!("get", QString::from("webxdcPoll"), QString::from("running"))
         );
+        // A reason to show instead: the banner clears itself after a few
+        // seconds, and a view that never drew anything would be left
+        // saying nothing at all.
+        record!(
+            "failed",
+            call!("fail", QString::from("cannot serve the app: no such file"))
+        );
+        record!(
+            "failed-said",
+            call!("get", QString::from("webxdcWaiting"), QString::from("text"))
+        );
+        record!(
+            "failed-shown",
+            call!(
+                "get",
+                QString::from("webxdcWaiting"),
+                QString::from("visible")
+            )
+        );
+        record!(
+            "failed-busy",
+            call!("get", QString::from("webxdcBusy"), QString::from("running"))
+        );
+        record!("cleared", call!("fail", QString::from("")));
         // The engine says it has the app.
         record!("arrived", call!("arrived"));
         record!(
@@ -312,6 +341,29 @@ fn the_page_runs_the_app_the_shim_serves_and_stops_it_on_the_way_out() {
         "true",
         "nothing was reading how much of the app had been asked for. \
          {context}"
+    );
+    assert_eq!(value("failed"), "ok", "the page took no reason. {context}");
+    assert_eq!(
+        value("failed-said"),
+        "cannot serve the app: no such file",
+        "an app that will not open left the reader nothing to read once \
+         the banner had cleared itself. {context}"
+    );
+    assert_eq!(
+        value("failed-shown"),
+        "true",
+        "the reason an app will not open is not on the screen. {context}"
+    );
+    assert_eq!(
+        value("failed-busy"),
+        "false",
+        "the page is still saying it is working on an app that failed. \
+         {context}"
+    );
+    assert_eq!(
+        value("cleared"),
+        "ok",
+        "the reason did not clear. {context}"
     );
     assert_eq!(value("arrived"), "ok", "the view did not arrive. {context}");
     assert_eq!(

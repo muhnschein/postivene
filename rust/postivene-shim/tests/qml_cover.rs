@@ -245,7 +245,7 @@ fn the_cover_draws_everyone_and_lights_whoever_wrote() {
     );
     assert_eq!(
         value("brand"),
-        "postivene",
+        "Postivene",
         "the cover does not name the app in its corner. {context}"
     );
     assert_eq!(

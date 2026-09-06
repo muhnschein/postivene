@@ -187,7 +187,7 @@ fn a_cover_with_only_oneself_and_the_device_says_there_are_no_messages() {
     );
     assert_eq!(
         value("brand"),
-        "postivene",
+        "Postivene",
         "the cover does not name the app in its corner. {context}"
     );
 }

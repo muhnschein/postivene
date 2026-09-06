@@ -617,7 +617,7 @@ fn the_covers_name_is_the_apps_own_and_never_translated() {
     let text = fs::read_to_string(&path).expect("read the cover");
     let brand = block_of(&text, "objectName: \"brand\"");
     assert!(
-        brand.contains("text: \"postivene\""),
+        brand.contains("text: \"Postivene\""),
         "the cover does not name the app in its heading:\n{brand}"
     );
     assert!(

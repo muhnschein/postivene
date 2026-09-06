@@ -207,7 +207,7 @@ CoverBackground {
             // not a word to be put into another language, and a
             // catalogue that had this string in it would let one
             // through.
-            text: "postivene"
+            text: "Postivene"
             color: Theme.highlightColor
             font.pixelSize: Theme.fontSizeMedium
             wrapMode: Text.Wrap

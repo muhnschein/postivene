@@ -269,6 +269,11 @@
         <source>Deleting</source>
         <translation>કાઢી નાખવામાં આવે છે</translation>
     </message>
+    <message>
+        <source>New messages</source>
+        <extracomment>The line in a conversation above the first message that arrived while the reader was away.</extracomment>
+        <translation>નવા સંદેશા</translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>

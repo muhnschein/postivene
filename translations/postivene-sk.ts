@@ -269,6 +269,11 @@
         <source>Deleting</source>
         <translation>Odstraňuje sa</translation>
     </message>
+    <message>
+        <source>New messages</source>
+        <extracomment>The line in a conversation above the first message that arrived while the reader was away.</extracomment>
+        <translation>Nové správy</translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>

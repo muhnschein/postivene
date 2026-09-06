@@ -269,6 +269,11 @@
         <source>Deleting</source>
         <translation>हटवत आहे</translation>
     </message>
+    <message>
+        <source>New messages</source>
+        <extracomment>The line in a conversation above the first message that arrived while the reader was away.</extracomment>
+        <translation>नवीन संदेश</translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>

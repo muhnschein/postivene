@@ -269,6 +269,11 @@
         <source>Deleting</source>
         <translation>తొలగిస్తోంది</translation>
     </message>
+    <message>
+        <source>New messages</source>
+        <extracomment>The line in a conversation above the first message that arrived while the reader was away.</extracomment>
+        <translation>కొత్త సందేశాలు</translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>

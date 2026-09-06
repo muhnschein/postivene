@@ -269,6 +269,11 @@
         <source>Deleting</source>
         <translation>ಅಳಿಸಲಾಗುತ್ತಿದೆ</translation>
     </message>
+    <message>
+        <source>New messages</source>
+        <extracomment>The line in a conversation above the first message that arrived while the reader was away.</extracomment>
+        <translation>ಹೊಸ ಸಂದೇಶಗಳು</translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>

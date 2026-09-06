@@ -692,6 +692,35 @@ async fn serve() {
                     }));
                     ok(&id, &Value::Null)
                 }
+                // Where the reader left off: the last run of messages
+                // that are not seen, as the real core reckons it --
+                // walking back from the newest and stopping at the first
+                // seen one. Read off the same message states
+                // `message_object` gives out, so the fake cannot disagree
+                // with itself.
+                "get_first_unread_message_of_chat" => {
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    let mut first: Option<u32> = None;
+                    for msg in state.chats.get(&chat).cloned().unwrap_or_default().iter().rev() {
+                        match message_object(u64::from(*msg))
+                            .get("state")
+                            .and_then(Value::as_u64)
+                        {
+                            // InSeen
+                            Some(16) => break,
+                            // InFresh, InNoticed
+                            Some(10 | 13) => first = Some(*msg),
+                            // Anything of ours, which is neither.
+                            _ => {}
+                        }
+                    }
+                    ok(&id, &first.map_or(Value::Null, |msg| json!(msg)))
+                }
                 "get_fresh_msgs" => {
                     let account = account_id();
                     let state = state.lock().await;

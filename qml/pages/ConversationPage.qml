@@ -354,6 +354,9 @@ Page {
         // screen; this is what tells it which those are.
         onHydrateRequested: messages.hydrate(first, last)
         showSender: messages.is_group
+        // Where the reader left off, which the model asked the core for
+        // when the chat was opened.
+        unreadFrom: messages.unread_from
         markdownMode: Settings.markdownMode
         placeholderText: qsTr("No messages yet")
 

@@ -658,6 +658,55 @@ async fn offline_round_trip_against_real_core() {
         .await
         .expect("marknoticed_chat");
 
+    // Where the reader left off, which is where the conversation draws its
+    // "new messages" line (`ChatMessages::load_unread_mark`). A chat with
+    // nothing unseen in it answers with null rather than an error or a
+    // zero, which is the whole of what the model reads.
+    let nothing: Option<u32> = client
+        .call("get_first_unread_message_of_chat", (account_id, chat_id))
+        .await
+        .expect("get_first_unread_message_of_chat on a read chat");
+    assert_eq!(
+        nothing, None,
+        "a chat with nothing unread named a message to draw the line above"
+    );
+
+    // And with something unseen in it. A device message is the one
+    // incoming message a core can be given offline: it lands in the
+    // device chat as fresh, which is exactly the state the line is for.
+    let device_message: Option<u32> = client
+        .call(
+            "add_device_message",
+            (
+                account_id,
+                "postivene-unread-probe",
+                serde_json::json!({"text": "something new"}),
+            ),
+        )
+        .await
+        .expect("add_device_message");
+    let device_message = device_message.expect("the device message was not added");
+    let device_chat = client
+        .call::<_, Value>("get_message", (account_id, device_message))
+        .await
+        .expect("get_message for the device message")
+        .get("chatId")
+        .and_then(Value::as_u64)
+        .and_then(|id| u32::try_from(id).ok())
+        .expect("the device message has no chat");
+    let unread: Option<u32> = client
+        .call(
+            "get_first_unread_message_of_chat",
+            (account_id, device_chat),
+        )
+        .await
+        .expect("get_first_unread_message_of_chat on an unread chat");
+    assert_eq!(
+        unread,
+        Some(device_message),
+        "the core did not name the first unseen message of the chat"
+    );
+
     // The message object, as the conversation view consumes it. Saved
     // Messages is the one chat that sends offline, so it is where a real
     // message can be made to look at.

@@ -126,6 +126,11 @@ pub struct MessageListItem {
     /// Undecipherable. Anything but Done is a message the core holds only
     /// the header of, kept back by the download limit until asked for.
     pub download_state: QString,
+    /// `hasHtml` upstream: the sending core cut this message and put the
+    /// rest in an HTML part, so what is in `text` ends in `[...]` and the
+    /// whole of it is only behind `get_message_html`. What the row offers
+    /// "view full message" for.
+    pub has_html: bool,
     /// The text rendered as `Text.StyledText`, for when Markdown is drawn.
     /// Made here rather than in the row, so a message is rendered once.
     pub styled_text: QString,

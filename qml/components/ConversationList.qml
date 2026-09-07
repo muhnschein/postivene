@@ -95,6 +95,14 @@ SilicaListView {
     /// here, or handing it to another app -- is the page's decision.
     signal openRequested(url fileUrl, string fileName, string viewType,
                          real previewWidth)
+    /// The reader asked to keep a copy of an attachment somewhere they
+    /// can find it again. Where that is depends on what it is, which is
+    /// the page's to decide.
+    signal saveRequested(url fileUrl, string viewType)
+    /// The reader asked to read one message on a page of its own. The
+    /// author travels with it: the page names who wrote what it shows,
+    /// and this row may be gone by the time it is built.
+    signal fullTextRequested(int messageId, string author)
     /// The reader asked for the rest of a message the download limit
     /// held back.
     signal downloadRequested(int messageId)
@@ -105,6 +113,65 @@ SilicaListView {
     /// chip already on it. Whether that puts it on or takes it off is the
     /// model's to decide, from what it knows the reader already sent.
     signal reactionRequested(int messageId, string emoji)
+
+    /// Which messages the reader has opened out, as a set of ids.
+    ///
+    /// Here rather than in the row: a delegate is destroyed as it
+    /// scrolls out of the view and built again when it comes back, so a
+    /// row cannot remember anything about itself. Replaced rather than
+    /// changed in place -- a binding does not re-run when the contents
+    /// of an object it read change, only when the property is assigned.
+    property var expandedIds: ({})
+
+    /// Whether this message is one of them.
+    function isExpanded(messageId) {
+        return root.expandedIds[messageId] === true
+    }
+
+    /// Open one out, or fold it back.
+    ///
+    /// Folding one back puts the view on it. A row that was filling the
+    /// screen and is suddenly a dozen lines takes everything below it up
+    /// with it, and the reader -- who had scrolled into the middle of
+    /// what they were reading -- is left looking at whatever happens to
+    /// be there. Where they wanted to be is the message they just
+    /// folded.
+    function toggleExpanded(messageId, index) {
+        var next = {}
+        for (var key in root.expandedIds) {
+            next[key] = root.expandedIds[key]
+        }
+        var folding = next[messageId] === true
+        if (folding) {
+            delete next[messageId]
+        } else {
+            next[messageId] = true
+        }
+        root.expandedIds = next
+        if (folding && index >= 0) {
+            // After the row has been given its new height, not before:
+            // the view lays out in a pass of its own, and asking it to
+            // show a row it still thinks is tall puts it somewhere else
+            // again.
+            root.foldedIndex = index
+            foldReturn.restart()
+        }
+    }
+
+    /// The row a fold is waiting to return to, -1 for none.
+    property int foldedIndex: -1
+
+    Timer {
+        id: foldReturn
+        objectName: "foldReturn"
+        interval: 1
+        onTriggered: {
+            if (root.foldedIndex >= 0) {
+                root.positionViewAtIndex(root.foldedIndex, ListView.Contain)
+                root.foldedIndex = -1
+            }
+        }
+    }
 
     /// The emoji the menu offers first, as the reference clients offer
     /// them. Anything else is a chip someone else's reaction has put on
@@ -509,6 +576,26 @@ SilicaListView {
                 onClicked: root.copyRequested(model.text)
             }
             MenuItem {
+                objectName: "openItem"
+                // Only a message that carries one; a webxdc app is run
+                // rather than opened, and has its own tap.
+                visible: model.file_path.length > 0
+                         && model.view_type !== "Webxdc"
+                text: qsTr("Open")
+                onClicked: root.openRequested(
+                               "file://" + model.file_path, model.file_name,
+                               model.view_type, 0)
+            }
+            MenuItem {
+                objectName: "saveItem"
+                // The reader's own copy, outside the app: what makes a
+                // file somebody sent theirs rather than the chat's.
+                visible: model.file_path.length > 0
+                text: qsTr("Save")
+                onClicked: root.saveRequested("file://" + model.file_path,
+                                              model.view_type)
+            }
+            MenuItem {
                 objectName: "forwardItem"
                 // A core notice is not the reader's to pass on.
                 visible: !model.is_info
@@ -697,6 +784,8 @@ SilicaListView {
             imageWidth: model.image_width
             imageHeight: model.image_height
             isNew: model.is_new
+            hasHtml: model.has_html
+            expanded: root.isExpanded(model.message_id)
             vcardName: model.vcard_name
             vcardAddr: model.vcard_addr
             vcardColor: model.vcard_color
@@ -707,6 +796,9 @@ SilicaListView {
             reactions: model.reactions
             onOpenRequested: root.openRequested(fileUrl, fileName, viewType,
                                                 previewWidth)
+            onExpandRequested: root.toggleExpanded(model.message_id, index)
+            onFullTextRequested: root.fullTextRequested(model.message_id,
+                                                       model.sender_name)
             onAppRequested: root.appRequested(model.message_id)
             onDownloadRequested: root.downloadRequested(model.message_id)
             onReactionRequested: root.reactionRequested(model.message_id, emoji)

@@ -103,6 +103,36 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   the screen. The banner clears itself after a few seconds, which is
   right for something that happened and wrong for a view that never drew
   anything.
+- **A bubble holds a remark; anything longer gets a page.** A message
+  over a dozen lines is folded in the conversation, with Expand and View
+  full message under it: drawn whole, somebody's to-do document fills
+  the screen, pushes the chat out of it and leaves a row nobody can
+  scroll past. The fold is a cap on the label's lines rather than a cut
+  in the text, so nothing has to slice a rendering in half and leave a
+  tag open. And past a length the core does not carry a message whole at
+  all: it cuts the body and puts the rest in an HTML part, so the whole
+  of such a message is only behind `get_message_html` -- read as words,
+  never rendered as markup (`html.rs`), for the reason every label in
+  the app is pinned to plain text. Both offers belong to a body: an
+  attachment with no caption has none to fold, and a message the core is
+  still holding back has none of it here yet -- neither was excluded at
+  first, and an attachment arriving in an open chat grew two words of
+  chrome it had no use for. The same rule read from the other
+  end is the notice above the field while a long message is being
+  written, which is where parla puts its own.
+  What the renderer emits for a line break is `<br>` and not a newline:
+  in `Text.StyledText` a newline is whitespace, so a body joined with
+  newlines is drawn as one running paragraph and the fold never sees
+  anything to open out. Both went unnoticed until a phone drew a to-do
+  list as a sentence; `qml_message_lines.rs` now measures what Qt makes
+  of each shape rather than trusting a reading of it.
+- **A file is opened elsewhere or kept; reading belongs to messages.** A
+  picture and a video have pages of their own and everything else is
+  handed to the system. A page for a file was built and taken out again
+  -- it named the file, showed it when it was text, and offered to open
+  or save it -- because the reader whose problem it answered said there
+  should be no such thing. What an attachment needs and a tap cannot
+  give is a copy, and that is on the row's menu, beside Open.
 - **What is made on the phone is made by the platform.** A picture or a
   video comes from QML's `Camera`; a voice message from `QAudioRecorder`,
   which QML on Qt 5.6 does not offer and the shim reaches through the
@@ -135,8 +165,8 @@ In order of what matters:
    executable, which Harbour permits nowhere.
 2. **Blocking** outside a request; a media grid on the group and contact
    pages; add-as-second-device and restore-from-backup.
-3. **Message polish**: avatars on bubbles, an unread divider, and a way
-   to react with an emoji the quick row does not offer.
+3. **Message polish**: avatars on bubbles, and a way to react with an
+   emoji the quick row does not offer.
 4. **The rest of the webxdc API.** Apps are sent, shown and run
    (`webxdc.rs`, `WebxdcPage.qml`), and status updates go both ways. What
    is not offered is the newer calls -- `sendToChat`, `importFiles`,

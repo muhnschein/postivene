@@ -274,6 +274,14 @@
         <extracomment>The line in a conversation above the first message that arrived while the reader was away.</extracomment>
         <translation>Neue Nachrichten</translation>
     </message>
+    <message>
+        <source>Open</source>
+        <translation>Öffnen</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Speichern</translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>
@@ -301,6 +309,23 @@
     <message>
         <source>Message</source>
         <translation>Nachricht</translation>
+    </message>
+    <message>
+        <source>Long message: the other end sees a preview and taps to read the rest</source>
+        <extracomment>Shown above the message field while what is being written is long enough that the other end will receive a shortened version with the rest behind a tap.</extracomment>
+        <translation>Lange Nachricht: die Gegenseite sieht eine Vorschau und tippt, um den Rest zu lesen</translation>
+    </message>
+    <message>
+        <source>Saved to Pictures</source>
+        <translation>Unter Bilder gespeichert</translation>
+    </message>
+    <message>
+        <source>Saved to Videos</source>
+        <translation>Unter Videos gespeichert</translation>
+    </message>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>In Downloads gespeichert</translation>
     </message>
 </context>
 <context>
@@ -489,6 +514,41 @@
         <source>⬇ Download</source>
         <extracomment>Fetches a message the auto-download limit held back.</extracomment>
         <translation>⬇ Herunterladen</translation>
+    </message>
+    <message>
+        <source>Collapse</source>
+        <extracomment>Opens out a long message inside the conversation, or folds it back.</extracomment>
+        <translation>Einklappen</translation>
+    </message>
+    <message>
+        <source>Expand</source>
+        <translation>Ausklappen</translation>
+    </message>
+    <message>
+        <source>View full message</source>
+        <extracomment>Opens the whole message on a page of its own.</extracomment>
+        <translation>Ganze Nachricht anzeigen</translation>
+    </message>
+</context>
+<context>
+    <name>MessagePage</name>
+    <message>
+        <source>Copy</source>
+        <translation>Kopieren</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>Kopiert</translation>
+    </message>
+    <message>
+        <source>Message</source>
+        <extracomment>Heading of the page showing one message on its own.</extracomment>
+        <translation>Nachricht</translation>
+    </message>
+    <message>
+        <source>This message has no text</source>
+        <extracomment>Shown on the full-message page for a message that turns out to have no words in it at all.</extracomment>
+        <translation>Diese Nachricht enthält keinen Text</translation>
     </message>
 </context>
 <context>

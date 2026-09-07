@@ -274,6 +274,14 @@
         <extracomment>The line in a conversation above the first message that arrived while the reader was away.</extracomment>
         <translation>Nye beskeder</translation>
     </message>
+    <message>
+        <source>Open</source>
+        <translation>Åbn</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Gem</translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>
@@ -301,6 +309,23 @@
     <message>
         <source>Message</source>
         <translation>Besked</translation>
+    </message>
+    <message>
+        <source>Long message: the other end sees a preview and taps to read the rest</source>
+        <extracomment>Shown above the message field while what is being written is long enough that the other end will receive a shortened version with the rest behind a tap.</extracomment>
+        <translation>Lang besked: modtageren ser et uddrag og trykker for at læse resten</translation>
+    </message>
+    <message>
+        <source>Saved to Pictures</source>
+        <translation>Gemt i Billeder</translation>
+    </message>
+    <message>
+        <source>Saved to Videos</source>
+        <translation>Gemt i Videoer</translation>
+    </message>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>Gemt i Downloads</translation>
     </message>
 </context>
 <context>
@@ -489,6 +514,41 @@
         <source>⬇ Download</source>
         <extracomment>Fetches a message the auto-download limit held back.</extracomment>
         <translation>⬇ Hent</translation>
+    </message>
+    <message>
+        <source>Collapse</source>
+        <extracomment>Opens out a long message inside the conversation, or folds it back.</extracomment>
+        <translation>Fold sammen</translation>
+    </message>
+    <message>
+        <source>Expand</source>
+        <translation>Fold ud</translation>
+    </message>
+    <message>
+        <source>View full message</source>
+        <extracomment>Opens the whole message on a page of its own.</extracomment>
+        <translation>Vis hele beskeden</translation>
+    </message>
+</context>
+<context>
+    <name>MessagePage</name>
+    <message>
+        <source>Copy</source>
+        <translation>Kopiér</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>Kopieret</translation>
+    </message>
+    <message>
+        <source>Message</source>
+        <extracomment>Heading of the page showing one message on its own.</extracomment>
+        <translation>Besked</translation>
+    </message>
+    <message>
+        <source>This message has no text</source>
+        <extracomment>Shown on the full-message page for a message that turns out to have no words in it at all.</extracomment>
+        <translation>Denne besked har ingen tekst</translation>
     </message>
 </context>
 <context>

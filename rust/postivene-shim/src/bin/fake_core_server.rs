@@ -468,8 +468,23 @@ fn message_object(msg: u64) -> Value {
         message["dimensionsWidth"] = json!(640);
         message["dimensionsHeight"] = json!(480);
     }
+    // A message the sending core had to cut: what is here ends in the
+    // core's own marker, and the whole of it is only behind
+    // `get_message_html`. In no chat -- what reads it asks for it by id,
+    // the way the page that shows one whole does.
+    if msg == 11 {
+        message["text"] = json!(format!("{LONG_MESSAGE_HEAD}\n[...]"));
+        message["hasHtml"] = json!(true);
+    }
     message
 }
+
+/// The beginning of the long message, which is all that fits in `text`.
+const LONG_MESSAGE_HEAD: &str = "# Groceries";
+
+/// The whole of it, as the core would give it out: an HTML part.
+const LONG_MESSAGE_HTML: &str = "<html><head><title>ignored</title></head><body><h1>Groceries</h1>\
+     <ul><li>milk</li><li>bread</li></ul><p>and a &amp; sign</p></body></html>";
 
 /// True for the inputs that stand in for "the server cannot be reached".
 fn should_fail(value: &str) -> bool {
@@ -847,6 +862,24 @@ async fn serve() {
                 ),
                 "get_account_file_size" => ok(&id, &json!(123_456)),
                 // The rest of a message held back by the download limit.
+                // One message, as `get_messages` gives them out. What
+                // the reader page asks for before it asks whether there
+                // is more of it.
+                "get_message" => {
+                    let msg = positional(1).as_u64().unwrap_or_default();
+                    ok(&id, &message_object(msg))
+                }
+                // The whole of a message the sending core cut. Only the
+                // one seeded as cut has one; every other message is
+                // already whole, and the core answers null for those.
+                "get_message_html" => {
+                    let msg = positional(1).as_u64().unwrap_or_default();
+                    if msg == 11 {
+                        ok(&id, &json!(LONG_MESSAGE_HTML))
+                    } else {
+                        ok(&id, &Value::Null)
+                    }
+                }
                 // The real core fetches it and announces the message
                 // changed; here the fetch is instant.
                 "download_full_message" => {

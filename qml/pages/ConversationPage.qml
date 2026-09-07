@@ -392,6 +392,13 @@ Page {
         }
         onOpenRequested: page.openAttachment(fileUrl, fileName, viewType,
                                              previewWidth)
+        onSaveRequested: page.saveAttachment(fileUrl, viewType)
+        onFullTextRequested: pageStack.push(Qt.resolvedUrl("MessagePage.qml"), {
+            accountId: page.accountId,
+            messageId: messageId,
+            senderName: author,
+            markdownMode: Settings.markdownMode
+        })
         onAppRequested: page.openApp(messageId)
         onDownloadRequested: messages.download_full(messageId)
         // On or off is the model's call: it knows what the reader already
@@ -474,11 +481,47 @@ Page {
         anchors {
             left: parent.left
             right: parent.right
-            bottom: inputRow.top
+            bottom: longMessageBar.top
         }
         filePath: page.attachmentPath
         fileName: page.attachmentName
         onCancelled: page.dropAttachment()
+    }
+
+    /// Whether what is in the field is long enough that the core will
+    /// cut it on the way out. Asked of the shim, which holds the core's
+    /// own rule (`truncation.rs`).
+    readonly property bool sendingLongMessage:
+        messages.would_truncate(textField.text)
+
+    // Said while the message is still being written, because afterwards
+    // there is nothing to be done about it: past a certain length the
+    // core sends a shortened version with the rest attached, and what
+    // arrives at the other end is a preview with something to tap. Worth
+    // knowing before pressing send, and not worth a dialog. parla says
+    // the same thing in the same place, which is where this app learnt
+    // that it was worth saying at all.
+    Banner {
+        id: longMessageBar
+        objectName: "longMessageBar"
+        labelObjectName: "longMessageLabel"
+        tone: "info"
+        // Not transient: it is true for as long as the draft is long,
+        // and a notice that faded out would be a notice the writer was
+        // told once and then had to remember.
+        timeout: 0
+        text: page.sendingLongMessage
+              //: Shown above the message field while what is being
+              //: written is long enough that the other end will receive a
+              //: shortened version with the rest behind a tap.
+              ? qsTr("Long message: the other end sees a preview and taps "
+                     + "to read the rest")
+              : ""
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: inputRow.top
+        }
     }
 
     // Says what just happened where the page has no state for it, such as
@@ -513,6 +556,7 @@ Page {
 
     Row {
         id: inputRow
+        objectName: "inputRow"
         anchors {
             left: parent.left
             right: parent.right
@@ -520,11 +564,31 @@ Page {
             // same on this side the send button sits nearer the edge.
             rightMargin: Theme.horizontalPageMargin
             bottom: parent.bottom
-            // The field carries room below its text; the recording strip
-            // does not, and sat on the screen's edge without this.
-            bottomMargin: voiceBar.recording ? Theme.paddingLarge : 0
+            // Off the edge of the screen. The field used to sit on it:
+            // a TextField carries room under its text and a TextArea
+            // does not, so what was a comfortable gap became none. The
+            // recording strip carries less still.
+            bottomMargin: Theme.paddingLarge
         }
         spacing: Theme.paddingSmall
+
+        // Tall enough for the field, and never too short for the buttons
+        // to sit in with the lift below: a Row sizes itself to its
+        // tallest child and takes no account of what a child's anchors
+        // ask for, so a button lifted off the bottom of a short row
+        // would be drawn above the row and over the bar above it.
+        height: Math.max(textField.visible ? textField.height : 0,
+                         voiceBar.visible ? voiceBar.height : 0,
+                         sendButton.height + inputRow.buttonLift)
+
+        /// How much higher than the field the buttons sit.
+        ///
+        /// Nothing: a Silica field keeps room under its line for what
+        /// hangs below a letter, so a button level with the field's
+        /// bottom edge already sits a little above its underline. Lifted
+        /// by a padding on top of that, as this was first written, they
+        /// read as floating over the row rather than belonging to it.
+        readonly property real buttonLift: 0
 
         // The recording, where the field was, while there is one.
         VoiceBar {
@@ -542,17 +606,35 @@ Page {
 
         // Both step aside while a voice message records: a Row lays out
         // only what is visible, so the strip takes their room.
-        TextField {
+        //
+        // A field of one line could not hold a paragraph and could not
+        // hold a line break at all: the return key sent the message, so
+        // a message written here was one line by construction, however
+        // long. This is an area: return puts in a newline, the field
+        // grows as the message does, and send is the button -- which is
+        // what every other client on this phone does with a message
+        // longer than a remark.
+        TextArea {
             id: textField
             objectName: "messageField"
             visible: !voiceBar.recording
             width: parent.width - attachButton.width - sendButton.width
+            // Against the bottom of the row, as the buttons are: a Row
+            // lays its children out from the top, so a field left there
+            // would rise with the row whenever the row grew for the
+            // buttons' lift -- and the lift would come to nothing.
+            anchors.bottom: parent.bottom
             //: Message field placeholder. Also the prompt for the caption
             //: on a message that is carrying a file.
             placeholderText: page.attachmentPath.length > 0
                              ? qsTr("Caption") : qsTr("Message")
-            EnterKey.iconSource: "image://theme/icon-m-enter-accept"
-            EnterKey.onClicked: page.sendCurrentText()
+            // Silica's own label sits above the text and says the same
+            // thing the placeholder does.
+            labelVisible: false
+            // It grows with what is in it, up to a point: past a third
+            // of the screen the conversation it is written in would be
+            // gone, so the area keeps that height and scrolls inside it.
+            height: Math.min(implicitHeight, page.height / 3)
             // Kept in the core, so it is still here after the app has been
             // closed and reopened, and so the chat list can say which
             // chats are holding one.
@@ -561,10 +643,16 @@ Page {
             onActiveFocusChanged: if (activeFocus) attachButton.close()
         }
 
+        // Both buttons sit against the bottom of the row rather than the
+        // top of it, so that a draft grown to several lines leaves them
+        // beside its last line -- where the text being written is --
+        // rather than beside its first.
         AttachButton {
             id: attachButton
             objectName: "attachButton"
             visible: !voiceBar.recording
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: inputRow.buttonLift
             voiceAvailable: voiceBar.available
             onCameraRequested: page.pickWith("CapturePage.qml")
             onLibraryRequested: page.pickWith("AttachLibraryPage.qml")
@@ -578,6 +666,8 @@ Page {
         IconButton {
             id: sendButton
             objectName: "sendButton"
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: inputRow.buttonLift
             // Hidden rather than greyed while a send is in flight: the
             // indicator takes its place, so the row keeps its shape.
             icon.source: messages.sending ? "" : "image://theme/icon-m-send"
@@ -605,6 +695,12 @@ Page {
     // something that then failed to play it; everything else is still
     // somebody else's file to open, and a page here that could only say
     // "cannot show this" would be worse than the handover.
+    //
+    // A page of its own for a file was tried and taken out again: the
+    // reader's own answer was that there should be no such thing, and
+    // that a page for reading belongs to a long message rather than to
+    // an attachment. What a file still needs and a tap cannot give is a
+    // copy, and that is on the row's menu.
     function openAttachment(fileUrl, fileName, viewType, previewWidth) {
         if (viewType === "Image" || viewType === "Gif"
                 || viewType === "Sticker") {
@@ -623,6 +719,34 @@ Page {
         } else {
             Qt.openUrlExternally(fileUrl)
         }
+    }
+
+    // Where a copy of an attachment goes: the folder the platform
+    // indexes for its kind, which is the one the reader will look in.
+    // The sandbox grants all three (Pictures, Videos, Downloads).
+    function saveAttachment(fileUrl, viewType) {
+        if (viewType === "Image" || viewType === "Gif"
+                || viewType === "Sticker") {
+            page.savedTo = qsTr("Saved to Pictures")
+            attachmentSaver.save(fileUrl, StandardPaths.pictures)
+        } else if (viewType === "Video") {
+            page.savedTo = qsTr("Saved to Videos")
+            attachmentSaver.save(fileUrl, StandardPaths.videos)
+        } else {
+            page.savedTo = qsTr("Saved to Downloads")
+            attachmentSaver.save(fileUrl, StandardPaths.download)
+        }
+    }
+
+    /// What to say once the copy is made: chosen where the folder is,
+    /// since only here is it known which one it went to.
+    property string savedTo: ""
+
+    FileSaver {
+        id: attachmentSaver
+        objectName: "attachmentSaver"
+        onSaved: notice.show(page.savedTo)
+        onError: page.errorMessage = message
     }
 
     // Where an app comes from: the store, which reports the file it put
@@ -650,8 +774,9 @@ Page {
 
     function sendCurrentText() {
         // The model refuses a second send while one is outstanding and the
-        // button is disabled meanwhile; this says so a third time because
-        // EnterKey reaches here without going through the button.
+        // button is disabled meanwhile; this says so a third time,
+        // cheaply, since a double send is a message the reader cannot
+        // take back.
         if (messages.sending) {
             return
         }

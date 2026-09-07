@@ -274,6 +274,14 @@
         <extracomment>The line in a conversation above the first message that arrived while the reader was away.</extracomment>
         <translation>Nové zprávy</translation>
     </message>
+    <message>
+        <source>Open</source>
+        <translation>Otevřít</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Uložit</translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>
@@ -301,6 +309,23 @@
     <message>
         <source>Message</source>
         <translation>Zpráva</translation>
+    </message>
+    <message>
+        <source>Long message: the other end sees a preview and taps to read the rest</source>
+        <extracomment>Shown above the message field while what is being written is long enough that the other end will receive a shortened version with the rest behind a tap.</extracomment>
+        <translation>Dlouhá zpráva: druhá strana uvidí náhled a zbytek si zobrazí klepnutím</translation>
+    </message>
+    <message>
+        <source>Saved to Pictures</source>
+        <translation>Uloženo do Obrázků</translation>
+    </message>
+    <message>
+        <source>Saved to Videos</source>
+        <translation>Uloženo do Videí</translation>
+    </message>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>Uloženo do Stažených</translation>
     </message>
 </context>
 <context>
@@ -491,6 +516,41 @@
         <source>⬇ Download</source>
         <extracomment>Fetches a message the auto-download limit held back.</extracomment>
         <translation>⬇ Stáhnout</translation>
+    </message>
+    <message>
+        <source>Collapse</source>
+        <extracomment>Opens out a long message inside the conversation, or folds it back.</extracomment>
+        <translation>Sbalit</translation>
+    </message>
+    <message>
+        <source>Expand</source>
+        <translation>Rozbalit</translation>
+    </message>
+    <message>
+        <source>View full message</source>
+        <extracomment>Opens the whole message on a page of its own.</extracomment>
+        <translation>Zobrazit celou zprávu</translation>
+    </message>
+</context>
+<context>
+    <name>MessagePage</name>
+    <message>
+        <source>Copy</source>
+        <translation>Kopírovat</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>Zkopírováno</translation>
+    </message>
+    <message>
+        <source>Message</source>
+        <extracomment>Heading of the page showing one message on its own.</extracomment>
+        <translation>Zpráva</translation>
+    </message>
+    <message>
+        <source>This message has no text</source>
+        <extracomment>Shown on the full-message page for a message that turns out to have no words in it at all.</extracomment>
+        <translation>Tato zpráva neobsahuje text</translation>
     </message>
 </context>
 <context>

@@ -4,8 +4,8 @@ import "../js/Format.js" as Format
 
 /*
  * One message. Its own component so it can be loaded and measured on its
- * own: ConversationPage cannot, because Silica's EnterKey attached property
- * has no stub.
+ * own, a row at a time, without the page and the model a conversation
+ * needs around it.
  *
  * Every string here comes from whoever sent the message, so each one
  * that shows it is pinned to PlainText: the default detects markup and
@@ -29,6 +29,12 @@ Item {
     /// opening it full screen can start from the same decode.
     signal openRequested(url fileUrl, string fileName, string viewType,
                          real previewWidth)
+    /// The reader asked for the rest of a body this row is showing only
+    /// part of, or asked for it to be put back. What is open is the
+    /// list's to remember: a row is rebuilt every time it scrolls past.
+    signal expandRequested()
+    /// The reader asked to read the message on a page of its own.
+    signal fullTextRequested()
     /// The reader asked for the rest of a message the core holds only
     /// the header of.
     signal downloadRequested()
@@ -109,6 +115,13 @@ Item {
     property int imageHeight: 0
     /// A message the reader has not seen before; see AttachmentPreview.
     property bool isNew: false
+    /// `hasHtml` upstream: the sending core cut this message, so what is
+    /// in `messageText` ends in `[...]` and the rest is only behind the
+    /// core. Nothing here can expand such a body -- the words are not on
+    /// this phone yet -- so the row offers the page instead.
+    property bool hasHtml: false
+    /// Whether the reader has opened this body out. Held by the list.
+    property bool expanded: false
     // A shared contact, parsed by the core.
     property string vcardName: ""
     property string vcardAddr: ""
@@ -142,6 +155,34 @@ Item {
     /// The two states the rest of a message can be asked for in.
     readonly property bool canDownload: root.downloadState === "Available"
                                         || root.downloadState === "Failure"
+
+    /// How many lines of a body the bubble shows before offering to open
+    /// it out. Enough for a paragraph, which is what most messages are.
+    property int collapsedLines: 12
+    /// No cap at all. `Text.maximumLineCount` wants a number, and this is
+    /// the largest one it takes.
+    readonly property int everyLine: 2147483647
+    /// Whether this row is showing words at all, and has all of them to
+    /// show.
+    ///
+    /// Both offers are about a long body and nothing else. A picture or
+    /// a document with no caption has no body to fold, and a message the
+    /// core is still holding back has none of it yet -- what that row
+    /// needs is Download, which it already offers. Neither was excluded
+    /// before, and an attachment arriving in an open chat grew an Expand
+    /// and a View full message it had no use for.
+    readonly property bool hasBody: root.messageText.length > 0 && !root.heldBack
+    /// Whether there is anything to open out. `truncated` goes false the
+    /// moment the cap is lifted, so an opened body keeps the offer from
+    /// its own state rather than from the label's.
+    readonly property bool showsExpand: root.hasBody
+                                        && (root.expanded || messageLabel.truncated)
+    /// Whether to offer the page. Anything the bubble is not showing
+    /// whole, and every message the sending core cut -- for those the
+    /// rest is not on this phone at all, and opening the row out would
+    /// show the same `[...]` again.
+    readonly property bool showsFull: root.hasBody
+                                      && (root.hasHtml || root.showsExpand)
 
     // A bubble is as wide as its content, up to most of the screen. The
     // widths come off unconstrained copies of the text: measuring the real
@@ -370,6 +411,17 @@ Item {
             y: root.below(attachment, visible)
             width: root.contentWidth
             wrapMode: Text.Wrap
+            // A bubble is a shape for a remark, not for a document. A
+            // long body is cut to a readable few lines and opened out on
+            // request: a to-do list somebody sent otherwise fills the
+            // screen and pushes the whole conversation out of it, and a
+            // row taller than the view is one that cannot be scrolled
+            // past. The cap is lifted rather than the text cut, so
+            // nothing has to slice a rendering in half and leave a tag
+            // open.
+            maximumLineCount: root.expanded ? root.everyLine
+                                            : root.collapsedLines
+            truncationMode: TruncationMode.Elide
             color: Theme.primaryColor
             linkColor: Theme.highlightColor
             // Plain, unless the shim rendered it: see the note at the top.
@@ -377,6 +429,56 @@ Item {
             text: root.shownText
             // A link is followed on a tap and on nothing else.
             onLinkActivated: Qt.openUrlExternally(link)
+        }
+
+        // What to do about a body that does not fit: open it out here,
+        // or read it on a page of its own. Two words rather than
+        // buttons, in the highlight colour the download offer uses --
+        // Silica's Button inside a bubble would be a box inside a box.
+        Item {
+            id: bodyActions
+            objectName: "bodyActions"
+            visible: root.showsExpand || root.showsFull
+            x: Theme.paddingMedium
+            y: root.below(messageLabel, visible)
+            width: root.contentWidth
+            height: visible ? expandLabel.implicitHeight + Theme.paddingSmall : 0
+
+            Label {
+                id: expandLabel
+                objectName: "expandButton"
+                visible: root.showsExpand
+                font.pixelSize: Theme.fontSizeSmall
+                color: Theme.highlightColor
+                textFormat: Text.PlainText
+                //: Opens out a long message inside the conversation, or
+                //: folds it back.
+                text: root.expanded ? qsTr("Collapse") : qsTr("Expand")
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: root.expandRequested()
+                    onPressAndHold: root.menuRequested()
+                }
+            }
+
+            Label {
+                id: fullLabel
+                objectName: "fullButton"
+                visible: root.showsFull
+                anchors.right: parent.right
+                font.pixelSize: Theme.fontSizeSmall
+                color: Theme.highlightColor
+                textFormat: Text.PlainText
+                //: Opens the whole message on a page of its own.
+                text: qsTr("View full message")
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: root.fullTextRequested()
+                    onPressAndHold: root.menuRequested()
+                }
+            }
         }
 
         // A message the download limit held back: the core has its
@@ -387,7 +489,7 @@ Item {
             visible: root.heldBack
             height: visible ? implicitHeight + Theme.paddingSmall : 0
             x: Theme.paddingMedium
-            y: root.below(messageLabel, visible)
+            y: root.below(bodyActions, visible)
             width: root.contentWidth
             wrapMode: Text.Wrap
             font.pixelSize: Theme.fontSizeSmall

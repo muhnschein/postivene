@@ -310,6 +310,16 @@ removed from the store even after approval. Not an option.
    in the app and send those too. The recorder picks a codec from what
    GStreamer offers (AAC in MP4 first); the microphone button is not shown
    at all when it finds none, which is the state the headless tests see.
+   A long message is a device path too, because the keyboard is: write a
+   paragraph with line breaks in it and check that the field grows to
+   hold it and stops at a third of the screen rather than eating the
+   chat, that the return key puts in a line break instead of sending,
+   and that the notice appears once the draft passes about forty lines.
+   Send it, and check at the other end that its line breaks are line
+   breaks, that the bubble folds it, that Expand opens it in place, and
+   that View full message shows the whole of it -- including for a message another client sent long enough that
+   the core had to cut it, which is the case the page cannot be tested
+   for anywhere else.
    Sharing *to* the app is a device path of its own, and the sandbox is
    half of it: share a picture from the gallery, a document from the file
    manager and a link from the browser, and check that Postivene is in
@@ -327,6 +337,11 @@ removed from the store even after approval. Not an option.
    answers with the core's own reason, the engine's error page is left
    alone rather than turned back, and the reason stays on the screen
    after the banner has cleared itself.
+   Keeping a copy of an attachment is the other half of `UserDirs`: save
+   a picture, a video and a document from a message's menu and find all
+   three where the platform's own folders are -- Pictures, Videos,
+   Downloads -- and then open the document from the file manager, which
+   is what the copy is for.
 5. Delete the cache directory while the app runs; confirm nothing breaks.
 6. Kill `deltachat-rpc-server` from a terminal while the app is open. The
    banner should say it is reconnecting and then clear itself, and messages

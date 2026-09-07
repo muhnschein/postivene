@@ -14,7 +14,7 @@ use qmetaobject::*;
 use crate::core::connection;
 use crate::json;
 use crate::models::{MessageListItem, MessageListModel};
-use crate::{links, markdown, webxdc};
+use crate::{links, markdown, truncation, webxdc};
 
 /// `DC_STATE_IN_FRESH` and `DC_STATE_IN_NOTICED`: an incoming message the
 /// account has not read yet.
@@ -220,6 +220,12 @@ pub struct ChatMessages {
     /// Fetch the rest of a message the core holds only the header of.
     /// The core announces the result as a change to the message.
     pub download_full: qt_method!(fn(&mut self, message_id: u32)),
+
+    /// Whether the core would cut `text` on the way out and send the
+    /// rest as an HTML part, so the conversation can say so while it is
+    /// still being written. Nothing is sent differently on account of
+    /// the answer; see `truncation.rs`.
+    pub would_truncate: qt_method!(fn(&self, text: QString) -> bool),
 
     /// Send a plain-text message to this chat.
     pub send: qt_method!(fn(&mut self, text: QString)),
@@ -1206,6 +1212,11 @@ impl ChatMessages {
         });
     }
 
+    /// Whether the core would cut this text on the way out.
+    pub fn would_truncate(&self, text: QString) -> bool {
+        truncation::would_be_cut(&text.to_string())
+    }
+
     /// Send a plain-text message.
     pub fn send(&mut self, text: QString) {
         self.send_message(self.outgoing_text(&text.to_string()), None);
@@ -1576,6 +1587,10 @@ fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
         // Absent from the abbreviated object a send answers with; a
         // message composed here is never one held back.
         download_state: json::text(message, "/downloadState"),
+        // The core sets it on a message it had to cut, in either
+        // direction: a long message sent from this phone is marked on
+        // this phone's own copy too.
+        has_html: json::flag(message, "hasHtml"),
         // Contact id 1 is the well-known DC_CONTACT_ID_SELF.
         is_outgoing,
         timestamp,

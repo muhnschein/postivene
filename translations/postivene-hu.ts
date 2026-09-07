@@ -274,6 +274,14 @@
         <extracomment>The line in a conversation above the first message that arrived while the reader was away.</extracomment>
         <translation>Új üzenetek</translation>
     </message>
+    <message>
+        <source>Open</source>
+        <translation>Megnyitás</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Mentés</translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>
@@ -301,6 +309,23 @@
     <message>
         <source>Message</source>
         <translation>Üzenet</translation>
+    </message>
+    <message>
+        <source>Long message: the other end sees a preview and taps to read the rest</source>
+        <extracomment>Shown above the message field while what is being written is long enough that the other end will receive a shortened version with the rest behind a tap.</extracomment>
+        <translation>Hosszú üzenet: a másik oldalon előnézet látszik, a többit koppintással lehet elolvasni</translation>
+    </message>
+    <message>
+        <source>Saved to Pictures</source>
+        <translation>Mentve a Képek közé</translation>
+    </message>
+    <message>
+        <source>Saved to Videos</source>
+        <translation>Mentve a Videók közé</translation>
+    </message>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>Mentve a Letöltésekbe</translation>
     </message>
 </context>
 <context>
@@ -487,6 +512,41 @@
         <source>⬇ Download</source>
         <extracomment>Fetches a message the auto-download limit held back.</extracomment>
         <translation>⬇ Letöltés</translation>
+    </message>
+    <message>
+        <source>Collapse</source>
+        <extracomment>Opens out a long message inside the conversation, or folds it back.</extracomment>
+        <translation>Összecsukás</translation>
+    </message>
+    <message>
+        <source>Expand</source>
+        <translation>Kibontás</translation>
+    </message>
+    <message>
+        <source>View full message</source>
+        <extracomment>Opens the whole message on a page of its own.</extracomment>
+        <translation>Teljes üzenet megtekintése</translation>
+    </message>
+</context>
+<context>
+    <name>MessagePage</name>
+    <message>
+        <source>Copy</source>
+        <translation>Másolás</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>Másolva</translation>
+    </message>
+    <message>
+        <source>Message</source>
+        <extracomment>Heading of the page showing one message on its own.</extracomment>
+        <translation>Üzenet</translation>
+    </message>
+    <message>
+        <source>This message has no text</source>
+        <extracomment>Shown on the full-message page for a message that turns out to have no words in it at all.</extracomment>
+        <translation>Ez az üzenet nem tartalmaz szöveget</translation>
     </message>
 </context>
 <context>

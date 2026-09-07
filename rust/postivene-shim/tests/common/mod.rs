@@ -91,6 +91,13 @@ pub fn page_url(name: &str) -> String {
 ///
 /// The copy is keyed by process id and rebuilt each time, so it never
 /// serves a stale page from an earlier run.
+///
+/// No page uses `EnterKey` today: the conversation's field became one
+/// that takes line breaks, so the return key belongs to the message
+/// rather than to sending it, and the last two lines this stripped went
+/// with it. The copy stays because a page that wants the keyboard to
+/// show a Send key is a reasonable thing to write again, and every test
+/// that loads a page loads it through here.
 pub fn qml_tree_without_enter_key() -> PathBuf {
     let source = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml");
     let target = std::env::temp_dir().join(format!("postivene-qml-{}", std::process::id()));

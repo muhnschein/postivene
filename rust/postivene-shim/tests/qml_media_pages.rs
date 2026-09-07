@@ -458,14 +458,19 @@ fn assert_outcome(steps: &[(&str, String)], navigation: &str) {
         "ok",
         "the conversation page did not load. {context}"
     );
-    // Image, Gif, Sticker, Video -- and nothing for File or Vcard, which
-    // are still the system's to open.
+    // Image, Gif and Sticker to the picture page, Video to the video
+    // page -- and nothing for File or Vcard, which are the system's to
+    // open. A page here for a file was tried and taken out again: what
+    // an attachment needs and a tap cannot give is a copy, and that is
+    // on the row's menu.
     assert_eq!(
         navigation,
-        "push:PicturePage.qml|push:PicturePage.qml|push:PicturePage.qml|push:VideoPage.qml|",
-        "tapping an attachment did not open the right thing. Nothing at all \
-         for a picture means it still leaves the app; a page for a file or \
-         a contact means the app took on something it cannot show. {context}"
+        "push:PicturePage.qml|push:PicturePage.qml|push:PicturePage.qml|\
+         push:VideoPage.qml|",
+        "tapping an attachment did not open the right thing. Nothing at \
+         all for a picture means it still leaves the app; a page for a \
+         file or a contact means the app took on something it cannot \
+         show. {context}"
     );
 
     assert_eq!(

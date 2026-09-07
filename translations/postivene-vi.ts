@@ -274,6 +274,14 @@
         <extracomment>The line in a conversation above the first message that arrived while the reader was away.</extracomment>
         <translation>Tin nhắn mới</translation>
     </message>
+    <message>
+        <source>Open</source>
+        <translation>Mở</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Lưu</translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>
@@ -301,6 +309,23 @@
     <message>
         <source>Message</source>
         <translation>Tin nhắn</translation>
+    </message>
+    <message>
+        <source>Long message: the other end sees a preview and taps to read the rest</source>
+        <extracomment>Shown above the message field while what is being written is long enough that the other end will receive a shortened version with the rest behind a tap.</extracomment>
+        <translation>Tin nhắn dài: đầu bên kia chỉ thấy một đoạn xem trước và phải chạm để đọc phần còn lại</translation>
+    </message>
+    <message>
+        <source>Saved to Pictures</source>
+        <translation>Đã lưu vào Hình ảnh</translation>
+    </message>
+    <message>
+        <source>Saved to Videos</source>
+        <translation>Đã lưu vào Video</translation>
+    </message>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>Đã lưu vào Tải xuống</translation>
     </message>
 </context>
 <context>
@@ -487,6 +512,41 @@
         <source>⬇ Download</source>
         <extracomment>Fetches a message the auto-download limit held back.</extracomment>
         <translation>⬇ Tải xuống</translation>
+    </message>
+    <message>
+        <source>Collapse</source>
+        <extracomment>Opens out a long message inside the conversation, or folds it back.</extracomment>
+        <translation>Thu gọn</translation>
+    </message>
+    <message>
+        <source>Expand</source>
+        <translation>Mở rộng</translation>
+    </message>
+    <message>
+        <source>View full message</source>
+        <extracomment>Opens the whole message on a page of its own.</extracomment>
+        <translation>Xem toàn bộ tin nhắn</translation>
+    </message>
+</context>
+<context>
+    <name>MessagePage</name>
+    <message>
+        <source>Copy</source>
+        <translation>Sao chép</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>Đã sao chép</translation>
+    </message>
+    <message>
+        <source>Message</source>
+        <extracomment>Heading of the page showing one message on its own.</extracomment>
+        <translation>Tin nhắn</translation>
+    </message>
+    <message>
+        <source>This message has no text</source>
+        <extracomment>Shown on the full-message page for a message that turns out to have no words in it at all.</extracomment>
+        <translation>Tin nhắn này không có nội dung văn bản</translation>
     </message>
 </context>
 <context>

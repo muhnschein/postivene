@@ -326,7 +326,7 @@ fn the_conversation_page_uses_the_pieces_that_are_tested() {
 fn text_from_the_other_end_is_pinned_to_plain() {
     // Bindings the core fills in from a message, a contact or a chat.
     // Anything reading one of these is showing remote input.
-    const REMOTE: [&str; 27] = [
+    const REMOTE: [&str; 29] = [
         "model.",
         "root.messageText",
         "root.quoteText",
@@ -353,6 +353,8 @@ fn text_from_the_other_end_is_pinned_to_plain() {
         "root.genericText",
         "page.chatName",
         "page.fileName",
+        "page.fileMime",
+        "page.senderName",
         "page.myInvite",
     ];
 
@@ -792,6 +794,62 @@ fn the_frame_scripts_the_pages_load_are_there() {
         loaded.contains(&"../webxdc/catch.js".to_string()),
         "the store no longer loads the frame script that catches a tap on \
          an app; if that moved, this list moves with it: {loaded:?}"
+    );
+}
+
+/// Every page the app pushes is a page that exists.
+///
+/// A page is pushed by name, resolved at the moment of the tap, and a
+/// name that is wrong fails there and nowhere earlier: the reader taps
+/// and the app does nothing, which is exactly the bug the file page was
+/// added to stop being. Nothing else checks these -- a page only some
+/// device path reaches is never loaded by a test -- so the names are
+/// checked here.
+#[test]
+fn the_pages_the_app_pushes_are_there() {
+    let mut pushed = Vec::new();
+    for file in qml_files() {
+        let code = code_only_keeping_strings(&fs::read_to_string(&file).expect("read qml"));
+        for line in code.lines() {
+            let Some(rest) = line.split_once("Qt.resolvedUrl(") else {
+                continue;
+            };
+            // Only the literal ones that name a file in the tree: a
+            // path built from a variable is one this cannot follow, and
+            // `Qt.resolvedUrl("file://" + path)` is a file on the phone
+            // rather than a page of ours.
+            let Some(path) = rest.1.split('"').nth(1) else {
+                continue;
+            };
+            let kind = std::path::Path::new(path)
+                .extension()
+                .map(|kind| kind.to_string_lossy().into_owned())
+                .unwrap_or_default();
+            if kind != "qml" && kind != "js" {
+                continue;
+            }
+            // `Qt.resolvedUrl` reads the path against the file that
+            // names it; see the frame scripts above.
+            let mut here = file.parent().expect("a file is in a directory");
+            let mut rest = path;
+            while let Some(above) = rest.strip_prefix("../") {
+                here = here.parent().expect("qml/ has a parent");
+                rest = above;
+            }
+            let target = here.join(rest.trim_start_matches("./"));
+            assert!(
+                target.is_file(),
+                "{} pushes {path}, which is not in the tree at {}",
+                file.display(),
+                target.display()
+            );
+            pushed.push(path.to_string());
+        }
+    }
+    assert!(
+        pushed.iter().any(|path| path.ends_with("MessagePage.qml")),
+        "nothing pushes MessagePage.qml any more, so a long message has \
+         nowhere to be read whole: {pushed:?}"
     );
 }
 

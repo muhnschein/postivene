@@ -82,6 +82,13 @@ const MAX_HEAD: usize = 16 * 1024;
 /// body is not read at all.
 const MAX_BODY: usize = 512 * 1024;
 
+/// The most a file an app hands to a chat may be, as it arrives: base64,
+/// so three quarters of this is the file. A picture an app exports is
+/// already past what an update may be, and the point of `sendToChat` is
+/// files -- while a cap there still has to be, because what is read is
+/// held in memory on a phone.
+const MAX_HANDOVER: usize = 16 * 1024 * 1024;
+
 /// Which app is being served, and what it is told about itself.
 pub(crate) struct Instance {
     /// The account the message belongs to.
@@ -101,10 +108,21 @@ pub(crate) struct Instance {
     pub(crate) send_update_max_size: u64,
 }
 
+/// What the host does with a file an app asks to send: hand it to the
+/// window, which asks which chat it is for.
+///
+/// A callback rather than a core call, because this one is not the
+/// host's to make. `sendToChat` is specified as *asking the reader which
+/// chat*, so what the app hands over has to reach the page -- and the
+/// page is on the Qt thread, where a `queued_callback` puts it.
+pub(crate) type ToChat = Arc<dyn Fn(String, String) + Send + Sync>;
+
 /// Everything a connection needs, shared by every one of them.
 struct Shared {
     rpc: Arc<RpcClient>,
     instance: Instance,
+    /// Where a file the app sends goes; see [`ToChat`].
+    to_chat: ToChat,
     /// `/webxdc-api/<token>`: where the chat is, and the one part of
     /// this host that cannot be guessed. The app's own files are at the
     /// root beside it.
@@ -148,7 +166,11 @@ impl Drop for Host {
 /// # Errors
 ///
 /// Fails when the loopback port cannot be bound.
-pub(crate) async fn start(rpc: Arc<RpcClient>, instance: Instance) -> Result<Host, String> {
+pub(crate) async fn start(
+    rpc: Arc<RpcClient>,
+    instance: Instance,
+    to_chat: ToChat,
+) -> Result<Host, String> {
     let listener = TcpListener::bind(SocketAddr::from((Ipv4Addr::LOCALHOST, 0)))
         .await
         .map_err(|err| format!("cannot serve the app: {err}"))?;
@@ -164,6 +186,7 @@ pub(crate) async fn start(rpc: Arc<RpcClient>, instance: Instance) -> Result<Hos
     let shared = Arc::new(Shared {
         rpc,
         instance,
+        to_chat,
         api: format!("/webxdc-api/{token}"),
         authority,
         running: Arc::clone(&running),
@@ -304,7 +327,15 @@ async fn read_request(stream: &mut TcpStream) -> std::io::Result<Option<Request>
             length = value.parse().unwrap_or(0);
         }
     }
-    if length > MAX_BODY {
+    // A file on its way to a chat is allowed to be a file; everything
+    // else on this host is a short request. The path decides, and it is
+    // known here because the start line is read before the body.
+    let cap = if target.contains("/to-chat") {
+        MAX_HANDOVER
+    } else {
+        MAX_BODY
+    };
+    if length > cap {
         return Ok(None);
     }
     while body.len() < length {
@@ -355,6 +386,7 @@ async fn route(shared: &Shared, request: &Request) -> Response {
         return match (request.method.as_str(), rest) {
             ("GET", "/updates") => updates(shared, query).await,
             ("POST", "/send") => send(shared, &request.body).await,
+            ("POST", "/to-chat") => to_chat(shared, &request.body),
             _ => Response::empty("404 Not Found"),
         };
     }
@@ -451,6 +483,81 @@ async fn send(shared: &Shared, body: &[u8]) -> Response {
         Err(_) => Response::empty("502 Bad Gateway"),
     }
 }
+
+/// A file, a piece of text, or both, on their way from the app into a
+/// chat.
+///
+/// The file is written into the cache and the *path* is handed on: what
+/// receives it is a page, and a page attaches a file by path the way
+/// every other picker in this app hands one over. Nothing is sent from
+/// here -- `sendToChat` asks the reader which chat, and only they can
+/// answer that.
+///
+/// The name is the app's, so it is taken apart and only its last
+/// component kept: an app that asks to write `../../../etc/passwd` gets
+/// a file called `passwd` in the cache.
+fn to_chat(shared: &Shared, body: &[u8]) -> Response {
+    let Ok(text) = std::str::from_utf8(body) else {
+        return Response::empty("400 Bad Request");
+    };
+    let Ok(asked) = serde_json::from_str::<serde_json::Value>(text) else {
+        return Response::empty("400 Bad Request");
+    };
+    let message = asked
+        .get("text")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_default()
+        .to_string();
+    let name = asked
+        .get("name")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_default();
+    let encoded = asked.get("base64").and_then(serde_json::Value::as_str);
+
+    let path = match (name, encoded) {
+        // Text alone is a message like any other.
+        ("", None) if !message.is_empty() => String::new(),
+        (name, Some(encoded)) if !name.is_empty() => {
+            let Some(bytes) = decode_base64(encoded) else {
+                return Response::empty("400 Bad Request");
+            };
+            match write_outgoing(shared, name, &bytes) {
+                Ok(path) => path,
+                Err(_) => return Response::empty("500 Internal Server Error"),
+            }
+        }
+        // Neither a file nor a word: nothing to send, which the spec
+        // makes the app's mistake rather than the host's.
+        _ => return Response::empty("400 Bad Request"),
+    };
+
+    (shared.to_chat)(path, message);
+    Response::empty("204 No Content")
+}
+
+/// Write what an app is sending into the cache, under a name of its own
+/// choosing but nowhere of its own choosing.
+fn write_outgoing(shared: &Shared, name: &str, bytes: &[u8]) -> Result<String, String> {
+    let name = std::path::Path::new(name)
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .filter(|name| !name.is_empty() && name != "." && name != "..")
+        .ok_or_else(|| format!("{name} is not a file name"))?;
+    // One directory per app instance, emptied as the app starts: what is
+    // in it is a handover in progress, and the message it was sent as
+    // carries the core's own copy.
+    let path = crate::qr::cache_file(&format!(
+        "{}/{}/{name}",
+        OUTBOX_DIR, shared.instance.message_id
+    ))?;
+    std::fs::write(&path, bytes)
+        .map_err(|err| format!("cannot write {}: {err}", path.display()))?;
+    Ok(path.to_string_lossy().into_owned())
+}
+
+/// Where under the cache a file an app is sending waits until the reader
+/// has picked a chat for it.
+pub(crate) const OUTBOX_DIR: &str = "webxdc/outbox";
 
 /// One file from the archive, through the core. The error is the core's
 /// own words: the message is gone, the archive holds no such name, or the

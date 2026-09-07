@@ -10,6 +10,13 @@
 //! page reaches the core, the core says so as an event, and the object
 //! that started the app has the new summary. That is the whole bridge, in
 //! the direction that cannot be checked by reading the JavaScript.
+//!
+//! `sendToChat` is the other direction and does not go to the core at
+//! all: the specification says the reader is asked which chat, so the
+//! host writes the file out and raises it on the object for the page to
+//! act on. What is pinned here is that a request reaches that signal
+//! with a file on the disk to show for it, and that an app cannot use
+//! it to write outside the cache.
 
 // Qt harness: see qml_pages.rs.
 #![allow(
@@ -39,6 +46,8 @@ const PROBE_QML: &str = r"
             message_id: 5
             onError: log += 'error:' + message + ';'
             onGone: log += 'gone;'
+            onSend_to_chat_requested: log += 'to-chat:' + file_path
+                                             + '|' + text + ';'
         }
         // Nothing can be asked of the core until it is up, and it may
         // well be up before this page exists -- which is why the same
@@ -228,6 +237,56 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
             get(&authority, "/nothing.js").unwrap_or_else(|err| err)
         );
 
+        // The app handing a file to the chat, the way `sendToChat` does:
+        // a name, the bytes as base64, and a word to go with them.
+        // "hi\n" is aGkK.
+        let handover = "{\"name\":\"notes.txt\",\"base64\":\"aGkK\",\"text\":\"look\"}";
+        record!(
+            "to-chat",
+            ask(
+                &authority,
+                &format!(
+                    "POST {api}/to-chat HTTP/1.1\r\nHost: {authority}\r\n\
+                     Content-Type: application/json\r\nContent-Length: {}\r\n\
+                     Connection: close\r\n\r\n{handover}",
+                    handover.len()
+                )
+            )
+            .unwrap_or_else(|err| err)
+        );
+
+        // A name that tries to leave the cache keeps only its last part.
+        let escaping = "{\"name\":\"../../../etc/passwd\",\"base64\":\"aGkK\"}";
+        record!(
+            "to-chat-escape",
+            ask(
+                &authority,
+                &format!(
+                    "POST {api}/to-chat HTTP/1.1\r\nHost: {authority}\r\n\
+                     Content-Type: application/json\r\nContent-Length: {}\r\n\
+                     Connection: close\r\n\r\n{escaping}",
+                    escaping.len()
+                )
+            )
+            .unwrap_or_else(|err| err)
+        );
+
+        // Neither a file nor a word: the app's mistake, and refused.
+        let empty = "{}";
+        record!(
+            "to-chat-empty",
+            ask(
+                &authority,
+                &format!(
+                    "POST {api}/to-chat HTTP/1.1\r\nHost: {authority}\r\n\
+                     Content-Type: application/json\r\nContent-Length: {}\r\n\
+                     Connection: close\r\n\r\n{empty}",
+                    empty.len()
+                )
+            )
+            .unwrap_or_else(|err| err)
+        );
+
         // The app sending a move, the way `webxdc.js` does.
         let update = "{\"payload\":{\"move\":\"e4\"}}";
         record!(
@@ -354,6 +413,62 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
         value("send").starts_with("HTTP/1.1 204"),
         "the app could not send an update. {context}"
     );
+
+    assert!(
+        value("to-chat").starts_with("HTTP/1.1 204"),
+        "the app could not hand a file to the chat: {}. {context}",
+        value("to-chat")
+    );
+    assert!(
+        value("to-chat-escape").starts_with("HTTP/1.1 204"),
+        "a file named its way out of the cache was refused outright \
+         rather than kept under its last name: {}. {context}",
+        value("to-chat-escape")
+    );
+    assert!(
+        value("to-chat-empty").starts_with("HTTP/1.1 400"),
+        "a handover with nothing in it was accepted: {}. {context}",
+        value("to-chat-empty")
+    );
+
+    // What the page is told, and what is on the disk for it to act on.
+    let said = value("log");
+    let handed: Vec<&str> = said
+        .split(';')
+        .filter(|entry| entry.starts_with("to-chat:"))
+        .collect();
+    assert_eq!(
+        handed.len(),
+        2,
+        "the page was told about {} handovers rather than the two that \
+         were accepted: {said:?}. {context}",
+        handed.len()
+    );
+    let first = handed[0].trim_start_matches("to-chat:");
+    let (path, words) = first.split_once('|').unwrap_or((first, ""));
+    assert_eq!(
+        words, "look",
+        "the words the app sent with the file did not reach the page: \
+         {said:?}. {context}"
+    );
+    assert!(
+        path.ends_with("/notes.txt"),
+        "the file was not written under the name the app gave it: \
+         {path:?}. {context}"
+    );
+    assert_eq!(
+        std::fs::read_to_string(path).unwrap_or_default(),
+        "hi\n",
+        "the file the page was pointed at does not hold what the app \
+         sent. {context}"
+    );
+    let escaped = handed[1].trim_start_matches("to-chat:");
+    let escaped = escaped.split('|').next().unwrap_or_default();
+    assert!(
+        escaped.ends_with("/passwd") && escaped.contains("/webxdc/outbox/"),
+        "a file named `../../../etc/passwd` was written to {escaped:?} \
+         rather than under that name inside the cache. {context}"
+    );
     let updates = value("updates");
     assert!(
         updates.contains("\"payload\":{\"move\":\"e4\"}") && updates.contains("\"serial\":1"),
@@ -375,7 +490,14 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
         "a closed app still answers: {}. {context}",
         value("after-stop")
     );
-    assert_eq!(value("log"), "", "the app reported: {}", value("log"));
+    // Nothing went wrong and the app was never declared gone. The
+    // handovers are in this log too and are read out below; what must
+    // not be in it is a failure.
+    let log = value("log");
+    assert!(
+        !log.contains("error:") && !log.contains("gone;"),
+        "the app reported: {log}"
+    );
 
     // The icon came out of the archive and was written where a row can
     // draw it from.

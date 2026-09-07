@@ -174,10 +174,87 @@
                 caughtUp = resolve;
                 poll();
             });
+        },
+
+        /*
+         * Put a file, a piece of text, or both into a chat.
+         *
+         * The specification says this asks the reader which chat, and
+         * warns the app that it may not come back -- so what this sends
+         * is a handover rather than a send: the host writes the file out
+         * and the app's page asks which chat it is for. The promise
+         * settles when the host has the file, which is the last moment
+         * anything here still knows what happened.
+         *
+         * A file arrives in one of three shapes and leaves in one: a
+         * Blob is read, text is encoded, and base64 is passed through.
+         */
+        sendToChat: function (message) {
+            return new Promise(function (resolve, reject) {
+                var content = message || {};
+                var file = content.file;
+                var words = typeof content.text === "string" ? content.text : "";
+                if (!file && words.length === 0) {
+                    reject(new Error("webxdc: nothing to send"));
+                    return;
+                }
+                if (!file) {
+                    handOver("", "", words, resolve, reject);
+                    return;
+                }
+                if (typeof file.name !== "string" || file.name.length === 0) {
+                    reject(new Error("webxdc: a file needs a name"));
+                    return;
+                }
+                if (typeof file.base64 === "string") {
+                    handOver(file.name, file.base64, words, resolve, reject);
+                } else if (typeof file.plainText === "string") {
+                    handOver(file.name, encode(file.plainText), words,
+                             resolve, reject);
+                } else if (file.blob) {
+                    read(file.blob, function (encoded) {
+                        handOver(file.name, encoded, words, resolve, reject);
+                    }, reject);
+                } else {
+                    reject(new Error("webxdc: a file needs a blob, base64 or plainText"));
+                }
+            });
         }
     };
 
-    /* Nothing else is offered: sendToChat, importFiles and
-     * joinRealtimeChannel are absent rather than present and failing, so
-     * an app that feature-tests for them takes its own other path. */
+    /* Hand one over to the host, which writes it out and tells the page.
+     */
+    function handOver(name, encoded, words, resolve, reject) {
+        var body = JSON.stringify({ name: name, base64: encoded, text: words });
+        request("POST", "/to-chat", body, function () { resolve(); },
+                function (err) { reject(new Error(err)); });
+    }
+
+    /* A Blob as base64. `readAsDataURL` rather than `readAsArrayBuffer`:
+     * the browser does the encoding, and what comes back is
+     * `data:<type>;base64,<payload>` with the payload after the comma. */
+    function read(blob, done, fail) {
+        var reader = new FileReader();
+        reader.onload = function () {
+            var url = "" + reader.result;
+            var comma = url.indexOf(",");
+            done(comma < 0 ? "" : url.slice(comma + 1));
+        };
+        reader.onerror = function () {
+            fail(new Error("webxdc: the file could not be read"));
+        };
+        reader.readAsDataURL(blob);
+    }
+
+    /* Text as base64, through UTF-8: `btoa` takes bytes, and
+     * `encodeURIComponent` is the way to get them out of a string
+     * without a TextEncoder, which this engine may not have. */
+    function encode(text) {
+        var utf8 = unescape(encodeURIComponent(text));
+        return window.btoa(utf8);
+    }
+
+    /* Nothing else is offered: importFiles and joinRealtimeChannel are
+     * absent rather than present and failing, so an app that
+     * feature-tests for them takes its own other path. */
 }());

@@ -201,6 +201,11 @@ pub struct WebxdcApp {
     /// The message this app came in is gone, so there is nothing left to
     /// run: the page that is showing it should leave.
     pub gone: qt_signal!(),
+    /// The app asked to put something into a chat: a file it has written
+    /// into the cache, a piece of text, or both. Which chat is the
+    /// reader's to say, so this reaches the page rather than the core --
+    /// see `webxdc_host::ToChat`.
+    pub send_to_chat_requested: qt_signal!(file_path: QString, text: QString),
 
     /// Reload what the core says about the app.
     pub reload: qt_method!(fn(&mut self)),
@@ -316,6 +321,19 @@ impl WebxdcApp {
         self.starting = true;
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
+        // What the host does with a file the app hands over. Queued, so
+        // a request that arrives on the host's own thread is raised on
+        // the Qt one, where the page that answers it lives.
+        let to_page: QPointer<Self> = QPointer::from(&*self);
+        let raise = queued_callback(move |(path, text): (String, String)| {
+            if let Some(this) = to_page.as_pinned() {
+                this.borrow()
+                    .send_to_chat_requested(path.into(), text.into());
+            }
+        });
+        let to_chat: crate::webxdc_host::ToChat =
+            std::sync::Arc::new(move |path, text| raise((path, text)));
+
         let done = queued_callback(move |result: Result<Host, String>| {
             let Some(this) = ptr.as_pinned() else { return };
             this.borrow_mut().starting = false;
@@ -336,7 +354,7 @@ impl WebxdcApp {
         });
 
         runtime.spawn(async move {
-            done(host_for(&rpc, account_id, message_id).await);
+            done(host_for(&rpc, account_id, message_id, to_chat).await);
         });
     }
 
@@ -487,7 +505,12 @@ fn app_file_name(url: &str) -> String {
 }
 
 /// Everything the host needs about one app, gathered and started.
-async fn host_for(rpc: &Arc<RpcClient>, account_id: u32, message_id: u32) -> Result<Host, String> {
+async fn host_for(
+    rpc: &Arc<RpcClient>,
+    account_id: u32,
+    message_id: u32,
+    to_chat: crate::webxdc_host::ToChat,
+) -> Result<Host, String> {
     let info = fetch_info(rpc, account_id, message_id).await?;
     // The name this account goes by, which the app shows beside whatever
     // it hears from this end. The core has no self-name of its own for a
@@ -513,6 +536,7 @@ async fn host_for(rpc: &Arc<RpcClient>, account_id: u32, message_id: u32) -> Res
             send_update_interval: info.send_update_interval,
             send_update_max_size: info.send_update_max_size,
         },
+        to_chat,
     )
     .await
 }

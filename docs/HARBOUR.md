@@ -333,6 +333,12 @@ removed from the store even after approval. Not an option.
    that it draws, that a move reaches the other end and comes back, that
    its row shows what the app says about itself, and that leaving the page
    stops it -- `ss -ltn` should show no loopback port of ours afterwards.
+   An app that hands a file back is the other direction: take one that
+   exports (a sharer, a note taker), have it call `sendToChat`, and check
+   that a chat picker appears, that the chat it is given opens with the
+   file on its attachment bar, and that sending it works. The file is
+   written into the cache first, so a sandbox that will not let the app
+   write there fails here and nowhere else.
    An app that will not open says why rather than drawing grey: the host
    answers with the core's own reason, the engine's error page is left
    alone rather than turned back, and the reason stays on the screen

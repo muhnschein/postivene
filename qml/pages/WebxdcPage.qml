@@ -91,6 +91,11 @@ Page {
         // The message is gone -- deleted here or on another device --
         // so there is nothing left to run.
         onGone: pageStack.pop()
+        // The app asked to put something into a chat. Which chat is the
+        // reader's to say -- that is what the API says this does -- and
+        // the window already knows how to ask: it is the same question a
+        // picture shared from the gallery arrives with.
+        onSend_to_chat_requested: appWindow.shareInto(file_path, text)
     }
 
     Connections {

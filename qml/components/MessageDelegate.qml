@@ -156,6 +156,28 @@ Item {
     readonly property bool canDownload: root.downloadState === "Available"
                                         || root.downloadState === "Failure"
 
+    /// What the two offers say. Here rather than only in the labels
+    /// because the bubble is sized from them: a bubble made narrow by
+    /// short lines has to widen to hold them, or they are drawn over
+    /// each other.
+    //: Opens out a long message inside the conversation, or folds it
+    //: back.
+    readonly property string expandText: root.expanded ? qsTr("Collapse")
+                                                       : qsTr("Expand")
+    //: Opens the whole message on a page of its own.
+    readonly property string fullText: qsTr("View full message")
+
+    /// How wide the offers want to be, side by side.
+    readonly property real actionsWidth:
+        (root.showsExpand ? expandMetric.implicitWidth : 0)
+        + (root.showsFull ? fullMetric.implicitWidth : 0)
+        + (root.showsExpand && root.showsFull ? Theme.paddingLarge : 0)
+    /// Whether they have to go one above the other instead. A bubble is
+    /// never wider than most of the screen, and in a long enough
+    /// language the two of them are wider than that.
+    readonly property bool actionsStack: root.showsExpand && root.showsFull
+                                         && root.actionsWidth > root.contentWidth
+
     /// How many lines of a body the bubble shows before offering to open
     /// it out. Enough for a paragraph, which is what most messages are.
     property int collapsedLines: 12
@@ -193,6 +215,7 @@ Item {
         Math.max(textMetric.implicitWidth,
                  attachmentMetric.implicitWidth,
                  reactionRow.wantedWidth,
+                 root.actionsWidth,
                  attachment.wantsFullWidth && root.hasFile ? root.maxWidth : 0,
                  Theme.itemSizeSmall))
 
@@ -232,6 +255,25 @@ Item {
         // fallback row says is the preview's business, and the bubble only
         // needs to know how wide it comes out.
         text: attachment.genericText
+    }
+
+    // The two offers, measured where nothing constrains them: reading a
+    // width off the labels themselves would come back through the
+    // bubble they are sizing.
+    Text {
+        id: expandMetric
+        visible: false
+        font.pixelSize: Theme.fontSizeSmall
+        textFormat: Text.PlainText
+        text: root.expandText
+    }
+
+    Text {
+        id: fullMetric
+        visible: false
+        font.pixelSize: Theme.fontSizeSmall
+        textFormat: Text.PlainText
+        text: root.fullText
     }
 
     // The chips' text end to end, for how wide the strip wants to be and
@@ -442,7 +484,9 @@ Item {
             x: Theme.paddingMedium
             y: root.below(messageLabel, visible)
             width: root.contentWidth
-            height: visible ? expandLabel.implicitHeight + Theme.paddingSmall : 0
+            height: visible ? fullLabel.y + fullLabel.implicitHeight
+                              + Theme.paddingSmall
+                            : 0
 
             Label {
                 id: expandLabel
@@ -451,9 +495,7 @@ Item {
                 font.pixelSize: Theme.fontSizeSmall
                 color: Theme.highlightColor
                 textFormat: Text.PlainText
-                //: Opens out a long message inside the conversation, or
-                //: folds it back.
-                text: root.expanded ? qsTr("Collapse") : qsTr("Expand")
+                text: root.expandText
 
                 MouseArea {
                     anchors.fill: parent
@@ -466,12 +508,17 @@ Item {
                 id: fullLabel
                 objectName: "fullButton"
                 visible: root.showsFull
-                anchors.right: parent.right
+                // At the far end of the row from Expand, or under it
+                // when the two do not fit on one line. Placed rather
+                // than anchored: an anchor cannot be turned off, and
+                // stacked they both start at the same edge.
+                x: root.actionsStack ? 0 : parent.width - width
+                y: root.actionsStack
+                   ? expandLabel.implicitHeight + Theme.paddingSmall : 0
                 font.pixelSize: Theme.fontSizeSmall
                 color: Theme.highlightColor
                 textFormat: Text.PlainText
-                //: Opens the whole message on a page of its own.
-                text: qsTr("View full message")
+                text: root.fullText
 
                 MouseArea {
                     anchors.fill: parent

@@ -797,6 +797,30 @@ fn the_frame_scripts_the_pages_load_are_there() {
     );
 }
 
+/// A file an app hands over reaches the window, which asks which chat.
+///
+/// `sendToChat` is specified as asking the reader that question, and the
+/// window is where the question already lives -- it is the same one a
+/// picture shared from the gallery arrives with. Nothing else can check
+/// this: the page names `Sailfish.WebView`, so it is never loaded off a
+/// phone.
+#[test]
+fn the_webxdc_page_hands_what_an_app_sends_to_the_window() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/pages/WebxdcPage.qml");
+    let text = fs::read_to_string(&path).expect("read WebxdcPage.qml");
+    let code = code_only(&text);
+    assert!(
+        code.contains("onSend_to_chat_requested:"),
+        "the page ignores an app asking to put something into a chat, so \
+         `sendToChat` resolves and nothing happens"
+    );
+    assert!(
+        block_of(&code, "onSend_to_chat_requested:").contains("appWindow.shareInto("),
+        "what the app handed over does not reach the window, which is \
+         what asks which chat it is for"
+    );
+}
+
 /// Every page the app pushes is a page that exists.
 ///
 /// A page is pushed by name, resolved at the moment of the tap, and a

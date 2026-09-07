@@ -66,6 +66,12 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   `sendUpdate` is a POST, the updates from everyone else are a poll -- so
   the bridge is not a Gecko frame script, and no archive format is parsed
   here.
+  An app can hand a file back the other way: `sendToChat` is specified
+  as *asking the reader which chat*, so the host writes what the app
+  gives it into the cache and raises it on the page, which puts the
+  question to the window -- the same one a picture shared from the
+  gallery arrives with. Nothing is sent from the host: which chat is not
+  its to decide.
   Where a new app comes from is the store, a website
   (`WebxdcStorePage.qml`); a tap on a link to a `.xdc` is caught before
   the engine can download it and fetched through the core instead

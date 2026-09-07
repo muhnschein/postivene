@@ -13,13 +13,25 @@
 //! is pointed at. The alternative -- a Gecko frame script -- would put
 //! the bridge on chrome-privileged ground this app cannot test.
 //!
+//! The app is served from the root of that address, as every other
+//! client serves one. It has to be: an app built with a bundler's
+//! default settings asks for `/assets/index-1a2b.js`, and a host that
+//! keeps its files under a prefix answers nothing to that -- which is a
+//! blank screen for half the apps in the store and a working one for the
+//! half that happens to use relative paths.
+//!
 //! What keeps that from being a hole in the phone:
 //!
 //! - the listener is bound to 127.0.0.1 on a port the kernel picks, so
 //!   nothing off the device can reach it at all;
-//! - every path starts with an unguessable token, and a request whose
-//!   `Host:` is not the address the app was given is refused, so a page
-//!   in the browser cannot walk the ports and find it;
+//! - a request whose `Host:` is not the address the app was given is
+//!   refused, so a name that resolves to 127.0.0.1 is not a way in;
+//! - the chat is behind an unguessable token: the two API paths -- what
+//!   everyone else in the chat has said, and saying something to them --
+//!   are under `/webxdc-api/<token>/`, which the app is told and nothing
+//!   else can guess. A page that found the port could ask for the app's
+//!   own files, which its reader was sent anyway; it cannot read the
+//!   chat or write to it.
 //! - it exists only while the app is open, and answers nothing once the
 //!   page is closed;
 //! - the app itself is confined by a content-security-policy that permits
@@ -93,8 +105,10 @@ pub(crate) struct Instance {
 struct Shared {
     rpc: Arc<RpcClient>,
     instance: Instance,
-    /// `/<token>`, which every path this host answers begins with.
-    prefix: String,
+    /// `/webxdc-api/<token>`: where the chat is, and the one part of
+    /// this host that cannot be guessed. The app's own files are at the
+    /// root beside it.
+    api: String,
     /// The `Host:` a request must carry: the address the app was given.
     authority: String,
     /// Cleared when the app is closed. A connection accepted just before
@@ -143,12 +157,14 @@ pub(crate) async fn start(rpc: Arc<RpcClient>, instance: Instance) -> Result<Hos
         .map_err(|err| format!("cannot serve the app: {err}"))?;
     let token = token();
     let authority = format!("127.0.0.1:{}", address.port());
-    let url = format!("http://{authority}/{token}/index.html");
+    // The app's front page, at the root: what it asks for next is its
+    // own business, and half of what apps ask for is absolute.
+    let url = format!("http://{authority}/index.html");
     let running = Arc::new(AtomicBool::new(true));
     let shared = Arc::new(Shared {
         rpc,
         instance,
-        prefix: format!("/{token}"),
+        api: format!("/webxdc-api/{token}"),
         authority,
         running: Arc::clone(&running),
     });
@@ -328,20 +344,29 @@ async fn route(shared: &Shared, request: &Request) -> Response {
         Some((path, query)) => (path, query),
         None => (request.target.as_str(), ""),
     };
-    let Some(rest) = path.strip_prefix(&shared.prefix) else {
-        return Response::empty("404 Not Found");
-    };
-    // The two API paths and the bridge are answered before anything is
-    // looked for in the archive, so an app that ships a `webxdc.js` of
-    // its own -- some do, to run outside a messenger -- gets this one.
-    match (request.method.as_str(), rest) {
+    // The chat, behind the token. Checked before anything else and
+    // answered by nothing else: a request under this prefix that does not
+    // carry the token is refused rather than looked for in the archive,
+    // so guessing is told nothing.
+    if path.starts_with("/webxdc-api") {
+        let Some(rest) = path.strip_prefix(&shared.api) else {
+            return Response::empty("404 Not Found");
+        };
+        return match (request.method.as_str(), rest) {
+            ("GET", "/updates") => updates(shared, query).await,
+            ("POST", "/send") => send(shared, &request.body).await,
+            _ => Response::empty("404 Not Found"),
+        };
+    }
+    // The bridge is answered before anything is looked for in the
+    // archive, so an app that ships a `webxdc.js` of its own -- some do,
+    // to run outside a messenger -- gets this one.
+    match (request.method.as_str(), path) {
         ("GET", "" | "/" | "/index.html") => index(shared).await,
         ("GET", "/webxdc.js") => Response::new(
             "text/javascript; charset=utf-8",
             bridge(shared).into_bytes(),
         ),
-        ("GET", "/webxdc-api/updates") => updates(shared, query).await,
-        ("POST", "/webxdc-api/send") => send(shared, &request.body).await,
         ("GET", inner) => blob(shared, inner).await,
         _ => Response::empty("404 Not Found"),
     }
@@ -452,7 +477,7 @@ fn bridge(shared: &Shared) -> String {
 fn fill(script: &str, shared: &Shared) -> String {
     let text = |value: &str| serde_json::to_string(value).unwrap_or_else(|_| "\"\"".to_string());
     script
-        .replace("__BASE__", &text(&shared.prefix))
+        .replace("__API__", &text(&shared.api))
         .replace("__SELF_ADDR__", &text(&shared.instance.self_addr))
         .replace("__SELF_NAME__", &text(&shared.instance.self_name))
         .replace(

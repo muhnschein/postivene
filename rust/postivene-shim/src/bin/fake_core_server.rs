@@ -393,13 +393,20 @@ fn day_start(timestamp: i64) -> i64 {
         .map_or(timestamp, |midnight| midnight.timestamp())
 }
 
-/// What the fake archive holds: a page that names the API it was served
-/// with, and an icon. Anything else is not in this webxdc.
+/// What the fake archive holds: a page, the script it asks for, and an
+/// icon. Anything else is not in this webxdc.
+///
+/// The page asks for its script the way a bundler writes one -- an
+/// absolute path, into a directory -- because that is what half the
+/// apps in the store do and what a host serving them under a prefix
+/// answers nothing to.
 fn webxdc_file(path: &str) -> Option<Vec<u8>> {
     match path {
-        "index.html" => {
-            Some(b"<html><head><title>Checkers</title></head><body>board</body></html>".to_vec())
-        }
+        "index.html" => Some(
+            b"<html><head><title>Checkers</title>              <script type=\"module\" crossorigin src=\"/assets/app.js\"></script>              </head><body>board</body></html>"
+                .to_vec(),
+        ),
+        "assets/app.js" => Some(b"window.playing = true\n".to_vec()),
         "icon.png" => Some(b"\x89PNG\r\n\x1a\n icon".to_vec()),
         _ => None,
     }

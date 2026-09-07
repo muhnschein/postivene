@@ -18,7 +18,10 @@
 (function () {
     "use strict";
 
-    var BASE = __BASE__;
+    /* Where the chat is: `/webxdc-api/<token>`, which the host fills
+     * in. The app's own files are at the root; this is the part of
+     * the host nothing but the app is told about. */
+    var API = __API__;
     var SELF_ADDR = __SELF_ADDR__;
     var SELF_NAME = __SELF_NAME__;
     var MAX_SIZE = __MAX_SIZE__;
@@ -38,7 +41,7 @@
 
     function request(method, path, body, onDone, onFail) {
         var xhr = new XMLHttpRequest();
-        xhr.open(method, BASE + path, true);
+        xhr.open(method, API + path, true);
         xhr.onload = function () {
             if (xhr.status >= 200 && xhr.status < 300) {
                 onDone(xhr.responseText);
@@ -100,7 +103,7 @@
             return;
         }
         polling = true;
-        request("GET", "/webxdc-api/updates?serial=" + lastSerial, null,
+        request("GET", "/updates?serial=" + lastSerial, null,
             function (text) {
                 polling = false;
                 var updates = [];
@@ -145,7 +148,7 @@
             if (MAX_SIZE > 0 && body.length > MAX_SIZE) {
                 throw new Error("webxdc: update is larger than sendUpdateMaxSize");
             }
-            request("POST", "/webxdc-api/send", body,
+            request("POST", "/send", body,
                 function () {
                     /* The core has it; ask for it back rather than
                      * waiting out the poll, so the app sees its own

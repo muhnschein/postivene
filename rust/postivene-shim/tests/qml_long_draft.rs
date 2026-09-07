@@ -12,9 +12,9 @@
 //! core in `deltachat-jsonrpc/tests/real_server.rs`.
 //!
 //! And where the row sits: off the bottom edge rather than on it, with
-//! the two round buttons higher still than the field's own line, and
-//! beside the *last* line of a draft that has grown rather than its
-//! first.
+//! the two round buttons level with the field rather than floating
+//! above it, and beside the *last* line of a draft that has grown
+//! rather than its first.
 
 // Qt harness: see qml_conversation_open.rs.
 #![allow(
@@ -303,12 +303,14 @@ fn the_field_takes_more_than_a_line_and_says_when_a_message_is_too_long() {
         "the field sits on the bottom edge of the screen ({field_lift} \
          above it). {context}"
     );
+    // Level with the field's bottom edge, which is a little above its
+    // underline: a Silica field keeps room under its line for what hangs
+    // below a letter. Lifted further, as this was first written, the
+    // buttons read as floating over the row rather than belonging to it.
     assert!(
-        send_lift > field_lift && attach_lift > field_lift,
+        (send_lift - field_lift).abs() < 1.0 && (attach_lift - field_lift).abs() < 1.0,
         "the send and attach buttons ({send_lift}, {attach_lift} above \
-         the edge) are no higher than the field ({field_lift}): they are \
-         round and it is a line, so level with it they hang below the \
-         text they belong to. {context}"
+         the edge) do not sit with the field ({field_lift}). {context}"
     );
     assert!(
         number("send-top") >= 0.0,

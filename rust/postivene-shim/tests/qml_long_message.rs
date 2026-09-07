@@ -12,6 +12,12 @@
 //! little it has fits, because the rest of it is not on this phone at
 //! all.
 //!
+//! And what they are *never* about: an attachment. A picture or a
+//! document with no caption has no body to fold, and a message the core
+//! is still holding back has none of it yet -- neither was excluded at
+//! first, and an RPM arriving in an open chat grew an Expand and a View
+//! full message it had no use for.
+//!
 //! The delegate and the list are loaded on their own, as the other QML
 //! tests load them.
 
@@ -79,7 +85,7 @@ const PROBE_QML: &str = r"
                 quote_text: '', quote_author: '', file_path: '',
                 file_name: '', file_mime: '', file_bytes: 0,
                 view_type: 'Text', image_width: 0, image_height: 0,
-                is_new: false, file_is_text: false, has_html: false,
+                is_new: false, has_html: false,
                 download_state: 'Done', vcard_name: '', vcard_addr: '',
                 vcard_color: '', webxdc_name: '', webxdc_document: '',
                 webxdc_summary: '', webxdc_icon: '', reactions: '',
@@ -306,6 +312,67 @@ fn a_long_body_is_cut_to_a_few_lines_with_the_rest_on_offer() {
         record!("row-open-again", call!("rowExpanded"));
         record!("row-full", call!("tapFull"));
         record!("row-raised", call!("raisedSignal"));
+
+        // An attachment: a file, no caption, and the core saying it has
+        // an HTML part -- which is the shape that grew the offers.
+        call!("set", QString::from("expanded"), false);
+        call!("set", QString::from("messageText"), QString::from(""));
+        call!("set", QString::from("hasHtml"), true);
+        call!("set", QString::from("viewType"), QString::from("File"));
+        call!(
+            "set",
+            QString::from("filePath"),
+            QString::from("/tmp/postivene-long-message/postivene.rpm")
+        );
+        call!(
+            "set",
+            QString::from("fileName"),
+            QString::from("postivene.rpm")
+        );
+    });
+
+    single_shot(Duration::from_secs(9), move || unsafe {
+        record!(
+            "file-actions",
+            call!(
+                "get",
+                QString::from("bodyActions"),
+                QString::from("visible")
+            )
+        );
+        // And a message the core is holding back: a header and a
+        // download offer, with none of the words here yet.
+        call!("set", QString::from("filePath"), QString::from(""));
+        call!("set", QString::from("viewType"), QString::from("Text"));
+        call!(
+            "set",
+            QString::from("messageText"),
+            QString::from("a message that has not been fetched")
+        );
+        call!(
+            "set",
+            QString::from("downloadState"),
+            QString::from("Available")
+        );
+    });
+
+    single_shot(Duration::from_secs(10), move || unsafe {
+        record!(
+            "held-actions",
+            call!(
+                "get",
+                QString::from("bodyActions"),
+                QString::from("visible")
+            )
+        );
+        record!(
+            "held-download",
+            call!(
+                "get",
+                QString::from("downloadButton"),
+                QString::from("visible")
+            )
+        );
         (*engine_ptr).quit();
     });
 
@@ -412,6 +479,26 @@ fn a_long_body_is_cut_to_a_few_lines_with_the_rest_on_offer() {
         value("row-raised"),
         "full:7:Ada",
         "asking for the page did not name the message and who wrote it. \
+         {context}"
+    );
+
+    assert_eq!(
+        value("file-actions"),
+        "false",
+        "an attachment with no caption offered to be opened out and read \
+         on a page of its own -- there is no body there to do either \
+         with. {context}"
+    );
+    assert_eq!(
+        value("held-actions"),
+        "false",
+        "a message the core is still holding back offered the rest of \
+         its words, which are not on this phone yet. {context}"
+    );
+    assert_eq!(
+        value("held-download"),
+        "true",
+        "the one offer a held-back message should carry is gone. \
          {context}"
     );
 }

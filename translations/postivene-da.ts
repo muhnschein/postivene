@@ -403,37 +403,6 @@
     </message>
 </context>
 <context>
-    <name>FilePage</name>
-    <message>
-        <source>Saved to Downloads</source>
-        <translation>Gemt i Downloads</translation>
-    </message>
-    <message>
-        <source>Open in another app</source>
-        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
-        <translation>Åbn i en anden app</translation>
-    </message>
-    <message>
-        <source>Save to Downloads</source>
-        <translation>Gem i Downloads</translation>
-    </message>
-    <message>
-        <source>File</source>
-        <extracomment>Heading of the page showing one received file.</extracomment>
-        <translation>Fil</translation>
-    </message>
-    <message>
-        <source>Only the beginning is shown. Open the file elsewhere to read all of it.</source>
-        <extracomment>Shown above a text file too long to show whole.</extracomment>
-        <translation>Kun begyndelsen vises. Åbn filen et andet sted for at læse det hele.</translation>
-    </message>
-    <message>
-        <source>Postivene cannot show this kind of file. Pull down to open it in another app or save a copy.</source>
-        <extracomment>Shown for an attachment this app cannot display, above the two things that can be done with it.</extracomment>
-        <translation>Postivene kan ikke vise denne slags fil. Træk ned for at åbne den i en anden app eller gemme en kopi.</translation>
-    </message>
-</context>
-<context>
     <name>Format</name>
     <message>
         <source>now</source>

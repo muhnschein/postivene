@@ -131,16 +131,10 @@ impl State {
                 .ok()
                 .and_then(|count| count.parse::<u32>().ok())
                 .filter(|count| *count > 2);
-            let mut first = long.map_or_else(|| vec![1, 2], |count| (1..=count).collect());
-            // The two rows a reader needs a page of their own for: a
-            // message the sending core cut, and an attached note the
-            // phone has nothing to open. Behind a variable, so every
-            // test that counts what is in this chat still counts the
-            // same.
-            if std::env::var_os("POSTIVENE_FAKE_LONG_MESSAGES").is_some() {
-                first.extend([11, 12]);
-            }
-            self.chats.insert(1, first);
+            self.chats.insert(
+                1,
+                long.map_or_else(|| vec![1, 2], |count| (1..=count).collect()),
+            );
             self.chats.insert(2, vec![10]);
             self.chat_order = vec![1, 2];
             // Chat 3 is archived, and appears in no ordinary listing.
@@ -476,19 +470,11 @@ fn message_object(msg: u64) -> Value {
     }
     // A message the sending core had to cut: what is here ends in the
     // core's own marker, and the whole of it is only behind
-    // `get_message_html`.
+    // `get_message_html`. In no chat -- what reads it asks for it by id,
+    // the way the page that shows one whole does.
     if msg == 11 {
         message["text"] = json!(format!("{LONG_MESSAGE_HEAD}\n[...]"));
         message["hasHtml"] = json!(true);
-    }
-    // A note somebody attached, which the phone has nothing to open.
-    if msg == 12 {
-        message["viewType"] = json!("File");
-        message["file"] = json!(text_file_path().to_string_lossy().into_owned());
-        message["fileName"] = json!("TODO.md");
-        message["fileMime"] = json!("application/octet-stream");
-        message["fileBytes"] = json!(TEXT_FILE_BODY.len());
-        message["text"] = json!("");
     }
     message
 }
@@ -499,19 +485,6 @@ const LONG_MESSAGE_HEAD: &str = "# Groceries";
 /// The whole of it, as the core would give it out: an HTML part.
 const LONG_MESSAGE_HTML: &str = "<html><head><title>ignored</title></head><body><h1>Groceries</h1>\
      <ul><li>milk</li><li>bread</li></ul><p>and a &amp; sign</p></body></html>";
-
-/// What the attached note holds.
-const TEXT_FILE_BODY: &str = "# TODO\n\n- [ ] read this on a phone\n";
-
-/// Where the note is written. Made on the first request for it, so a test
-/// needs no fixture on disk.
-fn text_file_path() -> std::path::PathBuf {
-    let path = std::env::temp_dir().join("postivene-fake-note.md");
-    if !path.exists() {
-        let _ = std::fs::write(&path, TEXT_FILE_BODY);
-    }
-    path
-}
 
 /// True for the inputs that stand in for "the server cannot be reached".
 fn should_fail(value: &str) -> bool {

@@ -14,7 +14,7 @@ use qmetaobject::*;
 use crate::core::connection;
 use crate::json;
 use crate::models::{MessageListItem, MessageListModel};
-use crate::{full_text, links, markdown, truncation, webxdc};
+use crate::{links, markdown, truncation, webxdc};
 
 /// `DC_STATE_IN_FRESH` and `DC_STATE_IN_NOTICED`: an incoming message the
 /// account has not read yet.
@@ -1614,14 +1614,6 @@ fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
         quote_author: json::text(message, "/quote/authorDisplayName"),
         file_path: file_path.into(),
         file_name: json::text(message, "/fileName"),
-        // Decided here, once, from what the core says the file is: the
-        // row, its menu and the reader page all ask the same question
-        // and must not answer it three ways.
-        file_is_text: !file_path.is_empty()
-            && full_text::looks_like_text(
-                json::str_at(message, "fileMime"),
-                json::str_at(message, "fileName"),
-            ),
         view_type: view_type.into(),
         // Still 0 for anything neither the core nor the header read above
         // could size, so nothing may divide by these.

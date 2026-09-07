@@ -163,7 +163,7 @@ const PROBE_QML: &str = r"
 
 #[test]
 #[allow(clippy::too_many_lines)]
-fn every_kind_of_attachment_opens_on_the_page_that_can_show_it() {
+fn pictures_and_video_open_here_and_everything_else_goes_to_the_system() {
     let temp = std::env::temp_dir().join(format!("postivene-media-{}", std::process::id()));
     std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
     let png = temp.join("dot.png");
@@ -459,17 +459,18 @@ fn assert_outcome(steps: &[(&str, String)], navigation: &str) {
         "the conversation page did not load. {context}"
     );
     // Image, Gif and Sticker to the picture page, Video to the video
-    // page, and everything else -- File, Vcard -- to the page that says
-    // what the file is and offers to open or save it. Nothing goes
-    // straight to the phone any more: a handover that no installed app
-    // answers fails without a word, which is a tap that does nothing.
+    // page -- and nothing for File or Vcard, which are the system's to
+    // open. A page here for a file was tried and taken out again: what
+    // an attachment needs and a tap cannot give is a copy, and that is
+    // on the row's menu.
     assert_eq!(
         navigation,
         "push:PicturePage.qml|push:PicturePage.qml|push:PicturePage.qml|\
-         push:VideoPage.qml|push:FilePage.qml|push:FilePage.qml|",
+         push:VideoPage.qml|",
         "tapping an attachment did not open the right thing. Nothing at \
-         all for a kind means the tap left the app, or did nothing. \
-         {context}"
+         all for a picture means it still leaves the app; a page for a \
+         file or a contact means the app took on something it cannot \
+         show. {context}"
     );
 
     assert_eq!(

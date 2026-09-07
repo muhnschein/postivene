@@ -403,37 +403,6 @@
     </message>
 </context>
 <context>
-    <name>FilePage</name>
-    <message>
-        <source>Saved to Downloads</source>
-        <translation>Saglabāts lejupielādēs</translation>
-    </message>
-    <message>
-        <source>Open in another app</source>
-        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
-        <translation>Atvērt citā lietotnē</translation>
-    </message>
-    <message>
-        <source>Save to Downloads</source>
-        <translation>Saglabāt lejupielādēs</translation>
-    </message>
-    <message>
-        <source>File</source>
-        <extracomment>Heading of the page showing one received file.</extracomment>
-        <translation>Datne</translation>
-    </message>
-    <message>
-        <source>Only the beginning is shown. Open the file elsewhere to read all of it.</source>
-        <extracomment>Shown above a text file too long to show whole.</extracomment>
-        <translation>Rādīts tikai sākums. Lai izlasītu visu, atveriet datni citur.</translation>
-    </message>
-    <message>
-        <source>Postivene cannot show this kind of file. Pull down to open it in another app or save a copy.</source>
-        <extracomment>Shown for an attachment this app cannot display, above the two things that can be done with it.</extracomment>
-        <translation>Postivene nevar parādīt šāda veida datni. Pavelciet uz leju, lai atvērtu to citā lietotnē vai saglabātu kopiju.</translation>
-    </message>
-</context>
-<context>
     <name>Format</name>
     <message>
         <source>now</source>

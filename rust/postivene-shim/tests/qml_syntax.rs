@@ -846,13 +846,11 @@ fn the_pages_the_app_pushes_are_there() {
             pushed.push(path.to_string());
         }
     }
-    for expected in ["MessagePage.qml", "FilePage.qml"] {
-        assert!(
-            pushed.iter().any(|path| path.ends_with(expected)),
-            "nothing pushes {expected} any more, so a long message or a \
-             file somebody sent has nowhere to open: {pushed:?}"
-        );
-    }
+    assert!(
+        pushed.iter().any(|path| path.ends_with("MessagePage.qml")),
+        "nothing pushes MessagePage.qml any more, so a long message has \
+         nowhere to be read whole: {pushed:?}"
+    );
 }
 
 /// The file with its comments blanked out and its strings left alone.

@@ -94,8 +94,7 @@ SilicaListView {
     /// The reader tapped an attachment. What opening it means -- a page
     /// here, or handing it to another app -- is the page's decision.
     signal openRequested(url fileUrl, string fileName, string viewType,
-                         real previewWidth, string fileMime, real fileBytes,
-                         bool fileIsText)
+                         real previewWidth)
     /// The reader asked to keep a copy of an attachment somewhere they
     /// can find it again. Where that is depends on what it is, which is
     /// the page's to decide.
@@ -130,17 +129,48 @@ SilicaListView {
     }
 
     /// Open one out, or fold it back.
-    function toggleExpanded(messageId) {
+    ///
+    /// Folding one back puts the view on it. A row that was filling the
+    /// screen and is suddenly a dozen lines takes everything below it up
+    /// with it, and the reader -- who had scrolled into the middle of
+    /// what they were reading -- is left looking at whatever happens to
+    /// be there. Where they wanted to be is the message they just
+    /// folded.
+    function toggleExpanded(messageId, index) {
         var next = {}
         for (var key in root.expandedIds) {
             next[key] = root.expandedIds[key]
         }
-        if (next[messageId]) {
+        var folding = next[messageId] === true
+        if (folding) {
             delete next[messageId]
         } else {
             next[messageId] = true
         }
         root.expandedIds = next
+        if (folding && index >= 0) {
+            // After the row has been given its new height, not before:
+            // the view lays out in a pass of its own, and asking it to
+            // show a row it still thinks is tall puts it somewhere else
+            // again.
+            root.foldedIndex = index
+            foldReturn.restart()
+        }
+    }
+
+    /// The row a fold is waiting to return to, -1 for none.
+    property int foldedIndex: -1
+
+    Timer {
+        id: foldReturn
+        objectName: "foldReturn"
+        interval: 1
+        onTriggered: {
+            if (root.foldedIndex >= 0) {
+                root.positionViewAtIndex(root.foldedIndex, ListView.Contain)
+                root.foldedIndex = -1
+            }
+        }
     }
 
     /// The emoji the menu offers first, as the reference clients offer
@@ -554,8 +584,7 @@ SilicaListView {
                 text: qsTr("Open")
                 onClicked: root.openRequested(
                                "file://" + model.file_path, model.file_name,
-                               model.view_type, 0, model.file_mime,
-                               model.file_bytes, model.file_is_text)
+                               model.view_type, 0)
             }
             MenuItem {
                 objectName: "saveItem"
@@ -755,7 +784,6 @@ SilicaListView {
             imageWidth: model.image_width
             imageHeight: model.image_height
             isNew: model.is_new
-            fileIsText: model.file_is_text
             hasHtml: model.has_html
             expanded: root.isExpanded(model.message_id)
             vcardName: model.vcard_name
@@ -767,9 +795,8 @@ SilicaListView {
             webxdcIcon: model.webxdc_icon
             reactions: model.reactions
             onOpenRequested: root.openRequested(fileUrl, fileName, viewType,
-                                                previewWidth, fileMime,
-                                                fileBytes, fileIsText)
-            onExpandRequested: root.toggleExpanded(model.message_id)
+                                                previewWidth)
+            onExpandRequested: root.toggleExpanded(model.message_id, index)
             onFullTextRequested: root.fullTextRequested(model.message_id,
                                                        model.sender_name)
             onAppRequested: root.appRequested(model.message_id)

@@ -403,37 +403,6 @@
     </message>
 </context>
 <context>
-    <name>FilePage</name>
-    <message>
-        <source>Saved to Downloads</source>
-        <translation>Opgeslagen in Downloads</translation>
-    </message>
-    <message>
-        <source>Open in another app</source>
-        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
-        <translation>Openen in een andere app</translation>
-    </message>
-    <message>
-        <source>Save to Downloads</source>
-        <translation>Opslaan in Downloads</translation>
-    </message>
-    <message>
-        <source>File</source>
-        <extracomment>Heading of the page showing one received file.</extracomment>
-        <translation>Bestand</translation>
-    </message>
-    <message>
-        <source>Only the beginning is shown. Open the file elsewhere to read all of it.</source>
-        <extracomment>Shown above a text file too long to show whole.</extracomment>
-        <translation>Alleen het begin wordt getoond. Open het bestand elders om alles te lezen.</translation>
-    </message>
-    <message>
-        <source>Postivene cannot show this kind of file. Pull down to open it in another app or save a copy.</source>
-        <extracomment>Shown for an attachment this app cannot display, above the two things that can be done with it.</extracomment>
-        <translation>Postivene kan dit soort bestand niet tonen. Trek omlaag om het in een andere app te openen of een kopie op te slaan.</translation>
-    </message>
-</context>
-<context>
     <name>Format</name>
     <message>
         <source>now</source>

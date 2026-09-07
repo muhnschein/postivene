@@ -403,37 +403,6 @@
     </message>
 </context>
 <context>
-    <name>FilePage</name>
-    <message>
-        <source>Saved to Downloads</source>
-        <translation>已儲存至下載</translation>
-    </message>
-    <message>
-        <source>Open in another app</source>
-        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
-        <translation>用其他應用程式開啟</translation>
-    </message>
-    <message>
-        <source>Save to Downloads</source>
-        <translation>儲存至下載</translation>
-    </message>
-    <message>
-        <source>File</source>
-        <extracomment>Heading of the page showing one received file.</extracomment>
-        <translation>檔案</translation>
-    </message>
-    <message>
-        <source>Only the beginning is shown. Open the file elsewhere to read all of it.</source>
-        <extracomment>Shown above a text file too long to show whole.</extracomment>
-        <translation>僅顯示開頭。若要讀取完整內容，請在其他程式中開啟該檔案。</translation>
-    </message>
-    <message>
-        <source>Postivene cannot show this kind of file. Pull down to open it in another app or save a copy.</source>
-        <extracomment>Shown for an attachment this app cannot display, above the two things that can be done with it.</extracomment>
-        <translation>Postivene 無法顯示這種檔案。下拉可在其他應用程式中開啟，或儲存一份副本。</translation>
-    </message>
-</context>
-<context>
     <name>Format</name>
     <message>
         <source>now</source>

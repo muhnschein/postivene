@@ -391,8 +391,7 @@ Page {
             notice.show(qsTr("Copied to clipboard"))
         }
         onOpenRequested: page.openAttachment(fileUrl, fileName, viewType,
-                                             previewWidth, fileMime,
-                                             fileBytes, fileIsText)
+                                             previewWidth)
         onSaveRequested: page.saveAttachment(fileUrl, viewType)
         onFullTextRequested: pageStack.push(Qt.resolvedUrl("MessagePage.qml"), {
             accountId: page.accountId,
@@ -569,8 +568,7 @@ Page {
             // a TextField carries room under its text and a TextArea
             // does not, so what was a comfortable gap became none. The
             // recording strip carries less still.
-            bottomMargin: voiceBar.recording ? Theme.paddingLarge
-                                             : Theme.paddingMedium
+            bottomMargin: Theme.paddingLarge
         }
         spacing: Theme.paddingSmall
 
@@ -583,10 +581,14 @@ Page {
                          voiceBar.visible ? voiceBar.height : 0,
                          sendButton.height + inputRow.buttonLift)
 
-        /// How much higher than the field's own line the buttons sit.
-        /// They are round and it is a line: level with it they read as
-        /// hanging below the text they belong to.
-        readonly property real buttonLift: Theme.paddingMedium
+        /// How much higher than the field the buttons sit.
+        ///
+        /// Nothing: a Silica field keeps room under its line for what
+        /// hangs below a letter, so a button level with the field's
+        /// bottom edge already sits a little above its underline. Lifted
+        /// by a padding on top of that, as this was first written, they
+        /// read as floating over the row rather than belonging to it.
+        readonly property real buttonLift: 0
 
         // The recording, where the field was, while there is one.
         VoiceBar {
@@ -690,17 +692,16 @@ Page {
 
     // Which kinds Postivene shows itself, and which it hands on. Handing a
     // picture or a video to the system took the reader out of the app to
-    // something that then failed to play it.
+    // something that then failed to play it; everything else is still
+    // somebody else's file to open, and a page here that could only say
+    // "cannot show this" would be worse than the handover.
     //
-    // Everything else used to go straight to the phone, which is fine
-    // for a PDF and does nothing at all for a note, a to-do list or a
-    // patch: no app claims those, the handover fails without a word, and
-    // a message somebody sent becomes a row that cannot be tapped. So
-    // the rest arrives at a page that says what the file is and offers
-    // the two things there are to do with it -- and shows it, when it is
-    // words.
-    function openAttachment(fileUrl, fileName, viewType, previewWidth,
-                            fileMime, fileBytes, fileIsText) {
+    // A page of its own for a file was tried and taken out again: the
+    // reader's own answer was that there should be no such thing, and
+    // that a page for reading belongs to a long message rather than to
+    // an attachment. What a file still needs and a tap cannot give is a
+    // copy, and that is on the row's menu.
+    function openAttachment(fileUrl, fileName, viewType, previewWidth) {
         if (viewType === "Image" || viewType === "Gif"
                 || viewType === "Sticker") {
             pageStack.push(Qt.resolvedUrl("PicturePage.qml"), {
@@ -716,14 +717,7 @@ Page {
                 fileName: fileName
             })
         } else {
-            pageStack.push(Qt.resolvedUrl("FilePage.qml"), {
-                fileUrl: fileUrl,
-                fileName: fileName,
-                fileMime: fileMime ? fileMime : "",
-                fileBytes: fileBytes > 0 ? fileBytes : 0,
-                isText: fileIsText === true,
-                markdownMode: Settings.markdownMode
-            })
+            Qt.openUrlExternally(fileUrl)
         }
     }
 

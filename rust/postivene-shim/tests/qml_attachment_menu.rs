@@ -1,9 +1,8 @@
 //! Opening a received file, and keeping it.
 //!
-//! A tap on a message opens whatever it carries, which for most files
-//! now means the page that says what the file is. The long press has
+//! A tap on a message opens whatever it carries. The long press has
 //! both in words: Open, and Save -- the copy being the thing a tap
-//! cannot ask for and the reason a file somebody sent stays theirs
+//! cannot ask for, and the reason a file somebody sent stays theirs
 //! rather than the chat's. What this pins is that both are offered on a
 //! message that carries a file, that neither is offered on one that does
 //! not, and that each says which file it means.
@@ -45,7 +44,7 @@ const PROBE_QML: &str = r"
                 file_name: 'TODO.md',
                 file_mime: 'application/octet-stream', file_bytes: 34,
                 view_type: 'File', image_width: 0, image_height: 0,
-                is_new: false, file_is_text: true, has_html: false,
+                is_new: false, has_html: false,
                 download_state: 'Done', vcard_name: '', vcard_addr: '',
                 vcard_color: '', webxdc_name: '', webxdc_document: '',
                 webxdc_summary: '', webxdc_icon: '', reactions: '',
@@ -60,7 +59,7 @@ const PROBE_QML: &str = r"
                 quote_text: '', quote_author: '', file_path: '',
                 file_name: '', file_mime: '', file_bytes: 0,
                 view_type: 'Text', image_width: 0, image_height: 0,
-                is_new: false, file_is_text: false, has_html: false,
+                is_new: false, has_html: false,
                 download_state: 'Done', vcard_name: '', vcard_addr: '',
                 vcard_color: '', webxdc_name: '', webxdc_document: '',
                 webxdc_summary: '', webxdc_icon: '', reactions: '',
@@ -69,11 +68,8 @@ const PROBE_QML: &str = r"
             list.setSource(url, { model: rows })
             if (list.status !== Loader.Ready) { return 'load-failed' }
             list.item.openRequested.connect(
-                function(fileUrl, fileName, viewType, previewWidth,
-                         fileMime, fileBytes, fileIsText) {
-                    raised += 'open:' + fileName + ':' + viewType
-                              + ':' + fileMime + ':' + fileBytes
-                              + ':' + fileIsText + ';'
+                function(fileUrl, fileName, viewType, previewWidth) {
+                    raised += 'open:' + fileName + ':' + viewType + ';'
                 })
             list.item.saveRequested.connect(function(fileUrl, viewType) {
                 raised += 'save:' + fileUrl + ':' + viewType + ';'
@@ -242,10 +238,8 @@ fn a_message_carrying_a_file_offers_to_open_it_and_to_keep_it() {
 
     assert_eq!(
         value("raised"),
-        "open:TODO.md:File:application/octet-stream:34:true;\
-         save:file:///tmp/postivene-menu/TODO.md:File;",
+        "open:TODO.md:File;save:file:///tmp/postivene-menu/TODO.md:File;",
         "the menu did not say which file it meant, or what kind it is: \
-         the page decides where a copy goes from the kind, and whether \
-         to show it from whether the shim called it text. {context}"
+         the page decides where a copy goes from the kind. {context}"
     );
 }

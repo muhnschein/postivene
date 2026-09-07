@@ -28,8 +28,7 @@ Item {
     /// `previewWidth` is how wide the picture was drawn here, so a page
     /// opening it full screen can start from the same decode.
     signal openRequested(url fileUrl, string fileName, string viewType,
-                         real previewWidth, string fileMime, real fileBytes,
-                         bool fileIsText)
+                         real previewWidth)
     /// The reader asked for the rest of a body this row is showing only
     /// part of, or asked for it to be put back. What is open is the
     /// list's to remember: a row is rebuilt every time it scrolls past.
@@ -64,8 +63,7 @@ Item {
             root.appRequested()
         } else if (attachment.openable) {
             root.openRequested(attachment.fileUrl, root.fileName, root.viewType,
-                               attachment.contentWidth, root.fileMime,
-                               root.fileBytes, root.fileIsText)
+                               attachment.contentWidth)
         } else if (root.canDownload) {
             root.downloadRequested()
         }
@@ -117,9 +115,6 @@ Item {
     property int imageHeight: 0
     /// A message the reader has not seen before; see AttachmentPreview.
     property bool isNew: false
-    /// Whether the attachment is one the app can show as words rather
-    /// than hand to the phone. The shim decides it (`full_text.rs`).
-    property bool fileIsText: false
     /// `hasHtml` upstream: the sending core cut this message, so what is
     /// in `messageText` ends in `[...]` and the rest is only behind the
     /// core. Nothing here can expand such a body -- the words are not on
@@ -167,15 +162,27 @@ Item {
     /// No cap at all. `Text.maximumLineCount` wants a number, and this is
     /// the largest one it takes.
     readonly property int everyLine: 2147483647
+    /// Whether this row is showing words at all, and has all of them to
+    /// show.
+    ///
+    /// Both offers are about a long body and nothing else. A picture or
+    /// a document with no caption has no body to fold, and a message the
+    /// core is still holding back has none of it yet -- what that row
+    /// needs is Download, which it already offers. Neither was excluded
+    /// before, and an attachment arriving in an open chat grew an Expand
+    /// and a View full message it had no use for.
+    readonly property bool hasBody: root.messageText.length > 0 && !root.heldBack
     /// Whether there is anything to open out. `truncated` goes false the
     /// moment the cap is lifted, so an opened body keeps the offer from
     /// its own state rather than from the label's.
-    readonly property bool showsExpand: root.expanded || messageLabel.truncated
+    readonly property bool showsExpand: root.hasBody
+                                        && (root.expanded || messageLabel.truncated)
     /// Whether to offer the page. Anything the bubble is not showing
     /// whole, and every message the sending core cut -- for those the
     /// rest is not on this phone at all, and opening the row out would
     /// show the same `[...]` again.
-    readonly property bool showsFull: root.hasHtml || root.showsExpand
+    readonly property bool showsFull: root.hasBody
+                                      && (root.hasHtml || root.showsExpand)
 
     // A bubble is as wide as its content, up to most of the screen. The
     // widths come off unconstrained copies of the text: measuring the real

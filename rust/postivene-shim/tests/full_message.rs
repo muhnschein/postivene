@@ -1,5 +1,4 @@
-//! The whole of a message, and the whole of a file, for the pages that
-//! show them.
+//! The whole of a message, for the page that shows it.
 //!
 //! A long message does not arrive whole: the sending core cuts the body
 //! and puts the rest in an HTML part, so the words the reader is missing
@@ -7,9 +6,8 @@
 //! against the real core in `deltachat-jsonrpc/tests/real_server.rs`;
 //! what is pinned here is what the app does with it -- that the whole
 //! text comes back as words rather than markup, that a message which was
-//! never cut costs no second call, and that a text file somebody
-//! attached can be read without asking anything of the phone -- and
-//! that the page built on all of it shows what came back.
+//! never cut costs no second call, and that the page built on it shows
+//! what came back.
 
 // Qt harness: see chat_actions.rs.
 #![allow(
@@ -33,20 +31,11 @@ const PROBE_QML: &str = r"
     Item {
         // What a message page reads.
         FullText { id: whole; account_id: 1 }
-        // What a file page reads. A second one rather than the same
-        // object twice over: a page holds one source for its whole life.
-        FullText { id: file }
-
         function read(id) { whole.message_id = id; return 'ok' }
         function text() { return whole.text }
         function styled() { return whole.styled_text }
         function busy() { return '' + whole.loading }
         function done() { return '' + whole.loaded }
-
-        function open(path) { file.file_path = path; return 'ok' }
-        function fileText() { return file.text }
-        function fileClipped() { return '' + file.clipped }
-        function fileLength() { return '' + file.text.length }
 
         // The page the reader actually sees it on.
         Loader { id: page; width: 540; height: 900 }
@@ -80,14 +69,6 @@ fn the_rest_of_a_cut_message_comes_back_as_words() {
     let temp = std::env::temp_dir().join(format!("postivene-full-message-{}", std::process::id()));
     let journal = common::fresh_journal(&temp);
     std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
-
-    // A note somebody attached, and a file past what the reader will
-    // read: the page shows the beginning of one and the whole of the
-    // other.
-    let note = temp.join("TODO.md");
-    std::fs::write(&note, "# TODO\n\n- [ ] read this on a phone\n").expect("write the note");
-    let huge = temp.join("huge.log");
-    std::fs::write(&huge, "x".repeat(2 * 1024 * 1024)).expect("write the long file");
 
     // SAFETY: single-threaded test binary; set before Qt starts.
     unsafe {
@@ -150,20 +131,6 @@ fn the_rest_of_a_cut_message_comes_back_as_words() {
 
     single_shot(Duration::from_secs(6), move || unsafe {
         record!("short", call!("text"));
-    });
-
-    let note_path = note.to_string_lossy().into_owned();
-    let huge_path = huge.to_string_lossy().into_owned();
-    single_shot(Duration::from_secs(7), move || unsafe {
-        record!("open", call!("open", QString::from(note_path.clone())));
-        record!("note", call!("fileText"));
-        record!("note-clipped", call!("fileClipped"));
-        // Read straight off the disk, so it is there in the same turn:
-        // a page that spun before showing a note somebody attached would
-        // feel slower than it is.
-        record!("open-huge", call!("open", QString::from(huge_path.clone())));
-        record!("huge-clipped", call!("fileClipped"));
-        record!("huge-length", call!("fileLength"));
     });
 
     let page = common::page_url("MessagePage.qml");
@@ -254,29 +221,6 @@ fn the_rest_of_a_cut_message_comes_back_as_words() {
         !short.is_empty() && !short.contains('<'),
         "a message that was never cut did not come back as itself: \
          {short:?}. {context}"
-    );
-
-    assert_eq!(
-        value("note"),
-        "# TODO\n\n- [ ] read this on a phone\n",
-        "an attached note did not read back as what is in it. {context}"
-    );
-    assert_eq!(
-        value("note-clipped"),
-        "false",
-        "a three-line note was reported as too long to show. {context}"
-    );
-    assert_eq!(
-        value("huge-clipped"),
-        "true",
-        "a two-megabyte file was shown as if it were all there. {context}"
-    );
-    assert_eq!(
-        value("huge-length"),
-        "1048576",
-        "the page read more of a huge file than it says it does, which \
-         is a phone laying out a megabyte of text it will not show. \
-         {context}"
     );
 
     assert_eq!(

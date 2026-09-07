@@ -338,10 +338,10 @@ removed from the store even after approval. Not an option.
    alone rather than turned back, and the reason stays on the screen
    after the banner has cleared itself.
    Keeping a copy of an attachment is the other half of `UserDirs`: save
-   a picture, a video and a document from a message and find all three
-   where the platform's own folders are -- Pictures, Videos, Downloads
-   -- and then open the document from the file manager, which is what
-   the copy is for.
+   a picture, a video and a document from a message's menu and find all
+   three where the platform's own folders are -- Pictures, Videos,
+   Downloads -- and then open the document from the file manager, which
+   is what the copy is for.
 5. Delete the cache directory while the app runs; confirm nothing breaks.
 6. Kill `deltachat-rpc-server` from a terminal while the app is open. The
    banner should say it is reconnecting and then clear itself, and messages

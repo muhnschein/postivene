@@ -116,6 +116,12 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   the app is pinned to plain text. The same rule read from the other
   end is the notice above the field while a long message is being
   written, which is where parla puts its own.
+  What the renderer emits for a line break is `<br>` and not a newline:
+  in `Text.StyledText` a newline is whitespace, so a body joined with
+  newlines is drawn as one running paragraph and the fold never sees
+  anything to open out. Both went unnoticed until a phone drew a to-do
+  list as a sentence; `qml_message_lines.rs` now measures what Qt makes
+  of each shape rather than trusting a reading of it.
 - **A file the phone cannot open is opened here.** A picture and a video
   have pages of their own; everything else used to be handed to the
   system, which for a note, a to-do list or a patch means nothing

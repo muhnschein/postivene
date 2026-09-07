@@ -10,6 +10,11 @@
 //! pressing send and not worth a dialog afterwards. parla says the same
 //! thing in the same place; the rule itself is pinned against the real
 //! core in `deltachat-jsonrpc/tests/real_server.rs`.
+//!
+//! And where the row sits: off the bottom edge rather than on it, with
+//! the two round buttons higher still than the field's own line, and
+//! beside the *last* line of a draft that has grown rather than its
+//! first.
 
 // Qt harness: see qml_conversation_open.rs.
 #![allow(
@@ -69,6 +74,19 @@ const PROBE_QML: &str = r"
         function fieldHeight() {
             var field = findIn(loader.item, 'messageField')
             return field ? '' + Math.round(field.height) : 'missing'
+        }
+        /// Where the bottom edge of something in the row is, measured
+        /// from the bottom of the page: bigger means higher up.
+        function liftOf(name) {
+            var item = findIn(loader.item, name)
+            var row = findIn(loader.item, 'inputRow')
+            if (!item || !row) { return 'missing:' + name }
+            var bottom = row.y + item.y + item.height
+            return '' + Math.round(loader.item.height - bottom)
+        }
+        function rowTopOf(name) {
+            var item = findIn(loader.item, name)
+            return item ? '' + Math.round(item.y) : 'missing:' + name
         }
     }
 ";
@@ -200,6 +218,15 @@ fn the_field_takes_more_than_a_line_and_says_when_a_message_is_too_long() {
                 QString::from("visible")
             )
         );
+        record!("field-lift", call!("liftOf", QString::from("messageField")));
+        record!("send-lift", call!("liftOf", QString::from("sendButton")));
+        record!(
+            "attach-lift",
+            call!("liftOf", QString::from("attachButton"))
+        );
+        // A button lifted off the bottom of a row shorter than it would
+        // be drawn above the row, over the bar above it.
+        record!("send-top", call!("rowTopOf", QString::from("sendButton")));
         (*engine_ptr).quit();
     });
 
@@ -263,5 +290,29 @@ fn the_field_takes_more_than_a_line_and_says_when_a_message_is_too_long() {
         value("quiet-again"),
         "false",
         "the notice stayed after the draft was shortened. {context}"
+    );
+
+    // Where the row sits. Measured as a rule rather than as pixels: what
+    // a stub is tall is nothing like what Silica is, and what matters is
+    // the order -- the screen's edge, then the field, then the buttons.
+    let field_lift = number("field-lift");
+    let send_lift = number("send-lift");
+    let attach_lift = number("attach-lift");
+    assert!(
+        field_lift > 0.0,
+        "the field sits on the bottom edge of the screen ({field_lift} \
+         above it). {context}"
+    );
+    assert!(
+        send_lift > field_lift && attach_lift > field_lift,
+        "the send and attach buttons ({send_lift}, {attach_lift} above \
+         the edge) are no higher than the field ({field_lift}): they are \
+         round and it is a line, so level with it they hang below the \
+         text they belong to. {context}"
+    );
+    assert!(
+        number("send-top") >= 0.0,
+        "the send button is drawn above the top of the row it is in, \
+         which puts it over whatever bar sits above the row. {context}"
     );
 }

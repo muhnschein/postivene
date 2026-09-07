@@ -79,7 +79,52 @@ fn convert(text: &str, styled: bool) -> String {
             last.push_str("</pre>");
         }
     }
-    lines.join("\n")
+    if styled {
+        join_styled(&lines)
+    } else {
+        lines.join("\n")
+    }
+}
+
+/// The rendered lines, joined so that each one is drawn on a line.
+///
+/// A newline is not a line break in `Text.StyledText`: it is whitespace,
+/// like a space, so a body joined with newlines is drawn as one running
+/// paragraph however it was typed. Every line break in a message went
+/// that way -- a to-do list arrived as a single sentence -- which is
+/// what `<br>` is for.
+///
+/// Except where Qt breaks the line itself. `<pre>` keeps the newlines
+/// inside it *and* starts a line of its own, and `</pre>` ends one, so a
+/// `<br>` at either edge of a code block would leave a blank line
+/// behind. Measured rather than assumed: `qml_message_lines.rs` puts
+/// each of these shapes through a `Text` and counts the lines it comes
+/// out as.
+fn join_styled(lines: &[String]) -> String {
+    let mut out = String::new();
+    let mut in_pre = false;
+    for (index, line) in lines.iter().enumerate() {
+        if line.starts_with("<pre>") {
+            in_pre = true;
+        }
+        out.push_str(line);
+        let closes = line.ends_with("</pre>");
+        if closes {
+            in_pre = false;
+        }
+        let Some(next) = lines.get(index + 1) else {
+            continue;
+        };
+        if closes || next.starts_with("<pre>") {
+            // The tag is the break.
+        } else if in_pre {
+            // Inside a block, where a newline is a newline.
+            out.push('\n');
+        } else {
+            out.push_str("<br>");
+        }
+    }
+    out
 }
 
 /// One line outside a code block: a heading, or ordinary text.
@@ -296,16 +341,37 @@ mod tests {
         );
         assert_eq!(render("__bold__ _it_"), "<b>bold</b> <i>it</i>");
         assert_eq!(render("say `a < b` here"), "say <tt>a &lt; b</tt> here");
-        assert_eq!(render("# Title\nbody"), "<b>Title</b>\nbody");
-        assert_eq!(render("```\nx = 1\n```\nafter"), "<pre>x = 1</pre>\nafter");
+        // A line break is a `<br>`, not a newline: see `join_styled`.
+        assert_eq!(render("# Title\nbody"), "<b>Title</b><br>body");
+        // And not at the edges of a code block, whose own tags break the
+        // line.
+        assert_eq!(render("```\nx = 1\n```\nafter"), "<pre>x = 1</pre>after");
         assert_eq!(
             render("before\n```rust\nlet x;\n```"),
-            "before\n<pre>let x;</pre>"
+            "before<pre>let x;</pre>"
         );
         assert_eq!(render("```\n```\nx"), "x");
         assert_eq!(render("```\nopen"), "<pre>open</pre>");
         // Nested: the inner markers still count.
         assert_eq!(render("**bold *and* more**"), "<b>bold <i>and</i> more</b>");
+    }
+
+    #[test]
+    fn every_line_of_a_message_is_drawn_on_a_line_of_its_own() {
+        // The bug this is for: a newline is whitespace in
+        // `Text.StyledText`, so a body joined with newlines was drawn as
+        // one running paragraph -- a to-do list arrived as a sentence.
+        assert_eq!(render("one\ntwo\nthree"), "one<br>two<br>three");
+        // A blank line is a blank line: two breaks, not a collapsed one.
+        assert_eq!(render("one\n\nthree"), "one<br><br>three");
+        // Inside a code block the newlines stay, because `<pre>` keeps
+        // them; around it there is no `<br>`, because its tags break the
+        // line themselves.
+        assert_eq!(render("a\n```\nx\ny\n```\nb"), "a<pre>x\ny</pre>b");
+        // Trailing and leading breaks are breaks too.
+        assert_eq!(render("\nx\n"), "<br>x<br>");
+        // Stripping is plain text, where a newline is a newline.
+        assert_eq!(strip("one\ntwo"), "one\ntwo");
     }
 
     #[test]

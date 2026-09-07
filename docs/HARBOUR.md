@@ -315,9 +315,9 @@ removed from the store even after approval. Not an option.
    hold it and stops at a third of the screen rather than eating the
    chat, that the return key puts in a line break instead of sending,
    and that the notice appears once the draft passes about forty lines.
-   Send it, and check at the other end that the bubble folds it, that
-   Expand opens it in place, and that View full message shows the whole
-   of it -- including for a message another client sent long enough that
+   Send it, and check at the other end that its line breaks are line
+   breaks, that the bubble folds it, that Expand opens it in place, and
+   that View full message shows the whole of it -- including for a message another client sent long enough that
    the core had to cut it, which is the case the page cannot be tested
    for anywhere else.
    Sharing *to* the app is a device path of its own, and the sandbox is

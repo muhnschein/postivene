@@ -557,6 +557,7 @@ Page {
 
     Row {
         id: inputRow
+        objectName: "inputRow"
         anchors {
             left: parent.left
             right: parent.right
@@ -564,11 +565,28 @@ Page {
             // same on this side the send button sits nearer the edge.
             rightMargin: Theme.horizontalPageMargin
             bottom: parent.bottom
-            // The field carries room below its text; the recording strip
-            // does not, and sat on the screen's edge without this.
-            bottomMargin: voiceBar.recording ? Theme.paddingLarge : 0
+            // Off the edge of the screen. The field used to sit on it:
+            // a TextField carries room under its text and a TextArea
+            // does not, so what was a comfortable gap became none. The
+            // recording strip carries less still.
+            bottomMargin: voiceBar.recording ? Theme.paddingLarge
+                                             : Theme.paddingMedium
         }
         spacing: Theme.paddingSmall
+
+        // Tall enough for the field, and never too short for the buttons
+        // to sit in with the lift below: a Row sizes itself to its
+        // tallest child and takes no account of what a child's anchors
+        // ask for, so a button lifted off the bottom of a short row
+        // would be drawn above the row and over the bar above it.
+        height: Math.max(textField.visible ? textField.height : 0,
+                         voiceBar.visible ? voiceBar.height : 0,
+                         sendButton.height + inputRow.buttonLift)
+
+        /// How much higher than the field's own line the buttons sit.
+        /// They are round and it is a line: level with it they read as
+        /// hanging below the text they belong to.
+        readonly property real buttonLift: Theme.paddingMedium
 
         // The recording, where the field was, while there is one.
         VoiceBar {
@@ -599,6 +617,11 @@ Page {
             objectName: "messageField"
             visible: !voiceBar.recording
             width: parent.width - attachButton.width - sendButton.width
+            // Against the bottom of the row, as the buttons are: a Row
+            // lays its children out from the top, so a field left there
+            // would rise with the row whenever the row grew for the
+            // buttons' lift -- and the lift would come to nothing.
+            anchors.bottom: parent.bottom
             //: Message field placeholder. Also the prompt for the caption
             //: on a message that is carrying a file.
             placeholderText: page.attachmentPath.length > 0
@@ -618,10 +641,16 @@ Page {
             onActiveFocusChanged: if (activeFocus) attachButton.close()
         }
 
+        // Both buttons sit against the bottom of the row rather than the
+        // top of it, so that a draft grown to several lines leaves them
+        // beside its last line -- where the text being written is --
+        // rather than beside its first.
         AttachButton {
             id: attachButton
             objectName: "attachButton"
             visible: !voiceBar.recording
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: inputRow.buttonLift
             voiceAvailable: voiceBar.available
             onCameraRequested: page.pickWith("CapturePage.qml")
             onLibraryRequested: page.pickWith("AttachLibraryPage.qml")
@@ -635,6 +664,8 @@ Page {
         IconButton {
             id: sendButton
             objectName: "sendButton"
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: inputRow.buttonLift
             // Hidden rather than greyed while a send is in flight: the
             // indicator takes its place, so the row keeps its shape.
             icon.source: messages.sending ? "" : "image://theme/icon-m-send"

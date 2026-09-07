@@ -806,6 +806,73 @@ async fn offline_round_trip_against_real_core() {
         "the quote says nothing about its author: {reply:?}"
     );
 
+    // A long message is not sent whole: the core cuts the body and puts
+    // the rest in an HTML part, and everything the app does about that
+    // -- the notice while it is being written, the "view full message"
+    // on the row, the page that shows it -- rests on this being true and
+    // on `hasHtml` being how it is announced. The rule the notice uses
+    // is 38 lines of up to 100 characters (`truncation.rs`), so fifty
+    // lines is well past it.
+    let mut long_body = String::new();
+    for number in 1..=50 {
+        use std::fmt::Write as _;
+        let _ = writeln!(long_body, "line {number} of a message nobody would call short");
+    }
+    let (fourth, _): (u32, Value) = client
+        .call(
+            "misc_send_msg",
+            (
+                sender_id,
+                saved,
+                Some(long_body.clone()),
+                Option::<String>::None,
+                Option::<String>::None,
+                Option::<(f64, f64)>::None,
+                Option::<u32>::None,
+            ),
+        )
+        .await
+        .expect("misc_send_msg with a long body");
+    let long_message: Value = client
+        .call("get_message", (sender_id, fourth))
+        .await
+        .expect("get_message");
+    assert_eq!(
+        long_message.get("hasHtml").and_then(Value::as_bool),
+        Some(true),
+        "the core did not mark a fifty-line message as one it cut, so          nothing in the app can tell that the reader is being shown only          part of it: {long_message:?}"
+    );
+    let shown = long_message
+        .get("text")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    assert!(
+        shown.len() < long_body.len(),
+        "the core kept the whole body in `text` after marking the          message as cut, which would make every offer to show the rest          of it a no-op: {shown:?}"
+    );
+    let whole: Option<String> = client
+        .call("get_message_html", (sender_id, fourth))
+        .await
+        .expect("get_message_html");
+    let whole = whole.unwrap_or_default();
+    assert!(
+        whole.contains("line 50"),
+        "the message's HTML part does not hold the end of the body, so          there is nowhere left to read it from: {whole:?}"
+    );
+    // And the other side of it: a short message is whole where it
+    // stands, and asking for an HTML part it has not got must not be an
+    // error -- the reader page asks only when `hasHtml` says to, and
+    // this is what that flag is worth.
+    let short_message: Value = client
+        .call("get_message", (sender_id, first))
+        .await
+        .expect("get_message for a short one");
+    assert_eq!(
+        short_message.get("hasHtml").and_then(Value::as_bool),
+        Some(false),
+        "a three-word message was marked as one the core had to cut:          {short_message:?}"
+    );
+
     // The core decides the view type from the file, and the conversation
     // renders a picture inline on the strength of that: nothing in the app
     // classifies an attachment, and nothing should start.

@@ -103,6 +103,28 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   the screen. The banner clears itself after a few seconds, which is
   right for something that happened and wrong for a view that never drew
   anything.
+- **A bubble holds a remark; anything longer gets a page.** A message
+  over a dozen lines is folded in the conversation, with Expand and View
+  full message under it: drawn whole, somebody's to-do document fills
+  the screen, pushes the chat out of it and leaves a row nobody can
+  scroll past. The fold is a cap on the label's lines rather than a cut
+  in the text, so nothing has to slice a rendering in half and leave a
+  tag open. And past a length the core does not carry a message whole at
+  all: it cuts the body and puts the rest in an HTML part, so the whole
+  of such a message is only behind `get_message_html` -- read as words,
+  never rendered as markup (`html.rs`), for the reason every label in
+  the app is pinned to plain text. The same rule read from the other
+  end is the notice above the field while a long message is being
+  written, which is where parla puts its own.
+- **A file the phone cannot open is opened here.** A picture and a video
+  have pages of their own; everything else used to be handed to the
+  system, which for a note, a to-do list or a patch means nothing
+  happens at all -- no installed app claims those and the handover fails
+  without a word. Those go to a page that names the file, shows it when
+  it is words, and offers the two things there are to do with it: open
+  it elsewhere, or keep a copy in Downloads. Whether a file is words is
+  decided once, in the shim, from what the core says it is
+  (`full_text.rs`), so the row, its menu and the page cannot disagree.
 - **What is made on the phone is made by the platform.** A picture or a
   video comes from QML's `Camera`; a voice message from `QAudioRecorder`,
   which QML on Qt 5.6 does not offer and the shim reaches through the
@@ -135,8 +157,8 @@ In order of what matters:
    executable, which Harbour permits nowhere.
 2. **Blocking** outside a request; a media grid on the group and contact
    pages; add-as-second-device and restore-from-backup.
-3. **Message polish**: avatars on bubbles, an unread divider, and a way
-   to react with an emoji the quick row does not offer.
+3. **Message polish**: avatars on bubbles, and a way to react with an
+   emoji the quick row does not offer.
 4. **The rest of the webxdc API.** Apps are sent, shown and run
    (`webxdc.rs`, `WebxdcPage.qml`), and status updates go both ways. What
    is not offered is the newer calls -- `sendToChat`, `importFiles`,

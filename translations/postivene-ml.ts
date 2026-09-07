@@ -274,6 +274,14 @@
         <extracomment>The line in a conversation above the first message that arrived while the reader was away.</extracomment>
         <translation>പുതിയ സന്ദേശങ്ങൾ</translation>
     </message>
+    <message>
+        <source>Open</source>
+        <translation>തുറക്കുക</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>സൂക്ഷിക്കുക</translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>
@@ -301,6 +309,23 @@
     <message>
         <source>Message</source>
         <translation>സന്ദേശം</translation>
+    </message>
+    <message>
+        <source>Long message: the other end sees a preview and taps to read the rest</source>
+        <extracomment>Shown above the message field while what is being written is long enough that the other end will receive a shortened version with the rest behind a tap.</extracomment>
+        <translation>നീണ്ട സന്ദേശം: മറുവശത്ത് ഒരു തുണ്ട് മാത്രം കാണും, ബാക്കി വായിക്കാൻ തൊടണം</translation>
+    </message>
+    <message>
+        <source>Saved to Pictures</source>
+        <translation>ചിത്രങ്ങളിൽ സംരക്ഷിച്ചു</translation>
+    </message>
+    <message>
+        <source>Saved to Videos</source>
+        <translation>വീഡിയോകളിൽ സംരക്ഷിച്ചു</translation>
+    </message>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>ഡൗൺലോഡുകളിൽ സൂക്ഷിച്ചു</translation>
     </message>
 </context>
 <context>
@@ -375,6 +400,37 @@
     <message>
         <source>After %1 seconds</source>
         <translation>%1 സെക്കൻഡിനു ശേഷം</translation>
+    </message>
+</context>
+<context>
+    <name>FilePage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>ഡൗൺലോഡുകളിൽ സൂക്ഷിച്ചു</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>മറ്റൊരു ആപ്പിൽ തുറക്കുക</translation>
+    </message>
+    <message>
+        <source>Save to Downloads</source>
+        <translation>ഡൗൺലോഡുകളിൽ സൂക്ഷിക്കുക</translation>
+    </message>
+    <message>
+        <source>File</source>
+        <extracomment>Heading of the page showing one received file.</extracomment>
+        <translation>ഫയൽ</translation>
+    </message>
+    <message>
+        <source>Only the beginning is shown. Open the file elsewhere to read all of it.</source>
+        <extracomment>Shown above a text file too long to show whole.</extracomment>
+        <translation>തുടക്കം മാത്രമേ കാണിക്കുന്നുള്ളൂ. മുഴുവൻ വായിക്കാൻ ഫയൽ മറ്റെവിടെയെങ്കിലും തുറക്കുക.</translation>
+    </message>
+    <message>
+        <source>Postivene cannot show this kind of file. Pull down to open it in another app or save a copy.</source>
+        <extracomment>Shown for an attachment this app cannot display, above the two things that can be done with it.</extracomment>
+        <translation>ഈ തരം ഫയൽ Postivene-ന് കാണിക്കാനാവില്ല. മറ്റൊരു ആപ്പിൽ തുറക്കാനോ പകർപ്പ് സൂക്ഷിക്കാനോ താഴേക്ക് വലിക്കുക.</translation>
     </message>
 </context>
 <context>
@@ -489,6 +545,41 @@
         <source>⬇ Download</source>
         <extracomment>Fetches a message the auto-download limit held back.</extracomment>
         <translation>⬇ ഡൗൺലോഡ് ചെയ്യുക</translation>
+    </message>
+    <message>
+        <source>Collapse</source>
+        <extracomment>Opens out a long message inside the conversation, or folds it back.</extracomment>
+        <translation>ചുരുക്കുക</translation>
+    </message>
+    <message>
+        <source>Expand</source>
+        <translation>വികസിപ്പിക്കുക</translation>
+    </message>
+    <message>
+        <source>View full message</source>
+        <extracomment>Opens the whole message on a page of its own.</extracomment>
+        <translation>മുഴുവൻ സന്ദേശം കാണുക</translation>
+    </message>
+</context>
+<context>
+    <name>MessagePage</name>
+    <message>
+        <source>Copy</source>
+        <translation>പകർത്തുക</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>പകർത്തി</translation>
+    </message>
+    <message>
+        <source>Message</source>
+        <extracomment>Heading of the page showing one message on its own.</extracomment>
+        <translation>സന്ദേശം</translation>
+    </message>
+    <message>
+        <source>This message has no text</source>
+        <extracomment>Shown on the full-message page for a message that turns out to have no words in it at all.</extracomment>
+        <translation>ഈ സന്ദേശത്തിൽ വാചകമില്ല</translation>
     </message>
 </context>
 <context>

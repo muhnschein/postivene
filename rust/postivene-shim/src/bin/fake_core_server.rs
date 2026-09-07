@@ -131,10 +131,16 @@ impl State {
                 .ok()
                 .and_then(|count| count.parse::<u32>().ok())
                 .filter(|count| *count > 2);
-            self.chats.insert(
-                1,
-                long.map_or_else(|| vec![1, 2], |count| (1..=count).collect()),
-            );
+            let mut first = long.map_or_else(|| vec![1, 2], |count| (1..=count).collect());
+            // The two rows a reader needs a page of their own for: a
+            // message the sending core cut, and an attached note the
+            // phone has nothing to open. Behind a variable, so every
+            // test that counts what is in this chat still counts the
+            // same.
+            if std::env::var_os("POSTIVENE_FAKE_LONG_MESSAGES").is_some() {
+                first.extend([11, 12]);
+            }
+            self.chats.insert(1, first);
             self.chats.insert(2, vec![10]);
             self.chat_order = vec![1, 2];
             // Chat 3 is archived, and appears in no ordinary listing.
@@ -468,7 +474,44 @@ fn message_object(msg: u64) -> Value {
         message["dimensionsWidth"] = json!(640);
         message["dimensionsHeight"] = json!(480);
     }
+    // A message the sending core had to cut: what is here ends in the
+    // core's own marker, and the whole of it is only behind
+    // `get_message_html`.
+    if msg == 11 {
+        message["text"] = json!(format!("{LONG_MESSAGE_HEAD}\n[...]"));
+        message["hasHtml"] = json!(true);
+    }
+    // A note somebody attached, which the phone has nothing to open.
+    if msg == 12 {
+        message["viewType"] = json!("File");
+        message["file"] = json!(text_file_path().to_string_lossy().into_owned());
+        message["fileName"] = json!("TODO.md");
+        message["fileMime"] = json!("application/octet-stream");
+        message["fileBytes"] = json!(TEXT_FILE_BODY.len());
+        message["text"] = json!("");
+    }
     message
+}
+
+/// The beginning of the long message, which is all that fits in `text`.
+const LONG_MESSAGE_HEAD: &str = "# Groceries";
+
+/// The whole of it, as the core would give it out: an HTML part.
+const LONG_MESSAGE_HTML: &str =
+    "<html><head><title>ignored</title></head><body><h1>Groceries</h1>\
+     <ul><li>milk</li><li>bread</li></ul><p>and a &amp; sign</p></body></html>";
+
+/// What the attached note holds.
+const TEXT_FILE_BODY: &str = "# TODO\n\n- [ ] read this on a phone\n";
+
+/// Where the note is written. Made on the first request for it, so a test
+/// needs no fixture on disk.
+fn text_file_path() -> std::path::PathBuf {
+    let path = std::env::temp_dir().join("postivene-fake-note.md");
+    if !path.exists() {
+        let _ = std::fs::write(&path, TEXT_FILE_BODY);
+    }
+    path
 }
 
 /// True for the inputs that stand in for "the server cannot be reached".
@@ -847,6 +890,24 @@ async fn serve() {
                 ),
                 "get_account_file_size" => ok(&id, &json!(123_456)),
                 // The rest of a message held back by the download limit.
+                // One message, as `get_messages` gives them out. What
+                // the reader page asks for before it asks whether there
+                // is more of it.
+                "get_message" => {
+                    let msg = positional(1).as_u64().unwrap_or_default();
+                    ok(&id, &message_object(msg))
+                }
+                // The whole of a message the sending core cut. Only the
+                // one seeded as cut has one; every other message is
+                // already whole, and the core answers null for those.
+                "get_message_html" => {
+                    let msg = positional(1).as_u64().unwrap_or_default();
+                    if msg == 11 {
+                        ok(&id, &json!(LONG_MESSAGE_HTML))
+                    } else {
+                        ok(&id, &Value::Null)
+                    }
+                }
                 // The real core fetches it and announces the message
                 // changed; here the fetch is instant.
                 "download_full_message" => {

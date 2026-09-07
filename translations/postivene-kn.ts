@@ -274,6 +274,14 @@
         <extracomment>The line in a conversation above the first message that arrived while the reader was away.</extracomment>
         <translation>ಹೊಸ ಸಂದೇಶಗಳು</translation>
     </message>
+    <message>
+        <source>Open</source>
+        <translation>ತೆರೆಯಿರಿ</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>ಉಳಿಸಿ</translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>
@@ -301,6 +309,23 @@
     <message>
         <source>Message</source>
         <translation>ಸಂದೇಶ</translation>
+    </message>
+    <message>
+        <source>Long message: the other end sees a preview and taps to read the rest</source>
+        <extracomment>Shown above the message field while what is being written is long enough that the other end will receive a shortened version with the rest behind a tap.</extracomment>
+        <translation>ಉದ್ದ ಸಂದೇಶ: ಇನ್ನೊಂದು ಕಡೆ ಪೂರ್ವನೋಟ ಕಾಣಿಸುತ್ತದೆ, ಉಳಿದದ್ದನ್ನು ಓದಲು ತಟ್ಟಬೇಕು</translation>
+    </message>
+    <message>
+        <source>Saved to Pictures</source>
+        <translation>ಚಿತ್ರಗಳಲ್ಲಿ ಉಳಿಸಲಾಗಿದೆ</translation>
+    </message>
+    <message>
+        <source>Saved to Videos</source>
+        <translation>ವೀಡಿಯೊಗಳಲ್ಲಿ ಉಳಿಸಲಾಗಿದೆ</translation>
+    </message>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>ಡೌನ್‌ಲೋಡ್‌ಗಳಲ್ಲಿ ಉಳಿಸಲಾಗಿದೆ</translation>
     </message>
 </context>
 <context>
@@ -375,6 +400,37 @@
     <message>
         <source>After %1 seconds</source>
         <translation>%1 ಸೆಕೆಂಡುಗಳ ನಂತರ</translation>
+    </message>
+</context>
+<context>
+    <name>FilePage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>ಡೌನ್‌ಲೋಡ್‌ಗಳಲ್ಲಿ ಉಳಿಸಲಾಗಿದೆ</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>ಬೇರೆ ಆ್ಯಪ್‌ನಲ್ಲಿ ತೆರೆಯಿರಿ</translation>
+    </message>
+    <message>
+        <source>Save to Downloads</source>
+        <translation>ಡೌನ್‌ಲೋಡ್‌ಗಳಲ್ಲಿ ಉಳಿಸಿ</translation>
+    </message>
+    <message>
+        <source>File</source>
+        <extracomment>Heading of the page showing one received file.</extracomment>
+        <translation>ಕಡತ</translation>
+    </message>
+    <message>
+        <source>Only the beginning is shown. Open the file elsewhere to read all of it.</source>
+        <extracomment>Shown above a text file too long to show whole.</extracomment>
+        <translation>ಆರಂಭ ಮಾತ್ರ ತೋರಿಸಲಾಗಿದೆ. ಪೂರ್ತಿ ಓದಲು ಕಡತವನ್ನು ಬೇರೆಡೆ ತೆರೆಯಿರಿ.</translation>
+    </message>
+    <message>
+        <source>Postivene cannot show this kind of file. Pull down to open it in another app or save a copy.</source>
+        <extracomment>Shown for an attachment this app cannot display, above the two things that can be done with it.</extracomment>
+        <translation>Postivene ಈ ಬಗೆಯ ಕಡತವನ್ನು ತೋರಿಸಲಾಗದು. ಬೇರೆ ಅನ್ವಯದಲ್ಲಿ ತೆರೆಯಲು ಅಥವಾ ಪ್ರತಿ ಉಳಿಸಲು ಕೆಳಗೆ ಎಳೆಯಿರಿ.</translation>
     </message>
 </context>
 <context>
@@ -489,6 +545,41 @@
         <source>⬇ Download</source>
         <extracomment>Fetches a message the auto-download limit held back.</extracomment>
         <translation>⬇ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ</translation>
+    </message>
+    <message>
+        <source>Collapse</source>
+        <extracomment>Opens out a long message inside the conversation, or folds it back.</extracomment>
+        <translation>ಮಡಚಿ</translation>
+    </message>
+    <message>
+        <source>Expand</source>
+        <translation>ವಿಸ್ತರಿಸಿ</translation>
+    </message>
+    <message>
+        <source>View full message</source>
+        <extracomment>Opens the whole message on a page of its own.</extracomment>
+        <translation>ಪೂರ್ಣ ಸಂದೇಶ ನೋಡಿ</translation>
+    </message>
+</context>
+<context>
+    <name>MessagePage</name>
+    <message>
+        <source>Copy</source>
+        <translation>ನಕಲಿಸಿ</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>ನಕಲಿಸಲಾಗಿದೆ</translation>
+    </message>
+    <message>
+        <source>Message</source>
+        <extracomment>Heading of the page showing one message on its own.</extracomment>
+        <translation>ಸಂದೇಶ</translation>
+    </message>
+    <message>
+        <source>This message has no text</source>
+        <extracomment>Shown on the full-message page for a message that turns out to have no words in it at all.</extracomment>
+        <translation>ಈ ಸಂದೇಶದಲ್ಲಿ ಪಠ್ಯವಿಲ್ಲ</translation>
     </message>
 </context>
 <context>

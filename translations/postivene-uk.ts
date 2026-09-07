@@ -274,6 +274,14 @@
         <extracomment>The line in a conversation above the first message that arrived while the reader was away.</extracomment>
         <translation>Нові повідомлення</translation>
     </message>
+    <message>
+        <source>Open</source>
+        <translation>Відкрити</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Зберегти</translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>
@@ -301,6 +309,23 @@
     <message>
         <source>Message</source>
         <translation>Повідомлення</translation>
+    </message>
+    <message>
+        <source>Long message: the other end sees a preview and taps to read the rest</source>
+        <extracomment>Shown above the message field while what is being written is long enough that the other end will receive a shortened version with the rest behind a tap.</extracomment>
+        <translation>Довге повідомлення: на іншому боці видно уривок, а решту відкривають дотиком</translation>
+    </message>
+    <message>
+        <source>Saved to Pictures</source>
+        <translation>Збережено в Зображення</translation>
+    </message>
+    <message>
+        <source>Saved to Videos</source>
+        <translation>Збережено у Відео</translation>
+    </message>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>Збережено в «Завантаження»</translation>
     </message>
 </context>
 <context>
@@ -375,6 +400,37 @@
     <message>
         <source>After %1 seconds</source>
         <translation>Через %1 сек.</translation>
+    </message>
+</context>
+<context>
+    <name>FilePage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>Збережено в «Завантаження»</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>Відкрити в іншому застосунку</translation>
+    </message>
+    <message>
+        <source>Save to Downloads</source>
+        <translation>Зберегти в «Завантаження»</translation>
+    </message>
+    <message>
+        <source>File</source>
+        <extracomment>Heading of the page showing one received file.</extracomment>
+        <translation>Файл</translation>
+    </message>
+    <message>
+        <source>Only the beginning is shown. Open the file elsewhere to read all of it.</source>
+        <extracomment>Shown above a text file too long to show whole.</extracomment>
+        <translation>Показано лише початок. Щоб прочитати все, відкрийте файл деінде.</translation>
+    </message>
+    <message>
+        <source>Postivene cannot show this kind of file. Pull down to open it in another app or save a copy.</source>
+        <extracomment>Shown for an attachment this app cannot display, above the two things that can be done with it.</extracomment>
+        <translation>Postivene не вміє показувати такі файли. Потягніть униз, щоб відкрити файл в іншій програмі або зберегти копію.</translation>
     </message>
 </context>
 <context>
@@ -491,6 +547,41 @@
         <source>⬇ Download</source>
         <extracomment>Fetches a message the auto-download limit held back.</extracomment>
         <translation>⬇ Завантажити</translation>
+    </message>
+    <message>
+        <source>Collapse</source>
+        <extracomment>Opens out a long message inside the conversation, or folds it back.</extracomment>
+        <translation>Згорнути</translation>
+    </message>
+    <message>
+        <source>Expand</source>
+        <translation>Розгорнути</translation>
+    </message>
+    <message>
+        <source>View full message</source>
+        <extracomment>Opens the whole message on a page of its own.</extracomment>
+        <translation>Показати все повідомлення</translation>
+    </message>
+</context>
+<context>
+    <name>MessagePage</name>
+    <message>
+        <source>Copy</source>
+        <translation>Копіювати</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>Скопійовано</translation>
+    </message>
+    <message>
+        <source>Message</source>
+        <extracomment>Heading of the page showing one message on its own.</extracomment>
+        <translation>Повідомлення</translation>
+    </message>
+    <message>
+        <source>This message has no text</source>
+        <extracomment>Shown on the full-message page for a message that turns out to have no words in it at all.</extracomment>
+        <translation>У цьому повідомленні немає тексту</translation>
     </message>
 </context>
 <context>

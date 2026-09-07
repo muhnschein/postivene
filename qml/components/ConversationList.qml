@@ -94,7 +94,16 @@ SilicaListView {
     /// The reader tapped an attachment. What opening it means -- a page
     /// here, or handing it to another app -- is the page's decision.
     signal openRequested(url fileUrl, string fileName, string viewType,
-                         real previewWidth)
+                         real previewWidth, string fileMime, real fileBytes,
+                         bool fileIsText)
+    /// The reader asked to keep a copy of an attachment somewhere they
+    /// can find it again. Where that is depends on what it is, which is
+    /// the page's to decide.
+    signal saveRequested(url fileUrl, string viewType)
+    /// The reader asked to read one message on a page of its own. The
+    /// author travels with it: the page names who wrote what it shows,
+    /// and this row may be gone by the time it is built.
+    signal fullTextRequested(int messageId, string author)
     /// The reader asked for the rest of a message the download limit
     /// held back.
     signal downloadRequested(int messageId)
@@ -105,6 +114,34 @@ SilicaListView {
     /// chip already on it. Whether that puts it on or takes it off is the
     /// model's to decide, from what it knows the reader already sent.
     signal reactionRequested(int messageId, string emoji)
+
+    /// Which messages the reader has opened out, as a set of ids.
+    ///
+    /// Here rather than in the row: a delegate is destroyed as it
+    /// scrolls out of the view and built again when it comes back, so a
+    /// row cannot remember anything about itself. Replaced rather than
+    /// changed in place -- a binding does not re-run when the contents
+    /// of an object it read change, only when the property is assigned.
+    property var expandedIds: ({})
+
+    /// Whether this message is one of them.
+    function isExpanded(messageId) {
+        return root.expandedIds[messageId] === true
+    }
+
+    /// Open one out, or fold it back.
+    function toggleExpanded(messageId) {
+        var next = {}
+        for (var key in root.expandedIds) {
+            next[key] = root.expandedIds[key]
+        }
+        if (next[messageId]) {
+            delete next[messageId]
+        } else {
+            next[messageId] = true
+        }
+        root.expandedIds = next
+    }
 
     /// The emoji the menu offers first, as the reference clients offer
     /// them. Anything else is a chip someone else's reaction has put on
@@ -509,6 +546,27 @@ SilicaListView {
                 onClicked: root.copyRequested(model.text)
             }
             MenuItem {
+                objectName: "openItem"
+                // Only a message that carries one; a webxdc app is run
+                // rather than opened, and has its own tap.
+                visible: model.file_path.length > 0
+                         && model.view_type !== "Webxdc"
+                text: qsTr("Open")
+                onClicked: root.openRequested(
+                               "file://" + model.file_path, model.file_name,
+                               model.view_type, 0, model.file_mime,
+                               model.file_bytes, model.file_is_text)
+            }
+            MenuItem {
+                objectName: "saveItem"
+                // The reader's own copy, outside the app: what makes a
+                // file somebody sent theirs rather than the chat's.
+                visible: model.file_path.length > 0
+                text: qsTr("Save")
+                onClicked: root.saveRequested("file://" + model.file_path,
+                                              model.view_type)
+            }
+            MenuItem {
                 objectName: "forwardItem"
                 // A core notice is not the reader's to pass on.
                 visible: !model.is_info
@@ -697,6 +755,9 @@ SilicaListView {
             imageWidth: model.image_width
             imageHeight: model.image_height
             isNew: model.is_new
+            fileIsText: model.file_is_text
+            hasHtml: model.has_html
+            expanded: root.isExpanded(model.message_id)
             vcardName: model.vcard_name
             vcardAddr: model.vcard_addr
             vcardColor: model.vcard_color
@@ -706,7 +767,11 @@ SilicaListView {
             webxdcIcon: model.webxdc_icon
             reactions: model.reactions
             onOpenRequested: root.openRequested(fileUrl, fileName, viewType,
-                                                previewWidth)
+                                                previewWidth, fileMime,
+                                                fileBytes, fileIsText)
+            onExpandRequested: root.toggleExpanded(model.message_id)
+            onFullTextRequested: root.fullTextRequested(model.message_id,
+                                                       model.sender_name)
             onAppRequested: root.appRequested(model.message_id)
             onDownloadRequested: root.downloadRequested(model.message_id)
             onReactionRequested: root.reactionRequested(model.message_id, emoji)

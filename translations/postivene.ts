@@ -274,6 +274,14 @@
         <extracomment>The line in a conversation above the first message that arrived while the reader was away.</extracomment>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Open</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>
@@ -300,6 +308,23 @@
     <message>
         <source>Caption</source>
         <extracomment>Message field placeholder. Also the prompt for the caption on a message that is carrying a file.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Long message: the other end sees a preview and taps to read the rest</source>
+        <extracomment>Shown above the message field while what is being written is long enough that the other end will receive a shortened version with the rest behind a tap.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Saved to Pictures</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Saved to Videos</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Saved to Downloads</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -374,6 +399,37 @@
     </message>
     <message>
         <source>After %1 seconds</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>FilePage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Save to Downloads</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File</source>
+        <extracomment>Heading of the page showing one received file.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Only the beginning is shown. Open the file elsewhere to read all of it.</source>
+        <extracomment>Shown above a text file too long to show whole.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Postivene cannot show this kind of file. Pull down to open it in another app or save a copy.</source>
+        <extracomment>Shown for an attachment this app cannot display, above the two things that can be done with it.</extracomment>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -486,6 +542,41 @@
     <message>
         <source>⬇ Download</source>
         <extracomment>Fetches a message the auto-download limit held back.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Collapse</source>
+        <extracomment>Opens out a long message inside the conversation, or folds it back.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Expand</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>View full message</source>
+        <extracomment>Opens the whole message on a page of its own.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>MessagePage</name>
+    <message>
+        <source>Copy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Message</source>
+        <extracomment>Heading of the page showing one message on its own.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This message has no text</source>
+        <extracomment>Shown on the full-message page for a message that turns out to have no words in it at all.</extracomment>
         <translation type="unfinished"></translation>
     </message>
 </context>

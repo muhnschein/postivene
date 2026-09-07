@@ -274,6 +274,14 @@
         <extracomment>The line in a conversation above the first message that arrived while the reader was away.</extracomment>
         <translation>Nova sporočila</translation>
     </message>
+    <message>
+        <source>Open</source>
+        <translation>Odpri</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Shrani</translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>
@@ -301,6 +309,23 @@
     <message>
         <source>Message</source>
         <translation>Sporočilo</translation>
+    </message>
+    <message>
+        <source>Long message: the other end sees a preview and taps to read the rest</source>
+        <extracomment>Shown above the message field while what is being written is long enough that the other end will receive a shortened version with the rest behind a tap.</extracomment>
+        <translation>Dolgo sporočilo: na drugi strani se vidi predogled, ostalo se odpre z dotikom</translation>
+    </message>
+    <message>
+        <source>Saved to Pictures</source>
+        <translation>Shranjeno v Slike</translation>
+    </message>
+    <message>
+        <source>Saved to Videos</source>
+        <translation>Shranjeno v Videoposnetke</translation>
+    </message>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>Shranjeno v Prenose</translation>
     </message>
 </context>
 <context>
@@ -375,6 +400,37 @@
     <message>
         <source>After %1 seconds</source>
         <translation>Po %1 sekundah</translation>
+    </message>
+</context>
+<context>
+    <name>FilePage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>Shranjeno v Prenose</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>Odpri v drugi aplikaciji</translation>
+    </message>
+    <message>
+        <source>Save to Downloads</source>
+        <translation>Shrani v Prenose</translation>
+    </message>
+    <message>
+        <source>File</source>
+        <extracomment>Heading of the page showing one received file.</extracomment>
+        <translation>Datoteka</translation>
+    </message>
+    <message>
+        <source>Only the beginning is shown. Open the file elsewhere to read all of it.</source>
+        <extracomment>Shown above a text file too long to show whole.</extracomment>
+        <translation>Prikazan je samo začetek. Za branje celotne datoteke jo odprite drugje.</translation>
+    </message>
+    <message>
+        <source>Postivene cannot show this kind of file. Pull down to open it in another app or save a copy.</source>
+        <extracomment>Shown for an attachment this app cannot display, above the two things that can be done with it.</extracomment>
+        <translation>Postivene te vrste datoteke ne zna prikazati. Povlecite navzdol, da jo odprete v drugem programu ali shranite kopijo.</translation>
     </message>
 </context>
 <context>
@@ -493,6 +549,41 @@
         <source>⬇ Download</source>
         <extracomment>Fetches a message the auto-download limit held back.</extracomment>
         <translation>⬇ Prenesi</translation>
+    </message>
+    <message>
+        <source>Collapse</source>
+        <extracomment>Opens out a long message inside the conversation, or folds it back.</extracomment>
+        <translation>Strni</translation>
+    </message>
+    <message>
+        <source>Expand</source>
+        <translation>Razširi</translation>
+    </message>
+    <message>
+        <source>View full message</source>
+        <extracomment>Opens the whole message on a page of its own.</extracomment>
+        <translation>Prikaži celotno sporočilo</translation>
+    </message>
+</context>
+<context>
+    <name>MessagePage</name>
+    <message>
+        <source>Copy</source>
+        <translation>Kopiraj</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>Kopirano</translation>
+    </message>
+    <message>
+        <source>Message</source>
+        <extracomment>Heading of the page showing one message on its own.</extracomment>
+        <translation>Sporočilo</translation>
+    </message>
+    <message>
+        <source>This message has no text</source>
+        <extracomment>Shown on the full-message page for a message that turns out to have no words in it at all.</extracomment>
+        <translation>To sporočilo nima besedila</translation>
     </message>
 </context>
 <context>

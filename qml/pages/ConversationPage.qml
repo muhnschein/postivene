@@ -391,7 +391,15 @@ Page {
             notice.show(qsTr("Copied to clipboard"))
         }
         onOpenRequested: page.openAttachment(fileUrl, fileName, viewType,
-                                             previewWidth)
+                                             previewWidth, fileMime,
+                                             fileBytes, fileIsText)
+        onSaveRequested: page.saveAttachment(fileUrl, viewType)
+        onFullTextRequested: pageStack.push(Qt.resolvedUrl("MessagePage.qml"), {
+            accountId: page.accountId,
+            messageId: messageId,
+            senderName: author,
+            markdownMode: Settings.markdownMode
+        })
         onAppRequested: page.openApp(messageId)
         onDownloadRequested: messages.download_full(messageId)
         // On or off is the model's call: it knows what the reader already
@@ -474,11 +482,47 @@ Page {
         anchors {
             left: parent.left
             right: parent.right
-            bottom: inputRow.top
+            bottom: longMessageBar.top
         }
         filePath: page.attachmentPath
         fileName: page.attachmentName
         onCancelled: page.dropAttachment()
+    }
+
+    /// Whether what is in the field is long enough that the core will
+    /// cut it on the way out. Asked of the shim, which holds the core's
+    /// own rule (`truncation.rs`).
+    readonly property bool sendingLongMessage:
+        messages.would_truncate(textField.text)
+
+    // Said while the message is still being written, because afterwards
+    // there is nothing to be done about it: past a certain length the
+    // core sends a shortened version with the rest attached, and what
+    // arrives at the other end is a preview with something to tap. Worth
+    // knowing before pressing send, and not worth a dialog. parla says
+    // the same thing in the same place, which is where this app learnt
+    // that it was worth saying at all.
+    Banner {
+        id: longMessageBar
+        objectName: "longMessageBar"
+        labelObjectName: "longMessageLabel"
+        tone: "info"
+        // Not transient: it is true for as long as the draft is long,
+        // and a notice that faded out would be a notice the writer was
+        // told once and then had to remember.
+        timeout: 0
+        text: page.sendingLongMessage
+              //: Shown above the message field while what is being
+              //: written is long enough that the other end will receive a
+              //: shortened version with the rest behind a tap.
+              ? qsTr("Long message: the other end sees a preview and taps "
+                     + "to read the rest")
+              : ""
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: inputRow.top
+        }
     }
 
     // Says what just happened where the page has no state for it, such as
@@ -542,7 +586,15 @@ Page {
 
         // Both step aside while a voice message records: a Row lays out
         // only what is visible, so the strip takes their room.
-        TextField {
+        //
+        // A field of one line could not hold a paragraph and could not
+        // hold a line break at all: the return key sent the message, so
+        // a message written here was one line by construction, however
+        // long. This is an area: return puts in a newline, the field
+        // grows as the message does, and send is the button -- which is
+        // what every other client on this phone does with a message
+        // longer than a remark.
+        TextArea {
             id: textField
             objectName: "messageField"
             visible: !voiceBar.recording
@@ -551,8 +603,13 @@ Page {
             //: on a message that is carrying a file.
             placeholderText: page.attachmentPath.length > 0
                              ? qsTr("Caption") : qsTr("Message")
-            EnterKey.iconSource: "image://theme/icon-m-enter-accept"
-            EnterKey.onClicked: page.sendCurrentText()
+            // Silica's own label sits above the text and says the same
+            // thing the placeholder does.
+            labelVisible: false
+            // It grows with what is in it, up to a point: past a third
+            // of the screen the conversation it is written in would be
+            // gone, so the area keeps that height and scrolls inside it.
+            height: Math.min(implicitHeight, page.height / 3)
             // Kept in the core, so it is still here after the app has been
             // closed and reopened, and so the chat list can say which
             // chats are holding one.
@@ -602,10 +659,17 @@ Page {
 
     // Which kinds Postivene shows itself, and which it hands on. Handing a
     // picture or a video to the system took the reader out of the app to
-    // something that then failed to play it; everything else is still
-    // somebody else's file to open, and a page here that could only say
-    // "cannot show this" would be worse than the handover.
-    function openAttachment(fileUrl, fileName, viewType, previewWidth) {
+    // something that then failed to play it.
+    //
+    // Everything else used to go straight to the phone, which is fine
+    // for a PDF and does nothing at all for a note, a to-do list or a
+    // patch: no app claims those, the handover fails without a word, and
+    // a message somebody sent becomes a row that cannot be tapped. So
+    // the rest arrives at a page that says what the file is and offers
+    // the two things there are to do with it -- and shows it, when it is
+    // words.
+    function openAttachment(fileUrl, fileName, viewType, previewWidth,
+                            fileMime, fileBytes, fileIsText) {
         if (viewType === "Image" || viewType === "Gif"
                 || viewType === "Sticker") {
             pageStack.push(Qt.resolvedUrl("PicturePage.qml"), {
@@ -621,8 +685,43 @@ Page {
                 fileName: fileName
             })
         } else {
-            Qt.openUrlExternally(fileUrl)
+            pageStack.push(Qt.resolvedUrl("FilePage.qml"), {
+                fileUrl: fileUrl,
+                fileName: fileName,
+                fileMime: fileMime ? fileMime : "",
+                fileBytes: fileBytes > 0 ? fileBytes : 0,
+                isText: fileIsText === true,
+                markdownMode: Settings.markdownMode
+            })
         }
+    }
+
+    // Where a copy of an attachment goes: the folder the platform
+    // indexes for its kind, which is the one the reader will look in.
+    // The sandbox grants all three (Pictures, Videos, Downloads).
+    function saveAttachment(fileUrl, viewType) {
+        if (viewType === "Image" || viewType === "Gif"
+                || viewType === "Sticker") {
+            page.savedTo = qsTr("Saved to Pictures")
+            attachmentSaver.save(fileUrl, StandardPaths.pictures)
+        } else if (viewType === "Video") {
+            page.savedTo = qsTr("Saved to Videos")
+            attachmentSaver.save(fileUrl, StandardPaths.videos)
+        } else {
+            page.savedTo = qsTr("Saved to Downloads")
+            attachmentSaver.save(fileUrl, StandardPaths.download)
+        }
+    }
+
+    /// What to say once the copy is made: chosen where the folder is,
+    /// since only here is it known which one it went to.
+    property string savedTo: ""
+
+    FileSaver {
+        id: attachmentSaver
+        objectName: "attachmentSaver"
+        onSaved: notice.show(page.savedTo)
+        onError: page.errorMessage = message
     }
 
     // Where an app comes from: the store, which reports the file it put
@@ -650,8 +749,9 @@ Page {
 
     function sendCurrentText() {
         // The model refuses a second send while one is outstanding and the
-        // button is disabled meanwhile; this says so a third time because
-        // EnterKey reaches here without going through the button.
+        // button is disabled meanwhile; this says so a third time,
+        // cheaply, since a double send is a message the reader cannot
+        // take back.
         if (messages.sending) {
             return
         }

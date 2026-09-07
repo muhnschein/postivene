@@ -274,6 +274,14 @@
         <extracomment>The line in a conversation above the first message that arrived while the reader was away.</extracomment>
         <translation>નવા સંદેશા</translation>
     </message>
+    <message>
+        <source>Open</source>
+        <translation>ખોલો</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>સાચવો</translation>
+    </message>
 </context>
 <context>
     <name>ConversationPage</name>
@@ -301,6 +309,23 @@
     <message>
         <source>Message</source>
         <translation>સંદેશ</translation>
+    </message>
+    <message>
+        <source>Long message: the other end sees a preview and taps to read the rest</source>
+        <extracomment>Shown above the message field while what is being written is long enough that the other end will receive a shortened version with the rest behind a tap.</extracomment>
+        <translation>લાંબો સંદેશ: સામેની બાજુ ઝલક દેખાય છે અને બાકીનું વાંચવા ટૅપ કરવું પડે છે</translation>
+    </message>
+    <message>
+        <source>Saved to Pictures</source>
+        <translation>ચિત્રોમાં સાચવ્યું</translation>
+    </message>
+    <message>
+        <source>Saved to Videos</source>
+        <translation>વિડિઓમાં સાચવ્યું</translation>
+    </message>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>ડાઉનલોડ્સમાં સાચવ્યું</translation>
     </message>
 </context>
 <context>
@@ -375,6 +400,37 @@
     <message>
         <source>After %1 seconds</source>
         <translation>%1 સેકન્ડ પછી</translation>
+    </message>
+</context>
+<context>
+    <name>FilePage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>ડાઉનલોડ્સમાં સાચવ્યું</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>બીજી ઍપમાં ખોલો</translation>
+    </message>
+    <message>
+        <source>Save to Downloads</source>
+        <translation>ડાઉનલોડ્સમાં સાચવો</translation>
+    </message>
+    <message>
+        <source>File</source>
+        <extracomment>Heading of the page showing one received file.</extracomment>
+        <translation>ફાઇલ</translation>
+    </message>
+    <message>
+        <source>Only the beginning is shown. Open the file elsewhere to read all of it.</source>
+        <extracomment>Shown above a text file too long to show whole.</extracomment>
+        <translation>માત્ર શરૂઆત બતાવી છે. આખું વાંચવા ફાઇલ બીજે ખોલો.</translation>
+    </message>
+    <message>
+        <source>Postivene cannot show this kind of file. Pull down to open it in another app or save a copy.</source>
+        <extracomment>Shown for an attachment this app cannot display, above the two things that can be done with it.</extracomment>
+        <translation>Postivene આ પ્રકારની ફાઇલ બતાવી શકતું નથી. બીજી ઍપમાં ખોલવા અથવા નકલ સાચવવા નીચે ખેંચો.</translation>
     </message>
 </context>
 <context>
@@ -489,6 +545,41 @@
         <source>⬇ Download</source>
         <extracomment>Fetches a message the auto-download limit held back.</extracomment>
         <translation>⬇ ડાઉનલોડ કરો</translation>
+    </message>
+    <message>
+        <source>Collapse</source>
+        <extracomment>Opens out a long message inside the conversation, or folds it back.</extracomment>
+        <translation>સંકોચો</translation>
+    </message>
+    <message>
+        <source>Expand</source>
+        <translation>વિસ્તારો</translation>
+    </message>
+    <message>
+        <source>View full message</source>
+        <extracomment>Opens the whole message on a page of its own.</extracomment>
+        <translation>આખો સંદેશ જુઓ</translation>
+    </message>
+</context>
+<context>
+    <name>MessagePage</name>
+    <message>
+        <source>Copy</source>
+        <translation>કૉપિ કરો</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>નકલ થઈ</translation>
+    </message>
+    <message>
+        <source>Message</source>
+        <extracomment>Heading of the page showing one message on its own.</extracomment>
+        <translation>સંદેશ</translation>
+    </message>
+    <message>
+        <source>This message has no text</source>
+        <extracomment>Shown on the full-message page for a message that turns out to have no words in it at all.</extracomment>
+        <translation>આ સંદેશમાં કોઈ લખાણ નથી</translation>
     </message>
 </context>
 <context>

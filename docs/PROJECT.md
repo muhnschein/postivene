@@ -56,9 +56,16 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   (`get_webxdc_blob`). So the shim puts one app on a loopback address of
   its own while it is open and answers every request out of the core
   (`webxdc_host.rs`); the `WebView` is pointed at that address and needs
-  nothing else. The same host carries the app's own API -- `sendUpdate` is
-  a POST, the updates from everyone else are a poll -- so the bridge is
-  not a Gecko frame script, and no archive format is parsed here.
+  nothing else. The app sits at the root of it, as every other client
+  serves one: an app built with a bundler's default settings asks for
+  `/assets/index-1a2b.js`, so a host that keeps the app's files under a
+  prefix draws a blank screen for every app that does not happen to use
+  relative paths. What the token guards is the chat, not the files --
+  the two API paths are under `/webxdc-api/<token>/`, and the files were
+  sent to this reader anyway. The same host carries that API --
+  `sendUpdate` is a POST, the updates from everyone else are a poll -- so
+  the bridge is not a Gecko frame script, and no archive format is parsed
+  here.
   Where a new app comes from is the store, a website
   (`WebxdcStorePage.qml`); a tap on a link to a `.xdc` is caught before
   the engine can download it and fetched through the core instead

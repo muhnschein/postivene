@@ -91,16 +91,24 @@ fn get(authority: &str, path: &str) -> Result<String, String> {
     )
 }
 
-/// The address and the token part of the URL the app was given.
-fn split(url: &str) -> (String, String) {
+/// The address the app was given. Its files are at the root of it.
+fn authority_of(url: &str) -> String {
     let rest = url.strip_prefix("http://").unwrap_or(url);
-    match rest.split_once('/') {
-        Some((authority, path)) => (
-            authority.to_string(),
-            path.split('/').next().unwrap_or_default().to_string(),
-        ),
-        None => (rest.to_string(), String::new()),
-    }
+    rest.split('/').next().unwrap_or_default().to_string()
+}
+
+/// Where the chat is, read out of the bridge the app is served.
+///
+/// The token appears nowhere else -- not in the app's address, not in
+/// any page -- which is the point of it: the app is told, and nothing
+/// that merely found the port is.
+fn api_of(bridge: &str) -> String {
+    bridge
+        .split("var API = \"")
+        .nth(1)
+        .and_then(|rest| rest.split('"').next())
+        .unwrap_or_default()
+        .to_string()
 }
 
 #[test]
@@ -161,48 +169,63 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
         let url = call!("url");
         record!("url", url.clone());
         record!("info", call!("info"));
-        let (authority, token) = split(&url);
-        if token.is_empty() {
+        let authority = authority_of(&url);
+        if authority.is_empty() {
             return;
         }
 
         record!(
             "index",
-            get(&authority, &format!("/{token}/index.html")).unwrap_or_else(|err| err)
+            get(&authority, "/index.html").unwrap_or_else(|err| err)
         );
+        // The one the phone found: a bundler writes an absolute path into
+        // a directory, and a host that keeps the app under a prefix
+        // answers nothing to it.
         record!(
-            "bridge",
-            get(&authority, &format!("/{token}/webxdc.js")).unwrap_or_else(|err| err)
+            "asset",
+            get(&authority, "/assets/app.js").unwrap_or_else(|err| err)
         );
-        // Another app on the phone, guessing the port.
+        // The address itself, with nothing after it.
+        record!("root", get(&authority, "/").unwrap_or_else(|err| err));
+        let bridge = get(&authority, "/webxdc.js").unwrap_or_else(|err| err);
+        record!("bridge", bridge.clone());
+        let api = api_of(&bridge);
+        record!("api", api.clone());
+        if api.is_empty() {
+            return;
+        }
+
+        // Another app on the phone, guessing the port: it can have the
+        // files their reader was sent anyway, and nothing of the chat.
         record!(
             "no-token",
-            get(&authority, "/index.html").unwrap_or_else(|err| err)
+            get(&authority, "/webxdc-api/updates?serial=0").unwrap_or_else(|err| err)
         );
         record!(
             "wrong-token",
-            get(&authority, "/0123456789abcdef0123456789abcdef/index.html")
-                .unwrap_or_else(|err| err)
+            get(
+                &authority,
+                "/webxdc-api/0123456789abcdef0123456789abcdef/updates?serial=0"
+            )
+            .unwrap_or_else(|err| err)
         );
         // A page in the browser, which would arrive under its own name.
         record!(
             "wrong-host",
             ask(
                 &authority,
-                &format!(
-                    "GET /{token}/index.html HTTP/1.1\r\nHost: webxdc.example\r\n\
-                     Connection: close\r\n\r\n"
-                ),
+                "GET /index.html HTTP/1.1\r\nHost: webxdc.example\r\n\
+                 Connection: close\r\n\r\n",
             )
             .unwrap_or_else(|err| err)
         );
         record!(
             "escape",
-            get(&authority, &format!("/{token}/../../etc/passwd")).unwrap_or_else(|err| err)
+            get(&authority, "/../../etc/passwd").unwrap_or_else(|err| err)
         );
         record!(
             "missing",
-            get(&authority, &format!("/{token}/nothing.js")).unwrap_or_else(|err| err)
+            get(&authority, "/nothing.js").unwrap_or_else(|err| err)
         );
 
         // The app sending a move, the way `webxdc.js` does.
@@ -212,7 +235,7 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
             ask(
                 &authority,
                 &format!(
-                    "POST /{token}/webxdc-api/send HTTP/1.1\r\nHost: {authority}\r\n\
+                    "POST {api}/send HTTP/1.1\r\nHost: {authority}\r\n\
                      Content-Type: application/json\r\nContent-Length: {}\r\n\
                      Connection: close\r\n\r\n{update}",
                     update.len()
@@ -222,8 +245,7 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
         );
         record!(
             "updates",
-            get(&authority, &format!("/{token}/webxdc-api/updates?serial=0"))
-                .unwrap_or_else(|err| err)
+            get(&authority, &format!("{api}/updates?serial=0")).unwrap_or_else(|err| err)
         );
     });
 
@@ -233,10 +255,10 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
         record!("after-update", call!("info"));
         let url = call!("url");
         record!("stopped-url", call!("stop"));
-        let (authority, token) = split(&url);
+        let authority = authority_of(&url);
         record!(
             "after-stop",
-            get(&authority, &format!("/{token}/index.html")).unwrap_or_else(|err| err)
+            get(&authority, "/index.html").unwrap_or_else(|err| err)
         );
         record!("log", call!("said"));
         (*engine_ptr).quit();
@@ -270,6 +292,26 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
         "the app's own page was not served. {context}"
     );
     assert!(
+        value("root").starts_with("HTTP/1.1 200 OK"),
+        "the address itself did not answer with the app's page: {}. \
+         {context}",
+        value("root")
+    );
+    // What a bundler writes, and what the app on a phone asked for and
+    // did not get: an absolute path into a directory. The app is served
+    // from the root of its address for this reason.
+    let asset = value("asset");
+    assert!(
+        asset.starts_with("HTTP/1.1 200 OK") && asset.contains("window.playing = true"),
+        "an absolute path to the app's own script was not served, which is \
+         a blank screen for every app a bundler built: {asset}. {context}"
+    );
+    assert!(
+        asset.contains("Content-Type: text/javascript"),
+        "the app's script was served as something a browser will not run: \
+         {asset}. {context}"
+    );
+    assert!(
         index.contains("<script src=\"webxdc.js\"></script>"),
         "the API was not put in front of the app's page. {context}"
     );
@@ -292,6 +334,14 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
         "the API still has its placeholders in it. {context}"
     );
 
+    // The chat is what the token keeps: asking without it, or with the
+    // wrong one, is told nothing at all.
+    assert!(
+        value("api").starts_with("/webxdc-api/") && value("api").len() > 20,
+        "the bridge does not carry an unguessable address for the chat: {}. \
+         {context}",
+        value("api")
+    );
     for refused in ["no-token", "wrong-token", "wrong-host", "escape", "missing"] {
         assert!(
             value(refused).starts_with("HTTP/1.1 404"),

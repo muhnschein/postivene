@@ -161,10 +161,7 @@ fn the_rest_of_a_cut_message_comes_back_as_words() {
         // Read straight off the disk, so it is there in the same turn:
         // a page that spun before showing a note somebody attached would
         // feel slower than it is.
-        record!(
-            "open-huge",
-            call!("open", QString::from(huge_path.clone()))
-        );
+        record!("open-huge", call!("open", QString::from(huge_path.clone())));
         record!("huge-clipped", call!("fileClipped"));
         record!("huge-length", call!("fileLength"));
     });
@@ -193,7 +190,11 @@ fn the_rest_of_a_cut_message_comes_back_as_words() {
         );
         record!(
             "page-empty",
-            call!("shown", QString::from("emptyLabel"), QString::from("visible"))
+            call!(
+                "shown",
+                QString::from("emptyLabel"),
+                QString::from("visible")
+            )
         );
         (*engine_ptr).quit();
     });

@@ -152,10 +152,7 @@ fn the_field_takes_more_than_a_line_and_says_when_a_message_is_too_long() {
         record!("one-line-height", call!("fieldHeight"));
         // A paragraph: three lines, which the old field could not hold
         // at all.
-        record!(
-            "typed",
-            call!("type", QString::from("one\ntwo\nthree"))
-        );
+        record!("typed", call!("type", QString::from("one\ntwo\nthree")));
     });
 
     single_shot(Duration::from_secs(3), move || unsafe {

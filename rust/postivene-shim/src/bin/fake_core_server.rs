@@ -497,8 +497,7 @@ fn message_object(msg: u64) -> Value {
 const LONG_MESSAGE_HEAD: &str = "# Groceries";
 
 /// The whole of it, as the core would give it out: an HTML part.
-const LONG_MESSAGE_HTML: &str =
-    "<html><head><title>ignored</title></head><body><h1>Groceries</h1>\
+const LONG_MESSAGE_HTML: &str = "<html><head><title>ignored</title></head><body><h1>Groceries</h1>\
      <ul><li>milk</li><li>bread</li></ul><p>and a &amp; sign</p></body></html>";
 
 /// What the attached note holds.

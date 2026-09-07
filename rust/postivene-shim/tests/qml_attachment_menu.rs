@@ -184,24 +184,12 @@ fn a_message_carrying_a_file_offers_to_open_it_and_to_keep_it() {
     });
 
     single_shot(Duration::from_secs(2), move || unsafe {
-        record!(
-            "file-open",
-            call!("offered", 0, QString::from("openItem"))
-        );
-        record!(
-            "file-save",
-            call!("offered", 0, QString::from("saveItem"))
-        );
+        record!("file-open", call!("offered", 0, QString::from("openItem")));
+        record!("file-save", call!("offered", 0, QString::from("saveItem")));
         record!("open-label", call!("labelOf", 0, QString::from("openItem")));
         record!("save-label", call!("labelOf", 0, QString::from("saveItem")));
-        record!(
-            "words-open",
-            call!("offered", 1, QString::from("openItem"))
-        );
-        record!(
-            "words-save",
-            call!("offered", 1, QString::from("saveItem"))
-        );
+        record!("words-open", call!("offered", 1, QString::from("openItem")));
+        record!("words-save", call!("offered", 1, QString::from("saveItem")));
         record!("picked-open", call!("pick", 0, QString::from("openItem")));
         record!("picked-save", call!("pick", 0, QString::from("saveItem")));
     });

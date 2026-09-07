@@ -816,7 +816,10 @@ async fn offline_round_trip_against_real_core() {
     let mut long_body = String::new();
     for number in 1..=50 {
         use std::fmt::Write as _;
-        let _ = writeln!(long_body, "line {number} of a message nobody would call short");
+        let _ = writeln!(
+            long_body,
+            "line {number} of a message nobody would call short"
+        );
     }
     let (fourth, _): (u32, Value) = client
         .call(

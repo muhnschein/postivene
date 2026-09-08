@@ -326,7 +326,7 @@ fn the_conversation_page_uses_the_pieces_that_are_tested() {
 fn text_from_the_other_end_is_pinned_to_plain() {
     // Bindings the core fills in from a message, a contact or a chat.
     // Anything reading one of these is showing remote input.
-    const REMOTE: [&str; 30] = [
+    const REMOTE: [&str; 29] = [
         "model.",
         "root.messageText",
         "root.quoteText",
@@ -336,7 +336,6 @@ fn text_from_the_other_end_is_pinned_to_plain() {
         "root.preview",
         "root.previewSender",
         "root.fileName",
-        "dialog.fileName",
         "root.filePath",
         "root.author",
         "root.body",
@@ -798,16 +797,18 @@ fn the_frame_scripts_the_pages_load_are_there() {
     );
 }
 
-/// A file an app hands over is offered to the reader, not to a chat.
+/// A file an app hands over is kept, not put into a chat.
 ///
 /// The webxdc call is `sendToChat` and a chat is the only destination its
 /// name can carry, but the button an app draws over it is a download --
 /// `sharer`'s is a download arrow -- and what the reader means by that is
-/// the file, on their phone. So the page asks, and the two answers are
-/// opening it and keeping it. Nothing else can check this: the page names
-/// `Sailfish.WebView`, so it is never loaded off a phone.
+/// the file, on their phone. So it is saved where the file manager looks,
+/// and nothing is asked: a chooser between opening and keeping was tried
+/// and was two taps in front of the one thing already asked for. Nothing
+/// else can check this: the page names `Sailfish.WebView`, so it is never
+/// loaded off a phone.
 #[test]
-fn the_webxdc_page_offers_a_handed_over_file_to_the_reader() {
+fn the_webxdc_page_keeps_a_handed_over_file() {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/pages/WebxdcPage.qml");
     let text = fs::read_to_string(&path).expect("read WebxdcPage.qml");
     let code = code_only(&text);
@@ -821,20 +822,14 @@ fn the_webxdc_page_offers_a_handed_over_file_to_the_reader() {
         "a file an app handed over still goes to the chat picker, which \
          is not what a download means"
     );
-    // The raw text, since `code_only` blanks the string the page is
-    // named by. That the name resolves is the pushed-pages rule's job.
+    let offer = block_of(&code, "function offer(");
     assert!(
-        text.contains("HandoverDialog.qml"),
-        "nothing asks what to do with the file the app handed over"
+        offer.contains("handoverSaver.save(") && offer.contains("StandardPaths.download"),
+        "the file is not kept anywhere the reader can find it: {offer:?}"
     );
     assert!(
-        block_of(&code, "onHanded_over:").contains("offer("),
-        "the handover does not reach the question"
-    );
-    assert!(
-        code.contains("Qt.openUrlExternally(") && code.contains("handoverSaver.save("),
-        "the page cannot both open and keep what an app handed over, \
-         which are the two answers it offers"
+        !text.contains("HandoverDialog"),
+        "the page still asks what to do with the file rather than keeping it"
     );
 }
 

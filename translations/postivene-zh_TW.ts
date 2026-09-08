@@ -471,28 +471,6 @@
     </message>
 </context>
 <context>
-    <name>HandoverDialog</name>
-    <message>
-        <source>File from the app</source>
-        <extracomment>Shown over the two things that can be done with a file a webxdc app has just produced.</extracomment>
-        <translation>來自應用程式的檔案</translation>
-    </message>
-    <message>
-        <source>Cancel</source>
-        <translation>取消</translation>
-    </message>
-    <message>
-        <source>Open</source>
-        <extracomment>Hand the file to whatever the phone opens its kind with.</extracomment>
-        <translation>開啟</translation>
-    </message>
-    <message>
-        <source>Save</source>
-        <extracomment>Keep a copy of the file where the file manager looks.</extracomment>
-        <translation>儲存</translation>
-    </message>
-</context>
-<context>
     <name>LeaveGroupDialog</name>
     <message>
         <source>Leave group</source>

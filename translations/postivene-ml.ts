@@ -473,28 +473,6 @@
     </message>
 </context>
 <context>
-    <name>HandoverDialog</name>
-    <message>
-        <source>File from the app</source>
-        <extracomment>Shown over the two things that can be done with a file a webxdc app has just produced.</extracomment>
-        <translation>ആപ്പിൽ നിന്നുള്ള ഫയൽ</translation>
-    </message>
-    <message>
-        <source>Cancel</source>
-        <translation>റദ്ദാക്കുക</translation>
-    </message>
-    <message>
-        <source>Open</source>
-        <extracomment>Hand the file to whatever the phone opens its kind with.</extracomment>
-        <translation>തുറക്കുക</translation>
-    </message>
-    <message>
-        <source>Save</source>
-        <extracomment>Keep a copy of the file where the file manager looks.</extracomment>
-        <translation>സൂക്ഷിക്കുക</translation>
-    </message>
-</context>
-<context>
     <name>LeaveGroupDialog</name>
     <message>
         <source>Leave group</source>

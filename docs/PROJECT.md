@@ -71,23 +71,31 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   an app draws over it is a *download* -- `sharer`'s is a download arrow
   -- and what a reader means by that is the file, on their phone. So the
   host writes what the app gives it into the cache and raises it on the
-  page, and the page asks: open it, or keep a copy in Downloads. A chat
-  is not one of the answers, and nothing is sent from the host. Text
-  with no file has nowhere to be opened or saved and goes on the
-  clipboard instead, which is still an answer.
-  Three things about it are deliberate. The app's request is answered
-  *before* the dialog is raised, and only if that answer got out.
-  The page keeps serving an app it has opened a page over: stopping the
-  app whenever the page deactivated stopped it in the middle of the very
-  request that asked, so leaving is destruction, which is what a popped
-  page and a replaced stack both are. And a handover past what the host
-  will hold is read and dropped before it is refused -- answering and
-  closing on a client still writing resets the connection, and a reset
-  is not an answer: the app reported a host it could not reach and had
-  no idea why. What the cap is, is set by holding the whole of it more
-  than once (the body, the base64 in the parsed answer, the bytes it
-  decodes to); a file bigger than that is refused with a `413` the app
-  can show.
+  page, and the page saves a copy into Downloads and says so. A chat is
+  not a destination, and neither is a question: a chooser between
+  opening and keeping was tried and was two taps in front of the one
+  thing the reader had already asked for. Text with no file has nowhere
+  to be saved and goes on the clipboard instead, which is still an
+  answer.
+  The file *is* the request body -- no base64, no JSON around it, its
+  name and any words in the query -- and the host copies it from the
+  socket into the cache a chunk at a time. It was JSON with the file
+  base64 inside it at first, and that held the whole of it three times
+  over between the two ends: what a file worth exporting is, is exactly
+  the size that cannot afford it. What is left of the cap is about the
+  phone's storage rather than its memory.
+  Two other things about it are deliberate. The app's request is
+  answered *before* the page is told, and only if that answer got out.
+  And the page keeps serving an app it has opened a page over: stopping
+  the app whenever the page deactivated stopped it in the middle of the
+  very request that asked, so leaving is destruction, which is what a
+  popped page and a replaced stack both are.
+  A body this host will not take is read and dropped before it is
+  refused. Answering and closing on a client still writing resets the
+  connection, and a reset is not an answer: the app reported a host it
+  could not reach and had no idea why. What has already come off the
+  socket is counted, so a half-read body is not waited on twice -- that
+  wait is for bytes the other end has already sent.
   Where a new app comes from is the store, a website
   (`WebxdcStorePage.qml`); a tap on a link to a `.xdc` is caught before
   the engine can download it and fetched through the core instead

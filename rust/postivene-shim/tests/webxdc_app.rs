@@ -108,7 +108,7 @@ fn post_apart(authority: &str, target: &str, body: &str) -> Result<String, Strin
         .map_err(|err| err.to_string())?;
     let head = format!(
         "POST {target} HTTP/1.1\r\nHost: {authority}\r\n\
-         Content-Type: application/json\r\nContent-Length: {}\r\n\
+         Content-Type: application/octet-stream\r\nContent-Length: {}\r\n\
          Connection: close\r\n\r\n",
         body.len()
     );
@@ -273,81 +273,55 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
             get(&authority, "/nothing.js").unwrap_or_else(|err| err)
         );
 
-        // The app handing a file to the chat, the way `sendToChat` does:
-        // a name, the bytes as base64, and a word to go with them.
-        // "hi\n" is aGkK.
-        let handover = "{\"name\":\"notes.txt\",\"base64\":\"aGkK\",\"text\":\"look\"}";
+        // The app handing a file over, the way `sendToChat` does now:
+        // the file *is* the body, and its name is in the query.
         record!(
             "to-chat",
-            ask(
+            post_apart(
                 &authority,
-                &format!(
-                    "POST {api}/to-chat HTTP/1.1\r\nHost: {authority}\r\n\
-                     Content-Type: application/json\r\nContent-Length: {}\r\n\
-                     Connection: close\r\n\r\n{handover}",
-                    handover.len()
-                )
+                &format!("{api}/to-chat?name=notes.txt&text=look"),
+                "hi\n"
             )
             .unwrap_or_else(|err| err)
         );
 
         // A name that tries to leave the cache keeps only its last part.
-        let escaping = "{\"name\":\"../../../etc/passwd\",\"base64\":\"aGkK\"}";
         record!(
             "to-chat-escape",
-            ask(
+            post_apart(
                 &authority,
-                &format!(
-                    "POST {api}/to-chat HTTP/1.1\r\nHost: {authority}\r\n\
-                     Content-Type: application/json\r\nContent-Length: {}\r\n\
-                     Connection: close\r\n\r\n{escaping}",
-                    escaping.len()
-                )
+                &format!("{api}/to-chat?name=..%2F..%2F..%2Fetc%2Fpasswd"),
+                "hi\n"
             )
             .unwrap_or_else(|err| err)
         );
 
         // Neither a file nor a word: the app's mistake, and refused.
-        let empty = "{}";
         record!(
             "to-chat-empty",
-            ask(
-                &authority,
-                &format!(
-                    "POST {api}/to-chat HTTP/1.1\r\nHost: {authority}\r\n\
-                     Content-Type: application/json\r\nContent-Length: {}\r\n\
-                     Connection: close\r\n\r\n{empty}",
-                    empty.len()
-                )
-            )
-            .unwrap_or_else(|err| err)
+            post_apart(&authority, &format!("{api}/to-chat"), "").unwrap_or_else(|err| err)
         );
 
-        // The shape `sharer` hands over -- a name and base64, no words --
-        // at a size a shared file actually is, with the head and the body
-        // in separate writes the way a browser sends one.
-        let big = format!(
-            "{{\"name\":\"photo.png\",\"base64\":\"{}\",\"text\":\"\"}}",
-            "A".repeat(4 * 1024 * 1024)
-        );
+        // A file the size a shared one actually is, in separate writes
+        // the way a browser sends one. Nothing here holds it: it goes
+        // from the socket to the cache a chunk at a time.
+        let big = "A".repeat(4 * 1024 * 1024);
         record!(
             "to-chat-big",
-            post_apart(&authority, &format!("{api}/to-chat"), &big).unwrap_or_else(|err| err)
+            post_apart(&authority, &format!("{api}/to-chat?name=photo.png"), &big)
+                .unwrap_or_else(|err| err)
         );
 
-        // And one past what the host will hold, which is the app's own
+        // And one past what the cache will take, which is the app's own
         // answer to give -- not a connection that goes away mid-write.
-        // A megabyte over the cap, so this moves with it.
-        let huge = format!(
-            "{{\"name\":\"video.mp4\",\"base64\":\"{}\",\"text\":\"\"}}",
-            "A".repeat(33 * 1024 * 1024)
-        );
+        let huge = "A".repeat(101 * 1024 * 1024);
         record!(
             "to-chat-huge",
-            post_apart(&authority, &format!("{api}/to-chat"), &huge).unwrap_or_else(|err| err)
+            post_apart(&authority, &format!("{api}/to-chat?name=video.mp4"), &huge)
+                .unwrap_or_else(|err| err)
         );
 
-        // The app sending a move, the way `webxdc.js` does.
+        // The app sending a move, the way `webxdc.js` does.        // The app sending a move, the way `webxdc.js` does.
         let update = "{\"payload\":{\"move\":\"e4\"}}";
         record!(
             "send",

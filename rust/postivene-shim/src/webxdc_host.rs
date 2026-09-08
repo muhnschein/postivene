@@ -82,16 +82,15 @@ const MAX_HEAD: usize = 16 * 1024;
 /// body is not read at all.
 const MAX_BODY: usize = 512 * 1024;
 
-/// The most a file an app hands over may be, as it arrives: base64, so
-/// three quarters of this is the file. A picture an app exports is
-/// already past what an update may be, and the point of the handover is
-/// files -- while a cap there still has to be, because what is read is
-/// held whole and more than once: the body as it arrived, the base64
-/// inside the parsed answer, and the bytes it decodes to. A file past
-/// this is refused with an answer the app can show rather than a socket
-/// that goes away under it; holding one of any size would want the
-/// base64 written out as it arrives, which is a bigger thing than this.
-const MAX_HANDOVER: usize = 32 * 1024 * 1024;
+/// The most a file an app may hand over.
+///
+/// It is not held any more -- it goes from the socket to the cache a
+/// chunk at a time -- so what this guards is the phone's storage rather
+/// than its memory: the cache is emptied with the app, but not while one
+/// is running, and an app in a loop should not be able to fill a disk
+/// before anybody notices. Past it the app is told, and told in an
+/// answer it can show.
+const MAX_HANDOVER: usize = 100 * 1024 * 1024;
 
 /// The most of a refused body to read before answering.
 ///
@@ -230,10 +229,34 @@ async fn accept(listener: TcpListener, shared: Arc<Shared>) {
 /// Read one request, answer it, and close. No keep-alive: every answer
 /// says so, and a page load is a handful of short connections.
 async fn answer(mut stream: TcpStream, shared: Arc<Shared>) -> std::io::Result<()> {
-    let mut response = match read_request(&mut stream).await? {
-        Incoming::Request(request) => route(&shared, &request).await,
-        Incoming::TooLarge => Response::empty("413 Payload Too Large"),
-        Incoming::Malformed => Response::empty("400 Bad Request"),
+    let mut response = match read_head(&mut stream).await? {
+        None => Response::empty("400 Bad Request"),
+        // A file an app is handing over is written out as it arrives:
+        // the point of the route is files, and a file this host held
+        // whole would be a file the phone has to find room for twice.
+        Some(head) if handover_asked(&shared, &head) => {
+            take_handover(&shared, &mut stream, head).await?
+        }
+        Some(head) => {
+            let target = head.target.clone();
+            let host = head.host.clone();
+            let method = head.method.clone();
+            match read_body(&mut stream, head).await? {
+                None => Response::empty("413 Payload Too Large"),
+                Some(body) => {
+                    route(
+                        &shared,
+                        &Request {
+                            method,
+                            target,
+                            host,
+                            body,
+                        },
+                    )
+                    .await
+                }
+            }
+        }
     };
     let after = response.after.take();
     let written = write_response(&mut stream, &response).await;
@@ -318,19 +341,23 @@ fn escape(text: &str) -> String {
         .replace('>', "&gt;")
 }
 
-/// What came in: a request, or a reason there is not one.
-enum Incoming {
-    /// A request, head and body both.
-    Request(Request),
-    /// A body past what this host will hold. Its body has been read and
-    /// dropped, so the answer reaches the app rather than a reset.
-    TooLarge,
-    /// Nothing that parses as a request at all.
-    Malformed,
+/// The head of one request: everything before its body.
+struct Head {
+    method: String,
+    target: String,
+    host: String,
+    /// What `Content-Length` said, or 0 when it said nothing.
+    length: usize,
+    /// The body's first bytes, which arrived with the head.
+    started: Vec<u8>,
 }
 
-/// A request whose head fits, or the reason there is not one.
-async fn read_request(stream: &mut TcpStream) -> std::io::Result<Incoming> {
+/// Read the head, or `None` for something that does not parse as one.
+///
+/// The body is left on the socket. What it is for decides how it is
+/// read: a file an app is handing over is written out as it arrives and
+/// never held, and everything else on this host is short enough to keep.
+async fn read_head(stream: &mut TcpStream) -> std::io::Result<Option<Head>> {
     let mut head = Vec::new();
     let mut chunk = [0_u8; 2048];
     let body_at = loop {
@@ -338,26 +365,26 @@ async fn read_request(stream: &mut TcpStream) -> std::io::Result<Incoming> {
             break at + 4;
         }
         if head.len() > MAX_HEAD {
-            return Ok(Incoming::Malformed);
+            return Ok(None);
         }
         let read = stream.read(&mut chunk).await?;
         if read == 0 {
-            return Ok(Incoming::Malformed);
+            return Ok(None);
         }
         head.extend_from_slice(&chunk[..read]);
     };
 
-    let mut body = head.split_off(body_at);
+    let started = head.split_off(body_at);
     let Ok(text) = std::str::from_utf8(&head) else {
-        return Ok(Incoming::Malformed);
+        return Ok(None);
     };
     let mut lines = text.lines();
     let Some(start) = lines.next() else {
-        return Ok(Incoming::Malformed);
+        return Ok(None);
     };
     let mut parts = start.split(' ');
     let (Some(method), Some(target)) = (parts.next(), parts.next()) else {
-        return Ok(Incoming::Malformed);
+        return Ok(None);
     };
 
     let mut host = String::new();
@@ -373,44 +400,45 @@ async fn read_request(stream: &mut TcpStream) -> std::io::Result<Incoming> {
             length = value.parse().unwrap_or(0);
         }
     }
-    // A file on its way to a chat is allowed to be a file; everything
-    // else on this host is a short request. The path decides, and it is
-    // known here because the start line is read before the body.
-    let cap = if target.contains("/to-chat") {
-        MAX_HANDOVER
-    } else {
-        MAX_BODY
-    };
-    if length > cap {
-        // Read it and drop it rather than closing on a client that is
-        // still writing; see MAX_DRAIN. Counted rather than kept: the
-        // whole point is not to hold this.
-        let mut drained = body.len();
-        drop(body);
-        while drained < length.min(MAX_DRAIN) {
+
+    Ok(Some(Head {
+        method: method.to_string(),
+        target: target.to_string(),
+        host,
+        length,
+        started,
+    }))
+}
+
+/// The rest of a body this host is going to keep, or `None` past the cap.
+///
+/// Past it the body is still read, and dropped as it comes: answering and
+/// closing on a client that is still writing resets the connection, and a
+/// reset is not an answer -- the app sees a host it could not reach and
+/// has no idea why.
+async fn read_body(stream: &mut TcpStream, head: Head) -> std::io::Result<Option<Vec<u8>>> {
+    let mut chunk = [0_u8; 2048];
+    if head.length > MAX_BODY {
+        let mut dropped = head.started.len();
+        while dropped < head.length.min(MAX_DRAIN) {
             let read = stream.read(&mut chunk).await?;
             if read == 0 {
                 break;
             }
-            drained += read;
+            dropped += read;
         }
-        return Ok(Incoming::TooLarge);
+        return Ok(None);
     }
-    while body.len() < length {
+    let mut body = head.started;
+    while body.len() < head.length {
         let read = stream.read(&mut chunk).await?;
         if read == 0 {
             break;
         }
         body.extend_from_slice(&chunk[..read]);
     }
-    body.truncate(length);
-
-    Ok(Incoming::Request(Request {
-        method: method.to_string(),
-        target: target.to_string(),
-        host,
-        body,
-    }))
+    body.truncate(head.length);
+    Ok(Some(body))
 }
 
 /// Where the needle starts in the haystack.
@@ -441,10 +469,11 @@ async fn route(shared: &Shared, request: &Request) -> Response {
         let Some(rest) = path.strip_prefix(&shared.api) else {
             return Response::empty("404 Not Found");
         };
+        // `/to-chat` is not here: a handover is answered before its body
+        // is read, so it never reaches this (see `handover_asked`).
         return match (request.method.as_str(), rest) {
             ("GET", "/updates") => updates(shared, query).await,
             ("POST", "/send") => send(shared, &request.body).await,
-            ("POST", "/to-chat") => to_chat(shared, &request.body),
             _ => Response::empty("404 Not Found"),
         };
     }
@@ -542,77 +571,190 @@ async fn send(shared: &Shared, body: &[u8]) -> Response {
     }
 }
 
+/// Whether this request is an app handing something over.
+///
+/// Answered from the head alone, because the body has not been read yet
+/// and for this one route it never will be as a whole: what the app
+/// sends goes to the disk as it arrives.
+fn handover_asked(shared: &Shared, head: &Head) -> bool {
+    if !shared.running.load(Ordering::SeqCst) || head.host != shared.authority {
+        return false;
+    }
+    let path = head.target.split('?').next().unwrap_or_default();
+    head.method == "POST" && path == format!("{}/to-chat", shared.api)
+}
+
 /// A file, a piece of text, or both, on their way out of the app.
 ///
-/// The file is written into the cache and the *path* is handed on: what
-/// receives it is a page, and a page takes a file by path the way every
-/// other picker in this app hands one over. Nothing is sent from here,
-/// and nothing is opened or saved either: where the file goes is the
-/// reader's answer to give.
+/// The file *is* the request body -- no base64, no JSON around it -- so
+/// it is copied from the socket into the cache a chunk at a time and
+/// never held. What it is called and what goes with it are in the query,
+/// which the head already carried. That shape is why there is hardly a
+/// limit left: the old one was set by holding the whole of the file more
+/// than once, and a phone has better uses for that memory.
+///
+/// The *path* is handed on, not the bytes: what receives it is a page,
+/// and a page takes a file by path the way every other picker in this app
+/// hands one over. Nothing is opened or saved from here.
 ///
 /// The name is the app's, so it is taken apart and only its last
 /// component kept: an app that asks to write `../../../etc/passwd` gets
 /// a file called `passwd` in the cache.
-fn to_chat(shared: &Shared, body: &[u8]) -> Response {
-    let Ok(text) = std::str::from_utf8(body) else {
-        return Response::empty("400 Bad Request");
-    };
-    let Ok(asked) = serde_json::from_str::<serde_json::Value>(text) else {
-        return Response::empty("400 Bad Request");
-    };
-    let message = asked
-        .get("text")
-        .and_then(serde_json::Value::as_str)
-        .unwrap_or_default()
-        .to_string();
-    let name = asked
-        .get("name")
-        .and_then(serde_json::Value::as_str)
-        .unwrap_or_default();
-    let encoded = asked.get("base64").and_then(serde_json::Value::as_str);
+async fn take_handover(
+    shared: &Shared,
+    stream: &mut TcpStream,
+    head: Head,
+) -> std::io::Result<Response> {
+    let query = head.target.split_once('?').map_or("", |(_, rest)| rest);
+    let name = field(query, "name");
+    let message = field(query, "text");
 
-    let path = match (name, encoded) {
-        // Text alone is a message like any other.
-        ("", None) if !message.is_empty() => String::new(),
-        (name, Some(encoded)) if !name.is_empty() => {
-            let Some(bytes) = decode_base64(encoded) else {
-                return Response::empty("400 Bad Request");
-            };
-            match write_outgoing(shared, name, &bytes) {
-                Ok(path) => path,
-                Err(_) => return Response::empty("500 Internal Server Error"),
-            }
+    // Text with no file: nothing to write, and nothing to read either.
+    if name.is_empty() {
+        drain(stream, head.started.len(), head.length).await?;
+        if message.is_empty() {
+            return Ok(Response::empty("400 Bad Request"));
         }
-        // Neither a file nor a word: nothing to send, which the spec
-        // makes the app's mistake rather than the host's.
-        _ => return Response::empty("400 Bad Request"),
+        return Ok(handed_over(shared, String::new(), message));
+    }
+
+    // Past the cap before a byte of it is written: the length says so,
+    // and refusing here leaves nothing behind to delete.
+    if head.length > MAX_HANDOVER {
+        drain(stream, head.started.len(), head.length).await?;
+        return Ok(Response::empty("413 Payload Too Large"));
+    }
+    let Ok(path) = outgoing_path(shared, &name) else {
+        drain(stream, head.started.len(), head.length).await?;
+        return Ok(Response::empty("400 Bad Request"));
+    };
+    match write_streamed(stream, &path, &head).await? {
+        Written::Done => Ok(handed_over(
+            shared,
+            path.to_string_lossy().into_owned(),
+            message,
+        )),
+        Written::TooLarge => {
+            drop(std::fs::remove_file(&path));
+            Ok(Response::empty("413 Payload Too Large"))
+        }
+        Written::Failed => {
+            drop(std::fs::remove_file(&path));
+            Ok(Response::empty("500 Internal Server Error"))
+        }
+    }
+}
+
+/// How a streamed body ended.
+enum Written {
+    Done,
+    TooLarge,
+    Failed,
+}
+
+/// Copy the body onto the disk as it arrives, or say why not.
+async fn write_streamed(
+    stream: &mut TcpStream,
+    path: &std::path::Path,
+    head: &Head,
+) -> std::io::Result<Written> {
+    use std::io::Write as _;
+
+    // `std::fs` rather than tokio's: these are chunk-sized writes to the
+    // phone's own storage, and what this replaces was a single blocking
+    // write of the entire file.
+    let Ok(mut file) = std::fs::File::create(path) else {
+        drain(stream, head.started.len(), head.length).await?;
+        return Ok(Written::Failed);
     };
 
-    // Raised once the app has its answer; see `answer`.
+    // What has come off the socket, which is what a drain must not ask
+    // for again -- not the same as what has reached the file.
+    let mut taken = head.started.len();
+    let mut chunk = vec![0_u8; 64 * 1024];
+    let mut rest: &[u8] = &head.started;
+    loop {
+        if taken > MAX_HANDOVER {
+            drain(stream, taken, head.length).await?;
+            return Ok(Written::TooLarge);
+        }
+        if !rest.is_empty() && file.write_all(rest).is_err() {
+            drain(stream, taken, head.length).await?;
+            return Ok(Written::Failed);
+        }
+        if taken >= head.length {
+            break;
+        }
+        let read = stream.read(&mut chunk).await?;
+        if read == 0 {
+            break;
+        }
+        rest = &chunk[..read];
+        taken += read;
+    }
+    if file.flush().is_err() {
+        return Ok(Written::Failed);
+    }
+    Ok(Written::Done)
+}
+
+/// Read whatever is left of a body and drop it.
+///
+/// `taken` is how much of it has already come off the socket, so that a
+/// body half-read is not waited on twice over -- which is a wait for
+/// bytes the other end has already sent and will not send again.
+///
+/// Answering and closing on a client that is still writing resets the
+/// connection, and a reset is not an answer: the app sees a host it could
+/// not reach and has no idea why.
+async fn drain(stream: &mut TcpStream, taken: usize, length: usize) -> std::io::Result<()> {
+    let mut dropped = taken;
+    let mut chunk = [0_u8; 8192];
+    while dropped < length.min(MAX_DRAIN) {
+        let read = stream.read(&mut chunk).await?;
+        if read == 0 {
+            break;
+        }
+        dropped += read;
+    }
+    Ok(())
+}
+
+/// The answer to a handover, with the page told once it is on the wire.
+fn handed_over(shared: &Shared, path: String, message: String) -> Response {
     let to_chat = Arc::clone(&shared.to_chat);
     let mut response = Response::empty("204 No Content");
     response.after = Some(Box::new(move || to_chat(path, message)));
     response
 }
 
-/// Write what an app is sending into the cache, under a name of its own
-/// choosing but nowhere of its own choosing.
-fn write_outgoing(shared: &Shared, name: &str, bytes: &[u8]) -> Result<String, String> {
+/// One field out of a query string, percent-decoded.
+fn field(query: &str, name: &str) -> String {
+    query
+        .split('&')
+        .filter_map(|pair| pair.split_once('='))
+        .find(|(key, _)| *key == name)
+        .map(|(_, value)| percent_decode(value))
+        .unwrap_or_default()
+}
+
+/// Where a file an app is handing over is written, under a name of its
+/// own choosing but nowhere of its own choosing.
+///
+/// The directory is made here and the file is opened by the caller, which
+/// then writes it as it arrives.
+fn outgoing_path(shared: &Shared, name: &str) -> Result<std::path::PathBuf, String> {
     let name = std::path::Path::new(name)
         .file_name()
         .map(|name| name.to_string_lossy().into_owned())
         .filter(|name| !name.is_empty() && name != "." && name != "..")
         .ok_or_else(|| format!("{name} is not a file name"))?;
     // One directory per app instance, emptied as the app starts: what is
-    // in it is a handover in progress, and the message it was sent as
-    // carries the core's own copy.
-    let path = crate::qr::cache_file(&format!(
+    // in it is a handover in progress.
+    crate::qr::cache_file(&format!(
         "{}/{}/{name}",
         OUTBOX_DIR, shared.instance.message_id
-    ))?;
-    std::fs::write(&path, bytes)
-        .map_err(|err| format!("cannot write {}: {err}", path.display()))?;
-    Ok(path.to_string_lossy().into_owned())
+    ))
 }
 
 /// Where under the cache a file an app is sending waits until the reader

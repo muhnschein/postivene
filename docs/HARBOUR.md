@@ -335,25 +335,18 @@ removed from the store even after approval. Not an option.
    stops it -- `ss -ltn` should show no loopback port of ours afterwards.
    An app that hands a file back is the other direction: take one that
    exports (`sharer` has a download button on every file it holds), tap
-   it, and check that the app is asked about rather than a chat -- Open
-   hands the file to whatever the phone opens its kind with, Save puts a
-   copy in Downloads where the file manager looks. The file is written
-   into the cache first, so a sandbox that will not let the app write
-   there fails here and nowhere else. Check the app itself too: it is
-   told the file went out before the dialog appears, so it should report
-   success rather than an unreachable host, and backing out of the dialog
-   should land on the app still running rather than on a blank page --
-   the dialog is pushed over it, and being covered is not leaving. Try a
-   big file as well as a small one: past the host's cap the app should
-   say its host answered rather than that it could not be reached, which
-   is the difference between a refusal and a connection dropped
-   mid-upload.
-   A cut message read whole is the other thing only a device shows: send
-   yourself something past forty lines, tap "View full message", and
-   check that it has the line breaks it was typed with and not a blank
-   line between every one of them. The core writes each line as `<br/>`
-   with a newline after the tag, and counting both double-spaced every
-   long message that had been cut.
+   it, and check that a copy lands in Downloads where the file manager
+   looks, with the notice saying so -- no chat picker, and nothing asked.
+   The file is written into the cache first, so a sandbox that will not
+   let the app write there fails here and nowhere else. Check the app
+   itself too: it is told the file went out before anything else
+   happens, so it should report success rather than an unreachable host.
+   Try a big file as well as a small one -- a video, not a screenshot.
+   The file goes from the socket to the disk a chunk at a time and
+   nothing holds it, so the size to watch is the phone's free storage,
+   not its memory; past the cap the app should say its host answered
+   rather than that it could not be reached, which is the difference
+   between a refusal and a connection dropped mid-upload.
    An app that will not open says why rather than drawing grey: the host
    answers with the core's own reason, the engine's error page is left
    alone rather than turned back, and the reason stays on the screen

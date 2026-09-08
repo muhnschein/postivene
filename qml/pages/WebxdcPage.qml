@@ -91,17 +91,22 @@ Page {
         // The message is gone -- deleted here or on another device --
         // so there is nothing left to run.
         onGone: pageStack.pop()
-        // The app has handed a file over. What the reader wants with it
-        // is theirs to say, and the two answers are on a dialog: see
-        // HandoverDialog.qml for why a chat is not one of them.
+        // The app has handed a file over. It is kept, not put into a
+        // chat: see `offer` below.
         onHanded_over: page.offer(file_path, text)
     }
 
-    /// Ask what to do with a file the app produced.
+    /// Keep a file the app produced.
     ///
-    /// Text with no file has nowhere to be opened or saved, so it goes on
-    /// the clipboard instead and the page says so -- the reader asked for
-    /// it either way, and dropping it silently is the one thing that
+    /// Saved rather than asked about. The button an app draws over this
+    /// is a download, and a download does not ask -- a chooser between
+    /// opening and keeping was tried here and was two taps in front of
+    /// the one thing the reader had already asked for. The copy goes to
+    /// Downloads, where the file manager looks, and the notice says so.
+    ///
+    /// Text with no file has nowhere to be saved, so it goes on the
+    /// clipboard instead and the page says that too: the reader asked
+    /// for it either way, and dropping it silently is the one thing that
     /// would not be an answer.
     function offer(filePath, text) {
         if (filePath.length === 0) {
@@ -111,25 +116,7 @@ Page {
             }
             return
         }
-        var dialog = pageStack.push(Qt.resolvedUrl("HandoverDialog.qml"), {
-            filePath: filePath,
-            fileName: page.nameOf(filePath)
-        })
-        if (!dialog) {
-            return
-        }
-        dialog.openChosen.connect(function () {
-            Qt.openUrlExternally(page.urlOf(filePath))
-        })
-        dialog.saveChosen.connect(function () {
-            handoverSaver.save(page.urlOf(filePath), StandardPaths.download)
-        })
-    }
-
-    /// The last part of a path, which is what the app called the file.
-    function nameOf(filePath) {
-        var cut = filePath.lastIndexOf("/")
-        return cut < 0 ? filePath : filePath.substring(cut + 1)
+        handoverSaver.save(page.urlOf(filePath), StandardPaths.download)
     }
 
     /// A path as a URL, encoded rather than concatenated: the name is the

@@ -116,6 +116,7 @@ Page {
             }
             return
         }
+        handoverSaver.handedOver = filePath
         handoverSaver.save(page.urlOf(filePath), StandardPaths.download)
     }
 
@@ -133,9 +134,27 @@ Page {
     FileSaver {
         id: handoverSaver
         objectName: "handoverSaver"
-        //: Where a file a webxdc app produced was copied to.
-        onSaved: notice.show(qsTr("Saved to Downloads"))
-        onError: page.errorMessage = message
+        /// The file the app handed over: a copy in the cache, waiting to
+        /// be saved. Once the reader has their own copy the cached one is
+        /// dead weight, so it goes either way -- a save that failed will
+        /// not be retried from it, and an app that hands over a hundred
+        /// files should not leave a hundred behind.
+        property string handedOver
+        onSaved: {
+            //: Where a file a webxdc app produced was copied to.
+            notice.show(qsTr("Saved to Downloads"))
+            handoverSaver.forget()
+        }
+        onError: {
+            page.errorMessage = message
+            handoverSaver.forget()
+        }
+        function forget() {
+            if (handoverSaver.handedOver.length > 0) {
+                app.discard(handoverSaver.handedOver)
+                handoverSaver.handedOver = ""
+            }
+        }
     }
 
     Connections {

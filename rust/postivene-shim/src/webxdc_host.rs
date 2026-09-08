@@ -82,16 +82,6 @@ const MAX_HEAD: usize = 16 * 1024;
 /// body is not read at all.
 const MAX_BODY: usize = 512 * 1024;
 
-/// The most a file an app may hand over.
-///
-/// It is not held any more -- it goes from the socket to the cache a
-/// chunk at a time -- so what this guards is the phone's storage rather
-/// than its memory: the cache is emptied with the app, but not while one
-/// is running, and an app in a loop should not be able to fill a disk
-/// before anybody notices. Past it the app is told, and told in an
-/// answer it can show.
-const MAX_HANDOVER: usize = 100 * 1024 * 1024;
-
 /// The most of a refused body to read before answering.
 ///
 /// A request whose body is not going to be read still has to be listened
@@ -197,6 +187,8 @@ pub(crate) async fn start(
     // own business, and half of what apps ask for is absolute.
     let url = format!("http://{authority}/index.html");
     let running = Arc::new(AtomicBool::new(true));
+    // Whatever the last run left behind; see `empty_outbox`.
+    empty_outbox(instance.message_id);
     let shared = Arc::new(Shared {
         rpc,
         instance,
@@ -589,9 +581,15 @@ fn handover_asked(shared: &Shared, head: &Head) -> bool {
 /// The file *is* the request body -- no base64, no JSON around it -- so
 /// it is copied from the socket into the cache a chunk at a time and
 /// never held. What it is called and what goes with it are in the query,
-/// which the head already carried. That shape is why there is hardly a
-/// limit left: the old one was set by holding the whole of the file more
-/// than once, and a phone has better uses for that memory.
+/// which the head already carried.
+///
+/// There is no size limit. The one there was existed to keep the file
+/// out of the heap, and streaming keeps it out already; what was left of
+/// it was a number standing in for a cleanup that did not exist. The
+/// cleanup exists now -- the copy goes as soon as it is saved, and the
+/// outbox is emptied when the app starts -- and the disk answers for
+/// itself: a write with no room left for it is a `500`, which is the
+/// truth and is an answer the app can show.
 ///
 /// The *path* is handed on, not the bytes: what receives it is a page,
 /// and a page takes a file by path the way every other picker in this app
@@ -618,12 +616,6 @@ async fn take_handover(
         return Ok(handed_over(shared, String::new(), message));
     }
 
-    // Past the cap before a byte of it is written: the length says so,
-    // and refusing here leaves nothing behind to delete.
-    if head.length > MAX_HANDOVER {
-        drain(stream, head.started.len(), head.length).await?;
-        return Ok(Response::empty("413 Payload Too Large"));
-    }
     let Ok(path) = outgoing_path(shared, &name) else {
         drain(stream, head.started.len(), head.length).await?;
         return Ok(Response::empty("400 Bad Request"));
@@ -634,10 +626,6 @@ async fn take_handover(
             path.to_string_lossy().into_owned(),
             message,
         )),
-        Written::TooLarge => {
-            drop(std::fs::remove_file(&path));
-            Ok(Response::empty("413 Payload Too Large"))
-        }
         Written::Failed => {
             drop(std::fs::remove_file(&path));
             Ok(Response::empty("500 Internal Server Error"))
@@ -648,7 +636,6 @@ async fn take_handover(
 /// How a streamed body ended.
 enum Written {
     Done,
-    TooLarge,
     Failed,
 }
 
@@ -674,10 +661,8 @@ async fn write_streamed(
     let mut chunk = vec![0_u8; 64 * 1024];
     let mut rest: &[u8] = &head.started;
     loop {
-        if taken > MAX_HANDOVER {
-            drain(stream, taken, head.length).await?;
-            return Ok(Written::TooLarge);
-        }
+        // A write that fails is the disk being full as often as not,
+        // which is the only ceiling this route has left.
         if !rest.is_empty() && file.write_all(rest).is_err() {
             drain(stream, taken, head.length).await?;
             return Ok(Written::Failed);
@@ -749,17 +734,68 @@ fn outgoing_path(shared: &Shared, name: &str) -> Result<std::path::PathBuf, Stri
         .map(|name| name.to_string_lossy().into_owned())
         .filter(|name| !name.is_empty() && name != "." && name != "..")
         .ok_or_else(|| format!("{name} is not a file name"))?;
-    // One directory per app instance, emptied as the app starts: what is
-    // in it is a handover in progress.
-    crate::qr::cache_file(&format!(
-        "{}/{}/{name}",
-        OUTBOX_DIR, shared.instance.message_id
-    ))
+    Ok(outbox_dir(shared.instance.message_id)?.join(name))
 }
 
-/// Where under the cache a file an app is sending waits until the reader
-/// has picked a chat for it.
+/// Where under the cache a file an app hands over waits for the page to
+/// save it: one directory per app instance, and the only directory
+/// anything here will delete from.
 pub(crate) const OUTBOX_DIR: &str = "webxdc/outbox";
+
+/// This instance's outbox, made if it is not there yet.
+fn outbox_dir(message_id: u32) -> Result<std::path::PathBuf, String> {
+    // `cache_file` makes the parent of whatever it is asked for, so
+    // asking it for a file in the outbox is what makes the outbox.
+    let inside = crate::qr::cache_file(&format!("{OUTBOX_DIR}/{message_id}/file"))?;
+    inside
+        .parent()
+        .map(std::path::Path::to_path_buf)
+        .ok_or_else(|| "the outbox has no directory of its own".to_string())
+}
+
+/// Delete a file this app handed over, now that it has been saved.
+///
+/// What the page saves is a copy, so once it is saved the cache holds
+/// the same bytes a second time and nothing will ever ask for them. On a
+/// phone that second copy is the whole cost of the feature, and it is
+/// this call that stops it being permanent.
+///
+/// The path comes back from the page rather than being remembered here,
+/// so it is checked rather than trusted: anything that is not a file
+/// directly in this instance's own outbox is left where it is.
+pub(crate) fn discard_outgoing(message_id: u32, path: &str) -> bool {
+    let Ok(dir) = outbox_dir(message_id) else {
+        return false;
+    };
+    let path = std::path::Path::new(path);
+    if !in_outbox(&dir, path) {
+        return false;
+    }
+    std::fs::remove_file(path).is_ok()
+}
+
+/// Whether `path` names a file the outbox itself holds.
+///
+/// Directly in it, so a directory below it does not count and neither
+/// does a `..` climbing back out: this is the whole of what stands
+/// between a path the page passed on and `remove_file`, so it compares
+/// rather than searches.
+fn in_outbox(dir: &std::path::Path, path: &std::path::Path) -> bool {
+    !dir.as_os_str().is_empty() && path.parent() == Some(dir)
+}
+
+/// Empty this instance's outbox.
+///
+/// What is left in it is a handover nothing ever saved -- the app was
+/// closed with one in flight, or the copy failed -- and it would sit
+/// there for as long as the phone did. An app starting is the moment to
+/// clear it: it is the one point at which none of its own handovers can
+/// be in flight.
+pub(crate) fn empty_outbox(message_id: u32) {
+    if let Ok(dir) = outbox_dir(message_id) {
+        drop(std::fs::remove_dir_all(dir));
+    }
+}
 
 /// One file from the archive, through the core. The error is the core's
 /// own words: the message is gone, the archive holds no such name, or the
@@ -993,8 +1029,34 @@ async fn write_response(stream: &mut TcpStream, response: &Response) -> std::io:
 #[cfg(test)]
 mod tests {
     use super::{
-        archive_path, content_type, decode_base64, inject, percent_decode, token, Response,
+        archive_path, content_type, decode_base64, in_outbox, inject, percent_decode, token,
+        Response,
     };
+
+    #[test]
+    fn only_a_file_in_the_outbox_itself_is_ever_deleted() {
+        let dir = std::path::Path::new("/cache/postivene/webxdc/outbox/5");
+        let inside = |name: &str| in_outbox(dir, std::path::Path::new(name));
+
+        assert!(inside("/cache/postivene/webxdc/outbox/5/notes.txt"));
+        // A name the app chose is kept whole, quirks and all.
+        assert!(inside("/cache/postivene/webxdc/outbox/5/two words.mp4"));
+
+        // Another app's outbox, which is another app's business.
+        assert!(!inside("/cache/postivene/webxdc/outbox/6/notes.txt"));
+        // The outbox itself, and the cache around it.
+        assert!(!inside("/cache/postivene/webxdc/outbox/5"));
+        assert!(!inside("/cache/postivene/webxdc/outbox"));
+        // Below it rather than in it.
+        assert!(!inside("/cache/postivene/webxdc/outbox/5/deeper/notes.txt"));
+        // The reader's own files, however the path is written.
+        assert!(!inside("/elsewhere/Downloads/notes.txt"));
+        assert!(!inside(
+            "/cache/postivene/webxdc/outbox/5/../../../../etc/passwd"
+        ));
+        assert!(!inside("notes.txt"));
+        assert!(!inside(""));
+    }
 
     #[test]
     fn base64_reads_with_or_without_padding_and_refuses_anything_else() {

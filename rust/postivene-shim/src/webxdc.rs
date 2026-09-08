@@ -217,6 +217,9 @@ pub struct WebxdcApp {
     pub start: qt_method!(fn(&mut self)),
     /// Stop serving it. Called for you when the object goes away.
     pub stop: qt_method!(fn(&mut self)),
+    /// Delete a file the app handed over, now that the page has saved
+    /// it somewhere the reader keeps things.
+    pub discard: qt_method!(fn(&mut self, file_path: QString)),
     /// Apply one core event. Only what changes this app is acted on.
     pub handle_event:
         qt_method!(fn(&mut self, context_id: u32, kind: QString, payload_json: QString)),
@@ -359,6 +362,15 @@ impl WebxdcApp {
         runtime.spawn(async move {
             done(host_for(&rpc, account_id, message_id, to_chat).await);
         });
+    }
+
+    /// Forget a file the app handed over, now that it has been kept.
+    ///
+    /// The page saves a copy and this deletes the original, which is in
+    /// the cache and has nothing left to do. Only a file in this app's
+    /// own outbox goes; see `webxdc_host::discard_outgoing`.
+    pub fn discard(&mut self, file_path: QString) {
+        crate::webxdc_host::discard_outgoing(self.message_id, &file_path.to_string());
     }
 
     /// Stop serving the app.

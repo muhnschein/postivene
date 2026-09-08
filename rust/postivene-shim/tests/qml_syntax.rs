@@ -831,6 +831,19 @@ fn the_webxdc_page_keeps_a_handed_over_file() {
         !text.contains("HandoverDialog"),
         "the page still asks what to do with the file rather than keeping it"
     );
+    // The cache copy is the page's to clean up: nothing else knows the
+    // save has happened, and an export that leaves one behind costs the
+    // phone twice over for every file an app ever makes.
+    assert!(
+        offer.contains("handoverSaver.handedOver ="),
+        "the page does not keep the path it is saving from, so it has \
+         nothing to delete afterwards: {offer:?}"
+    );
+    assert!(
+        code.contains("app.discard("),
+        "the copy in the cache is never deleted, so every file an app \
+         hands over stays on the phone twice"
+    );
 }
 
 /// Being covered by another page does not stop the app under it.

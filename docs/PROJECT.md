@@ -82,8 +82,16 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   socket into the cache a chunk at a time. It was JSON with the file
   base64 inside it at first, and that held the whole of it three times
   over between the two ends: what a file worth exporting is, is exactly
-  the size that cannot afford it. What is left of the cap is about the
-  phone's storage rather than its memory.
+  the size that cannot afford it. There is no cap left at all. The one
+  that outlived the base64 was a number standing in for a cleanup that
+  did not exist -- nothing emptied the outbox, so every export left a
+  second copy in the cache for good, and `deltachat-android` has the
+  same leak in a worse place (its blobs go to the app's data directory,
+  which the system will not reclaim). The cleanup is what was missing:
+  the page deletes the cached copy once the file is saved, and starting
+  an app empties its outbox, which is the one moment none of its own
+  handovers can be in flight. What bounds a file now is the disk, and a
+  write with no room for it is a `500` the app can show.
   Two other things about it are deliberate. The app's request is
   answered *before* the page is told, and only if that answer got out.
   And the page keeps serving an app it has opened a page over: stopping
@@ -208,9 +216,9 @@ In order of what matters:
    emoji the quick row does not offer.
 4. **The rest of the webxdc API.** Apps are sent, shown and run
    (`webxdc.rs`, `WebxdcPage.qml`), and status updates go both ways. What
-   is not offered is the newer calls -- `sendToChat`, `importFiles`,
-   realtime channels -- which are absent rather than present and failing,
-   so an app that feature-tests for one takes its own other path. Nor is
+   is not offered is the newer calls -- `importFiles`, realtime channels
+   -- which are absent rather than present and failing, so an app that
+   feature-tests for one takes its own other path. Nor is
    an app's `source_code_url` shown anywhere: the page has no pulley to
    put it in (a WebView cannot sit in the flickable one needs), and a tap
    on the app's own name that opens a URL its sender chose is a worse

@@ -165,6 +165,15 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
     let cache = temp.join("cache");
     std::fs::create_dir_all(&cache).expect("create cache dir");
 
+    // A handover from a run that ended before the page could save it.
+    // Nothing will ever ask for it again, so starting the app is what
+    // clears it: without that, every export a reader ever made would
+    // still be on the phone.
+    let outbox = cache.join("postivene/postivene/webxdc/outbox/5");
+    std::fs::create_dir_all(&outbox).expect("create outbox");
+    let stale = outbox.join("stale.bin");
+    std::fs::write(&stale, "left over").expect("write a stale handover");
+
     // SAFETY: single-threaded test binary; set before Qt starts.
     unsafe {
         std::env::set_var("QT_QPA_PLATFORM", "offscreen");
@@ -312,8 +321,10 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
                 .unwrap_or_else(|err| err)
         );
 
-        // And one past what the cache will take, which is the app's own
-        // answer to give -- not a connection that goes away mid-write.
+        // And one past the 100 MB this route used to refuse. Nothing
+        // holds it either, so the only thing that could stop it now is
+        // the disk -- a video an app made is exactly the case the cap
+        // was in the way of.
         let huge = "A".repeat(101 * 1024 * 1024);
         record!(
             "to-chat-huge",
@@ -321,7 +332,7 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
                 .unwrap_or_else(|err| err)
         );
 
-        // The app sending a move, the way `webxdc.js` does.        // The app sending a move, the way `webxdc.js` does.
+        // The app sending a move, the way `webxdc.js` does.
         let update = "{\"payload\":{\"move\":\"e4\"}}";
         record!(
             "send",
@@ -467,12 +478,13 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
         value("to-chat-big")
     );
     assert!(
-        value("to-chat-huge").starts_with("HTTP/1.1 413"),
-        "a file past what the host will hold was not refused with an \
-         answer: {}. A `write-body:` here is the bug the phone saw -- the \
-         host answered and closed while the app was still writing, the \
-         app's request died mid-send, and all it could say was that its \
-         host could not be reached. {context}",
+        value("to-chat-huge").starts_with("HTTP/1.1 204"),
+        "a 101 MB file did not go through: {}. There is no size limit on \
+         this route: the file is never held, and what used to be a cap \
+         was memory this no longer spends. A `write-body:` here is the \
+         bug the phone saw -- the host answered and closed while the app \
+         was still writing, the app's request died mid-send, and all it \
+         could say was that its host could not be reached. {context}",
         value("to-chat-huge")
     );
     assert!(
@@ -489,18 +501,30 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
         .collect();
     assert_eq!(
         handed.len(),
-        3,
-        "the page was told about {} handovers rather than the three that \
-         were accepted: {said:?}. The one past the cap is refused before \
-         anything is written, so it must not be among them -- a page that \
-         asked what to do with a file the host never wrote would be \
-         asking about nothing. {context}",
+        4,
+        "the page was told about {} handovers rather than the four that \
+         were accepted: {said:?}. {context}",
         handed.len()
     );
+    let video = handed
+        .iter()
+        .map(|entry| entry.trim_start_matches("to-chat:"))
+        .map(|entry| entry.split('|').next().unwrap_or_default())
+        .find(|path| path.ends_with("/video.mp4"))
+        .unwrap_or_default();
+    assert_eq!(
+        std::fs::metadata(video).map(|file| file.len()).unwrap_or(0),
+        101 * 1024 * 1024,
+        "the 101 MB file did not reach the disk whole: {video:?}. It is \
+         written as it arrives, so a short one here is a body the host \
+         stopped reading. {context}"
+    );
     assert!(
-        !said.contains("video.mp4"),
-        "a handover the host refused still reached the page: {said:?}. \
-         {context}"
+        !stale.exists(),
+        "a handover from an earlier run was still in the outbox at {}. \
+         Starting the app is what empties it, and without that a copy of \
+         every file an app ever handed over stays on the phone. {context}",
+        stale.display()
     );
     let first = handed[0].trim_start_matches("to-chat:");
     let (path, words) = first.split_once('|').unwrap_or((first, ""));

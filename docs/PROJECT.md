@@ -71,7 +71,13 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   gives it into the cache and raises it on the page, which puts the
   question to the window -- the same one a picture shared from the
   gallery arrives with. Nothing is sent from the host: which chat is not
-  its to decide.
+  its to decide. Two orderings matter and are both deliberate: the app's
+  request is answered *before* the picker is raised, and the page keeps
+  serving an app it has opened a page over. Stopping the app whenever
+  the page deactivated stopped it in the middle of the very request that
+  asked for the picker -- the app's fetch came back as a closed socket
+  and it reported its host gone -- so leaving is destruction, which is
+  what a popped page and a replaced stack both are.
   Where a new app comes from is the store, a website
   (`WebxdcStorePage.qml`); a tap on a link to a `.xdc` is caught before
   the engine can download it and fetched through the core instead
@@ -119,7 +125,16 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   all: it cuts the body and puts the rest in an HTML part, so the whole
   of such a message is only behind `get_message_html` -- read as words,
   never rendered as markup (`html.rs`), for the reason every label in
-  the app is pinned to plain text. Both offers belong to a body: an
+  the app is pinned to plain text. A newline in that part is *not* a
+  line break: in HTML it is whitespace, and the core writes each line of
+  the message as `line<br/>` with a newline after the tag, so a reader
+  that counts both puts a blank line between every line. Whitespace
+  between the markup is collapsed the way a browser collapses it, and
+  the tag is the break; two `<br/>` in a row are still two, so a blank
+  line the reader typed survives as one. The fake core's fixture is
+  written in that shape for the same reason -- it was one unbroken line,
+  and every long message reached the phone double-spaced with nothing in
+  the suite to notice. Both offers belong to a body: an
   attachment with no caption has none to fold, and a message the core is
   still holding back has none of it here yet -- neither was excluded at
   first, and an attachment arriving in an open chat grew two words of

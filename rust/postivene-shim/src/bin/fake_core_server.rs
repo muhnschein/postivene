@@ -482,9 +482,22 @@ fn message_object(msg: u64) -> Value {
 /// The beginning of the long message, which is all that fits in `text`.
 const LONG_MESSAGE_HEAD: &str = "# Groceries";
 
-/// The whole of it, as the core would give it out: an HTML part.
-const LONG_MESSAGE_HTML: &str = "<html><head><title>ignored</title></head><body><h1>Groceries</h1>\
-     <ul><li>milk</li><li>bread</li></ul><p>and a &amp; sign</p></body></html>";
+/// The whole of it, as the core gives it out: an HTML part, written the
+/// way the pinned `deltachat-rpc-server` writes one.
+///
+/// The newlines matter and are why they are here. The core's own
+/// template puts its head on lines of its own, and turns each newline of
+/// the message into `<br/>` *followed by a newline* -- so a reader that
+/// counts both gets a blank line between every line of the message. This
+/// fixture used to be one unbroken line, and a to-do list arrived on the
+/// phone double-spaced with nothing here to notice.
+const LONG_MESSAGE_HTML: &str = "<!DOCTYPE html>\n\
+     <html><head>\n\
+     <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n\
+     <meta name=\"color-scheme\" content=\"light dark\" />\n\
+     </head><body dir=\"auto\" style=\"unicode-bidi: plaintext\">\n\
+     Groceries<br/>\nmilk<br/>\nbread<br/>\nand a &amp; sign<br/>\n\
+     </body></html>\n";
 
 /// True for the inputs that stand in for "the server cannot be reached".
 fn should_fail(value: &str) -> bool {

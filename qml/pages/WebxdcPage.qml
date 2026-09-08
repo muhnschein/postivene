@@ -115,14 +115,20 @@ Page {
 
     Component.onCompleted: page.run()
 
-    // Leaving stops the app rather than leaving it served in the
-    // background: `stop` here, and the object's own going for the way out
-    // that never reaches this -- the whole stack being replaced.
-    onStatusChanged: {
-        if (status === PageStatus.Deactivating) {
-            app.stop()
-        }
-    }
+    // Leaving stops the app; being covered by another page does not.
+    //
+    // This used to stop on Deactivating, which fires for both -- and
+    // `sendToChat` opens the chat picker *over* the app, at the app's own
+    // request. So asking to send a file stopped the host in the middle of
+    // the very request that asked, the app's fetch was answered by a
+    // closed socket, and the app reported that it could not reach its
+    // host. Nothing was ever sent.
+    //
+    // Destruction is the honest signal for leaving: a popped page is
+    // destroyed, and a stack that is replaced takes the page with it.
+    // Both reach here, and both stop the app. What stays running is an
+    // app the reader is coming back to.
+    Component.onDestruction: app.stop()
 
     // Not a PageHeader: the name is the app's own, and a header cannot be
     // told to draw what it is given as plain text.

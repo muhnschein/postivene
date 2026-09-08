@@ -821,6 +821,34 @@ fn the_webxdc_page_hands_what_an_app_sends_to_the_window() {
     );
 }
 
+/// Being covered by another page does not stop the app under it.
+///
+/// The picker `sendToChat` opens is pushed *over* the app, so a page that
+/// stops its app whenever it deactivates stops it in the middle of the
+/// request that asked for the picker: the app's fetch is answered by a
+/// closed socket and it reports that its host is gone. Leaving is
+/// destruction -- a popped page is destroyed, and a replaced stack takes
+/// its pages with it -- and that is where the app is stopped. The page
+/// names `Sailfish.WebView`, so nothing else can check this.
+#[test]
+fn the_webxdc_page_keeps_serving_an_app_it_has_opened_a_page_over() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/pages/WebxdcPage.qml");
+    let text = fs::read_to_string(&path).expect("read WebxdcPage.qml");
+    let code = code_only(&text);
+    assert!(
+        !code.contains("PageStatus.Deactivating"),
+        "the page stops its app when it deactivates, which is what being \
+         covered by the chat picker is: `sendToChat` opens that picker, \
+         so asking to send a file kills the request that asked"
+    );
+    assert!(
+        code.contains("Component.onDestruction:")
+            && block_of(&code, "Component.onDestruction:").contains("app.stop()"),
+        "nothing stops the app when the page goes, so an app the reader \
+         has left carries on being served"
+    );
+}
+
 /// Every page the app pushes is a page that exists.
 ///
 /// A page is pushed by name, resolved at the moment of the tap, and a

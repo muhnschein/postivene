@@ -215,11 +215,23 @@ async fn accept(listener: TcpListener, shared: Arc<Shared>) {
 /// Read one request, answer it, and close. No keep-alive: every answer
 /// says so, and a page load is a handful of short connections.
 async fn answer(mut stream: TcpStream, shared: Arc<Shared>) -> std::io::Result<()> {
-    let response = match read_request(&mut stream).await? {
+    let mut response = match read_request(&mut stream).await? {
         Some(request) => route(&shared, &request).await,
         None => Response::empty("400 Bad Request"),
     };
-    write_response(&mut stream, &response).await
+    let after = response.after.take();
+    let written = write_response(&mut stream, &response).await;
+    // After the answer, never before it: what this sets off opens a page
+    // over the app, and an app whose request is still outstanding when
+    // that happens is an app that never hears back.
+    //
+    // And only if the answer arrived. A write that failed is a page that
+    // is no longer there to have asked, and a picker pushed for it would
+    // land over whatever the reader is looking at instead.
+    if let (Ok(()), Some(after)) = (&written, after) {
+        after();
+    }
+    written
 }
 
 /// One request, as much of it as anything here reads.
@@ -235,6 +247,10 @@ struct Response {
     status: &'static str,
     content_type: String,
     body: Vec<u8>,
+    /// What to do once this answer is on the wire, for the one route
+    /// whose answer has to arrive before what it sets off does. See
+    /// `to_chat`.
+    after: Option<Box<dyn FnOnce() + Send + Sync>>,
 }
 
 impl Response {
@@ -243,6 +259,7 @@ impl Response {
             status: "200 OK",
             content_type: content_type.to_string(),
             body,
+            after: None,
         }
     }
 
@@ -254,6 +271,7 @@ impl Response {
             status,
             content_type: "text/plain; charset=utf-8".to_string(),
             body: status.as_bytes().to_vec(),
+            after: None,
         }
     }
 
@@ -272,6 +290,7 @@ impl Response {
             status,
             content_type: "text/html; charset=utf-8".to_string(),
             body: body.into_bytes(),
+            after: None,
         }
     }
 }
@@ -531,8 +550,11 @@ fn to_chat(shared: &Shared, body: &[u8]) -> Response {
         _ => return Response::empty("400 Bad Request"),
     };
 
-    (shared.to_chat)(path, message);
-    Response::empty("204 No Content")
+    // Raised once the app has its answer; see `answer`.
+    let to_chat = Arc::clone(&shared.to_chat);
+    let mut response = Response::empty("204 No Content");
+    response.after = Some(Box::new(move || to_chat(path, message)));
+    response
 }
 
 /// Write what an app is sending into the cache, under a name of its own

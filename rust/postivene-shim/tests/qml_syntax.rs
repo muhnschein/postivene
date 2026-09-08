@@ -326,7 +326,7 @@ fn the_conversation_page_uses_the_pieces_that_are_tested() {
 fn text_from_the_other_end_is_pinned_to_plain() {
     // Bindings the core fills in from a message, a contact or a chat.
     // Anything reading one of these is showing remote input.
-    const REMOTE: [&str; 29] = [
+    const REMOTE: [&str; 30] = [
         "model.",
         "root.messageText",
         "root.quoteText",
@@ -336,6 +336,7 @@ fn text_from_the_other_end_is_pinned_to_plain() {
         "root.preview",
         "root.previewSender",
         "root.fileName",
+        "dialog.fileName",
         "root.filePath",
         "root.author",
         "root.body",
@@ -797,35 +798,51 @@ fn the_frame_scripts_the_pages_load_are_there() {
     );
 }
 
-/// A file an app hands over reaches the window, which asks which chat.
+/// A file an app hands over is offered to the reader, not to a chat.
 ///
-/// `sendToChat` is specified as asking the reader that question, and the
-/// window is where the question already lives -- it is the same one a
-/// picture shared from the gallery arrives with. Nothing else can check
-/// this: the page names `Sailfish.WebView`, so it is never loaded off a
-/// phone.
+/// The webxdc call is `sendToChat` and a chat is the only destination its
+/// name can carry, but the button an app draws over it is a download --
+/// `sharer`'s is a download arrow -- and what the reader means by that is
+/// the file, on their phone. So the page asks, and the two answers are
+/// opening it and keeping it. Nothing else can check this: the page names
+/// `Sailfish.WebView`, so it is never loaded off a phone.
 #[test]
-fn the_webxdc_page_hands_what_an_app_sends_to_the_window() {
+fn the_webxdc_page_offers_a_handed_over_file_to_the_reader() {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/pages/WebxdcPage.qml");
     let text = fs::read_to_string(&path).expect("read WebxdcPage.qml");
     let code = code_only(&text);
     assert!(
-        code.contains("onSend_to_chat_requested:"),
-        "the page ignores an app asking to put something into a chat, so \
-         `sendToChat` resolves and nothing happens"
+        code.contains("onHanded_over:"),
+        "the page ignores an app handing a file over, so the call resolves \
+         and nothing happens"
     );
     assert!(
-        block_of(&code, "onSend_to_chat_requested:").contains("appWindow.shareInto("),
-        "what the app handed over does not reach the window, which is \
-         what asks which chat it is for"
+        !code.contains("appWindow.shareInto("),
+        "a file an app handed over still goes to the chat picker, which \
+         is not what a download means"
+    );
+    // The raw text, since `code_only` blanks the string the page is
+    // named by. That the name resolves is the pushed-pages rule's job.
+    assert!(
+        text.contains("HandoverDialog.qml"),
+        "nothing asks what to do with the file the app handed over"
+    );
+    assert!(
+        block_of(&code, "onHanded_over:").contains("offer("),
+        "the handover does not reach the question"
+    );
+    assert!(
+        code.contains("Qt.openUrlExternally(") && code.contains("handoverSaver.save("),
+        "the page cannot both open and keep what an app handed over, \
+         which are the two answers it offers"
     );
 }
 
 /// Being covered by another page does not stop the app under it.
 ///
-/// The picker `sendToChat` opens is pushed *over* the app, so a page that
+/// The dialog a handover opens is pushed *over* the app, so a page that
 /// stops its app whenever it deactivates stops it in the middle of the
-/// request that asked for the picker: the app's fetch is answered by a
+/// request that asked for it: the app's fetch is answered by a
 /// closed socket and it reports that its host is gone. Leaving is
 /// destruction -- a popped page is destroyed, and a replaced stack takes
 /// its pages with it -- and that is where the app is stopped. The page
@@ -838,8 +855,8 @@ fn the_webxdc_page_keeps_serving_an_app_it_has_opened_a_page_over() {
     assert!(
         !code.contains("PageStatus.Deactivating"),
         "the page stops its app when it deactivates, which is what being \
-         covered by the chat picker is: `sendToChat` opens that picker, \
-         so asking to send a file kills the request that asked"
+         covered by the handover dialog is: handing a file over opens \
+         that dialog, so asking to export one kills the request that asked"
     );
     assert!(
         code.contains("Component.onDestruction:")

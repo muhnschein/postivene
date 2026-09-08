@@ -201,11 +201,15 @@ pub struct WebxdcApp {
     /// The message this app came in is gone, so there is nothing left to
     /// run: the page that is showing it should leave.
     pub gone: qt_signal!(),
-    /// The app asked to put something into a chat: a file it has written
-    /// into the cache, a piece of text, or both. Which chat is the
-    /// reader's to say, so this reaches the page rather than the core --
-    /// see `webxdc_host::ToChat`.
-    pub send_to_chat_requested: qt_signal!(file_path: QString, text: QString),
+    /// The app has handed something over: a file written into the cache,
+    /// a piece of text, or both.
+    ///
+    /// Named for what happened rather than for the call that did it. The
+    /// webxdc call is `sendToChat` and a chat is the only destination the
+    /// API can name, but the button an app draws for it is a download and
+    /// the reader means their phone by it -- so what to do with this is
+    /// the page's question, and it asks. See `webxdc_host::HandedOver`.
+    pub handed_over: qt_signal!(file_path: QString, text: QString),
 
     /// Reload what the core says about the app.
     pub reload: qt_method!(fn(&mut self)),
@@ -327,11 +331,10 @@ impl WebxdcApp {
         let to_page: QPointer<Self> = QPointer::from(&*self);
         let raise = queued_callback(move |(path, text): (String, String)| {
             if let Some(this) = to_page.as_pinned() {
-                this.borrow()
-                    .send_to_chat_requested(path.into(), text.into());
+                this.borrow().handed_over(path.into(), text.into());
             }
         });
-        let to_chat: crate::webxdc_host::ToChat =
+        let to_chat: crate::webxdc_host::HandedOver =
             std::sync::Arc::new(move |path, text| raise((path, text)));
 
         let done = queued_callback(move |result: Result<Host, String>| {
@@ -509,7 +512,7 @@ async fn host_for(
     rpc: &Arc<RpcClient>,
     account_id: u32,
     message_id: u32,
-    to_chat: crate::webxdc_host::ToChat,
+    to_chat: crate::webxdc_host::HandedOver,
 ) -> Result<Host, String> {
     let info = fetch_info(rpc, account_id, message_id).await?;
     // The name this account goes by, which the app shows beside whatever

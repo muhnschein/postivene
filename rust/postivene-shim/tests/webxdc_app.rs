@@ -46,7 +46,7 @@ const PROBE_QML: &str = r"
             message_id: 5
             onError: log += 'error:' + message + ';'
             onGone: log += 'gone;'
-            onSend_to_chat_requested: log += 'to-chat:' + file_path
+            onHanded_over: log += 'to-chat:' + file_path
                                              + '|' + text + ';'
         }
         // Nothing can be asked of the core until it is up, and it may
@@ -85,6 +85,42 @@ fn ask(authority: &str, request: &str) -> Result<String, String> {
     stream
         .write_all(request.as_bytes())
         .map_err(|err| format!("write: {err}"))?;
+    let mut answer = Vec::new();
+    stream
+        .read_to_end(&mut answer)
+        .map_err(|err| format!("read: {err}"))?;
+    Ok(String::from_utf8_lossy(&answer).into_owned())
+}
+
+/// A POST whose head and body are separate writes, which is what a real
+/// one is: the head goes out, then the body follows in whatever writes the
+/// network gives it. `ask` puts both in one, and a host that answers
+/// before it has read the body looks fine there and closes the connection
+/// under a real client's feet.
+///
+/// The error is the client's own, because that is the half that matters:
+/// a write that fails is what the app sees as a host it could not reach.
+fn post_apart(authority: &str, target: &str, body: &str) -> Result<String, String> {
+    let mut stream =
+        std::net::TcpStream::connect(authority).map_err(|err| format!("connect: {err}"))?;
+    stream
+        .set_read_timeout(Some(Duration::from_secs(10)))
+        .map_err(|err| err.to_string())?;
+    let head = format!(
+        "POST {target} HTTP/1.1\r\nHost: {authority}\r\n\
+         Content-Type: application/json\r\nContent-Length: {}\r\n\
+         Connection: close\r\n\r\n",
+        body.len()
+    );
+    stream
+        .write_all(head.as_bytes())
+        .map_err(|err| format!("write-head: {err}"))?;
+    stream.flush().map_err(|err| format!("flush: {err}"))?;
+    for part in body.as_bytes().chunks(64 * 1024) {
+        stream
+            .write_all(part)
+            .map_err(|err| format!("write-body: {err}"))?;
+    }
     let mut answer = Vec::new();
     stream
         .read_to_end(&mut answer)
@@ -287,6 +323,30 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
             .unwrap_or_else(|err| err)
         );
 
+        // The shape `sharer` hands over -- a name and base64, no words --
+        // at a size a shared file actually is, with the head and the body
+        // in separate writes the way a browser sends one.
+        let big = format!(
+            "{{\"name\":\"photo.png\",\"base64\":\"{}\",\"text\":\"\"}}",
+            "A".repeat(4 * 1024 * 1024)
+        );
+        record!(
+            "to-chat-big",
+            post_apart(&authority, &format!("{api}/to-chat"), &big).unwrap_or_else(|err| err)
+        );
+
+        // And one past what the host will hold, which is the app's own
+        // answer to give -- not a connection that goes away mid-write.
+        // A megabyte over the cap, so this moves with it.
+        let huge = format!(
+            "{{\"name\":\"video.mp4\",\"base64\":\"{}\",\"text\":\"\"}}",
+            "A".repeat(33 * 1024 * 1024)
+        );
+        record!(
+            "to-chat-huge",
+            post_apart(&authority, &format!("{api}/to-chat"), &huge).unwrap_or_else(|err| err)
+        );
+
         // The app sending a move, the way `webxdc.js` does.
         let update = "{\"payload\":{\"move\":\"e4\"}}";
         record!(
@@ -426,6 +486,22 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
         value("to-chat-escape")
     );
     assert!(
+        value("to-chat-big").starts_with("HTTP/1.1 204"),
+        "a file the size a shared one actually is did not go through: {}. \
+         The head and the body arrive in separate writes, which is what a \
+         browser does and what `ask` cannot show. {context}",
+        value("to-chat-big")
+    );
+    assert!(
+        value("to-chat-huge").starts_with("HTTP/1.1 413"),
+        "a file past what the host will hold was not refused with an \
+         answer: {}. A `write-body:` here is the bug the phone saw -- the \
+         host answered and closed while the app was still writing, the \
+         app's request died mid-send, and all it could say was that its \
+         host could not be reached. {context}",
+        value("to-chat-huge")
+    );
+    assert!(
         value("to-chat-empty").starts_with("HTTP/1.1 400"),
         "a handover with nothing in it was accepted: {}. {context}",
         value("to-chat-empty")
@@ -439,10 +515,18 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
         .collect();
     assert_eq!(
         handed.len(),
-        2,
-        "the page was told about {} handovers rather than the two that \
-         were accepted: {said:?}. {context}",
+        3,
+        "the page was told about {} handovers rather than the three that \
+         were accepted: {said:?}. The one past the cap is refused before \
+         anything is written, so it must not be among them -- a page that \
+         asked what to do with a file the host never wrote would be \
+         asking about nothing. {context}",
         handed.len()
+    );
+    assert!(
+        !said.contains("video.mp4"),
+        "a handover the host refused still reached the page: {said:?}. \
+         {context}"
     );
     let first = handed[0].trim_start_matches("to-chat:");
     let (path, words) = first.split_once('|').unwrap_or((first, ""));

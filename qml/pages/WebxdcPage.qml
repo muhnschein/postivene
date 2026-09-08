@@ -91,11 +91,64 @@ Page {
         // The message is gone -- deleted here or on another device --
         // so there is nothing left to run.
         onGone: pageStack.pop()
-        // The app asked to put something into a chat. Which chat is the
-        // reader's to say -- that is what the API says this does -- and
-        // the window already knows how to ask: it is the same question a
-        // picture shared from the gallery arrives with.
-        onSend_to_chat_requested: appWindow.shareInto(file_path, text)
+        // The app has handed a file over. What the reader wants with it
+        // is theirs to say, and the two answers are on a dialog: see
+        // HandoverDialog.qml for why a chat is not one of them.
+        onHanded_over: page.offer(file_path, text)
+    }
+
+    /// Ask what to do with a file the app produced.
+    ///
+    /// Text with no file has nowhere to be opened or saved, so it goes on
+    /// the clipboard instead and the page says so -- the reader asked for
+    /// it either way, and dropping it silently is the one thing that
+    /// would not be an answer.
+    function offer(filePath, text) {
+        if (filePath.length === 0) {
+            if (text.length > 0) {
+                Clipboard.text = text
+                notice.show(qsTr("Copied to the clipboard"))
+            }
+            return
+        }
+        var dialog = pageStack.push(Qt.resolvedUrl("HandoverDialog.qml"), {
+            filePath: filePath,
+            fileName: page.nameOf(filePath)
+        })
+        if (!dialog) {
+            return
+        }
+        dialog.openChosen.connect(function () {
+            Qt.openUrlExternally(page.urlOf(filePath))
+        })
+        dialog.saveChosen.connect(function () {
+            handoverSaver.save(page.urlOf(filePath), StandardPaths.download)
+        })
+    }
+
+    /// The last part of a path, which is what the app called the file.
+    function nameOf(filePath) {
+        var cut = filePath.lastIndexOf("/")
+        return cut < 0 ? filePath : filePath.substring(cut + 1)
+    }
+
+    /// A path as a URL, encoded rather than concatenated: the name is the
+    /// app's, and a "#" or a "%" in one makes a plain "file://" + path
+    /// point somewhere else. Per segment, as AttachmentPreview does it.
+    function urlOf(filePath) {
+        return Qt.resolvedUrl("file://" + filePath.split("/")
+                                                  .map(encodeURIComponent)
+                                                  .join("/"))
+    }
+
+    // Saving is the same copy the conversation makes of an attachment,
+    // into the folder the file manager looks in.
+    FileSaver {
+        id: handoverSaver
+        objectName: "handoverSaver"
+        //: Where a file a webxdc app produced was copied to.
+        onSaved: notice.show(qsTr("Saved to Downloads"))
+        onError: page.errorMessage = message
     }
 
     Connections {
@@ -210,6 +263,21 @@ Page {
         //: Shown while a webxdc app is being made ready to run.
         text: page.errorMessage.length > 0 ? page.errorMessage
                                            : qsTr("Starting the app")
+    }
+
+    // Says what just happened where the page has no state for it: a file
+    // copied out, or a line of text put on the clipboard.
+    Banner {
+        id: notice
+        objectName: "notice"
+        labelObjectName: "noticeLabel"
+        tone: "info"
+        timeout: 4
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
     }
 
     Banner {

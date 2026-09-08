@@ -82,12 +82,26 @@ const MAX_HEAD: usize = 16 * 1024;
 /// body is not read at all.
 const MAX_BODY: usize = 512 * 1024;
 
-/// The most a file an app hands to a chat may be, as it arrives: base64,
-/// so three quarters of this is the file. A picture an app exports is
-/// already past what an update may be, and the point of `sendToChat` is
+/// The most a file an app hands over may be, as it arrives: base64, so
+/// three quarters of this is the file. A picture an app exports is
+/// already past what an update may be, and the point of the handover is
 /// files -- while a cap there still has to be, because what is read is
-/// held in memory on a phone.
-const MAX_HANDOVER: usize = 16 * 1024 * 1024;
+/// held whole and more than once: the body as it arrived, the base64
+/// inside the parsed answer, and the bytes it decodes to. A file past
+/// this is refused with an answer the app can show rather than a socket
+/// that goes away under it; holding one of any size would want the
+/// base64 written out as it arrives, which is a bigger thing than this.
+const MAX_HANDOVER: usize = 32 * 1024 * 1024;
+
+/// The most of a refused body to read before answering.
+///
+/// A request whose body is not going to be read still has to be listened
+/// to: answering and closing while the other end is still writing resets
+/// the connection, and a reset is not an answer -- the app sees a host it
+/// could not reach and has no idea why. So the body is read and dropped
+/// first, up to this, which is generous enough for any refusal that is
+/// really an app's mistake and small enough not to sit here forever.
+const MAX_DRAIN: usize = 256 * 1024 * 1024;
 
 /// Which app is being served, and what it is told about itself.
 pub(crate) struct Instance {
@@ -108,21 +122,22 @@ pub(crate) struct Instance {
     pub(crate) send_update_max_size: u64,
 }
 
-/// What the host does with a file an app asks to send: hand it to the
-/// window, which asks which chat it is for.
+/// What the host does with a file an app hands over: give it to the page,
+/// which asks the reader what they want done with it.
 ///
 /// A callback rather than a core call, because this one is not the
-/// host's to make. `sendToChat` is specified as *asking the reader which
-/// chat*, so what the app hands over has to reach the page -- and the
-/// page is on the Qt thread, where a `queued_callback` puts it.
-pub(crate) type ToChat = Arc<dyn Fn(String, String) + Send + Sync>;
+/// host's to make. The API's own word for it is `sendToChat`, but the
+/// destination is the reader's and a chat is not the one they mean by a
+/// download -- so what the app hands over reaches the page, and the page
+/// is on the Qt thread, where a `queued_callback` puts it.
+pub(crate) type HandedOver = Arc<dyn Fn(String, String) + Send + Sync>;
 
 /// Everything a connection needs, shared by every one of them.
 struct Shared {
     rpc: Arc<RpcClient>,
     instance: Instance,
-    /// Where a file the app sends goes; see [`ToChat`].
-    to_chat: ToChat,
+    /// Where a file the app hands over goes; see [`HandedOver`].
+    to_chat: HandedOver,
     /// `/webxdc-api/<token>`: where the chat is, and the one part of
     /// this host that cannot be guessed. The app's own files are at the
     /// root beside it.
@@ -169,7 +184,7 @@ impl Drop for Host {
 pub(crate) async fn start(
     rpc: Arc<RpcClient>,
     instance: Instance,
-    to_chat: ToChat,
+    to_chat: HandedOver,
 ) -> Result<Host, String> {
     let listener = TcpListener::bind(SocketAddr::from((Ipv4Addr::LOCALHOST, 0)))
         .await
@@ -216,8 +231,9 @@ async fn accept(listener: TcpListener, shared: Arc<Shared>) {
 /// says so, and a page load is a handful of short connections.
 async fn answer(mut stream: TcpStream, shared: Arc<Shared>) -> std::io::Result<()> {
     let mut response = match read_request(&mut stream).await? {
-        Some(request) => route(&shared, &request).await,
-        None => Response::empty("400 Bad Request"),
+        Incoming::Request(request) => route(&shared, &request).await,
+        Incoming::TooLarge => Response::empty("413 Payload Too Large"),
+        Incoming::Malformed => Response::empty("400 Bad Request"),
     };
     let after = response.after.take();
     let written = write_response(&mut stream, &response).await;
@@ -302,8 +318,19 @@ fn escape(text: &str) -> String {
         .replace('>', "&gt;")
 }
 
-/// A request whose head fits, or `None` for one that does not parse.
-async fn read_request(stream: &mut TcpStream) -> std::io::Result<Option<Request>> {
+/// What came in: a request, or a reason there is not one.
+enum Incoming {
+    /// A request, head and body both.
+    Request(Request),
+    /// A body past what this host will hold. Its body has been read and
+    /// dropped, so the answer reaches the app rather than a reset.
+    TooLarge,
+    /// Nothing that parses as a request at all.
+    Malformed,
+}
+
+/// A request whose head fits, or the reason there is not one.
+async fn read_request(stream: &mut TcpStream) -> std::io::Result<Incoming> {
     let mut head = Vec::new();
     let mut chunk = [0_u8; 2048];
     let body_at = loop {
@@ -311,26 +338,26 @@ async fn read_request(stream: &mut TcpStream) -> std::io::Result<Option<Request>
             break at + 4;
         }
         if head.len() > MAX_HEAD {
-            return Ok(None);
+            return Ok(Incoming::Malformed);
         }
         let read = stream.read(&mut chunk).await?;
         if read == 0 {
-            return Ok(None);
+            return Ok(Incoming::Malformed);
         }
         head.extend_from_slice(&chunk[..read]);
     };
 
     let mut body = head.split_off(body_at);
     let Ok(text) = std::str::from_utf8(&head) else {
-        return Ok(None);
+        return Ok(Incoming::Malformed);
     };
     let mut lines = text.lines();
     let Some(start) = lines.next() else {
-        return Ok(None);
+        return Ok(Incoming::Malformed);
     };
     let mut parts = start.split(' ');
     let (Some(method), Some(target)) = (parts.next(), parts.next()) else {
-        return Ok(None);
+        return Ok(Incoming::Malformed);
     };
 
     let mut host = String::new();
@@ -355,7 +382,19 @@ async fn read_request(stream: &mut TcpStream) -> std::io::Result<Option<Request>
         MAX_BODY
     };
     if length > cap {
-        return Ok(None);
+        // Read it and drop it rather than closing on a client that is
+        // still writing; see MAX_DRAIN. Counted rather than kept: the
+        // whole point is not to hold this.
+        let mut drained = body.len();
+        drop(body);
+        while drained < length.min(MAX_DRAIN) {
+            let read = stream.read(&mut chunk).await?;
+            if read == 0 {
+                break;
+            }
+            drained += read;
+        }
+        return Ok(Incoming::TooLarge);
     }
     while body.len() < length {
         let read = stream.read(&mut chunk).await?;
@@ -366,7 +405,7 @@ async fn read_request(stream: &mut TcpStream) -> std::io::Result<Option<Request>
     }
     body.truncate(length);
 
-    Ok(Some(Request {
+    Ok(Incoming::Request(Request {
         method: method.to_string(),
         target: target.to_string(),
         host,
@@ -503,14 +542,13 @@ async fn send(shared: &Shared, body: &[u8]) -> Response {
     }
 }
 
-/// A file, a piece of text, or both, on their way from the app into a
-/// chat.
+/// A file, a piece of text, or both, on their way out of the app.
 ///
 /// The file is written into the cache and the *path* is handed on: what
-/// receives it is a page, and a page attaches a file by path the way
-/// every other picker in this app hands one over. Nothing is sent from
-/// here -- `sendToChat` asks the reader which chat, and only they can
-/// answer that.
+/// receives it is a page, and a page takes a file by path the way every
+/// other picker in this app hands one over. Nothing is sent from here,
+/// and nothing is opened or saved either: where the file goes is the
+/// reader's answer to give.
 ///
 /// The name is the app's, so it is taken apart and only its last
 /// component kept: an app that asks to write `../../../etc/passwd` gets

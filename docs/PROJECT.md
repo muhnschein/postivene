@@ -66,18 +66,28 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   `sendUpdate` is a POST, the updates from everyone else are a poll -- so
   the bridge is not a Gecko frame script, and no archive format is parsed
   here.
-  An app can hand a file back the other way: `sendToChat` is specified
-  as *asking the reader which chat*, so the host writes what the app
-  gives it into the cache and raises it on the page, which puts the
-  question to the window -- the same one a picture shared from the
-  gallery arrives with. Nothing is sent from the host: which chat is not
-  its to decide. Two orderings matter and are both deliberate: the app's
-  request is answered *before* the picker is raised, and the page keeps
-  serving an app it has opened a page over. Stopping the app whenever
-  the page deactivated stopped it in the middle of the very request that
-  asked for the picker -- the app's fetch came back as a closed socket
-  and it reported its host gone -- so leaving is destruction, which is
-  what a popped page and a replaced stack both are.
+  An app can hand a file back the other way. The call is `sendToChat`
+  and a chat is the only destination its name can carry, but the button
+  an app draws over it is a *download* -- `sharer`'s is a download arrow
+  -- and what a reader means by that is the file, on their phone. So the
+  host writes what the app gives it into the cache and raises it on the
+  page, and the page asks: open it, or keep a copy in Downloads. A chat
+  is not one of the answers, and nothing is sent from the host. Text
+  with no file has nowhere to be opened or saved and goes on the
+  clipboard instead, which is still an answer.
+  Three things about it are deliberate. The app's request is answered
+  *before* the dialog is raised, and only if that answer got out.
+  The page keeps serving an app it has opened a page over: stopping the
+  app whenever the page deactivated stopped it in the middle of the very
+  request that asked, so leaving is destruction, which is what a popped
+  page and a replaced stack both are. And a handover past what the host
+  will hold is read and dropped before it is refused -- answering and
+  closing on a client still writing resets the connection, and a reset
+  is not an answer: the app reported a host it could not reach and had
+  no idea why. What the cap is, is set by holding the whole of it more
+  than once (the body, the base64 in the parsed answer, the bytes it
+  decodes to); a file bigger than that is refused with a `413` the app
+  can show.
   Where a new app comes from is the store, a website
   (`WebxdcStorePage.qml`); a tap on a link to a `.xdc` is caught before
   the engine can download it and fetched through the core instead

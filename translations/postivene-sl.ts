@@ -477,6 +477,28 @@
     </message>
 </context>
 <context>
+    <name>HandoverDialog</name>
+    <message>
+        <source>File from the app</source>
+        <extracomment>Shown over the two things that can be done with a file a webxdc app has just produced.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation type="unfinished">Prekliči</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <extracomment>Hand the file to whatever the phone opens its kind with.</extracomment>
+        <translation type="unfinished">Odpri</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <extracomment>Keep a copy of the file where the file manager looks.</extracomment>
+        <translation type="unfinished">Shrani</translation>
+    </message>
+</context>
+<context>
     <name>LeaveGroupDialog</name>
     <message>
         <source>Leave group</source>
@@ -1017,6 +1039,15 @@
         <source>Starting the app</source>
         <extracomment>Shown while a webxdc app is being made ready to run.</extracomment>
         <translation>Zaganjanje aplikacije</translation>
+    </message>
+    <message>
+        <source>Copied to the clipboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Saved to Downloads</source>
+        <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
+        <translation type="unfinished">Shranjeno v Prenose</translation>
     </message>
 </context>
 <context>

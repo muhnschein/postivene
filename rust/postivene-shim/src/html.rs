@@ -354,7 +354,7 @@ mod tests {
         );
         for number in 1..=40 {
             use std::fmt::Write as _;
-            let _ = write!(html, "- [ ] item {number}<br/>\n");
+            let _ = writeln!(html, "- [ ] item {number}<br/>");
         }
         html.push_str("</body></html>\n");
 

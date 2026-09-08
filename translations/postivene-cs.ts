@@ -479,21 +479,21 @@
     <message>
         <source>File from the app</source>
         <extracomment>Shown over the two things that can be done with a file a webxdc app has just produced.</extracomment>
-        <translation type="unfinished"></translation>
+        <translation>Soubor z aplikace</translation>
     </message>
     <message>
         <source>Cancel</source>
-        <translation type="unfinished">Zrušit</translation>
+        <translation>Zrušit</translation>
     </message>
     <message>
         <source>Open</source>
         <extracomment>Hand the file to whatever the phone opens its kind with.</extracomment>
-        <translation type="unfinished">Otevřít</translation>
+        <translation>Otevřít</translation>
     </message>
     <message>
         <source>Save</source>
         <extracomment>Keep a copy of the file where the file manager looks.</extracomment>
-        <translation type="unfinished">Uložit</translation>
+        <translation>Uložit</translation>
     </message>
 </context>
 <context>
@@ -1037,13 +1037,13 @@
         <translation>Spouštění aplikace</translation>
     </message>
     <message>
-        <source>Copied to the clipboard</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Saved to Downloads</source>
         <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
-        <translation type="unfinished">Uloženo do Stažených</translation>
+        <translation>Uloženo do Stažených</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>Zkopírováno do schránky</translation>
     </message>
 </context>
 <context>

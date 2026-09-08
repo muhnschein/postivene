@@ -1029,12 +1029,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Copied to the clipboard</source>
+        <source>Saved to Downloads</source>
+        <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Saved to Downloads</source>
-        <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
+        <source>Copied to clipboard</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

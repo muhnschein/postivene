@@ -477,21 +477,21 @@
     <message>
         <source>File from the app</source>
         <extracomment>Shown over the two things that can be done with a file a webxdc app has just produced.</extracomment>
-        <translation type="unfinished"></translation>
+        <translation>செயலியிலிருந்து கோப்பு</translation>
     </message>
     <message>
         <source>Cancel</source>
-        <translation type="unfinished">ரத்துசெய்</translation>
+        <translation>ரத்துசெய்</translation>
     </message>
     <message>
         <source>Open</source>
         <extracomment>Hand the file to whatever the phone opens its kind with.</extracomment>
-        <translation type="unfinished">திற</translation>
+        <translation>திற</translation>
     </message>
     <message>
         <source>Save</source>
         <extracomment>Keep a copy of the file where the file manager looks.</extracomment>
-        <translation type="unfinished">சேமி</translation>
+        <translation>சேமி</translation>
     </message>
 </context>
 <context>
@@ -1033,13 +1033,13 @@
         <translation>செயலி தொடங்குகிறது</translation>
     </message>
     <message>
-        <source>Copied to the clipboard</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Saved to Downloads</source>
         <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
-        <translation type="unfinished">பதிவிறக்கங்களில் சேமிக்கப்பட்டது</translation>
+        <translation>பதிவிறக்கங்களில் சேமிக்கப்பட்டது</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>கிளிப்போர்டுக்கு நகலெடுக்கப்பட்டது</translation>
     </message>
 </context>
 <context>

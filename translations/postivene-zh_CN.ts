@@ -475,21 +475,21 @@
     <message>
         <source>File from the app</source>
         <extracomment>Shown over the two things that can be done with a file a webxdc app has just produced.</extracomment>
-        <translation type="unfinished"></translation>
+        <translation>来自应用的文件</translation>
     </message>
     <message>
         <source>Cancel</source>
-        <translation type="unfinished">取消</translation>
+        <translation>取消</translation>
     </message>
     <message>
         <source>Open</source>
         <extracomment>Hand the file to whatever the phone opens its kind with.</extracomment>
-        <translation type="unfinished">打开</translation>
+        <translation>打开</translation>
     </message>
     <message>
         <source>Save</source>
         <extracomment>Keep a copy of the file where the file manager looks.</extracomment>
-        <translation type="unfinished">保存</translation>
+        <translation>保存</translation>
     </message>
 </context>
 <context>
@@ -1029,13 +1029,13 @@
         <translation>正在启动应用</translation>
     </message>
     <message>
-        <source>Copied to the clipboard</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Saved to Downloads</source>
         <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
-        <translation type="unfinished">已保存到下载</translation>
+        <translation>已保存到下载</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>已复制到剪贴板</translation>
     </message>
 </context>
 <context>

@@ -475,21 +475,21 @@
     <message>
         <source>File from the app</source>
         <extracomment>Shown over the two things that can be done with a file a webxdc app has just produced.</extracomment>
-        <translation type="unfinished"></translation>
+        <translation>Uygulamadan gelen dosya</translation>
     </message>
     <message>
         <source>Cancel</source>
-        <translation type="unfinished">İptal</translation>
+        <translation>İptal</translation>
     </message>
     <message>
         <source>Open</source>
         <extracomment>Hand the file to whatever the phone opens its kind with.</extracomment>
-        <translation type="unfinished">Aç</translation>
+        <translation>Aç</translation>
     </message>
     <message>
         <source>Save</source>
         <extracomment>Keep a copy of the file where the file manager looks.</extracomment>
-        <translation type="unfinished">Kaydet</translation>
+        <translation>Kaydet</translation>
     </message>
 </context>
 <context>
@@ -1029,13 +1029,13 @@
         <translation>Uygulama başlatılıyor</translation>
     </message>
     <message>
-        <source>Copied to the clipboard</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Saved to Downloads</source>
         <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
-        <translation type="unfinished">İndirilenler&apos;e kaydedildi</translation>
+        <translation>İndirilenler&apos;e kaydedildi</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>Panoya kopyalandı</translation>
     </message>
 </context>
 <context>

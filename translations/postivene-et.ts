@@ -477,21 +477,21 @@
     <message>
         <source>File from the app</source>
         <extracomment>Shown over the two things that can be done with a file a webxdc app has just produced.</extracomment>
-        <translation type="unfinished"></translation>
+        <translation>Fail rakendusest</translation>
     </message>
     <message>
         <source>Cancel</source>
-        <translation type="unfinished">Loobu</translation>
+        <translation>Loobu</translation>
     </message>
     <message>
         <source>Open</source>
         <extracomment>Hand the file to whatever the phone opens its kind with.</extracomment>
-        <translation type="unfinished">Ava</translation>
+        <translation>Ava</translation>
     </message>
     <message>
         <source>Save</source>
         <extracomment>Keep a copy of the file where the file manager looks.</extracomment>
-        <translation type="unfinished">Salvesta</translation>
+        <translation>Salvesta</translation>
     </message>
 </context>
 <context>
@@ -1033,13 +1033,13 @@
         <translation>Rakenduse käivitamine</translation>
     </message>
     <message>
-        <source>Copied to the clipboard</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Saved to Downloads</source>
         <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
-        <translation type="unfinished">Salvestatud allalaadimistesse</translation>
+        <translation>Salvestatud allalaadimistesse</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>Kopeeritud lõikelauale</translation>
     </message>
 </context>
 <context>

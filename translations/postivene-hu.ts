@@ -475,21 +475,21 @@
     <message>
         <source>File from the app</source>
         <extracomment>Shown over the two things that can be done with a file a webxdc app has just produced.</extracomment>
-        <translation type="unfinished"></translation>
+        <translation>Fájl az alkalmazásból</translation>
     </message>
     <message>
         <source>Cancel</source>
-        <translation type="unfinished">Mégse</translation>
+        <translation>Mégse</translation>
     </message>
     <message>
         <source>Open</source>
         <extracomment>Hand the file to whatever the phone opens its kind with.</extracomment>
-        <translation type="unfinished">Megnyitás</translation>
+        <translation>Megnyitás</translation>
     </message>
     <message>
         <source>Save</source>
         <extracomment>Keep a copy of the file where the file manager looks.</extracomment>
-        <translation type="unfinished">Mentés</translation>
+        <translation>Mentés</translation>
     </message>
 </context>
 <context>
@@ -1029,13 +1029,13 @@
         <translation>Alkalmazás indítása</translation>
     </message>
     <message>
-        <source>Copied to the clipboard</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Saved to Downloads</source>
         <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
-        <translation type="unfinished">Mentve a Letöltésekbe</translation>
+        <translation>Mentve a Letöltésekbe</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>Vágólapra másolva</translation>
     </message>
 </context>
 <context>

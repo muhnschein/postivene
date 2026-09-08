@@ -107,7 +107,7 @@ Page {
         if (filePath.length === 0) {
             if (text.length > 0) {
                 Clipboard.text = text
-                notice.show(qsTr("Copied to the clipboard"))
+                notice.show(qsTr("Copied to clipboard"))
             }
             return
         }

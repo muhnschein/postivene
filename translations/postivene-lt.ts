@@ -479,21 +479,21 @@
     <message>
         <source>File from the app</source>
         <extracomment>Shown over the two things that can be done with a file a webxdc app has just produced.</extracomment>
-        <translation type="unfinished"></translation>
+        <translation>Failas iš programėlės</translation>
     </message>
     <message>
         <source>Cancel</source>
-        <translation type="unfinished">Atšaukti</translation>
+        <translation>Atšaukti</translation>
     </message>
     <message>
         <source>Open</source>
         <extracomment>Hand the file to whatever the phone opens its kind with.</extracomment>
-        <translation type="unfinished">Atverti</translation>
+        <translation>Atverti</translation>
     </message>
     <message>
         <source>Save</source>
         <extracomment>Keep a copy of the file where the file manager looks.</extracomment>
-        <translation type="unfinished">Įrašyti</translation>
+        <translation>Įrašyti</translation>
     </message>
 </context>
 <context>
@@ -1037,13 +1037,13 @@
         <translation>Paleidžiama programėlė</translation>
     </message>
     <message>
-        <source>Copied to the clipboard</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Saved to Downloads</source>
         <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
-        <translation type="unfinished">Įrašyta į Atsisiuntimus</translation>
+        <translation>Įrašyta į Atsisiuntimus</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>Nukopijuota į iškarpinę</translation>
     </message>
 </context>
 <context>

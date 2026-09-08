@@ -477,21 +477,21 @@
     <message>
         <source>File from the app</source>
         <extracomment>Shown over the two things that can be done with a file a webxdc app has just produced.</extracomment>
-        <translation type="unfinished"></translation>
+        <translation>ആപ്പിൽ നിന്നുള്ള ഫയൽ</translation>
     </message>
     <message>
         <source>Cancel</source>
-        <translation type="unfinished">റദ്ദാക്കുക</translation>
+        <translation>റദ്ദാക്കുക</translation>
     </message>
     <message>
         <source>Open</source>
         <extracomment>Hand the file to whatever the phone opens its kind with.</extracomment>
-        <translation type="unfinished">തുറക്കുക</translation>
+        <translation>തുറക്കുക</translation>
     </message>
     <message>
         <source>Save</source>
         <extracomment>Keep a copy of the file where the file manager looks.</extracomment>
-        <translation type="unfinished">സൂക്ഷിക്കുക</translation>
+        <translation>സൂക്ഷിക്കുക</translation>
     </message>
 </context>
 <context>
@@ -1033,13 +1033,13 @@
         <translation>ആപ്പ് ആരംഭിക്കുന്നു</translation>
     </message>
     <message>
-        <source>Copied to the clipboard</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Saved to Downloads</source>
         <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
-        <translation type="unfinished">ഡൗൺലോഡുകളിൽ സൂക്ഷിച്ചു</translation>
+        <translation>ഡൗൺലോഡുകളിൽ സൂക്ഷിച്ചു</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>ക്ലിപ്പ്ബോർഡിലേക്ക് പകർത്തി</translation>
     </message>
 </context>
 <context>

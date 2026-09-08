@@ -477,21 +477,21 @@
     <message>
         <source>File from the app</source>
         <extracomment>Shown over the two things that can be done with a file a webxdc app has just produced.</extracomment>
-        <translation type="unfinished"></translation>
+        <translation>యాప్ నుండి ఫైల్</translation>
     </message>
     <message>
         <source>Cancel</source>
-        <translation type="unfinished">రద్దు చేయి</translation>
+        <translation>రద్దు చేయి</translation>
     </message>
     <message>
         <source>Open</source>
         <extracomment>Hand the file to whatever the phone opens its kind with.</extracomment>
-        <translation type="unfinished">తెరువు</translation>
+        <translation>తెరువు</translation>
     </message>
     <message>
         <source>Save</source>
         <extracomment>Keep a copy of the file where the file manager looks.</extracomment>
-        <translation type="unfinished">భద్రపరచు</translation>
+        <translation>భద్రపరచు</translation>
     </message>
 </context>
 <context>
@@ -1033,13 +1033,13 @@
         <translation>యాప్ ప్రారంభమవుతోంది</translation>
     </message>
     <message>
-        <source>Copied to the clipboard</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Saved to Downloads</source>
         <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
-        <translation type="unfinished">డౌన్‌లోడ్‌లలో భద్రపరచబడింది</translation>
+        <translation>డౌన్‌లోడ్‌లలో భద్రపరచబడింది</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>క్లిప్‌బోర్డ్‌కు కాపీ చేయబడింది</translation>
     </message>
 </context>
 <context>

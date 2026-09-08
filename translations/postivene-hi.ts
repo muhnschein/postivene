@@ -477,21 +477,21 @@
     <message>
         <source>File from the app</source>
         <extracomment>Shown over the two things that can be done with a file a webxdc app has just produced.</extracomment>
-        <translation type="unfinished"></translation>
+        <translation>ऐप से फ़ाइल</translation>
     </message>
     <message>
         <source>Cancel</source>
-        <translation type="unfinished">रद्द करें</translation>
+        <translation>रद्द करें</translation>
     </message>
     <message>
         <source>Open</source>
         <extracomment>Hand the file to whatever the phone opens its kind with.</extracomment>
-        <translation type="unfinished">खोलें</translation>
+        <translation>खोलें</translation>
     </message>
     <message>
         <source>Save</source>
         <extracomment>Keep a copy of the file where the file manager looks.</extracomment>
-        <translation type="unfinished">सहेजें</translation>
+        <translation>सहेजें</translation>
     </message>
 </context>
 <context>
@@ -1033,13 +1033,13 @@
         <translation>ऐप शुरू हो रहा है</translation>
     </message>
     <message>
-        <source>Copied to the clipboard</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Saved to Downloads</source>
         <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
-        <translation type="unfinished">डाउनलोड में सहेजा गया</translation>
+        <translation>डाउनलोड में सहेजा गया</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>क्लिपबोर्ड पर कॉपी किया गया</translation>
     </message>
 </context>
 <context>

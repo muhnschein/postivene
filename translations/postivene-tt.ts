@@ -475,21 +475,21 @@
     <message>
         <source>File from the app</source>
         <extracomment>Shown over the two things that can be done with a file a webxdc app has just produced.</extracomment>
-        <translation type="unfinished"></translation>
+        <translation>Кушымтадан файл</translation>
     </message>
     <message>
         <source>Cancel</source>
-        <translation type="unfinished">Баш тартырга</translation>
+        <translation>Баш тартырга</translation>
     </message>
     <message>
         <source>Open</source>
         <extracomment>Hand the file to whatever the phone opens its kind with.</extracomment>
-        <translation type="unfinished">Ач</translation>
+        <translation>Ач</translation>
     </message>
     <message>
         <source>Save</source>
         <extracomment>Keep a copy of the file where the file manager looks.</extracomment>
-        <translation type="unfinished">Саклау</translation>
+        <translation>Саклау</translation>
     </message>
 </context>
 <context>
@@ -1029,13 +1029,13 @@
         <translation>Кушымта эшли башлый</translation>
     </message>
     <message>
-        <source>Copied to the clipboard</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Saved to Downloads</source>
         <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
-        <translation type="unfinished">Йөкләүләргә сакланды</translation>
+        <translation>Йөкләүләргә сакланды</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>Алмашу буферына күчерелде</translation>
     </message>
 </context>
 <context>

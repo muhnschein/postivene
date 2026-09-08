@@ -477,21 +477,21 @@
     <message>
         <source>File from the app</source>
         <extracomment>Shown over the two things that can be done with a file a webxdc app has just produced.</extracomment>
-        <translation type="unfinished"></translation>
+        <translation>Bestand uit de app</translation>
     </message>
     <message>
         <source>Cancel</source>
-        <translation type="unfinished">Annuleren</translation>
+        <translation>Annuleren</translation>
     </message>
     <message>
         <source>Open</source>
         <extracomment>Hand the file to whatever the phone opens its kind with.</extracomment>
-        <translation type="unfinished">Openen</translation>
+        <translation>Openen</translation>
     </message>
     <message>
         <source>Save</source>
         <extracomment>Keep a copy of the file where the file manager looks.</extracomment>
-        <translation type="unfinished">Opslaan</translation>
+        <translation>Opslaan</translation>
     </message>
 </context>
 <context>
@@ -1033,13 +1033,13 @@
         <translation>App wordt gestart</translation>
     </message>
     <message>
-        <source>Copied to the clipboard</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Saved to Downloads</source>
         <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
-        <translation type="unfinished">Opgeslagen in Downloads</translation>
+        <translation>Opgeslagen in Downloads</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>Gekopieerd naar klembord</translation>
     </message>
 </context>
 <context>

@@ -1006,6 +1006,15 @@
         <extracomment>Shown while a webxdc app is being made ready to run.</extracomment>
         <translation>正在啟動應用程式</translation>
     </message>
+    <message>
+        <source>Saved to Downloads</source>
+        <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
+        <translation>已儲存至下載</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>已複製到剪貼簿</translation>
+    </message>
 </context>
 <context>
     <name>WebxdcStorePage</name>

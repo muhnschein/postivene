@@ -1010,6 +1010,15 @@
         <extracomment>Shown while a webxdc app is being made ready to run.</extracomment>
         <translation>Käynnistetään sovellusta</translation>
     </message>
+    <message>
+        <source>Saved to Downloads</source>
+        <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
+        <translation>Tallennettu Lataukset-kansioon</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>Kopioitu leikepöydälle</translation>
+    </message>
 </context>
 <context>
     <name>WebxdcStorePage</name>

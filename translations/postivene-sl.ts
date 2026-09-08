@@ -1018,6 +1018,15 @@
         <extracomment>Shown while a webxdc app is being made ready to run.</extracomment>
         <translation>Zaganjanje aplikacije</translation>
     </message>
+    <message>
+        <source>Saved to Downloads</source>
+        <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
+        <translation>Shranjeno v Prenose</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>Kopirano v odložišče</translation>
+    </message>
 </context>
 <context>
     <name>WebxdcStorePage</name>

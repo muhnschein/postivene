@@ -91,6 +91,70 @@ Page {
         // The message is gone -- deleted here or on another device --
         // so there is nothing left to run.
         onGone: pageStack.pop()
+        // The app has handed a file over. It is kept, not put into a
+        // chat: see `offer` below.
+        onHanded_over: page.offer(file_path, text)
+    }
+
+    /// Keep a file the app produced.
+    ///
+    /// Saved rather than asked about. The button an app draws over this
+    /// is a download, and a download does not ask -- a chooser between
+    /// opening and keeping was tried here and was two taps in front of
+    /// the one thing the reader had already asked for. The copy goes to
+    /// Downloads, where the file manager looks, and the notice says so.
+    ///
+    /// Text with no file has nowhere to be saved, so it goes on the
+    /// clipboard instead and the page says that too: the reader asked
+    /// for it either way, and dropping it silently is the one thing that
+    /// would not be an answer.
+    function offer(filePath, text) {
+        if (filePath.length === 0) {
+            if (text.length > 0) {
+                Clipboard.text = text
+                notice.show(qsTr("Copied to clipboard"))
+            }
+            return
+        }
+        handoverSaver.handedOver = filePath
+        handoverSaver.save(page.urlOf(filePath), StandardPaths.download)
+    }
+
+    /// A path as a URL, encoded rather than concatenated: the name is the
+    /// app's, and a "#" or a "%" in one makes a plain "file://" + path
+    /// point somewhere else. Per segment, as AttachmentPreview does it.
+    function urlOf(filePath) {
+        return Qt.resolvedUrl("file://" + filePath.split("/")
+                                                  .map(encodeURIComponent)
+                                                  .join("/"))
+    }
+
+    // Saving is the same copy the conversation makes of an attachment,
+    // into the folder the file manager looks in.
+    FileSaver {
+        id: handoverSaver
+        objectName: "handoverSaver"
+        /// The file the app handed over: a copy in the cache, waiting to
+        /// be saved. Once the reader has their own copy the cached one is
+        /// dead weight, so it goes either way -- a save that failed will
+        /// not be retried from it, and an app that hands over a hundred
+        /// files should not leave a hundred behind.
+        property string handedOver
+        onSaved: {
+            //: Where a file a webxdc app produced was copied to.
+            notice.show(qsTr("Saved to Downloads"))
+            handoverSaver.forget()
+        }
+        onError: {
+            page.errorMessage = message
+            handoverSaver.forget()
+        }
+        function forget() {
+            if (handoverSaver.handedOver.length > 0) {
+                app.discard(handoverSaver.handedOver)
+                handoverSaver.handedOver = ""
+            }
+        }
     }
 
     Connections {
@@ -110,14 +174,20 @@ Page {
 
     Component.onCompleted: page.run()
 
-    // Leaving stops the app rather than leaving it served in the
-    // background: `stop` here, and the object's own going for the way out
-    // that never reaches this -- the whole stack being replaced.
-    onStatusChanged: {
-        if (status === PageStatus.Deactivating) {
-            app.stop()
-        }
-    }
+    // Leaving stops the app; being covered by another page does not.
+    //
+    // This used to stop on Deactivating, which fires for both -- and
+    // `sendToChat` opens the chat picker *over* the app, at the app's own
+    // request. So asking to send a file stopped the host in the middle of
+    // the very request that asked, the app's fetch was answered by a
+    // closed socket, and the app reported that it could not reach its
+    // host. Nothing was ever sent.
+    //
+    // Destruction is the honest signal for leaving: a popped page is
+    // destroyed, and a stack that is replaced takes the page with it.
+    // Both reach here, and both stop the app. What stays running is an
+    // app the reader is coming back to.
+    Component.onDestruction: app.stop()
 
     // Not a PageHeader: the name is the app's own, and a header cannot be
     // told to draw what it is given as plain text.
@@ -199,6 +269,21 @@ Page {
         //: Shown while a webxdc app is being made ready to run.
         text: page.errorMessage.length > 0 ? page.errorMessage
                                            : qsTr("Starting the app")
+    }
+
+    // Says what just happened where the page has no state for it: a file
+    // copied out, or a line of text put on the clipboard.
+    Banner {
+        id: notice
+        objectName: "notice"
+        labelObjectName: "noticeLabel"
+        tone: "info"
+        timeout: 4
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
     }
 
     Banner {

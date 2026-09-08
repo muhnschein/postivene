@@ -23,7 +23,15 @@
 /// separate lines rather than running together; `head`, `script` and
 /// `style` go out whole, contents and all, because none of what is in
 /// them is anything the reader wrote.
+///
+/// Markup with no tag in it at all is not markup: its newlines are the
+/// reader's own and are left where they are. Everything else goes
+/// through the rule below, where a newline in the source is only
+/// whitespace.
 pub(crate) fn to_text(html: &str) -> String {
+    if !html.contains('<') {
+        return collapse_blank_lines(decode_entities(html).trim());
+    }
     let text = drop_hidden(html);
     let text = replace_tags(&text);
     let text = decode_entities(&text);
@@ -79,6 +87,19 @@ fn opens(text: &str, name: &str) -> bool {
 }
 
 /// Every tag out, with the ones that end a line leaving one behind.
+///
+/// A newline in the markup is *not* a line break: in HTML it is
+/// whitespace like a space, and the break is the tag. The core's own
+/// long-message part is written `line<br/>` with a newline after the
+/// tag, so counting both put a blank line between every line of every
+/// message that had been cut -- a to-do list arrived double-spaced. So
+/// whitespace between the markup is collapsed the way a browser collapses
+/// it: to one space in the middle of a line, and to nothing at either end
+/// of one.
+///
+/// Every break is worth one line break and no more, `</p>` included. Two
+/// in a row is still two, so a blank line the reader typed -- which the
+/// core writes as two `<br/>` -- arrives as the blank line it was.
 fn replace_tags(html: &str) -> String {
     // The tags a reader would see as a line ending. `br` is the break
     // itself; the rest are blocks, and their *closing* tag is where the
@@ -88,27 +109,35 @@ fn replace_tags(html: &str) -> String {
         "p", "div", "section", "article", "li", "tr", "h1", "h2", "h3", "h4", "h5", "h6",
     ];
     let mut out = String::with_capacity(html.len());
+    // A run of whitespace waiting to be written as the single space it
+    // stands for. It is only written once something follows it on the
+    // same line, so whitespace before a break is dropped rather than
+    // left hanging off the end.
+    let mut space = false;
+    // Whether the line being written is still empty, so leading
+    // whitespace has nothing to be a space between.
+    let mut fresh = true;
     let mut rest = html;
     while !rest.is_empty() {
         let Some(open) = rest.find('<') else {
-            out.push_str(rest);
+            push_words(rest, &mut out, &mut space, &mut fresh);
             break;
         };
-        out.push_str(&rest[..open]);
+        push_words(&rest[..open], &mut out, &mut space, &mut fresh);
         let from_tag = &rest[open..];
         // A `<` that does not begin a tag is a stray angle bracket in
         // the text -- "3 < 4" -- and stays one. A tag's name starts
         // with a letter, a `/`, or the `!` of a comment or a doctype;
         // anything else after the bracket is arithmetic.
         if !from_tag[1..].starts_with(|c: char| c.is_ascii_alphabetic() || c == '/' || c == '!') {
-            out.push('<');
+            push_words("<", &mut out, &mut space, &mut fresh);
             rest = &from_tag[1..];
             continue;
         }
         // A `<` with no `>` after it is the same thing at the end of the
         // text: keep it and stop.
         let Some(close) = from_tag.find('>') else {
-            out.push_str(from_tag);
+            push_words(from_tag, &mut out, &mut space, &mut fresh);
             break;
         };
         let tag = &from_tag[1..close];
@@ -120,11 +149,37 @@ fn replace_tags(html: &str) -> String {
         let ends_line = BREAKS.iter().any(|kind| name.eq_ignore_ascii_case(kind))
             || (tag.starts_with('/') && BLOCKS.iter().any(|kind| name.eq_ignore_ascii_case(kind)));
         if ends_line {
+            // Whatever whitespace led up to the break was the markup's
+            // own layout, and the break is where the line ends.
+            space = false;
+            fresh = true;
             out.push('\n');
         }
         rest = &from_tag[close + 1..];
     }
     out
+}
+
+/// Write the words of one run of text, with its whitespace collapsed.
+///
+/// `space` carries a run of whitespace that has not been written yet, and
+/// `fresh` says the line is still empty -- so a run at the start of a
+/// line, or one that a break comes along and ends, leaves nothing behind.
+fn push_words(text: &str, out: &mut String, space: &mut bool, fresh: &mut bool) {
+    for character in text.chars() {
+        if character.is_whitespace() {
+            *space = true;
+            continue;
+        }
+        if *space {
+            if !*fresh {
+                out.push(' ');
+            }
+            *space = false;
+        }
+        out.push(character);
+        *fresh = false;
+    }
 }
 
 /// The handful of entities a mail body actually carries. `&amp;` last, so
@@ -139,9 +194,9 @@ fn decode_entities(text: &str) -> String {
         .replace("&amp;", "&")
 }
 
-/// A mail's markup puts a tag on its own line, and every one of those
-/// left a blank line behind. Two in a row is a paragraph break; three is
-/// the markup showing through.
+/// Three line breaks in a row are the markup showing through: two is a
+/// blank line, which the reader may well have typed, and more than that
+/// is nothing they can have meant.
 fn collapse_blank_lines(text: &str) -> String {
     let mut out: Vec<&str> = Vec::new();
     let mut blanks = 0;
@@ -161,11 +216,23 @@ fn collapse_blank_lines(text: &str) -> String {
 }
 
 /// `haystack.find(needle)` without regard to case, for ASCII needles.
+///
+/// Compared a window at a time rather than by lowercasing the rest of the
+/// document at every position, which allocated a copy of the whole
+/// remaining message per character looked at: a long message's HTML part
+/// is megabytes, and the search for `</head` starts at the front of it.
+///
+/// The index is a character boundary because a match is ASCII, and no
+/// byte of a multi-byte character is.
 fn find_ignoring_case(haystack: &str, needle: &str) -> Option<usize> {
+    let needle = needle.as_bytes();
+    if needle.is_empty() {
+        return Some(0);
+    }
     haystack
-        .char_indices()
-        .find(|(at, _)| haystack[*at..].to_ascii_lowercase().starts_with(needle))
-        .map(|(at, _)| at)
+        .as_bytes()
+        .windows(needle.len())
+        .position(|window| window.eq_ignore_ascii_case(needle))
 }
 
 /// `text.strip_prefix(prefix)` without regard to case, for ASCII
@@ -249,10 +316,77 @@ mod tests {
     }
 
     #[test]
-    fn the_markups_own_blank_lines_do_not_pile_up() {
+    fn the_markups_own_newlines_are_not_the_readers() {
+        // Pretty-printed markup: every one of those newlines is the mail
+        // laying itself out, and none of them is a line the reader
+        // typed. The break is the tag.
         assert_eq!(
             to_text("<div>\n<p>one</p>\n\n<p>two</p>\n</div>"),
+            "one\ntwo"
+        );
+    }
+
+    #[test]
+    fn the_shape_the_core_writes_a_cut_message_in_comes_back_as_typed() {
+        // What `get_message_html` answers with, as the pinned
+        // deltachat-rpc-server writes it: its own head, its own body
+        // tag, and the message with every newline turned into `<br/>`
+        // *followed by a newline*. Counting both is what double-spaced
+        // every long message on the phone.
+        let html = "<!DOCTYPE html>\n<html><head>\n\
+                    <meta http-equiv=\"Content-Type\" \
+                    content=\"text/html; charset=utf-8\" />\n\
+                    <meta name=\"color-scheme\" content=\"light dark\" />\n\
+                    </head><body dir=\"auto\" style=\"unicode-bidi: plaintext\">\n\
+                    Shshs<br/>\nHzhshs<br/>\nHsbsbs<br/>\n</body></html>\n";
+        assert_eq!(to_text(html), "Shshs\nHzhshs\nHsbsbs");
+    }
+
+    #[test]
+    fn a_long_message_comes_back_with_every_line_it_went_out_with() {
+        // The whole point of the HTML part is the words that did not fit
+        // in `text`, so a reader that drops any of them has kept the bug
+        // it was written to fix. Forty lines, which is past the length
+        // the core cuts at.
+        let mut html = String::from(
+            "<!DOCTYPE html>\n<html><head>\n</head>\
+             <body dir=\"auto\" style=\"unicode-bidi: plaintext\">\n",
+        );
+        for number in 1..=40 {
+            use std::fmt::Write as _;
+            let _ = writeln!(html, "- [ ] item {number}<br/>");
+        }
+        html.push_str("</body></html>\n");
+
+        let words = to_text(&html);
+        let lines: Vec<&str> = words.lines().collect();
+        assert_eq!(
+            lines.len(),
+            40,
+            "forty lines came back as {}: {words:?}",
+            lines.len()
+        );
+        assert_eq!(lines[0], "- [ ] item 1");
+        assert_eq!(lines[39], "- [ ] item 40");
+    }
+
+    #[test]
+    fn a_blank_line_the_reader_typed_is_still_a_blank_line() {
+        // Two newlines in the message are two `<br/>` in the part, and
+        // the reader meant the gap between the paragraphs.
+        assert_eq!(
+            to_text("<body>\none<br/>\n<br/>\ntwo<br/>\n</body>"),
             "one\n\ntwo"
+        );
+    }
+
+    #[test]
+    fn a_line_broken_across_the_markup_is_one_line() {
+        // A newline inside a run of words is whitespace, as it is in
+        // every browser: it joins rather than breaks.
+        assert_eq!(
+            to_text("<p>Buy milk\n   and bread</p>"),
+            "Buy milk and bread"
         );
     }
 

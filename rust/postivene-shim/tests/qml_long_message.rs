@@ -12,6 +12,11 @@
 //! little it has fits, because the rest of it is not on this phone at
 //! all.
 //!
+//! And that the two of them never land on top of each other. A bubble is
+//! as wide as its widest line, so a long message of short lines makes a
+//! narrow one -- and "Expand" and "View full message" were drawn into
+//! the same few pixels.
+//!
 //! And what they are *never* about: an attachment. A picture or a
 //! document with no caption has no body to fold, and a message the core
 //! is still holding back has none of it yet -- neither was excluded at
@@ -55,6 +60,22 @@ const PROBE_QML: &str = r"
             return 'ok'
         }
         function ask(property) { return '' + delegate.item[property] }
+        /// Where the two offers are, in the row that holds them: the
+        /// gap between the end of one and the start of the other, and
+        /// whether they are on the same line at all.
+        function offerGap() {
+            var expand = findIn(delegate.item, 'expandButton')
+            var full = findIn(delegate.item, 'fullButton')
+            if (!expand || !full) { return 'missing:offers' }
+            var sameLine = Math.abs(expand.y - full.y) < 1
+            var gap = sameLine ? full.x - (expand.x + expand.width)
+                               : full.y - (expand.y + expand.height)
+            return (sameLine ? 'row' : 'column') + '@' + Math.round(gap)
+        }
+        function bubbleWidth() {
+            var bubble = findIn(delegate.item, 'bubble')
+            return bubble ? '' + Math.round(bubble.width) : 'missing:bubble'
+        }
         function findIn(node, name) {
             if (!node) { return null }
             if (node.objectName === name) { return node }
@@ -131,6 +152,19 @@ const PROBE_QML: &str = r"
         function raisedSignal() { return raised }
     }
 ";
+
+/// The same length in short lines. A bubble is as wide as its widest
+/// line, so this one comes out narrow -- narrower than the two offers
+/// under it, which is how they came to be drawn over each other.
+fn a_narrow_message() -> String {
+    use std::fmt::Write as _;
+
+    let mut out = String::new();
+    for number in 1..=40 {
+        let _ = writeln!(out, "hi {number}");
+    }
+    out
+}
 
 /// A message nobody would want drawn whole in a bubble.
 fn a_long_message() -> String {
@@ -214,6 +248,8 @@ fn a_long_body_is_cut_to_a_few_lines_with_the_rest_on_offer() {
     });
 
     single_shot(Duration::from_secs(3), move || unsafe {
+        record!("long-gap", call!("offerGap"));
+        record!("long-bubble", call!("bubbleWidth"));
         record!(
             "long-actions",
             call!(
@@ -288,6 +324,19 @@ fn a_long_body_is_cut_to_a_few_lines_with_the_rest_on_offer() {
                 QString::from("visible")
             )
         );
+        // Forty short lines: the bubble is as wide as its widest line,
+        // so this is the narrow one the offers were drawn over each
+        // other in.
+        call!(
+            "set",
+            QString::from("messageText"),
+            QString::from(a_narrow_message())
+        );
+    });
+
+    single_shot(Duration::from_secs(6), move || unsafe {
+        record!("narrow-gap", call!("offerGap"));
+        record!("narrow-bubble", call!("bubbleWidth"));
         record!(
             "list",
             call!(
@@ -298,17 +347,17 @@ fn a_long_body_is_cut_to_a_few_lines_with_the_rest_on_offer() {
         );
     });
 
-    single_shot(Duration::from_secs(6), move || unsafe {
+    single_shot(Duration::from_secs(7), move || unsafe {
         record!("row-open-before", call!("rowExpanded"));
         record!("row-tap", call!("tapExpand"));
     });
 
-    single_shot(Duration::from_secs(7), move || unsafe {
+    single_shot(Duration::from_secs(8), move || unsafe {
         record!("row-open-after", call!("rowExpanded"));
         record!("row-tap-again", call!("tapExpand"));
     });
 
-    single_shot(Duration::from_secs(8), move || unsafe {
+    single_shot(Duration::from_secs(9), move || unsafe {
         record!("row-open-again", call!("rowExpanded"));
         record!("row-full", call!("tapFull"));
         record!("row-raised", call!("raisedSignal"));
@@ -331,7 +380,7 @@ fn a_long_body_is_cut_to_a_few_lines_with_the_rest_on_offer() {
         );
     });
 
-    single_shot(Duration::from_secs(9), move || unsafe {
+    single_shot(Duration::from_secs(10), move || unsafe {
         record!(
             "file-actions",
             call!(
@@ -356,7 +405,7 @@ fn a_long_body_is_cut_to_a_few_lines_with_the_rest_on_offer() {
         );
     });
 
-    single_shot(Duration::from_secs(10), move || unsafe {
+    single_shot(Duration::from_secs(11), move || unsafe {
         record!(
             "held-actions",
             call!(
@@ -442,6 +491,33 @@ fn a_long_body_is_cut_to_a_few_lines_with_the_rest_on_offer() {
         number("open-height") > number("collapsed-height"),
         "the row did not grow when the message was opened out, so the \
          rest of it is drawn over whatever is below. {context}"
+    );
+
+    // Side by side with a gap between them on a wide bubble, and never
+    // overlapping: a negative gap is one label drawn over the other.
+    let gap = |label: &str| -> f64 {
+        value(label)
+            .rsplit('@')
+            .next()
+            .and_then(|number| number.parse().ok())
+            .unwrap_or(-1.0)
+    };
+    assert!(
+        value("long-gap").starts_with("row@") && gap("long-gap") >= 0.0,
+        "the two offers are not side by side with room between them on \
+         a wide message: {}. {context}",
+        value("long-gap")
+    );
+    assert!(
+        gap("narrow-gap") >= 0.0,
+        "the offers overlap by {} on a message of short lines -- the \
+         bubble is as wide as its widest line, and that is narrower \
+         than the two of them. {context}",
+        -gap("narrow-gap")
+    );
+    assert!(
+        number("narrow-bubble") > 0.0,
+        "the narrow bubble was not measured. {context}"
     );
 
     assert_eq!(

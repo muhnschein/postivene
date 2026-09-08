@@ -1014,6 +1014,15 @@
         <extracomment>Shown while a webxdc app is being made ready to run.</extracomment>
         <translation>Запуск приложения</translation>
     </message>
+    <message>
+        <source>Saved to Downloads</source>
+        <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
+        <translation>Сохранено в «Загрузки»</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>Скопировано в буфер обмена</translation>
+    </message>
 </context>
 <context>
     <name>WebxdcStorePage</name>

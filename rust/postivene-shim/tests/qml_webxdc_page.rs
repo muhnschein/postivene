@@ -6,6 +6,14 @@
 //! everything around it: that the page starts the app, hands the view the
 //! address the shim served it on, names the app in its own header, offers
 //! the source only when the app has one, and stops serving on the way out.
+//!
+//! Leaving is the page being destroyed, which is what popping one and
+//! replacing the stack both are -- and *not* another page opening over
+//! it. `sendToChat` opens the chat picker over the app at the app's own
+//! request, so a page that stopped its app whenever it deactivated
+//! stopped it in the middle of the request that asked. Both halves are
+//! here, and the address is asked rather than assumed: a host that has
+//! stopped refuses the connection.
 
 // Qt harness: see qml_pages.rs.
 #![allow(
@@ -105,13 +113,47 @@ const PROBE_QML: &str = r"
             view.url = where
             return '' + view.url
         }
-        // Leaving the page, as the stack does on the way out.
-        function leave() {
+        // Another page opening over this one, which is what the chat
+        // picker `sendToChat` asks for does. The page is covered, not
+        // gone.
+        function cover() {
             loader.item.status = PageStatus.Deactivating
+            return 'ok'
+        }
+        // Leaving for good: a popped page is destroyed, and so is one
+        // whose stack was replaced.
+        function leave() {
+            loader.setSource('', {})
             return 'ok'
         }
     }
 ";
+
+/// What was recorded under `label`, for a step that needs an earlier one.
+fn value_of(steps: &[(&str, String)], label: &str) -> String {
+    steps
+        .iter()
+        .find(|(name, _)| *name == label)
+        .map(|(_, value)| value.clone())
+        .unwrap_or_default()
+}
+
+/// Whether anything is still listening where the app was served.
+///
+/// The url the view was given, asked rather than assumed: a host that has
+/// been stopped closes its listener, and the connection is refused. This
+/// is the only way from here to tell an app that is still running from
+/// one that is not -- the page that held it may itself be gone.
+fn reachable(url: &str) -> String {
+    let rest = url.strip_prefix("http://").unwrap_or(url);
+    let Some(authority) = rest.split('/').next().filter(|at| at.contains(':')) else {
+        return format!("no-address:{url}");
+    };
+    match std::net::TcpStream::connect(authority) {
+        Ok(_) => "yes".to_string(),
+        Err(_) => "no".to_string(),
+    }
+}
 
 #[test]
 #[allow(clippy::too_many_lines)]
@@ -259,20 +301,39 @@ fn the_page_runs_the_app_the_shim_serves_and_stops_it_on_the_way_out() {
             "wander",
             call!("wander", QString::from("https://example.org/pay"))
         );
-        record!("leave", call!("leave"));
+        record!(
+            "served",
+            call!("get", QString::from("webxdcView"), QString::from("url"))
+        );
+        record!("cover", call!("cover"));
     });
 
     single_shot(Duration::from_secs(5), move || unsafe {
-        // Left: nothing is being served any more.
+        // Covered: the app is still there, and still being served. An
+        // app that asked for the picker is waiting on an answer from it.
         record!(
-            "after-leave",
+            "after-cover",
             call!("get", QString::from("webxdcView"), QString::from("url"))
+        );
+        record!(
+            "served-covered",
+            reachable(&value_of(&*steps_ptr, "served"))
         );
         record!("deleted", call!("deleted"));
     });
 
     single_shot(Duration::from_secs(6), move || unsafe {
         record!("popped", (*stack_ptr).pinned().borrow().log.to_string());
+        record!("leave", call!("leave"));
+    });
+
+    single_shot(Duration::from_secs(7), move || unsafe {
+        // Left: the page is gone, and so is the host it was pointing at.
+        record!(
+            "after-leave",
+            call!("get", QString::from("webxdcView"), QString::from("url"))
+        );
+        record!("served-after", reachable(&value_of(&*steps_ptr, "served")));
         (*engine_ptr).quit();
     });
 
@@ -380,9 +441,35 @@ fn the_page_runs_the_app_the_shim_serves_and_stops_it_on_the_way_out() {
         value("wander")
     );
 
+    assert!(
+        value("served").starts_with("http://127.0.0.1:"),
+        "the app was never served, so there is nothing to stop: {}. \
+         {context}",
+        value("served")
+    );
+    assert_eq!(
+        value("after-cover"),
+        value("served"),
+        "a page opened over the app took the app away from under it. \
+         `sendToChat` opens the chat picker over the app at the app's own \
+         request, so this is the app losing the answer to the very \
+         request that asked. {context}"
+    );
+    assert_eq!(
+        value("served-covered"),
+        "yes",
+        "nothing is listening where the app was served while its page is \
+         merely covered: an app waiting on the picker it asked for is \
+         waiting on a host that has stopped. {context}"
+    );
     assert_eq!(
         value("after-leave"),
-        "",
+        "missing:webxdcView",
+        "the page outlived being left. {context}"
+    );
+    assert_eq!(
+        value("served-after"),
+        "no",
         "the app is still being served after the page was left. {context}"
     );
     assert_eq!(

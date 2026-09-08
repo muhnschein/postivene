@@ -82,6 +82,16 @@ const MAX_HEAD: usize = 16 * 1024;
 /// body is not read at all.
 const MAX_BODY: usize = 512 * 1024;
 
+/// The most of a refused body to read before answering.
+///
+/// A request whose body is not going to be read still has to be listened
+/// to: answering and closing while the other end is still writing resets
+/// the connection, and a reset is not an answer -- the app sees a host it
+/// could not reach and has no idea why. So the body is read and dropped
+/// first, up to this, which is generous enough for any refusal that is
+/// really an app's mistake and small enough not to sit here forever.
+const MAX_DRAIN: usize = 256 * 1024 * 1024;
+
 /// Which app is being served, and what it is told about itself.
 pub(crate) struct Instance {
     /// The account the message belongs to.
@@ -101,10 +111,22 @@ pub(crate) struct Instance {
     pub(crate) send_update_max_size: u64,
 }
 
+/// What the host does with a file an app hands over: give it to the page,
+/// which asks the reader what they want done with it.
+///
+/// A callback rather than a core call, because this one is not the
+/// host's to make. The API's own word for it is `sendToChat`, but the
+/// destination is the reader's and a chat is not the one they mean by a
+/// download -- so what the app hands over reaches the page, and the page
+/// is on the Qt thread, where a `queued_callback` puts it.
+pub(crate) type HandedOver = Arc<dyn Fn(String, String) + Send + Sync>;
+
 /// Everything a connection needs, shared by every one of them.
 struct Shared {
     rpc: Arc<RpcClient>,
     instance: Instance,
+    /// Where a file the app hands over goes; see [`HandedOver`].
+    to_chat: HandedOver,
     /// `/webxdc-api/<token>`: where the chat is, and the one part of
     /// this host that cannot be guessed. The app's own files are at the
     /// root beside it.
@@ -148,7 +170,11 @@ impl Drop for Host {
 /// # Errors
 ///
 /// Fails when the loopback port cannot be bound.
-pub(crate) async fn start(rpc: Arc<RpcClient>, instance: Instance) -> Result<Host, String> {
+pub(crate) async fn start(
+    rpc: Arc<RpcClient>,
+    instance: Instance,
+    to_chat: HandedOver,
+) -> Result<Host, String> {
     let listener = TcpListener::bind(SocketAddr::from((Ipv4Addr::LOCALHOST, 0)))
         .await
         .map_err(|err| format!("cannot serve the app: {err}"))?;
@@ -161,9 +187,12 @@ pub(crate) async fn start(rpc: Arc<RpcClient>, instance: Instance) -> Result<Hos
     // own business, and half of what apps ask for is absolute.
     let url = format!("http://{authority}/index.html");
     let running = Arc::new(AtomicBool::new(true));
+    // Whatever the last run left behind; see `empty_outbox`.
+    empty_outbox(instance.message_id);
     let shared = Arc::new(Shared {
         rpc,
         instance,
+        to_chat,
         api: format!("/webxdc-api/{token}"),
         authority,
         running: Arc::clone(&running),
@@ -192,11 +221,48 @@ async fn accept(listener: TcpListener, shared: Arc<Shared>) {
 /// Read one request, answer it, and close. No keep-alive: every answer
 /// says so, and a page load is a handful of short connections.
 async fn answer(mut stream: TcpStream, shared: Arc<Shared>) -> std::io::Result<()> {
-    let response = match read_request(&mut stream).await? {
-        Some(request) => route(&shared, &request).await,
+    let mut response = match read_head(&mut stream).await? {
         None => Response::empty("400 Bad Request"),
+        // A file an app is handing over is written out as it arrives:
+        // the point of the route is files, and a file this host held
+        // whole would be a file the phone has to find room for twice.
+        Some(head) if handover_asked(&shared, &head) => {
+            take_handover(&shared, &mut stream, head).await?
+        }
+        Some(head) => {
+            let target = head.target.clone();
+            let host = head.host.clone();
+            let method = head.method.clone();
+            match read_body(&mut stream, head).await? {
+                None => Response::empty("413 Payload Too Large"),
+                Some(body) => {
+                    route(
+                        &shared,
+                        &Request {
+                            method,
+                            target,
+                            host,
+                            body,
+                        },
+                    )
+                    .await
+                }
+            }
+        }
     };
-    write_response(&mut stream, &response).await
+    let after = response.after.take();
+    let written = write_response(&mut stream, &response).await;
+    // After the answer, never before it: what this sets off opens a page
+    // over the app, and an app whose request is still outstanding when
+    // that happens is an app that never hears back.
+    //
+    // And only if the answer arrived. A write that failed is a page that
+    // is no longer there to have asked, and a picker pushed for it would
+    // land over whatever the reader is looking at instead.
+    if let (Ok(()), Some(after)) = (&written, after) {
+        after();
+    }
+    written
 }
 
 /// One request, as much of it as anything here reads.
@@ -212,6 +278,10 @@ struct Response {
     status: &'static str,
     content_type: String,
     body: Vec<u8>,
+    /// What to do once this answer is on the wire, for the one route
+    /// whose answer has to arrive before what it sets off does. See
+    /// `to_chat`.
+    after: Option<Box<dyn FnOnce() + Send + Sync>>,
 }
 
 impl Response {
@@ -220,6 +290,7 @@ impl Response {
             status: "200 OK",
             content_type: content_type.to_string(),
             body,
+            after: None,
         }
     }
 
@@ -231,6 +302,7 @@ impl Response {
             status,
             content_type: "text/plain; charset=utf-8".to_string(),
             body: status.as_bytes().to_vec(),
+            after: None,
         }
     }
 
@@ -249,6 +321,7 @@ impl Response {
             status,
             content_type: "text/html; charset=utf-8".to_string(),
             body: body.into_bytes(),
+            after: None,
         }
     }
 }
@@ -260,8 +333,23 @@ fn escape(text: &str) -> String {
         .replace('>', "&gt;")
 }
 
-/// A request whose head fits, or `None` for one that does not parse.
-async fn read_request(stream: &mut TcpStream) -> std::io::Result<Option<Request>> {
+/// The head of one request: everything before its body.
+struct Head {
+    method: String,
+    target: String,
+    host: String,
+    /// What `Content-Length` said, or 0 when it said nothing.
+    length: usize,
+    /// The body's first bytes, which arrived with the head.
+    started: Vec<u8>,
+}
+
+/// Read the head, or `None` for something that does not parse as one.
+///
+/// The body is left on the socket. What it is for decides how it is
+/// read: a file an app is handing over is written out as it arrives and
+/// never held, and everything else on this host is short enough to keep.
+async fn read_head(stream: &mut TcpStream) -> std::io::Result<Option<Head>> {
     let mut head = Vec::new();
     let mut chunk = [0_u8; 2048];
     let body_at = loop {
@@ -278,7 +366,7 @@ async fn read_request(stream: &mut TcpStream) -> std::io::Result<Option<Request>
         head.extend_from_slice(&chunk[..read]);
     };
 
-    let mut body = head.split_off(body_at);
+    let started = head.split_off(body_at);
     let Ok(text) = std::str::from_utf8(&head) else {
         return Ok(None);
     };
@@ -304,24 +392,45 @@ async fn read_request(stream: &mut TcpStream) -> std::io::Result<Option<Request>
             length = value.parse().unwrap_or(0);
         }
     }
-    if length > MAX_BODY {
+
+    Ok(Some(Head {
+        method: method.to_string(),
+        target: target.to_string(),
+        host,
+        length,
+        started,
+    }))
+}
+
+/// The rest of a body this host is going to keep, or `None` past the cap.
+///
+/// Past it the body is still read, and dropped as it comes: answering and
+/// closing on a client that is still writing resets the connection, and a
+/// reset is not an answer -- the app sees a host it could not reach and
+/// has no idea why.
+async fn read_body(stream: &mut TcpStream, head: Head) -> std::io::Result<Option<Vec<u8>>> {
+    let mut chunk = [0_u8; 2048];
+    if head.length > MAX_BODY {
+        let mut dropped = head.started.len();
+        while dropped < head.length.min(MAX_DRAIN) {
+            let read = stream.read(&mut chunk).await?;
+            if read == 0 {
+                break;
+            }
+            dropped += read;
+        }
         return Ok(None);
     }
-    while body.len() < length {
+    let mut body = head.started;
+    while body.len() < head.length {
         let read = stream.read(&mut chunk).await?;
         if read == 0 {
             break;
         }
         body.extend_from_slice(&chunk[..read]);
     }
-    body.truncate(length);
-
-    Ok(Some(Request {
-        method: method.to_string(),
-        target: target.to_string(),
-        host,
-        body,
-    }))
+    body.truncate(head.length);
+    Ok(Some(body))
 }
 
 /// Where the needle starts in the haystack.
@@ -352,6 +461,8 @@ async fn route(shared: &Shared, request: &Request) -> Response {
         let Some(rest) = path.strip_prefix(&shared.api) else {
             return Response::empty("404 Not Found");
         };
+        // `/to-chat` is not here: a handover is answered before its body
+        // is read, so it never reaches this (see `handover_asked`).
         return match (request.method.as_str(), rest) {
             ("GET", "/updates") => updates(shared, query).await,
             ("POST", "/send") => send(shared, &request.body).await,
@@ -449,6 +560,240 @@ async fn send(shared: &Shared, body: &[u8]) -> Response {
     match answer {
         Ok(_) => Response::empty("204 No Content"),
         Err(_) => Response::empty("502 Bad Gateway"),
+    }
+}
+
+/// Whether this request is an app handing something over.
+///
+/// Answered from the head alone, because the body has not been read yet
+/// and for this one route it never will be as a whole: what the app
+/// sends goes to the disk as it arrives.
+fn handover_asked(shared: &Shared, head: &Head) -> bool {
+    if !shared.running.load(Ordering::SeqCst) || head.host != shared.authority {
+        return false;
+    }
+    let path = head.target.split('?').next().unwrap_or_default();
+    head.method == "POST" && path == format!("{}/to-chat", shared.api)
+}
+
+/// A file, a piece of text, or both, on their way out of the app.
+///
+/// The file *is* the request body -- no base64, no JSON around it -- so
+/// it is copied from the socket into the cache a chunk at a time and
+/// never held. What it is called and what goes with it are in the query,
+/// which the head already carried.
+///
+/// There is no size limit. The one there was existed to keep the file
+/// out of the heap, and streaming keeps it out already; what was left of
+/// it was a number standing in for a cleanup that did not exist. The
+/// cleanup exists now -- the copy goes as soon as it is saved, and the
+/// outbox is emptied when the app starts -- and the disk answers for
+/// itself: a write with no room left for it is a `500`, which is the
+/// truth and is an answer the app can show.
+///
+/// The *path* is handed on, not the bytes: what receives it is a page,
+/// and a page takes a file by path the way every other picker in this app
+/// hands one over. Nothing is opened or saved from here.
+///
+/// The name is the app's, so it is taken apart and only its last
+/// component kept: an app that asks to write `../../../etc/passwd` gets
+/// a file called `passwd` in the cache.
+async fn take_handover(
+    shared: &Shared,
+    stream: &mut TcpStream,
+    head: Head,
+) -> std::io::Result<Response> {
+    let query = head.target.split_once('?').map_or("", |(_, rest)| rest);
+    let name = field(query, "name");
+    let message = field(query, "text");
+
+    // Text with no file: nothing to write, and nothing to read either.
+    if name.is_empty() {
+        drain(stream, head.started.len(), head.length).await?;
+        if message.is_empty() {
+            return Ok(Response::empty("400 Bad Request"));
+        }
+        return Ok(handed_over(shared, String::new(), message));
+    }
+
+    let Ok(path) = outgoing_path(shared, &name) else {
+        drain(stream, head.started.len(), head.length).await?;
+        return Ok(Response::empty("400 Bad Request"));
+    };
+    match write_streamed(stream, &path, &head).await? {
+        Written::Done => Ok(handed_over(
+            shared,
+            path.to_string_lossy().into_owned(),
+            message,
+        )),
+        Written::Failed => {
+            drop(std::fs::remove_file(&path));
+            Ok(Response::empty("500 Internal Server Error"))
+        }
+    }
+}
+
+/// How a streamed body ended.
+enum Written {
+    Done,
+    Failed,
+}
+
+/// Copy the body onto the disk as it arrives, or say why not.
+async fn write_streamed(
+    stream: &mut TcpStream,
+    path: &std::path::Path,
+    head: &Head,
+) -> std::io::Result<Written> {
+    use std::io::Write as _;
+
+    // `std::fs` rather than tokio's: these are chunk-sized writes to the
+    // phone's own storage, and what this replaces was a single blocking
+    // write of the entire file.
+    let Ok(mut file) = std::fs::File::create(path) else {
+        drain(stream, head.started.len(), head.length).await?;
+        return Ok(Written::Failed);
+    };
+
+    // What has come off the socket, which is what a drain must not ask
+    // for again -- not the same as what has reached the file.
+    let mut taken = head.started.len();
+    let mut chunk = vec![0_u8; 64 * 1024];
+    let mut rest: &[u8] = &head.started;
+    loop {
+        // A write that fails is the disk being full as often as not,
+        // which is the only ceiling this route has left.
+        if !rest.is_empty() && file.write_all(rest).is_err() {
+            drain(stream, taken, head.length).await?;
+            return Ok(Written::Failed);
+        }
+        if taken >= head.length {
+            break;
+        }
+        let read = stream.read(&mut chunk).await?;
+        if read == 0 {
+            break;
+        }
+        rest = &chunk[..read];
+        taken += read;
+    }
+    if file.flush().is_err() {
+        return Ok(Written::Failed);
+    }
+    Ok(Written::Done)
+}
+
+/// Read whatever is left of a body and drop it.
+///
+/// `taken` is how much of it has already come off the socket, so that a
+/// body half-read is not waited on twice over -- which is a wait for
+/// bytes the other end has already sent and will not send again.
+///
+/// Answering and closing on a client that is still writing resets the
+/// connection, and a reset is not an answer: the app sees a host it could
+/// not reach and has no idea why.
+async fn drain(stream: &mut TcpStream, taken: usize, length: usize) -> std::io::Result<()> {
+    let mut dropped = taken;
+    let mut chunk = [0_u8; 8192];
+    while dropped < length.min(MAX_DRAIN) {
+        let read = stream.read(&mut chunk).await?;
+        if read == 0 {
+            break;
+        }
+        dropped += read;
+    }
+    Ok(())
+}
+
+/// The answer to a handover, with the page told once it is on the wire.
+fn handed_over(shared: &Shared, path: String, message: String) -> Response {
+    let to_chat = Arc::clone(&shared.to_chat);
+    let mut response = Response::empty("204 No Content");
+    response.after = Some(Box::new(move || to_chat(path, message)));
+    response
+}
+
+/// One field out of a query string, percent-decoded.
+fn field(query: &str, name: &str) -> String {
+    query
+        .split('&')
+        .filter_map(|pair| pair.split_once('='))
+        .find(|(key, _)| *key == name)
+        .map(|(_, value)| percent_decode(value))
+        .unwrap_or_default()
+}
+
+/// Where a file an app is handing over is written, under a name of its
+/// own choosing but nowhere of its own choosing.
+///
+/// The directory is made here and the file is opened by the caller, which
+/// then writes it as it arrives.
+fn outgoing_path(shared: &Shared, name: &str) -> Result<std::path::PathBuf, String> {
+    let name = std::path::Path::new(name)
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .filter(|name| !name.is_empty() && name != "." && name != "..")
+        .ok_or_else(|| format!("{name} is not a file name"))?;
+    Ok(outbox_dir(shared.instance.message_id)?.join(name))
+}
+
+/// Where under the cache a file an app hands over waits for the page to
+/// save it: one directory per app instance, and the only directory
+/// anything here will delete from.
+pub(crate) const OUTBOX_DIR: &str = "webxdc/outbox";
+
+/// This instance's outbox, made if it is not there yet.
+fn outbox_dir(message_id: u32) -> Result<std::path::PathBuf, String> {
+    // `cache_file` makes the parent of whatever it is asked for, so
+    // asking it for a file in the outbox is what makes the outbox.
+    let inside = crate::qr::cache_file(&format!("{OUTBOX_DIR}/{message_id}/file"))?;
+    inside
+        .parent()
+        .map(std::path::Path::to_path_buf)
+        .ok_or_else(|| "the outbox has no directory of its own".to_string())
+}
+
+/// Delete a file this app handed over, now that it has been saved.
+///
+/// What the page saves is a copy, so once it is saved the cache holds
+/// the same bytes a second time and nothing will ever ask for them. On a
+/// phone that second copy is the whole cost of the feature, and it is
+/// this call that stops it being permanent.
+///
+/// The path comes back from the page rather than being remembered here,
+/// so it is checked rather than trusted: anything that is not a file
+/// directly in this instance's own outbox is left where it is.
+pub(crate) fn discard_outgoing(message_id: u32, path: &str) -> bool {
+    let Ok(dir) = outbox_dir(message_id) else {
+        return false;
+    };
+    let path = std::path::Path::new(path);
+    if !in_outbox(&dir, path) {
+        return false;
+    }
+    std::fs::remove_file(path).is_ok()
+}
+
+/// Whether `path` names a file the outbox itself holds.
+///
+/// Directly in it, so a directory below it does not count and neither
+/// does a `..` climbing back out: this is the whole of what stands
+/// between a path the page passed on and `remove_file`, so it compares
+/// rather than searches.
+fn in_outbox(dir: &std::path::Path, path: &std::path::Path) -> bool {
+    !dir.as_os_str().is_empty() && path.parent() == Some(dir)
+}
+
+/// Empty this instance's outbox.
+///
+/// What is left in it is a handover nothing ever saved -- the app was
+/// closed with one in flight, or the copy failed -- and it would sit
+/// there for as long as the phone did. An app starting is the moment to
+/// clear it: it is the one point at which none of its own handovers can
+/// be in flight.
+pub(crate) fn empty_outbox(message_id: u32) {
+    if let Ok(dir) = outbox_dir(message_id) {
+        drop(std::fs::remove_dir_all(dir));
     }
 }
 
@@ -684,8 +1029,34 @@ async fn write_response(stream: &mut TcpStream, response: &Response) -> std::io:
 #[cfg(test)]
 mod tests {
     use super::{
-        archive_path, content_type, decode_base64, inject, percent_decode, token, Response,
+        archive_path, content_type, decode_base64, in_outbox, inject, percent_decode, token,
+        Response,
     };
+
+    #[test]
+    fn only_a_file_in_the_outbox_itself_is_ever_deleted() {
+        let dir = std::path::Path::new("/cache/postivene/webxdc/outbox/5");
+        let inside = |name: &str| in_outbox(dir, std::path::Path::new(name));
+
+        assert!(inside("/cache/postivene/webxdc/outbox/5/notes.txt"));
+        // A name the app chose is kept whole, quirks and all.
+        assert!(inside("/cache/postivene/webxdc/outbox/5/two words.mp4"));
+
+        // Another app's outbox, which is another app's business.
+        assert!(!inside("/cache/postivene/webxdc/outbox/6/notes.txt"));
+        // The outbox itself, and the cache around it.
+        assert!(!inside("/cache/postivene/webxdc/outbox/5"));
+        assert!(!inside("/cache/postivene/webxdc/outbox"));
+        // Below it rather than in it.
+        assert!(!inside("/cache/postivene/webxdc/outbox/5/deeper/notes.txt"));
+        // The reader's own files, however the path is written.
+        assert!(!inside("/elsewhere/Downloads/notes.txt"));
+        assert!(!inside(
+            "/cache/postivene/webxdc/outbox/5/../../../../etc/passwd"
+        ));
+        assert!(!inside("notes.txt"));
+        assert!(!inside(""));
+    }
 
     #[test]
     fn base64_reads_with_or_without_padding_and_refuses_anything_else() {

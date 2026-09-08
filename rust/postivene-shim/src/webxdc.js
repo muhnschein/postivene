@@ -39,7 +39,7 @@
     var polling = false;
     var timer = null;
 
-    function request(method, path, body, onDone, onFail) {
+    function request(method, path, body, onDone, onFail, type) {
         var xhr = new XMLHttpRequest();
         xhr.open(method, API + path, true);
         xhr.onload = function () {
@@ -55,7 +55,8 @@
         if (body === null) {
             xhr.send();
         } else {
-            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.setRequestHeader("Content-Type",
+                                 type || "application/json");
             xhr.send(body);
         }
     }
@@ -174,10 +175,92 @@
                 caughtUp = resolve;
                 poll();
             });
+        },
+
+        /*
+         * Hand a file, a piece of text, or both out of the app.
+         *
+         * The specification calls this `sendToChat` and warns the app
+         * that it may not come back. What the reader is asked is not
+         * which chat, though: an app draws a *download* over this, and
+         * what they mean by it is the file on their phone. So the host
+         * writes the file out and the page keeps it. The promise settles
+         * once the host has it, which is the last moment anything here
+         * still knows what happened.
+         *
+         * A file arrives in one of three shapes and leaves as the
+         * request body itself: base64 and text are turned into a Blob
+         * here, and a Blob is sent as it is. Nothing is encoded on the
+         * way out -- an exported file used to be read into a base64
+         * string, wrapped in JSON and held whole at both ends, and a
+         * file worth exporting is exactly the size that cannot afford
+         * that.
+         */
+        sendToChat: function (message) {
+            return new Promise(function (resolve, reject) {
+                var content = message || {};
+                var file = content.file;
+                var words = typeof content.text === "string" ? content.text : "";
+                if (!file && words.length === 0) {
+                    reject(new Error("webxdc: nothing to send"));
+                    return;
+                }
+                if (!file) {
+                    handOver("", null, words, resolve, reject);
+                    return;
+                }
+                if (typeof file.name !== "string" || file.name.length === 0) {
+                    reject(new Error("webxdc: a file needs a name"));
+                    return;
+                }
+                var body = null;
+                try {
+                    if (typeof file.base64 === "string") {
+                        body = fromBase64(file.base64);
+                    } else if (typeof file.plainText === "string") {
+                        body = new Blob([file.plainText]);
+                    } else if (file.blob) {
+                        body = file.blob;
+                    }
+                } catch (err) {
+                    reject(new Error("webxdc: the file could not be read"));
+                    return;
+                }
+                if (body === null) {
+                    reject(new Error("webxdc: a file needs a blob, base64 or plainText"));
+                    return;
+                }
+                handOver(file.name, body, words, resolve, reject);
+            });
         }
     };
 
-    /* Nothing else is offered: sendToChat, importFiles and
-     * joinRealtimeChannel are absent rather than present and failing, so
-     * an app that feature-tests for them takes its own other path. */
+    /* Hand one over to the host, which writes it out and tells the page.
+     *
+     * The name and the words go in the query, so the body is the file and
+     * only the file: the host copies it onto the disk as it arrives and
+     * never holds it. */
+    function handOver(name, body, words, resolve, reject) {
+        var path = "/to-chat?name=" + encodeURIComponent(name)
+                   + "&text=" + encodeURIComponent(words);
+        request("POST", path, body === null ? "" : body,
+                function () { resolve(); },
+                function (err) { reject(new Error(err)); },
+                "application/octet-stream");
+    }
+
+    /* base64 as the bytes it stands for. `atob` gives one character per
+     * byte, and a Uint8Array of those is what a Blob takes. */
+    function fromBase64(encoded) {
+        var binary = window.atob(encoded);
+        var bytes = new Uint8Array(binary.length);
+        for (var i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return new Blob([bytes]);
+    }
+
+    /* Nothing else is offered: importFiles and joinRealtimeChannel are
+     * absent rather than present and failing, so an app that
+     * feature-tests for them takes its own other path. */
 }());

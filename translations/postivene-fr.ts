@@ -1010,6 +1010,15 @@
         <extracomment>Shown while a webxdc app is being made ready to run.</extracomment>
         <translation>Démarrage de l’application</translation>
     </message>
+    <message>
+        <source>Saved to Downloads</source>
+        <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
+        <translation>Enregistré dans Téléchargements</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>Copié dans le presse-papiers</translation>
+    </message>
 </context>
 <context>
     <name>WebxdcStorePage</name>

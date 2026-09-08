@@ -66,6 +66,44 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   `sendUpdate` is a POST, the updates from everyone else are a poll -- so
   the bridge is not a Gecko frame script, and no archive format is parsed
   here.
+  An app can hand a file back the other way. The call is `sendToChat`
+  and a chat is the only destination its name can carry, but the button
+  an app draws over it is a *download* -- `sharer`'s is a download arrow
+  -- and what a reader means by that is the file, on their phone. So the
+  host writes what the app gives it into the cache and raises it on the
+  page, and the page saves a copy into Downloads and says so. A chat is
+  not a destination, and neither is a question: a chooser between
+  opening and keeping was tried and was two taps in front of the one
+  thing the reader had already asked for. Text with no file has nowhere
+  to be saved and goes on the clipboard instead, which is still an
+  answer.
+  The file *is* the request body -- no base64, no JSON around it, its
+  name and any words in the query -- and the host copies it from the
+  socket into the cache a chunk at a time. It was JSON with the file
+  base64 inside it at first, and that held the whole of it three times
+  over between the two ends: what a file worth exporting is, is exactly
+  the size that cannot afford it. There is no cap left at all. The one
+  that outlived the base64 was a number standing in for a cleanup that
+  did not exist -- nothing emptied the outbox, so every export left a
+  second copy in the cache for good, and `deltachat-android` has the
+  same leak in a worse place (its blobs go to the app's data directory,
+  which the system will not reclaim). The cleanup is what was missing:
+  the page deletes the cached copy once the file is saved, and starting
+  an app empties its outbox, which is the one moment none of its own
+  handovers can be in flight. What bounds a file now is the disk, and a
+  write with no room for it is a `500` the app can show.
+  Two other things about it are deliberate. The app's request is
+  answered *before* the page is told, and only if that answer got out.
+  And the page keeps serving an app it has opened a page over: stopping
+  the app whenever the page deactivated stopped it in the middle of the
+  very request that asked, so leaving is destruction, which is what a
+  popped page and a replaced stack both are.
+  A body this host will not take is read and dropped before it is
+  refused. Answering and closing on a client still writing resets the
+  connection, and a reset is not an answer: the app reported a host it
+  could not reach and had no idea why. What has already come off the
+  socket is counted, so a half-read body is not waited on twice -- that
+  wait is for bytes the other end has already sent.
   Where a new app comes from is the store, a website
   (`WebxdcStorePage.qml`); a tap on a link to a `.xdc` is caught before
   the engine can download it and fetched through the core instead
@@ -113,7 +151,16 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   all: it cuts the body and puts the rest in an HTML part, so the whole
   of such a message is only behind `get_message_html` -- read as words,
   never rendered as markup (`html.rs`), for the reason every label in
-  the app is pinned to plain text. Both offers belong to a body: an
+  the app is pinned to plain text. A newline in that part is *not* a
+  line break: in HTML it is whitespace, and the core writes each line of
+  the message as `line<br/>` with a newline after the tag, so a reader
+  that counts both puts a blank line between every line. Whitespace
+  between the markup is collapsed the way a browser collapses it, and
+  the tag is the break; two `<br/>` in a row are still two, so a blank
+  line the reader typed survives as one. The fake core's fixture is
+  written in that shape for the same reason -- it was one unbroken line,
+  and every long message reached the phone double-spaced with nothing in
+  the suite to notice. Both offers belong to a body: an
   attachment with no caption has none to fold, and a message the core is
   still holding back has none of it here yet -- neither was excluded at
   first, and an attachment arriving in an open chat grew two words of
@@ -169,9 +216,9 @@ In order of what matters:
    emoji the quick row does not offer.
 4. **The rest of the webxdc API.** Apps are sent, shown and run
    (`webxdc.rs`, `WebxdcPage.qml`), and status updates go both ways. What
-   is not offered is the newer calls -- `sendToChat`, `importFiles`,
-   realtime channels -- which are absent rather than present and failing,
-   so an app that feature-tests for one takes its own other path. Nor is
+   is not offered is the newer calls -- `importFiles`, realtime channels
+   -- which are absent rather than present and failing, so an app that
+   feature-tests for one takes its own other path. Nor is
    an app's `source_code_url` shown anywhere: the page has no pulley to
    put it in (a WebView cannot sit in the flickable one needs), and a tap
    on the app's own name that opens a URL its sender chose is a worse

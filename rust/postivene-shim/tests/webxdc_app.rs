@@ -10,6 +10,13 @@
 //! page reaches the core, the core says so as an event, and the object
 //! that started the app has the new summary. That is the whole bridge, in
 //! the direction that cannot be checked by reading the JavaScript.
+//!
+//! `sendToChat` is the other direction and does not go to the core at
+//! all: the specification says the reader is asked which chat, so the
+//! host writes the file out and raises it on the object for the page to
+//! act on. What is pinned here is that a request reaches that signal
+//! with a file on the disk to show for it, and that an app cannot use
+//! it to write outside the cache.
 
 // Qt harness: see qml_pages.rs.
 #![allow(
@@ -39,6 +46,8 @@ const PROBE_QML: &str = r"
             message_id: 5
             onError: log += 'error:' + message + ';'
             onGone: log += 'gone;'
+            onHanded_over: log += 'to-chat:' + file_path
+                                             + '|' + text + ';'
         }
         // Nothing can be asked of the core until it is up, and it may
         // well be up before this page exists -- which is why the same
@@ -83,6 +92,42 @@ fn ask(authority: &str, request: &str) -> Result<String, String> {
     Ok(String::from_utf8_lossy(&answer).into_owned())
 }
 
+/// A POST whose head and body are separate writes, which is what a real
+/// one is: the head goes out, then the body follows in whatever writes the
+/// network gives it. `ask` puts both in one, and a host that answers
+/// before it has read the body looks fine there and closes the connection
+/// under a real client's feet.
+///
+/// The error is the client's own, because that is the half that matters:
+/// a write that fails is what the app sees as a host it could not reach.
+fn post_apart(authority: &str, target: &str, body: &str) -> Result<String, String> {
+    let mut stream =
+        std::net::TcpStream::connect(authority).map_err(|err| format!("connect: {err}"))?;
+    stream
+        .set_read_timeout(Some(Duration::from_secs(10)))
+        .map_err(|err| err.to_string())?;
+    let head = format!(
+        "POST {target} HTTP/1.1\r\nHost: {authority}\r\n\
+         Content-Type: application/octet-stream\r\nContent-Length: {}\r\n\
+         Connection: close\r\n\r\n",
+        body.len()
+    );
+    stream
+        .write_all(head.as_bytes())
+        .map_err(|err| format!("write-head: {err}"))?;
+    stream.flush().map_err(|err| format!("flush: {err}"))?;
+    for part in body.as_bytes().chunks(64 * 1024) {
+        stream
+            .write_all(part)
+            .map_err(|err| format!("write-body: {err}"))?;
+    }
+    let mut answer = Vec::new();
+    stream
+        .read_to_end(&mut answer)
+        .map_err(|err| format!("read: {err}"))?;
+    Ok(String::from_utf8_lossy(&answer).into_owned())
+}
+
 /// A GET for `path` on the host, as a browser on the phone would send it.
 fn get(authority: &str, path: &str) -> Result<String, String> {
     ask(
@@ -119,6 +164,15 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
     std::fs::create_dir_all(temp.join("accounts")).expect("create temp dirs");
     let cache = temp.join("cache");
     std::fs::create_dir_all(&cache).expect("create cache dir");
+
+    // A handover from a run that ended before the page could save it.
+    // Nothing will ever ask for it again, so starting the app is what
+    // clears it: without that, every export a reader ever made would
+    // still be on the phone.
+    let outbox = cache.join("postivene/postivene/webxdc/outbox/5");
+    std::fs::create_dir_all(&outbox).expect("create outbox");
+    let stale = outbox.join("stale.bin");
+    std::fs::write(&stale, "left over").expect("write a stale handover");
 
     // SAFETY: single-threaded test binary; set before Qt starts.
     unsafe {
@@ -226,6 +280,56 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
         record!(
             "missing",
             get(&authority, "/nothing.js").unwrap_or_else(|err| err)
+        );
+
+        // The app handing a file over, the way `sendToChat` does now:
+        // the file *is* the body, and its name is in the query.
+        record!(
+            "to-chat",
+            post_apart(
+                &authority,
+                &format!("{api}/to-chat?name=notes.txt&text=look"),
+                "hi\n"
+            )
+            .unwrap_or_else(|err| err)
+        );
+
+        // A name that tries to leave the cache keeps only its last part.
+        record!(
+            "to-chat-escape",
+            post_apart(
+                &authority,
+                &format!("{api}/to-chat?name=..%2F..%2F..%2Fetc%2Fpasswd"),
+                "hi\n"
+            )
+            .unwrap_or_else(|err| err)
+        );
+
+        // Neither a file nor a word: the app's mistake, and refused.
+        record!(
+            "to-chat-empty",
+            post_apart(&authority, &format!("{api}/to-chat"), "").unwrap_or_else(|err| err)
+        );
+
+        // A file the size a shared one actually is, in separate writes
+        // the way a browser sends one. Nothing here holds it: it goes
+        // from the socket to the cache a chunk at a time.
+        let big = "A".repeat(4 * 1024 * 1024);
+        record!(
+            "to-chat-big",
+            post_apart(&authority, &format!("{api}/to-chat?name=photo.png"), &big)
+                .unwrap_or_else(|err| err)
+        );
+
+        // And one past the 100 MB this route used to refuse. Nothing
+        // holds it either, so the only thing that could stop it now is
+        // the disk -- a video an app made is exactly the case the cap
+        // was in the way of.
+        let huge = "A".repeat(101 * 1024 * 1024);
+        record!(
+            "to-chat-huge",
+            post_apart(&authority, &format!("{api}/to-chat?name=video.mp4"), &huge)
+                .unwrap_or_else(|err| err)
         );
 
         // The app sending a move, the way `webxdc.js` does.
@@ -354,6 +458,99 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
         value("send").starts_with("HTTP/1.1 204"),
         "the app could not send an update. {context}"
     );
+
+    assert!(
+        value("to-chat").starts_with("HTTP/1.1 204"),
+        "the app could not hand a file to the chat: {}. {context}",
+        value("to-chat")
+    );
+    assert!(
+        value("to-chat-escape").starts_with("HTTP/1.1 204"),
+        "a file named its way out of the cache was refused outright \
+         rather than kept under its last name: {}. {context}",
+        value("to-chat-escape")
+    );
+    assert!(
+        value("to-chat-big").starts_with("HTTP/1.1 204"),
+        "a file the size a shared one actually is did not go through: {}. \
+         The head and the body arrive in separate writes, which is what a \
+         browser does and what `ask` cannot show. {context}",
+        value("to-chat-big")
+    );
+    assert!(
+        value("to-chat-huge").starts_with("HTTP/1.1 204"),
+        "a 101 MB file did not go through: {}. There is no size limit on \
+         this route: the file is never held, and what used to be a cap \
+         was memory this no longer spends. A `write-body:` here is the \
+         bug the phone saw -- the host answered and closed while the app \
+         was still writing, the app's request died mid-send, and all it \
+         could say was that its host could not be reached. {context}",
+        value("to-chat-huge")
+    );
+    assert!(
+        value("to-chat-empty").starts_with("HTTP/1.1 400"),
+        "a handover with nothing in it was accepted: {}. {context}",
+        value("to-chat-empty")
+    );
+
+    // What the page is told, and what is on the disk for it to act on.
+    let said = value("log");
+    let handed: Vec<&str> = said
+        .split(';')
+        .filter(|entry| entry.starts_with("to-chat:"))
+        .collect();
+    assert_eq!(
+        handed.len(),
+        4,
+        "the page was told about {} handovers rather than the four that \
+         were accepted: {said:?}. {context}",
+        handed.len()
+    );
+    let video = handed
+        .iter()
+        .map(|entry| entry.trim_start_matches("to-chat:"))
+        .map(|entry| entry.split('|').next().unwrap_or_default())
+        .find(|path| path.ends_with("/video.mp4"))
+        .unwrap_or_default();
+    assert_eq!(
+        std::fs::metadata(video).map(|file| file.len()).unwrap_or(0),
+        101 * 1024 * 1024,
+        "the 101 MB file did not reach the disk whole: {video:?}. It is \
+         written as it arrives, so a short one here is a body the host \
+         stopped reading. {context}"
+    );
+    assert!(
+        !stale.exists(),
+        "a handover from an earlier run was still in the outbox at {}. \
+         Starting the app is what empties it, and without that a copy of \
+         every file an app ever handed over stays on the phone. {context}",
+        stale.display()
+    );
+    let first = handed[0].trim_start_matches("to-chat:");
+    let (path, words) = first.split_once('|').unwrap_or((first, ""));
+    assert_eq!(
+        words, "look",
+        "the words the app sent with the file did not reach the page: \
+         {said:?}. {context}"
+    );
+    assert!(
+        path.ends_with("/notes.txt"),
+        "the file was not written under the name the app gave it: \
+         {path:?}. {context}"
+    );
+    assert_eq!(
+        std::fs::read_to_string(path).unwrap_or_default(),
+        "hi\n",
+        "the file the page was pointed at does not hold what the app \
+         sent. {context}"
+    );
+    let escaped = handed[1].trim_start_matches("to-chat:");
+    let escaped = escaped.split('|').next().unwrap_or_default();
+    assert!(
+        escaped.ends_with("/passwd") && escaped.contains("/webxdc/outbox/"),
+        "a file named `../../../etc/passwd` was written to {escaped:?} \
+         rather than under that name inside the cache. {context}"
+    );
     let updates = value("updates");
     assert!(
         updates.contains("\"payload\":{\"move\":\"e4\"}") && updates.contains("\"serial\":1"),
@@ -375,7 +572,14 @@ fn an_app_is_served_to_itself_alone_and_its_updates_reach_the_chat() {
         "a closed app still answers: {}. {context}",
         value("after-stop")
     );
-    assert_eq!(value("log"), "", "the app reported: {}", value("log"));
+    // Nothing went wrong and the app was never declared gone. The
+    // handovers are in this log too and are read out below; what must
+    // not be in it is a failure.
+    let log = value("log");
+    assert!(
+        !log.contains("error:") && !log.contains("gone;"),
+        "the app reported: {log}"
+    );
 
     // The icon came out of the archive and was written where a row can
     // draw it from.

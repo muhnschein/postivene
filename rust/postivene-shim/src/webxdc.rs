@@ -201,6 +201,15 @@ pub struct WebxdcApp {
     /// The message this app came in is gone, so there is nothing left to
     /// run: the page that is showing it should leave.
     pub gone: qt_signal!(),
+    /// The app has handed something over: a file written into the cache,
+    /// a piece of text, or both.
+    ///
+    /// Named for what happened rather than for the call that did it. The
+    /// webxdc call is `sendToChat` and a chat is the only destination the
+    /// API can name, but the button an app draws for it is a download and
+    /// the reader means their phone by it -- so what to do with this is
+    /// the page's question, and it asks. See `webxdc_host::HandedOver`.
+    pub handed_over: qt_signal!(file_path: QString, text: QString),
 
     /// Reload what the core says about the app.
     pub reload: qt_method!(fn(&mut self)),
@@ -208,6 +217,9 @@ pub struct WebxdcApp {
     pub start: qt_method!(fn(&mut self)),
     /// Stop serving it. Called for you when the object goes away.
     pub stop: qt_method!(fn(&mut self)),
+    /// Delete a file the app handed over, now that the page has saved
+    /// it somewhere the reader keeps things.
+    pub discard: qt_method!(fn(&mut self, file_path: QString)),
     /// Apply one core event. Only what changes this app is acted on.
     pub handle_event:
         qt_method!(fn(&mut self, context_id: u32, kind: QString, payload_json: QString)),
@@ -316,6 +328,18 @@ impl WebxdcApp {
         self.starting = true;
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
+        // What the host does with a file the app hands over. Queued, so
+        // a request that arrives on the host's own thread is raised on
+        // the Qt one, where the page that answers it lives.
+        let to_page: QPointer<Self> = QPointer::from(&*self);
+        let raise = queued_callback(move |(path, text): (String, String)| {
+            if let Some(this) = to_page.as_pinned() {
+                this.borrow().handed_over(path.into(), text.into());
+            }
+        });
+        let to_chat: crate::webxdc_host::HandedOver =
+            std::sync::Arc::new(move |path, text| raise((path, text)));
+
         let done = queued_callback(move |result: Result<Host, String>| {
             let Some(this) = ptr.as_pinned() else { return };
             this.borrow_mut().starting = false;
@@ -336,8 +360,17 @@ impl WebxdcApp {
         });
 
         runtime.spawn(async move {
-            done(host_for(&rpc, account_id, message_id).await);
+            done(host_for(&rpc, account_id, message_id, to_chat).await);
         });
+    }
+
+    /// Forget a file the app handed over, now that it has been kept.
+    ///
+    /// The page saves a copy and this deletes the original, which is in
+    /// the cache and has nothing left to do. Only a file in this app's
+    /// own outbox goes; see `webxdc_host::discard_outgoing`.
+    pub fn discard(&mut self, file_path: QString) {
+        crate::webxdc_host::discard_outgoing(self.message_id, &file_path.to_string());
     }
 
     /// Stop serving the app.
@@ -487,7 +520,12 @@ fn app_file_name(url: &str) -> String {
 }
 
 /// Everything the host needs about one app, gathered and started.
-async fn host_for(rpc: &Arc<RpcClient>, account_id: u32, message_id: u32) -> Result<Host, String> {
+async fn host_for(
+    rpc: &Arc<RpcClient>,
+    account_id: u32,
+    message_id: u32,
+    to_chat: crate::webxdc_host::HandedOver,
+) -> Result<Host, String> {
     let info = fetch_info(rpc, account_id, message_id).await?;
     // The name this account goes by, which the app shows beside whatever
     // it hears from this end. The core has no self-name of its own for a
@@ -513,6 +551,7 @@ async fn host_for(rpc: &Arc<RpcClient>, account_id: u32, message_id: u32) -> Res
             send_update_interval: info.send_update_interval,
             send_update_max_size: info.send_update_max_size,
         },
+        to_chat,
     )
     .await
 }

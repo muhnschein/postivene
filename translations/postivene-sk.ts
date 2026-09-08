@@ -1014,6 +1014,15 @@
         <extracomment>Shown while a webxdc app is being made ready to run.</extracomment>
         <translation>Spúšťa sa aplikácia</translation>
     </message>
+    <message>
+        <source>Saved to Downloads</source>
+        <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
+        <translation>Uložené do Stiahnutých</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>Skopírované do schránky</translation>
+    </message>
 </context>
 <context>
     <name>WebxdcStorePage</name>

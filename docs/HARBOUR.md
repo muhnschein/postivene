@@ -333,6 +333,22 @@ removed from the store even after approval. Not an option.
    that it draws, that a move reaches the other end and comes back, that
    its row shows what the app says about itself, and that leaving the page
    stops it -- `ss -ltn` should show no loopback port of ours afterwards.
+   An app that hands a file back is the other direction: take one that
+   exports (`sharer` has a download button on every file it holds), tap
+   it, and check that a copy lands in Downloads where the file manager
+   looks, with the notice saying so -- no chat picker, and nothing asked.
+   The file is written into the cache first, so a sandbox that will not
+   let the app write there fails here and nowhere else. Check the app
+   itself too: it is told the file went out before anything else
+   happens, so it should report success rather than an unreachable host.
+   Try a big file as well as a small one -- a video, not a screenshot.
+   The file goes from the socket to the disk a chunk at a time and
+   nothing holds it, so there is no size limit to hit: what a big one
+   costs is free storage, not memory. Check that it does not cost it
+   twice -- after the notice says the copy is in Downloads, the cache
+   copy under `~/.cache/postivene/postivene/webxdc/outbox/` should be
+   gone, and the whole directory should be empty again next time the app
+   is opened.
    An app that will not open says why rather than drawing grey: the host
    answers with the core's own reason, the engine's error page is left
    alone rather than turned back, and the reason stays on the screen

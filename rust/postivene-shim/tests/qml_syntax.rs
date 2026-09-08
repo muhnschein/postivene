@@ -797,6 +797,83 @@ fn the_frame_scripts_the_pages_load_are_there() {
     );
 }
 
+/// A file an app hands over is kept, not put into a chat.
+///
+/// The webxdc call is `sendToChat` and a chat is the only destination its
+/// name can carry, but the button an app draws over it is a download --
+/// `sharer`'s is a download arrow -- and what the reader means by that is
+/// the file, on their phone. So it is saved where the file manager looks,
+/// and nothing is asked: a chooser between opening and keeping was tried
+/// and was two taps in front of the one thing already asked for. Nothing
+/// else can check this: the page names `Sailfish.WebView`, so it is never
+/// loaded off a phone.
+#[test]
+fn the_webxdc_page_keeps_a_handed_over_file() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/pages/WebxdcPage.qml");
+    let text = fs::read_to_string(&path).expect("read WebxdcPage.qml");
+    let code = code_only(&text);
+    assert!(
+        code.contains("onHanded_over:"),
+        "the page ignores an app handing a file over, so the call resolves \
+         and nothing happens"
+    );
+    assert!(
+        !code.contains("appWindow.shareInto("),
+        "a file an app handed over still goes to the chat picker, which \
+         is not what a download means"
+    );
+    let offer = block_of(&code, "function offer(");
+    assert!(
+        offer.contains("handoverSaver.save(") && offer.contains("StandardPaths.download"),
+        "the file is not kept anywhere the reader can find it: {offer:?}"
+    );
+    assert!(
+        !text.contains("HandoverDialog"),
+        "the page still asks what to do with the file rather than keeping it"
+    );
+    // The cache copy is the page's to clean up: nothing else knows the
+    // save has happened, and an export that leaves one behind costs the
+    // phone twice over for every file an app ever makes.
+    assert!(
+        offer.contains("handoverSaver.handedOver ="),
+        "the page does not keep the path it is saving from, so it has \
+         nothing to delete afterwards: {offer:?}"
+    );
+    assert!(
+        code.contains("app.discard("),
+        "the copy in the cache is never deleted, so every file an app \
+         hands over stays on the phone twice"
+    );
+}
+
+/// Being covered by another page does not stop the app under it.
+///
+/// The dialog a handover opens is pushed *over* the app, so a page that
+/// stops its app whenever it deactivates stops it in the middle of the
+/// request that asked for it: the app's fetch is answered by a
+/// closed socket and it reports that its host is gone. Leaving is
+/// destruction -- a popped page is destroyed, and a replaced stack takes
+/// its pages with it -- and that is where the app is stopped. The page
+/// names `Sailfish.WebView`, so nothing else can check this.
+#[test]
+fn the_webxdc_page_keeps_serving_an_app_it_has_opened_a_page_over() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/pages/WebxdcPage.qml");
+    let text = fs::read_to_string(&path).expect("read WebxdcPage.qml");
+    let code = code_only(&text);
+    assert!(
+        !code.contains("PageStatus.Deactivating"),
+        "the page stops its app when it deactivates, which is what being \
+         covered by the handover dialog is: handing a file over opens \
+         that dialog, so asking to export one kills the request that asked"
+    );
+    assert!(
+        code.contains("Component.onDestruction:")
+            && block_of(&code, "Component.onDestruction:").contains("app.stop()"),
+        "nothing stops the app when the page goes, so an app the reader \
+         has left carries on being served"
+    );
+}
+
 /// Every page the app pushes is a page that exists.
 ///
 /// A page is pushed by name, resolved at the moment of the tap, and a

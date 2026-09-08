@@ -1014,6 +1014,15 @@
         <extracomment>Shown while a webxdc app is being made ready to run.</extracomment>
         <translation>Uruchamianie aplikacji</translation>
     </message>
+    <message>
+        <source>Saved to Downloads</source>
+        <extracomment>Where a file a webxdc app produced was copied to.</extracomment>
+        <translation>Zapisano w Pobranych</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>Skopiowano do schowka</translation>
+    </message>
 </context>
 <context>
     <name>WebxdcStorePage</name>

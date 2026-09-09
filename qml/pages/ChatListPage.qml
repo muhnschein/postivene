@@ -391,18 +391,46 @@ Page {
                 id: delegateRoot
                 contentHeight: body.height
 
-                /// This chat is on its way out, and the row says so
-                /// instead of showing it.
+                /// This chat is on its way out.
                 readonly property bool doomed: doomedChats.pending(model.chat_id)
+
+                /// Silica's own countdown, drawn over the chat. The
+                /// deletion is not its business -- that belongs to
+                /// `doomedChats`, because a remorse item lives in the
+                /// row it covers and this list reorders under its rows
+                /// whenever a message arrives. So it draws, and reports
+                /// the tap.
+                function raiseRemorse(milliseconds) {
+                    //: What Silica's countdown says it is doing, over
+                    //: a chat the reader has asked to delete.
+                    remorse.execute(body, qsTr("Deleting"), function() {},
+                                    milliseconds)
+                }
+
+                RemorseItem {
+                    id: remorse
+                    objectName: "chatRemorse"
+                    onCanceled: doomedChats.spare(model.chat_id)
+                }
+
+                // A row rebuilt mid-wait -- scrolled past, or moved by a
+                // message arriving -- comes back with no countdown on
+                // it. Put it up again with what is left of the wait.
+                Component.onCompleted: {
+                    if (delegateRoot.doomed) {
+                        delegateRoot.raiseRemorse(
+                            doomedChats.remaining(model.chat_id))
+                    }
+                }
 
                 ChatListDelegate {
                     id: body
-                    // Faded rather than hidden while it waits to go, and
-                    // its taps taken with it. Hiding a row can collapse
-                    // it under the label that replaced it -- see
-                    // PendingRemoval, and ConversationList where that is
-                    // exactly what happened.
-                    opacity: delegateRoot.doomed ? 0 : 1
+                    // The remorse covering this does the fading, with
+                    // its own `opacity: 0.0` on what it was handed.
+                    // Hiding it here would be wrong: that takes the
+                    // children's `visible` with it, and a row whose
+                    // height reads `visible` collapses under the
+                    // countdown drawn over it.
                     enabled: !delegateRoot.doomed
                     width: parent.width
                     chatName: model.name
@@ -486,42 +514,17 @@ Page {
                         // a remove and an insert, and the row this menu
                         // belongs to is destroyed. A wait living on it
                         // would go too.
-                        onClicked: doomedChats.ask(model.chat_id)
+                        onClicked: {
+                            doomedChats.ask(model.chat_id)
+                            delegateRoot.raiseRemorse(doomedChats.delay)
+                        }
                     }
                 }
 
-                // A chat on its way out, in place of the chat. The row
-                // keeps the height it had, so nothing below it moves and
-                // comes back again if the reader changes their mind.
-                Item {
-                    objectName: "doomedChatRow"
-                    visible: delegateRoot.doomed
-                    width: parent.width
-                    height: visible ? body.height : 0
-
-                    Label {
-                        objectName: "doomedChatLabel"
-                        anchors.centerIn: parent
-                        font.pixelSize: Theme.fontSizeSmall
-                        color: Theme.highlightColor
-                        textFormat: Text.PlainText
-                        //: Over a chat the reader has asked to delete,
-                        //: for as long as they still have a moment to
-                        //: say they did not mean it. A tap on the chat
-                        //: is that moment taken.
-                        text: qsTr("Deleting")
-                    }
-                }
-
-                // A tap opens the chat, or takes back the delete when
-                // that is what the row is showing.
-                onClicked: {
-                    if (delegateRoot.doomed) {
-                        doomedChats.spare(model.chat_id)
-                    } else {
-                        page.openChat(model.chat_id, model.name, 0)
-                    }
-                }
+                // A tap opens the chat. One waiting to go is covered by
+                // the remorse, which takes the tap itself and calls the
+                // deletion off.
+                onClicked: page.openChat(model.chat_id, model.name, 0)
             }
 
             ViewPlaceholder {

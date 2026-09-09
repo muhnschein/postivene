@@ -320,18 +320,25 @@ removed from the store even after approval. Not an option.
    the whole of it -- including for a message another client sent long enough that
    the core had to cut it, which is the case the page cannot be tested
    for anywhere else.
-   Deleting is a device path because the timing is: delete four messages
-   one after another, faster than the four seconds each waits, and check
-   that all four go. Each row says "Deleting" while it waits and keeps
-   its place; a tap on one puts that message back and leaves the others
-   going. Then delete one more and leave the chat before the wait is up
-   -- it should be gone when you come back. The wait used to belong to
-   the row, and deleting the message above a waiting row destroyed it
-   and the wait with it, so most of a run never went at all. The chat
-   list, the profiles list and a group's member list all wait the same
-   way now and were all open to the same thing: delete two chats one
-   after another, delete two profiles, remove two members, and check
-   that both of each go.
+   Deleting is a device path twice over, for the timing and for the
+   look. Delete four messages one after another, faster than the four
+   seconds each waits, and check that all four go: the wait used to
+   belong to the row, and deleting the message above a waiting row took
+   its wait with it, so most of a run never went at all.
+   The look is Silica's own countdown and has to be indistinguishable
+   from every other one on the phone -- the same bar, the same seconds,
+   the same "Tap to cancel" -- because it *is* the platform's
+   `RemorseItem`; only what it deletes is ours. Check that four of them
+   at once each sit in their own row with nothing overlapping, that a
+   tap on one puts that message back and leaves the others going, and
+   that scrolling a waiting row out of the view and back brings the
+   countdown back with the time it had left rather than a fresh one or
+   none. Then delete one more and leave the chat before the wait is up
+   -- it should be gone when you come back.
+   The chat list, the profiles list and a group's member list all wait
+   the same way and were all open to the same thing: delete two chats
+   one after another, delete two profiles, remove two members, and check
+   that both of each go and that each looks like the platform.
    Sharing *to* the app is a device path of its own, and the sandbox is
    half of it: share a picture from the gallery, a document from the file
    manager and a link from the browser, and check that Postivene is in

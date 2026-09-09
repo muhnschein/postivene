@@ -598,7 +598,10 @@ SilicaListView {
                 // message goes has to outlive the row it was asked for
                 // on, and deleting one is what destroys rows. See
                 // PendingRemoval.
-                onClicked: doomedMessages.ask(model.message_id)
+                onClicked: {
+                    doomedMessages.ask(model.message_id)
+                    messageRow.raiseRemorse(doomedMessages.delay)
+                }
             }
         }
         // Sized by its content, not fixed: a device message runs to a
@@ -611,21 +614,46 @@ SilicaListView {
         contentHeight: dayHeading.height + unreadLine.height
                        + (model.loaded ? body.height : Theme.itemSizeExtraSmall)
 
-        /// This message is on its way out, and the row says so instead
-        /// of showing it.
+        /// This message is on its way out.
         readonly property bool doomed: doomedMessages.pending(model.message_id)
+
+        /// Silica's own countdown, drawn over the message: the bar, the
+        /// seconds, "Tap to cancel", all of it the platform's.
+        ///
+        /// The *deletion* is not its business -- that belongs to
+        /// `doomedMessages`, because a remorse item lives in the row it
+        /// covers and a row is what a delete destroys. So it is handed a
+        /// callback that does nothing and asked only to draw and to
+        /// report the tap.
+        function raiseRemorse(milliseconds) {
+            //: What Silica's countdown says it is doing, over a
+            //: message the reader has asked to delete.
+            remorse.execute(body, qsTr("Deleting"), function() {},
+                            milliseconds)
+        }
+
+        RemorseItem {
+            id: remorse
+            objectName: "messageRemorse"
+            onCanceled: doomedMessages.spare(model.message_id)
+        }
+
+        // A row is rebuilt every time it scrolls back into view, so one
+        // scrolled past mid-wait comes back with no countdown on it. Put
+        // it up again with what is actually left of the wait.
+        Component.onCompleted: {
+            if (messageRow.doomed) {
+                messageRow.raiseRemorse(
+                    doomedMessages.remaining(model.message_id))
+            }
+        }
 
         // One surface: a tap opens whatever the message has to open, a
         // long press opens the menu, wherever on the row either lands.
-        // The row is what takes the press, so the two cannot fight. On a
-        // message about to go, that one tap is the way back.
-        onClicked: {
-            if (messageRow.doomed) {
-                doomedMessages.spare(model.message_id)
-            } else {
-                body.tapped()
-            }
-        }
+        // The row is what takes the press, so the two cannot fight. A
+        // message waiting to go is covered by the remorse, which takes
+        // the tap itself and calls the delete off.
+        onClicked: body.tapped()
 
         /// The date this row's day starts under, on the first row of each
         /// day and nowhere else.
@@ -734,15 +762,13 @@ SilicaListView {
             id: body
             objectName: "messageDelegate"
             visible: model.loaded
-            // Kept laid out rather than hidden while it waits to go:
-            // hiding an item takes its children's `visible` with it,
-            // and every part of a message measures
-            // `visible ? implicitHeight : 0` -- so hiding it collapsed
-            // the row to nothing and three of them drew their
-            // "Deleting" across each other. Opacity leaves the height
-            // alone; `enabled` takes the taps that belong to its own
-            // controls, which a tap on a waiting row must not reach.
-            opacity: messageRow.doomed ? 0 : 1
+            // Neither hidden nor faded here while the message waits to
+            // go: the remorse covering it does the fading, with its own
+            // `opacity: 0.0` on what it was handed. Hiding it would be
+            // wrong anyway -- that takes its children's `visible` with
+            // it, and every part of a message measures
+            // `visible ? implicitHeight : 0`, so the row would collapse
+            // under the countdown drawn over it.
             enabled: !messageRow.doomed
             y: dayHeading.height + unreadLine.height
             width: parent.width
@@ -792,31 +818,6 @@ SilicaListView {
             // button: those take the press for themselves, and hand the
             // long one back to the row it means.
             onMenuRequested: messageRow.openMenu()
-        }
-
-        // A message on its way out, in place of the message. What
-        // Silica's remorse draws, drawn here because the countdown
-        // behind it belongs to the list rather than to this row. The row
-        // keeps the height it had, so nothing below it moves and comes
-        // back again if the reader changes their mind.
-        Item {
-            objectName: "doomedRow"
-            visible: messageRow.doomed
-            y: dayHeading.height + unreadLine.height
-            width: parent.width
-            height: visible ? body.height : 0
-
-            Label {
-                objectName: "doomedLabel"
-                anchors.centerIn: parent
-                font.pixelSize: Theme.fontSizeSmall
-                color: Theme.highlightColor
-                textFormat: Text.PlainText
-                //: Over a message the reader has asked to delete, for as
-                //: long as they still have a moment to say they did not
-                //: mean it. A tap on the message is that moment taken.
-                text: qsTr("Deleting")
-            }
         }
     }
 

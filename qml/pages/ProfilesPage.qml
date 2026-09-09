@@ -96,9 +96,34 @@ Page {
             objectName: "profileRow" + model.account_id
             contentHeight: body.height
 
-            /// This profile is on its way out, and the row says so
-            /// instead of showing it.
+            /// This profile is on its way out.
             readonly property bool doomed: doomedProfiles.pending(model.account_id)
+
+            /// Silica's own countdown, drawn over the profile. The
+            /// deletion is not its business -- that belongs to
+            /// `doomedProfiles`, because a remorse item lives in the row
+            /// it covers and the row goes whenever the list reloads. So
+            /// it draws, and reports the tap.
+            function raiseRemorse(milliseconds) {
+                //: What Silica's countdown says it is doing, over a
+                //: profile the reader has asked to delete.
+                remorse.execute(body, qsTr("Deleting profile"),
+                                function() {}, milliseconds)
+            }
+
+            RemorseItem {
+                id: remorse
+                objectName: "profileRemorse"
+                onCanceled: doomedProfiles.spare(model.account_id)
+            }
+
+            // A row rebuilt mid-wait comes back with no countdown on it.
+            Component.onCompleted: {
+                if (profileDelegate.doomed) {
+                    profileDelegate.raiseRemorse(
+                        doomedProfiles.remaining(model.account_id))
+                }
+            }
 
             menu: ContextMenu {
                 MenuItem {
@@ -114,23 +139,17 @@ Page {
                     // destroyed whenever the list reloads, and a wait
                     // living on it would go too. Same as the chat list
                     // and the conversation.
-                    onClicked: doomedProfiles.ask(model.account_id)
+                    onClicked: {
+                        doomedProfiles.ask(model.account_id)
+                        profileDelegate.raiseRemorse(doomedProfiles.delay)
+                    }
                 }
             }
 
             ContactRow {
                 id: body
-                // Kept laid out rather than hidden while it waits to go:
-                // hiding an item takes its children's `visible` with it,
-                // and any part whose height reads `visible` then
-                // measures zero and collapses the row under the label
-                // that replaced it. That is what happened in the
-                // conversation, whose every part is measured that way;
-                // this row is not, but the idiom is one thing in all
-                // four lists and `qml_syntax.rs` holds them to it.
-                // `enabled` takes the taps that belong to the row's own
-                // controls, which a tap on a waiting row must not reach.
-                opacity: profileDelegate.doomed ? 0 : 1
+                // The remorse covering this does the fading, with its
+                // own `opacity: 0.0` on what it was handed.
                 enabled: !profileDelegate.doomed
                 width: parent.width
                 displayName: model.display_name.length > 0
@@ -149,33 +168,10 @@ Page {
                 trailingSpace: marks.width + Theme.paddingMedium
             }
 
-            // A profile on its way out, in place of the profile. The row
-            // keeps the height it had, so nothing below it moves and
-            // comes back again if the reader changes their mind.
-            Item {
-                objectName: "doomedProfileRow"
-                visible: profileDelegate.doomed
-                width: parent.width
-                height: visible ? body.height : 0
-
-                Label {
-                    objectName: "doomedProfileLabel"
-                    anchors.centerIn: parent
-                    font.pixelSize: Theme.fontSizeSmall
-                    color: Theme.highlightColor
-                    textFormat: Text.PlainText
-                    //: Over a profile the reader has asked to delete, for
-                    //: as long as they still have a moment to say they
-                    //: did not mean it. A tap on the profile is that
-                    //: moment taken.
-                    text: qsTr("Deleting profile")
-                }
-            }
-
             Row {
                 id: marks
-                // Out of the way with the row, and by opacity for the
-                // same reason: this one is anchored to the row's centre.
+                // Beside the row rather than in it, so the remorse does
+                // not cover it: faded to match.
                 opacity: profileDelegate.doomed ? 0 : 1
                 anchors {
                     right: parent.right
@@ -223,12 +219,10 @@ Page {
                 }
             }
 
+            // A profile waiting to go is covered by the remorse, which
+            // takes the tap itself and calls the deletion off.
             onClicked: {
-                if (profileDelegate.doomed) {
-                    // Taking the delete back, which is what a tap on a
-                    // row that says "Deleting profile" can only mean.
-                    doomedProfiles.spare(model.account_id)
-                } else if (model.account_id !== page.currentAccountId) {
+                if (model.account_id !== page.currentAccountId) {
                     // The whole stack, not just this page. `replace`
                     // swapped out the accounts page and left the previous
                     // account's chat list underneath it -- one swipe back

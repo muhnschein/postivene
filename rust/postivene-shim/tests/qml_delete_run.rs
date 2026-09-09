@@ -1,11 +1,14 @@
 //! Deleting several messages, one after another.
 //!
 //! Each one waits a moment before it goes, so the reader can say they
-//! did not mean it. That wait used to belong to the row -- Silica's
-//! `ListItem.remorseAction` puts it there -- and a row does not outlive
-//! the thing this is used for: deleting a message destroys a row, and
-//! the delete before it in a run is what destroys the row the next one
-//! is counting down on. Deleting a handful in a row lost most of them.
+//! did not mean it. That wait used to belong to the row --
+//! `ListItem.remorseAction` puts it there -- and deleting a handful in a
+//! row lost most of them on a phone. Why is not established: Silica's
+//! `RemorseItem` runs its callback rather than dropping it when the
+//! countdown is cut short, so "the row went and took the wait with it"
+//! is not the mechanism. What is certain is that deleting out of a list
+//! destroys rows, and that a wait beside the list cannot be lost that
+//! way at all.
 //!
 //! So the wait belongs to the list, which outlives every row in it, and
 //! what this pins is that nothing happening to the rows can lose a
@@ -13,8 +16,11 @@
 //! others are already waiting, and the reader leaving the chat before
 //! the wait is up.
 //!
-//! And the way back: a tap on a message on its way out puts it back, and
-//! puts back only that one.
+//! What draws the wait is Silica's own `RemorseItem` -- the bar, the
+//! seconds, "Tap to cancel" -- raised by the row and handed a callback
+//! that does nothing, because the deletion is the list's. So the way
+//! back is a tap on the platform's countdown, and it puts back only the
+//! one it covers.
 
 // Qt harness: see qml_reactions.rs.
 #![allow(
@@ -118,25 +124,19 @@ const PROBE_QML: &str = r"
             item.clicked()
             return 'ok'
         }
-        /// A tap on the message, which is the way back.
-        function tapRow(messageId) {
-            var row = rowFor(messageId)
-            if (!row) { return 'missing:row:' + messageId }
-            row.clicked()
-            return 'ok'
-        }
-        /// Whether that message is drawn as one on its way out.
+        /// Whether the platform's countdown is up over that message.
+        ///
+        /// Silica's own RemorseItem, not a stand-in: it fades what it
+        /// covers with its own `opacity: 0.0`, so the message's opacity
+        /// is what says the countdown took hold, and `enabled` is the
+        /// row's own doing.
         function goingOut(messageId) {
             var row = rowFor(messageId)
             if (!row) { return 'missing:row:' + messageId }
-            var going = findIn(row, 'doomedRow')
+            var remorse = findIn(row, 'messageRemorse')
             var body = findIn(row, 'messageDelegate')
-            if (!going || !body) { return 'missing:parts' }
-            // The message is faded out rather than hidden -- hiding it
-            // would collapse the row -- so what says it is out of the
-            // way is its opacity, and what says it cannot be tapped
-            // through is `enabled`.
-            return going.visible + '/' + body.opacity + '/' + body.enabled
+            if (!remorse || !body) { return 'missing:parts' }
+            return remorse.active + '/' + body.opacity + '/' + body.enabled
         }
         /// The row's own box: where it starts and how tall it is. A row
         /// waiting to go has to keep the height it had -- what replaces
@@ -147,21 +147,32 @@ const PROBE_QML: &str = r"
             if (!row) { return 'missing:row:' + messageId }
             return Math.round(row.y) + ':' + Math.round(row.height)
         }
-        /// How tall the label in a waiting row is, against the row.
-        function labelFits(messageId) {
+        /// Whether the countdown covers the message and nothing else:
+        /// Silica fills the item it was handed, so it must be no taller
+        /// than the row it sits in.
+        function remorseFits(messageId) {
             var row = rowFor(messageId)
             if (!row) { return 'missing:row:' + messageId }
-            var label = findIn(row, 'doomedLabel')
-            if (!label) { return 'missing:doomedLabel' }
-            return (label.height <= row.height) + ':'
-                   + Math.round(label.height) + '/' + Math.round(row.height)
+            var remorse = findIn(row, 'messageRemorse')
+            if (!remorse) { return 'missing:messageRemorse' }
+            return (remorse.height <= row.height) + ':'
+                   + Math.round(remorse.height) + '/' + Math.round(row.height)
         }
-        /// What a row on its way out says.
+        /// What the countdown says it is doing.
         function goingText(messageId) {
             var row = rowFor(messageId)
             if (!row) { return 'missing:row:' + messageId }
-            var label = findIn(row, 'doomedLabel')
-            return label ? label.text : 'missing:doomedLabel'
+            var remorse = findIn(row, 'messageRemorse')
+            return remorse ? remorse.text : 'missing:messageRemorse'
+        }
+        /// A tap on the countdown, which is what calls a delete off.
+        function tapRemorse(messageId) {
+            var row = rowFor(messageId)
+            if (!row) { return 'missing:row:' + messageId }
+            var remorse = findIn(row, 'messageRemorse')
+            if (!remorse) { return 'missing:messageRemorse' }
+            remorse.tap()
+            return 'ok'
         }
         // Destroys a delegate mid-countdown, as the core's own event does
         // once the delete before it has landed.
@@ -231,8 +242,8 @@ fn every_delete_in_a_run_arrives() {
         record!("untouched-4", call!("goingOut", 4));
         record!("box-1-after", call!("rowBox", 1));
         record!("box-2-after", call!("rowBox", 2));
-        record!("label-1-fits", call!("labelFits", 1));
-        record!("label-2-fits", call!("labelFits", 2));
+        record!("remorse-1-fits", call!("remorseFits", 1));
+        record!("remorse-2-fits", call!("remorseFits", 2));
         record!("sent-so-far", call!("sentSoFar"));
         call!("removeRow", 0);
     });
@@ -242,7 +253,7 @@ fn every_delete_in_a_run_arrives() {
         record!("delete-3", call!("deleteRow", 3));
         // And one the reader changes their mind about, in the same run.
         record!("delete-4", call!("deleteRow", 4));
-        record!("spare-4", call!("tapRow", 4));
+        record!("spare-4", call!("tapRemorse", 4));
         record!("spared-4", call!("goingOut", 4));
         record!("still-going-3", call!("goingOut", 3));
     });
@@ -283,8 +294,9 @@ fn every_delete_in_a_run_arrives() {
     assert_eq!(
         value("going-1"),
         "true/0/false",
-        "a message asked for and waiting to go is still drawn as a \
-         message, or has nothing in its place. {context}"
+        "the platform's countdown is not up over a message waiting to \
+         go, or the message is still drawn under it, or its own controls \
+         can still be tapped through it. {context}"
     );
     assert_eq!(
         value("going-text"),
@@ -295,7 +307,7 @@ fn every_delete_in_a_run_arrives() {
     assert_eq!(
         value("untouched-4"),
         "false/1/true",
-        "asking for one message to go marked another as going too. \
+        "asking for one message to go put a countdown over another. \
          {context}"
     );
     // The height a row had, kept: what replaces the message is centred in
@@ -329,12 +341,11 @@ fn every_delete_in_a_run_arrives() {
              drawn across the rows above and below. {context}"
         );
     }
-    for label in ["label-1-fits", "label-2-fits"] {
+    for label in ["remorse-1-fits", "remorse-2-fits"] {
         assert!(
             value(label).starts_with("true:"),
-            "the \"Deleting\" label is taller than the row holding it \
-             ({}), so it is drawn outside it and over its neighbours. \
-             {context}",
+            "the countdown is taller than the row holding it ({}), so \
+             it is drawn over its neighbours. {context}",
             value(label)
         );
     }
@@ -356,13 +367,13 @@ fn every_delete_in_a_run_arrives() {
     assert_eq!(
         value("spare-4"),
         "ok",
-        "a message on its way out did not take the tap that puts it \
-         back. {context}"
+        "there was no countdown over the message to tap. {context}"
     );
     assert_eq!(
         value("spared-4"),
         "false/1/true",
-        "tapping a message on its way out did not put it back. {context}"
+        "tapping the countdown over a message did not put the message \
+         back. {context}"
     );
     assert_eq!(
         value("still-going-3"),

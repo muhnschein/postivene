@@ -493,15 +493,20 @@ fn only_the_settings_object_names_the_dconf_keys() {
     );
 }
 
-/// Nothing waits on a row before it destroys something in the list.
+/// No deletion hangs off the row it was asked for on.
 ///
-/// Silica's `ListItem.remorseAction` parents the countdown to the row it
-/// was asked for on, and deleting out of a list is exactly what destroys
-/// rows: the first one to land takes every other countdown with it.
-/// Deleting a run of messages lost most of them, and the chat list, the
-/// profiles list and a group's members were all open to the same thing.
-/// The wait belongs to the list now (components/PendingRemoval.qml), so
-/// nothing may reach for Silica's again.
+/// `ListItem.remorseAction` is Silica's shortcut: it makes a
+/// `RemorseItem` in the row and hands it the action. Deleting out of a
+/// list is exactly what destroys rows, and a run of deletes lost most of
+/// itself that way -- in the conversation, and open to the same thing in
+/// the chat list, the profiles list and a group's members.
+///
+/// What replaced it keeps the two halves apart. The *action* is the
+/// list's (components/PendingRemoval.qml), which outlives every row. The
+/// *look* is still Silica's `RemorseItem`, raised by the row and handed
+/// a callback that does nothing --
+/// `every_pending_removal_is_drawn_by_the_platform` holds it to that. So
+/// this bans the shortcut, not the widget.
 #[test]
 fn no_wait_before_a_deletion_lives_on_the_row_it_was_asked_on() {
     let mut offenders = Vec::new();
@@ -518,6 +523,34 @@ fn no_wait_before_a_deletion_lives_on_the_row_it_was_asked_on() {
         "these put the wait before a deletion on the row it was asked \
          for on, which the deletion itself destroys; use a \
          PendingRemoval beside the list instead:\n  {}",
+        offenders.join("\n  ")
+    );
+}
+
+/// The wait is drawn by the platform, not by us.
+///
+/// Silica's `RemorseItem` is what a Sailfish reader already knows a
+/// countdown to look like: the bar, the seconds, "Tap to cancel", the
+/// fade over what is going. A hand-made stand-in was tried and looked
+/// wrong on a phone, which is the whole reason this rule exists. Every
+/// list that holds a wait has to raise the real one.
+#[test]
+fn every_pending_removal_is_drawn_by_the_platform() {
+    let mut offenders = Vec::new();
+    for file in qml_files() {
+        let code = code_only(&fs::read_to_string(&file).expect("read qml"));
+        if !code.contains("PendingRemoval {") {
+            continue;
+        }
+        if !code.contains("RemorseItem {") || !code.contains(".execute(") {
+            offenders.push(file.display().to_string());
+        }
+    }
+    assert!(
+        offenders.is_empty(),
+        "these hold a wait before a deletion and draw it themselves; \
+         raise Silica's own RemorseItem over the row instead, so it looks \
+         like every other countdown on the phone:\n  {}",
         offenders.join("\n  ")
     );
 }

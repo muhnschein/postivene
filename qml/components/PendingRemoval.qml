@@ -55,11 +55,29 @@ QtObject {
         return root.ids[id] === true
     }
 
+    /// When the wait now running is up, as a millisecond clock reading.
+    /// 0 when nothing is waiting.
+    ///
+    /// Kept so a row rebuilt mid-wait -- scrolled out of the view and
+    /// back -- can put the platform's countdown up again with the time
+    /// that is actually left on it, rather than a fresh one or none.
+    property real dueAt: 0
+
+    /// How much of the wait is left for this one, in milliseconds. 0 if
+    /// it is not waiting at all.
+    function remaining(id) {
+        if (!root.pending(id)) {
+            return 0
+        }
+        return Math.max(1, root.dueAt - Date.now())
+    }
+
     /// Ask for one to go, once the reader has had their moment.
     function ask(id) {
         var next = root.copied()
         next[id] = true
         root.ids = next
+        root.dueAt = Date.now() + root.delay
         root.countdown.restart()
     }
 
@@ -71,6 +89,7 @@ QtObject {
         root.ids = next
         if (Object.keys(next).length === 0) {
             root.countdown.stop()
+            root.dueAt = 0
         }
     }
 
@@ -79,6 +98,7 @@ QtObject {
         var going = root.ids
         root.ids = ({})
         root.countdown.stop()
+        root.dueAt = 0
         // Cleared before any of them is acted on: whatever answers
         // `remove` may come straight back here, and must not find a
         // list this is still working through.

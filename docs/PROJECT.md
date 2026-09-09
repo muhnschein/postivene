@@ -193,27 +193,41 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   a sentence; `qml_message_lines.rs` now measures what Qt makes of each
   shape rather than trusting a reading of it.
 - **A wait before something is destroyed belongs to the list, not the
-  row.** Silica's remorse is `ListItem.remorseAction`: the countdown is
-  an item parented to the row it was asked for on. For deleting *out of*
-  a list that is the one place it cannot go, because deleting is exactly
-  what destroys rows -- the first one lands, the core says so, the row
-  goes, and every other countdown goes with it. Deleting a handful of
-  messages one after another lost most of them, which is how this was
-  found, and the same held for the chat list (a message arriving reorders
-  it, which is a remove and an insert), the profiles list, and a group's
-  members.
-  So the wait is a `PendingRemoval` beside each list, one wait covering
-  everything asked for while it runs. A row on its way out draws
-  "Deleting" in place of what it held and keeps the height it had, a tap
-  on it puts that one back and leaves the rest going, and whoever holds
-  one empties it as they are left -- the conversation from its page's
-  `Deactivating`, the other three from their own -- for the reason
-  ConversationPage writes its draft there: leaving is exactly when a
-  timer has not fired yet. `qml_syntax.rs` holds every list to both
-  halves, and the stub `ListItem` no longer has a `remorseAction` for
-  anything to reach for. The profiles list keeps its in-place refresh
-  (`core.rs`) as well, which is what stops every row flickering when one
-  profile goes, but nothing depends on it any more.
+  row.** `ListItem.remorseAction` is Silica's shortcut: it makes a
+  `RemorseItem` in the row and hands it the action. Deleting a handful of
+  messages one after another lost most of them on a phone, and moving the
+  action off the row fixed it.
+  Why it lost them is not established, and the obvious explanation is
+  wrong: `RemorseItem` runs its callback rather than dropping it when the
+  countdown is cut short, both when it is destroyed and when its page
+  deactivates. So "the row went and took the countdown with it" is not
+  the mechanism, whatever is. What is certain is that deleting out of a
+  list destroys rows -- the first delete lands, the core says so, the row
+  goes -- and that the chat list is churned harder still, since a message
+  arriving reorders it, which is a remove and an insert. A wait that
+  lives somewhere that volatile has to be proved every release; a wait
+  that lives beside the list does not.
+  So the two halves are kept apart. The *action* is a `PendingRemoval`
+  beside each list, one wait covering everything asked for while it
+  runs, emptied as whoever holds it is left -- the conversation from its
+  page's `Deactivating`, the other three from their own -- for the
+  reason ConversationPage writes its draft there: leaving is exactly
+  when a timer has not fired yet. The *look* is still Silica's own
+  `RemorseItem`, raised by the row over what is going and handed a
+  callback that does nothing: the bar, the seconds, "Tap to cancel", and
+  the fade over the row, all of it the platform's, because a reader
+  already knows what a countdown looks like here. A hand-drawn stand-in
+  was tried and was wrong twice over -- it hid the row's content, which
+  collapsed the row, and even fixed it did not look like the phone.
+  Raising it needs two things Silica's shortcut does for you: the row
+  puts the countdown up again when it is rebuilt mid-wait
+  (`PendingRemoval.remaining`), and nothing else may fade or hide what
+  the countdown covers, since `RemorseItem` does that itself with an
+  `opacity: 0.0` on the item it was handed. `qml_syntax.rs` holds every
+  list to all of it, and the stub `ListItem` no longer has a
+  `remorseAction` for anything to reach for. The profiles list keeps its
+  in-place refresh (`core.rs`) as well, which is what stops every row
+  flickering when one profile goes, but nothing depends on it any more.
 - **A file is opened elsewhere or kept; reading belongs to messages.** A
   picture and a video have pages of their own and everything else is
   handed to the system. A page for a file was built and taken out again

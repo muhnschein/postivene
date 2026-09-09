@@ -144,15 +144,15 @@ const PROBE_QML: &str = r"
             item.clicked()
             return 'ok'
         }
-        /// Whether that profile's row is drawn as one on its way out,
-        /// and whether the label saying so fits inside it.
+        /// Whether the platform's countdown is up over that profile,
+        /// and whether it fits inside the row it covers. Silica's own
+        /// RemorseItem, not a stand-in.
         function goingOut(accountId) {
             var row = findIn(loader.item, 'profileRow' + accountId)
             if (!row) { return 'missing:profileRow' + accountId }
-            var going = findIn(row, 'doomedProfileRow')
-            var label = findIn(row, 'doomedProfileLabel')
-            if (!going || !label) { return 'missing:parts' }
-            return going.visible + ':' + (label.height <= row.height)
+            var remorse = findIn(row, 'profileRemorse')
+            if (!remorse) { return 'missing:profileRemorse' }
+            return remorse.active + ':' + (remorse.height <= row.height)
         }
         // The row object for a profile, held to compare identity with.
         property var remembered: null
@@ -345,9 +345,8 @@ fn assert_rows(steps: &[(&str, String)], navigation: &str, calls: &[(String, Val
     assert_eq!(
         value("going-1"),
         "true:true",
-        "a profile waiting to go is not drawn as one, or the label saying \
-         so is taller than the row holding it -- which is a label drawn \
-         over the rows above and below. {context}"
+        "the platform's countdown is not up over a profile waiting to go, \
+         or it is taller than the row it covers. {context}"
     );
 
     assert_eq!(

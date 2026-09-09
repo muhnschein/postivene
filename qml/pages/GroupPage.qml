@@ -300,10 +300,37 @@ Page {
                     width: column.width
                     contentHeight: body.height
 
-                    /// This member is on their way out, and the row says
-                    /// so instead of showing them.
+                    /// This member is on their way out.
                     readonly property bool doomed:
                         doomedMembers.pending(model.contact_id)
+
+                    /// Silica's own countdown, drawn over the member.
+                    /// The removal is not its business -- that belongs
+                    /// to `doomedMembers`, because a remorse item lives
+                    /// in the row it covers and removing one member
+                    /// reloads the whole member list. So it draws, and
+                    /// reports the tap.
+                    function raiseRemorse(milliseconds) {
+                        //: What Silica's countdown says it is doing,
+                        //: over a member the reader has asked to
+                        //: remove from the group.
+                        remorse.execute(body, qsTr("Removing"),
+                                        function() {}, milliseconds)
+                    }
+
+                    RemorseItem {
+                        id: remorse
+                        objectName: "memberRemorse"
+                        onCanceled: doomedMembers.spare(model.contact_id)
+                    }
+
+                    // A row rebuilt mid-wait comes back bare.
+                    Component.onCompleted: {
+                        if (memberRow.doomed) {
+                            memberRow.raiseRemorse(
+                                doomedMembers.remaining(model.contact_id))
+                        }
+                    }
 
                     // Removing yourself is leaving, which has its own
                     // place in the pulley and its own countdown.
@@ -315,18 +342,18 @@ Page {
                             // The page is told, not this row: removing
                             // one member reloads the list, and a wait
                             // living on a row would go with the row.
-                            onClicked: doomedMembers.ask(model.contact_id)
+                            onClicked: {
+                                doomedMembers.ask(model.contact_id)
+                                memberRow.raiseRemorse(doomedMembers.delay)
+                            }
                         }
                     }
 
                     ContactRow {
                         id: body
-                        // Faded rather than hidden while it waits to go, and
-                        // its taps taken with it. Hiding a row can collapse
-                        // it under the label that replaced it -- see
-                        // PendingRemoval, and ConversationList where that is
-                        // exactly what happened.
-                        opacity: memberRow.doomed ? 0 : 1
+                        // The remorse covering this does the fading,
+                        // with its own `opacity: 0.0` on what it was
+                        // handed.
                         enabled: !memberRow.doomed
                         width: parent.width
                         displayName: model.display_name
@@ -336,38 +363,6 @@ Page {
                         isVerified: model.is_verified
                     }
 
-                    // A member on their way out, in place of the member.
-                    // The row keeps the height it had, so nothing below
-                    // it moves and comes back again if the reader
-                    // changes their mind.
-                    Item {
-                        objectName: "doomedMemberRow"
-                        visible: memberRow.doomed
-                        width: parent.width
-                        height: visible ? body.height : 0
-
-                        Label {
-                            objectName: "doomedMemberLabel"
-                            anchors.centerIn: parent
-                            font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.highlightColor
-                            textFormat: Text.PlainText
-                            //: Over a member the reader has asked to
-                            //: remove from the group, for as long as they
-                            //: still have a moment to say they did not
-                            //: mean it. A tap on the member is that
-                            //: moment taken.
-                            text: qsTr("Removing")
-                        }
-                    }
-
-                    // The row has nothing else a tap does, so a tap can
-                    // only mean taking the removal back.
-                    onClicked: {
-                        if (memberRow.doomed) {
-                            doomedMembers.spare(model.contact_id)
-                        }
-                    }
                 }
             }
 

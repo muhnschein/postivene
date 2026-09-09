@@ -158,7 +158,7 @@
     </message>
     <message>
         <source>Deleting</source>
-        <extracomment>Over a chat the reader has asked to delete, for as long as they still have a moment to say they did not mean it. A tap on the chat is that moment taken.</extracomment>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a chat the reader has asked to delete.</extracomment>
         <translation>తొలగిస్తోంది</translation>
     </message>
     <message>
@@ -268,7 +268,7 @@
     </message>
     <message>
         <source>Deleting</source>
-        <extracomment>Over a message the reader has asked to delete, for as long as they still have a moment to say they did not mean it. A tap on the message is that moment taken.</extracomment>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a message the reader has asked to delete.</extracomment>
         <translation>తొలగిస్తోంది</translation>
     </message>
     <message>
@@ -467,7 +467,7 @@
     </message>
     <message>
         <source>Removing</source>
-        <extracomment>Over a member the reader has asked to remove from the group, for as long as they still have a moment to say they did not mean it. A tap on the member is that moment taken.</extracomment>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a member the reader has asked to remove from the group.</extracomment>
         <translation>తీసివేస్తోంది</translation>
     </message>
     <message>
@@ -762,7 +762,7 @@
     </message>
     <message>
         <source>Deleting profile</source>
-        <extracomment>Over a profile the reader has asked to delete, for as long as they still have a moment to say they did not mean it. A tap on the profile is that moment taken.</extracomment>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a profile the reader has asked to delete.</extracomment>
         <translation>ప్రొఫైల్ తొలగిస్తోంది</translation>
     </message>
     <message>

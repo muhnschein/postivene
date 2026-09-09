@@ -15,6 +15,15 @@ on:
       - main
   pull_request:
     types: [opened, synchronize, reopened]
+
+# Reading the tree is all this needs. The scanner authenticates to
+# SonarQube with its own token, not with the job's, and SonarQube writes
+# back to the pull request as its own GitHub App. `ci.yml` and `rpm.yml`
+# say the same; a workflow with no block at all gets whatever the
+# repository's default is, which is what CodeQL objects to.
+permissions:
+  contents: read
+
 jobs:
   sonarqube:
     name: SonarQube

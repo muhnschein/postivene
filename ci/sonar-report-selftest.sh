@@ -188,6 +188,7 @@ dashboardUrl=$dash
 ceTaskId=TASK1
 ceTaskUrl=http://127.0.0.1:$port/api/ce/task?id=TASK1
 EOF
+    return 0
 }
 
 # expect <description> <text that must appear> [file to search]
@@ -203,6 +204,7 @@ expect() {
         sed -n '1,60p' "$where" >&2
         status=1
     fi
+    return 0
 }
 
 # reject <description> <text that must NOT appear> <file>
@@ -215,6 +217,7 @@ reject() {
     else
         echo "selftest: ok   $what"
     fi
+    return 0
 }
 
 # ------------------------------------------------- everything, anonymous

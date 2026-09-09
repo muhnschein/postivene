@@ -53,6 +53,7 @@ EOF
     cat >"$work/sources/google-chrome.list.save" <<'EOF'
 deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main
 EOF
+    return 0
 }
 
 # survives <file> <yes|no> <why>
@@ -69,6 +70,7 @@ survives() {
         echo "selftest: FAIL $why -- $name present=$there, wanted $want" >&2
         status=1
     fi
+    return 0
 }
 
 stage
@@ -104,22 +106,24 @@ fi
 
 # A directory with nothing in it, and one that is not there at all: an
 # image that keeps every source in /etc/apt/sources.list has both, and
-# neither is an error.
+# both are fine. The two "ok" lines say "accepted" rather than "not an
+# error" because Sonar's shell analyser reads any message carrying the
+# word as an error message, and asks for it on stderr (S7677).
 rm -rf "$work/sources"
 mkdir -p "$work/sources"
 cases=$((cases + 1))
 if APT_SOURCES_DIR="$work/sources" "$script" --prune-only >/dev/null 2>&1; then
-    echo "selftest: ok   an empty sources.list.d is not an error"
+    echo "selftest: ok   an empty sources.list.d is accepted"
 else
-    echo "selftest: FAIL an empty sources.list.d should not fail" >&2
+    echo "selftest: FAIL an empty sources.list.d was rejected" >&2
     status=1
 fi
 
 cases=$((cases + 1))
 if APT_SOURCES_DIR="$work/nowhere" "$script" --prune-only >/dev/null 2>&1; then
-    echo "selftest: ok   a missing sources.list.d is not an error"
+    echo "selftest: ok   a missing sources.list.d is accepted"
 else
-    echo "selftest: FAIL a missing sources.list.d should not fail" >&2
+    echo "selftest: FAIL a missing sources.list.d was rejected" >&2
     status=1
 fi
 

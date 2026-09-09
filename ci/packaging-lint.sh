@@ -89,6 +89,36 @@ else
     echo "packaging-lint: the rpm workflow stamps a unique Release"
 fi
 
+# cargo-nextest does not run doctests. It says so, and it is not a bug --
+# but it means that swapping `cargo test` for `cargo nextest run` silently
+# stops running a kind of test, and there is nothing to notice: this
+# workspace has no doctests today, so the count does not change. The first
+# one written after that would never run again, and would look like it did.
+#
+# So wherever nextest runs the suite, `cargo test --doc` runs beside it.
+#
+# Comment lines are stripped before either half is looked for, and that is
+# not tidiness: the first version of this check read the whole file, and the
+# Makefile comment explaining the rule -- which says "--doc" -- satisfied
+# it. Deleting the actual command passed the lint.
+ran=$((ran + 1))
+doc_missing=""
+for file in .github/workflows/ci.yml Makefile; do
+    commands=$(grep -v '^[[:space:]]*#' "$root/$file")
+    if printf '%s\n' "$commands" | grep -q 'nextest run' &&
+        ! printf '%s\n' "$commands" | grep -q 'test .*--doc'; then
+        doc_missing="$doc_missing $file"
+    fi
+done
+if [ -n "$doc_missing" ]; then
+    echo "packaging-lint: FAIL nextest runs the suite in$doc_missing without" \
+         "\`cargo test --doc\` beside it, so doctests would silently stop" \
+         "running" >&2
+    status=1
+else
+    echo "packaging-lint: doctests run wherever nextest does"
+fi
+
 # mb2 derives the package it is building from the directory it is run in,
 # and then looks for rpm/<that>.spec. The workflow mounts the checkout at a
 # path it chooses, so that name and the spec's have to agree or the build

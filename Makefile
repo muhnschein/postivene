@@ -31,8 +31,30 @@ check: fmt lint test doc-lint msrv qml-lint lockfile-lint packaging-lint harbour
        sonar-report-test apt-install-test vendor-check deny
 
 ## Unit, integration, and Qt event-loop tests.
+##
+## Through cargo-nextest when it is installed, which runs each test in its
+## own process rather than one test binary at a time. This suite is over a
+## hundred binaries that mostly sit waiting on Qt timers, so that is the
+## difference between about ten minutes and about two and a half.
+## rust/.config/nextest.toml says the rest.
+##
+## Without it the same tests still run, the slow way. `make check` has to
+## work on a laptop that has not installed anything extra:
+##   cargo install --locked cargo-nextest
+##
+## nextest does not run doctests, so `--doc` runs beside it either way.
+## There are none today, which is exactly how one would get added and never
+## run again; ci/packaging-lint.sh fails a tree that drops it.
 test:
-	cd rust && $(CARGO) test --workspace
+	@command -v cargo-nextest >/dev/null 2>&1 || \
+		echo "test: cargo-nextest is not installed; running the slow way \
+(cargo install --locked cargo-nextest)"
+	@if command -v cargo-nextest >/dev/null 2>&1; then \
+		cd rust && $(CARGO) nextest run --workspace; \
+	else \
+		cd rust && $(CARGO) test --workspace; \
+	fi
+	cd rust && $(CARGO) test --workspace --doc
 
 ## Clippy at the workspace lint level, over tests and binaries too.
 lint:

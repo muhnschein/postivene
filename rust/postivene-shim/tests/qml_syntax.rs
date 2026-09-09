@@ -307,6 +307,16 @@ fn the_conversation_page_uses_the_pieces_that_are_tested() {
         block_of(&text, "id: inputRow").contains("rightMargin: Theme.horizontalPageMargin"),
         "the send button is flush against the edge of the screen"
     );
+    // Two things the page has to do on its way out, both of them a timer
+    // that has not fired yet: write the draft, and send the deletes the
+    // reader asked for. The list's own end of the second is
+    // `qml_delete_run.rs`; what cannot be tested by loading the list on
+    // its own is that the page ever asks.
+    assert!(
+        block_of(&text, "PageStatus.Deactivating").contains("listView.flushDeletes()"),
+        "leaving the chat does not send the deletes still waiting, so a \
+         reader who asked for a message to go and then left keeps it"
+    );
 }
 
 /// Anything showing a string the other end chose has to say it is plain
@@ -480,6 +490,192 @@ fn only_the_settings_object_names_the_dconf_keys() {
         keys.iter()
             .all(|key| key.starts_with("/apps/harbour-postivene/")),
         "a key is outside the app's own dconf path: {keys:?}"
+    );
+}
+
+/// No deletion hangs off the row it was asked for on.
+///
+/// `ListItem.remorseAction` is Silica's shortcut: it makes a
+/// `RemorseItem` in the row and hands it the action. Deleting out of a
+/// list is exactly what destroys rows, and a run of deletes lost most of
+/// itself that way -- in the conversation, and open to the same thing in
+/// the chat list, the profiles list and a group's members.
+///
+/// What replaced it keeps the two halves apart. The *action* is the
+/// list's (components/PendingRemoval.qml), which outlives every row. The
+/// *look* is still Silica's `RemorseItem`, raised by the row and handed
+/// a callback that does nothing --
+/// `every_pending_removal_is_drawn_by_the_platform` holds it to that. So
+/// this bans the shortcut, not the widget.
+#[test]
+fn no_wait_before_a_deletion_lives_on_the_row_it_was_asked_on() {
+    let mut offenders = Vec::new();
+    for file in qml_files() {
+        let code = code_only(&fs::read_to_string(&file).expect("read qml"));
+        for (number, line) in code.lines().enumerate() {
+            if line.contains("remorseAction(") {
+                offenders.push(format!("{}:{}", file.display(), number + 1));
+            }
+        }
+    }
+    assert!(
+        offenders.is_empty(),
+        "these put the wait before a deletion on the row it was asked \
+         for on, which the deletion itself destroys; use a \
+         PendingRemoval beside the list instead:\n  {}",
+        offenders.join("\n  ")
+    );
+}
+
+/// The wait is drawn by the platform, not by us.
+///
+/// Silica's `RemorseItem` is what a Sailfish reader already knows a
+/// countdown to look like: the bar, the seconds, "Tap to cancel", the
+/// fade over what is going. A hand-made stand-in was tried and looked
+/// wrong on a phone, which is the whole reason this rule exists. Every
+/// list that holds a wait has to raise the real one.
+#[test]
+fn every_pending_removal_is_drawn_by_the_platform() {
+    let mut offenders = Vec::new();
+    for file in qml_files() {
+        let code = code_only(&fs::read_to_string(&file).expect("read qml"));
+        if !code.contains("PendingRemoval {") {
+            continue;
+        }
+        if !code.contains("RemorseItem {") || !code.contains(".execute(") {
+            offenders.push(file.display().to_string());
+        }
+    }
+    assert!(
+        offenders.is_empty(),
+        "these hold a wait before a deletion and draw it themselves; \
+         raise Silica's own RemorseItem over the row instead, so it looks \
+         like every other countdown on the phone:\n  {}",
+        offenders.join("\n  ")
+    );
+}
+
+/// The drawn countdown is given the list's own number, never its own.
+///
+/// A row raises Silica's `RemorseItem` over what is going, and the list
+/// deletes when the wait is up. Those are two clocks, and they have to
+/// end at the same moment: when they did not, the countdown ran out and
+/// the platform put the message back while the list was still waiting,
+/// and everything went together at the end instead. So the only value a
+/// row may hand `execute` is `PendingRemoval.countdownFor(id)`, which
+/// answers with what is left of that id's own wait.
+///
+/// Counted rather than matched line by line, because the call wraps: as
+/// many `countdownFor(` as there are `.execute(`.
+#[test]
+fn the_drawn_countdown_is_asked_for_rather_than_chosen() {
+    let mut offenders = Vec::new();
+    for file in qml_files() {
+        let code = code_only(&fs::read_to_string(&file).expect("read qml"));
+        if !code.contains("PendingRemoval {") {
+            continue;
+        }
+        let raised = code.matches(".execute(").count();
+        let asked = code.matches("countdownFor(").count();
+        if raised != asked {
+            offenders.push(format!(
+                "{}: {raised} countdown(s) raised, {asked} asked for",
+                file.display()
+            ));
+        }
+    }
+    assert!(
+        offenders.is_empty(),
+        "these raise a countdown with a length of their own choosing; \
+         pass PendingRemoval.countdownFor(id) instead, so what is drawn \
+         and what is deleted end together:\n  {}",
+        offenders.join("\n  ")
+    );
+}
+
+/// A row waiting to go is faded, not hidden.
+///
+/// Hiding an item takes its children's `visible` with it, and the parts
+/// of a row measure `visible ? implicitHeight : 0` -- so hiding the
+/// content of a waiting row collapses the row to nothing. What replaces
+/// the content is centred in that nothing and drawn across the rows
+/// above and below: three messages deleted at once put three "Deleting"
+/// on top of each other on a phone, which is how this was found.
+/// `opacity` leaves the height alone, and `enabled` is what stops a tap
+/// reaching controls that can no longer be seen.
+///
+/// One line at a time, so a binding wrapped across two escapes it. The
+/// four files it applies to are counted by
+/// `every_pending_removal_is_emptied_on_the_way_out`.
+#[test]
+fn a_row_waiting_to_go_is_faded_rather_than_hidden() {
+    let mut offenders = Vec::new();
+    for file in qml_files() {
+        let code = code_only(&fs::read_to_string(&file).expect("read qml"));
+        if !code.contains("PendingRemoval {") {
+            continue;
+        }
+        for (number, line) in code.lines().enumerate() {
+            let line = line.trim();
+            let hides =
+                line.contains('!') && (line.contains("doomed") || line.contains(".pending("));
+            if line.starts_with("visible:") && hides {
+                offenders.push(format!("{}:{}: {line}", file.display(), number + 1));
+            }
+        }
+    }
+    assert!(
+        offenders.is_empty(),
+        "these hide a row's content while it waits to go, which collapses \
+         the row and draws what replaces it over the neighbours; fade it \
+         with `opacity` and take its taps with `enabled` \
+         instead:\n  {}",
+        offenders.join("\n  ")
+    );
+}
+
+/// Every wait is emptied when what holds it is left.
+///
+/// A wait that nobody empties is a deletion the reader asked for and did
+/// not get: they tapped Delete, then went somewhere else inside four
+/// seconds. Each page that holds one flushes it as it deactivates, for
+/// the reason `ConversationPage` writes its draft there. `ConversationList`
+/// is not a page and offers `flushDeletes()` for its own page to call,
+/// which `the_conversation_page_uses_the_pieces_that_are_tested` checks.
+#[test]
+fn every_pending_removal_is_emptied_on_the_way_out() {
+    let pages = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/pages");
+    let mut holders = 0;
+    let mut offenders = Vec::new();
+    for file in qml_files() {
+        let text = fs::read_to_string(&file).expect("read qml");
+        if !code_only(&text).contains("PendingRemoval {") {
+            continue;
+        }
+        holders += 1;
+        let leaving = if file.parent() == Some(pages.as_path()) {
+            block_of(&text, "PageStatus.Deactivating")
+        } else {
+            text.clone()
+        };
+        if !leaving.contains(".flush()") {
+            offenders.push(file.display().to_string());
+        }
+    }
+    // Otherwise this passes by finding nothing to check, which is what it
+    // would do if the four of them were quietly put back on their rows.
+    assert!(
+        holders >= 4,
+        "only {holders} files hold a PendingRemoval; there should be four \
+         -- the conversation, the chat list, the profiles and a group's \
+         members"
+    );
+    assert!(
+        offenders.is_empty(),
+        "these hold a wait before a deletion and never empty it, so \
+         leaving inside the wait keeps what the reader asked to \
+         delete:\n  {}",
+        offenders.join("\n  ")
     );
 }
 

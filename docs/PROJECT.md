@@ -155,14 +155,20 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   right for something that happened and wrong for a view that never drew
   anything.
 - **A bubble holds a remark; anything longer gets a page.** A message
-  over a dozen lines is folded in the conversation, with Expand and View
-  full message under it: drawn whole, somebody's to-do document fills
-  the screen, pushes the chat out of it and leaves a row nobody can
-  scroll past. The fold is a cap on the label's lines rather than a cut
-  in the text, so nothing has to slice a rendering in half and leave a
-  tag open. And past a length the core does not carry a message whole at
-  all: it cuts the body and puts the rest in an HTML part, so the whole
-  of such a message is only behind `get_message_html` -- read as words,
+  over a dozen lines is folded in the conversation, with View full
+  message under it: drawn whole, somebody's to-do document fills the
+  screen, pushes the chat out of it and leaves a row nobody can scroll
+  past. The fold is a cap on the label's lines rather than a cut in the
+  text, so nothing has to slice a rendering in half and leave a tag
+  open. Opening one out in place was offered beside the page and is not
+  any more: it was a second way to read the same words and the worse of
+  the two, because what it made was exactly the row nobody can scroll
+  past, and folding it again had to put the reader back where they had
+  been by hand -- a timer, an index, and a view asked to show a row it
+  still thought was tall. And past a length the core does not carry a
+  message whole at all: it cuts the body and puts the rest in an HTML
+  part, so the whole of such a message is only behind
+  `get_message_html` -- read as words,
   never rendered as markup (`html.rs`), for the reason every label in
   the app is pinned to plain text. A newline in that part is *not* a
   line break: in HTML it is whitespace, and the core writes each line of
@@ -173,19 +179,66 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   line the reader typed survives as one. The fake core's fixture is
   written in that shape for the same reason -- it was one unbroken line,
   and every long message reached the phone double-spaced with nothing in
-  the suite to notice. Both offers belong to a body: an
-  attachment with no caption has none to fold, and a message the core is
-  still holding back has none of it here yet -- neither was excluded at
-  first, and an attachment arriving in an open chat grew two words of
-  chrome it had no use for. The same rule read from the other
-  end is the notice above the field while a long message is being
-  written, which is where parla puts its own.
+  the suite to notice. The offer belongs to a body: an attachment with
+  no caption has none to read on a page, and a message the core is still
+  holding back has none of it here yet -- neither was excluded at first,
+  and an attachment arriving in an open chat grew two words of chrome it
+  had no use for. The same rule read from the other end is the notice
+  above the field while a long message is being written, which is where
+  parla puts its own.
   What the renderer emits for a line break is `<br>` and not a newline:
   in `Text.StyledText` a newline is whitespace, so a body joined with
-  newlines is drawn as one running paragraph and the fold never sees
-  anything to open out. Both went unnoticed until a phone drew a to-do
-  list as a sentence; `qml_message_lines.rs` now measures what Qt makes
-  of each shape rather than trusting a reading of it.
+  newlines is drawn as one running paragraph and nothing is ever long
+  enough to fold. Both went unnoticed until a phone drew a to-do list as
+  a sentence; `qml_message_lines.rs` now measures what Qt makes of each
+  shape rather than trusting a reading of it.
+- **A wait before something is destroyed belongs to the list, not the
+  row.** `ListItem.remorseAction` is Silica's shortcut: it makes a
+  `RemorseItem` in the row and hands it the action. Deleting a handful of
+  messages one after another lost most of them on a phone, and moving the
+  action off the row fixed it.
+  Why it lost them is not established, and the obvious explanation is
+  wrong: `RemorseItem` runs its callback rather than dropping it when the
+  countdown is cut short, both when it is destroyed and when its page
+  deactivates. So "the row went and took the countdown with it" is not
+  the mechanism, whatever is. What is certain is that deleting out of a
+  list destroys rows -- the first delete lands, the core says so, the row
+  goes -- and that the chat list is churned harder still, since a message
+  arriving reorders it, which is a remove and an insert. A wait that
+  lives somewhere that volatile has to be proved every release; a wait
+  that lives beside the list does not.
+  So the two halves are kept apart. The *action* is a `PendingRemoval`
+  beside each list, emptied as whoever holds it is left -- the
+  conversation from its page's `Deactivating`, the other three from
+  their own -- for the reason ConversationPage writes its draft there:
+  leaving is exactly when a timer has not fired yet.
+  Every id waiting carries its own deadline and goes on it, with the
+  timer armed for whichever is soonest. One countdown shared between
+  them was tried and was wrong on a phone: it had to be restarted
+  whenever another delete was asked for, so the first message's drawn
+  countdown ran out, the platform put the message back as though nothing
+  had happened, and everything went together when the last one ended.
+  One delete on its own looked right, which is why it took a phone to
+  see it. The two clocks -- the drawn one and the deleting one -- are
+  tied by `countdownFor(id)`, the only length a row may hand
+  `RemorseItem.execute`, and `qml_syntax.rs` counts that every raised
+  countdown asked for its length rather than choosing one.
+  The *look* is still Silica's own
+  `RemorseItem`, raised by the row over what is going and handed a
+  callback that does nothing: the bar, the seconds, "Tap to cancel", and
+  the fade over the row, all of it the platform's, because a reader
+  already knows what a countdown looks like here. A hand-drawn stand-in
+  was tried and was wrong twice over -- it hid the row's content, which
+  collapsed the row, and even fixed it did not look like the phone.
+  Raising it needs two things Silica's shortcut does for you: the row
+  puts the countdown up again when it is rebuilt mid-wait
+  (`PendingRemoval.remaining`), and nothing else may fade or hide what
+  the countdown covers, since `RemorseItem` does that itself with an
+  `opacity: 0.0` on the item it was handed. `qml_syntax.rs` holds every
+  list to all of it, and the stub `ListItem` no longer has a
+  `remorseAction` for anything to reach for. The profiles list keeps its
+  in-place refresh (`core.rs`) as well, which is what stops every row
+  flickering when one profile goes, but nothing depends on it any more.
 - **A file is opened elsewhere or kept; reading belongs to messages.** A
   picture and a video have pages of their own and everything else is
   handed to the system. A page for a file was built and taken out again

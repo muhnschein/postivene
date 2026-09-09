@@ -158,6 +158,7 @@
     </message>
     <message>
         <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a chat the reader has asked to delete.</extracomment>
         <translation>Trinama</translation>
     </message>
     <message>
@@ -267,6 +268,7 @@
     </message>
     <message>
         <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a message the reader has asked to delete.</extracomment>
         <translation>Trinama</translation>
     </message>
     <message>
@@ -467,6 +469,7 @@
     </message>
     <message>
         <source>Removing</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a member the reader has asked to remove from the group.</extracomment>
         <translation>Šalinama</translation>
     </message>
     <message>
@@ -516,15 +519,6 @@
         <source>⬇ Download</source>
         <extracomment>Fetches a message the auto-download limit held back.</extracomment>
         <translation>⬇ Atsisiųsti</translation>
-    </message>
-    <message>
-        <source>Collapse</source>
-        <extracomment>Opens out a long message inside the conversation, or folds it back.</extracomment>
-        <translation>Suskleisti</translation>
-    </message>
-    <message>
-        <source>Expand</source>
-        <translation>Išskleisti</translation>
     </message>
     <message>
         <source>View full message</source>
@@ -772,6 +766,7 @@
     </message>
     <message>
         <source>Deleting profile</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a profile the reader has asked to delete.</extracomment>
         <translation>Trinamas profilis</translation>
     </message>
     <message>

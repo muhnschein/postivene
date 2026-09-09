@@ -118,6 +118,10 @@ Page {
             // A tray left open under a picker is open again on the way
             // back, over the file just picked.
             attachButton.close()
+            // And messages the reader asked to delete go now, for the
+            // same reason the draft is written now: a reader who asked
+            // for one to go and then left the chat asked for it to go.
+            listView.flushDeletes()
         } else if (page.status === PageStatus.Active) {
             listView.restorePlace()
             page.attachInfo()

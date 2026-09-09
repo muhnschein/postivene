@@ -129,11 +129,33 @@ Page {
         page.openChat(chatId, notifier.nameOf(chatId), 0)
     }
 
-    // Back on the list means no chat is being read.
+    // Back on the list means no chat is being read. Going the other way,
+    // any chat still waiting to be deleted goes now: leaving is exactly
+    // when a timer has not fired yet, and somebody who asked for a chat
+    // to go and then opened another one asked for it to go.
     onStatusChanged: {
         if (status === PageStatus.Active) {
             notifier.viewingChatId = 0
+        } else if (status === PageStatus.Deactivating) {
+            doomedChats.flush()
         }
+    }
+
+    /// How long a chat waits before it goes, in milliseconds. Nothing
+    /// sets it; a test turns it down rather than waiting.
+    property alias pendingDelay: doomedChats.delay
+
+    /// The chats the reader has asked to delete, waiting out the moment
+    /// in which they can say they did not mean it.
+    ///
+    /// Not Silica's `remorseAction`, which would put the wait on the row:
+    /// a message arriving moves a chat up this list, which is a remove
+    /// and an insert, so the row -- and the wait on it -- can go at any
+    /// moment and for a reason that has nothing to do with the reader.
+    /// See PendingRemoval.
+    PendingRemoval {
+        id: doomedChats
+        onRemove: chats.delete_chat(id)
     }
 
     property string errorMessage: ""
@@ -369,8 +391,47 @@ Page {
                 id: delegateRoot
                 contentHeight: body.height
 
+                /// This chat is on its way out.
+                readonly property bool doomed: doomedChats.pending(model.chat_id)
+
+                /// Silica's own countdown, drawn over the chat. The
+                /// deletion is not its business -- that belongs to
+                /// `doomedChats`, because a remorse item lives in the
+                /// row it covers and this list reorders under its rows
+                /// whenever a message arrives. So it draws, and reports
+                /// the tap.
+                function raiseRemorse() {
+                    //: What Silica's countdown says it is doing, over
+                    //: a chat the reader has asked to delete.
+                    remorse.execute(
+                        body, qsTr("Deleting"), function() {},
+                        doomedChats.countdownFor(model.chat_id))
+                }
+
+                RemorseItem {
+                    id: remorse
+                    objectName: "chatRemorse"
+                    onCanceled: doomedChats.spare(model.chat_id)
+                }
+
+                // A row rebuilt mid-wait -- scrolled past, or moved by a
+                // message arriving -- comes back with no countdown on
+                // it. Put it up again with what is left of the wait.
+                Component.onCompleted: {
+                    if (delegateRoot.doomed) {
+                        delegateRoot.raiseRemorse()
+                    }
+                }
+
                 ChatListDelegate {
                     id: body
+                    // The remorse covering this does the fading, with
+                    // its own `opacity: 0.0` on what it was handed.
+                    // Hiding it here would be wrong: that takes the
+                    // children's `visible` with it, and a row whose
+                    // height reads `visible` collapses under the
+                    // countdown drawn over it.
+                    enabled: !delegateRoot.doomed
                     width: parent.width
                     chatName: model.name
                     preview: model.preview
@@ -448,21 +509,21 @@ Page {
                     MenuItem {
                         objectName: "deleteItem"
                         text: qsTr("Delete")
-                        // The id is taken now, not read inside the callback: a
-                        // message arriving moves this chat up the list, which
-                        // is a remove and an insert, and the row this menu
-                        // belongs to is destroyed. Silica runs the action on
-                        // that destruction, and `model` no longer resolves.
+                        // The page is told, not this row: a message
+                        // arriving moves this chat up the list, which is
+                        // a remove and an insert, and the row this menu
+                        // belongs to is destroyed. A wait living on it
+                        // would go too.
                         onClicked: {
-                            var doomed = model.chat_id
-                            delegateRoot.remorseAction(qsTr("Deleting"),
-                                                       function() {
-                                                           chats.delete_chat(doomed)
-                                                       })
+                            doomedChats.ask(model.chat_id)
+                            delegateRoot.raiseRemorse()
                         }
                     }
                 }
 
+                // A tap opens the chat. One waiting to go is covered by
+                // the remorse, which takes the tap itself and calls the
+                // deletion off.
                 onClicked: page.openChat(model.chat_id, model.name, 0)
             }
 

@@ -29,10 +29,6 @@ Item {
     /// opening it full screen can start from the same decode.
     signal openRequested(url fileUrl, string fileName, string viewType,
                          real previewWidth)
-    /// The reader asked for the rest of a body this row is showing only
-    /// part of, or asked for it to be put back. What is open is the
-    /// list's to remember: a row is rebuilt every time it scrolls past.
-    signal expandRequested()
     /// The reader asked to read the message on a page of its own.
     signal fullTextRequested()
     /// The reader asked for the rest of a message the core holds only
@@ -117,11 +113,9 @@ Item {
     property bool isNew: false
     /// `hasHtml` upstream: the sending core cut this message, so what is
     /// in `messageText` ends in `[...]` and the rest is only behind the
-    /// core. Nothing here can expand such a body -- the words are not on
-    /// this phone yet -- so the row offers the page instead.
+    /// core, which is the one thing the page can fetch and this row
+    /// cannot.
     property bool hasHtml: false
-    /// Whether the reader has opened this body out. Held by the list.
-    property bool expanded: false
     // A shared contact, parsed by the core.
     property string vcardName: ""
     property string vcardAddr: ""
@@ -161,55 +155,43 @@ Item {
     readonly property bool canDownload: root.downloadState === "Available"
                                         || root.downloadState === "Failure"
 
-    /// What the two offers say. Here rather than only in the labels
-    /// because the bubble is sized from them: a bubble made narrow by
-    /// short lines has to widen to hold them, or they are drawn over
-    /// each other.
-    //: Opens out a long message inside the conversation, or folds it
-    //: back.
-    readonly property string expandText: root.expanded ? qsTr("Collapse")
-                                                       : qsTr("Expand")
+    /// What the offer says. Here rather than only in the label because
+    /// the bubble is sized from it: a bubble made narrow by short lines
+    /// has to widen to hold it, or the offer hangs out of it.
     //: Opens the whole message on a page of its own.
     readonly property string fullText: qsTr("View full message")
 
-    /// How wide the offers want to be, side by side.
-    readonly property real actionsWidth:
-        (root.showsExpand ? expandMetric.implicitWidth : 0)
-        + (root.showsFull ? fullMetric.implicitWidth : 0)
-        + (root.showsExpand && root.showsFull ? Theme.paddingLarge : 0)
-    /// Whether they have to go one above the other instead. A bubble is
-    /// never wider than most of the screen, and in a long enough
-    /// language the two of them are wider than that.
-    readonly property bool actionsStack: root.showsExpand && root.showsFull
-                                         && root.actionsWidth > root.contentWidth
+    /// How wide the offer wants to be.
+    readonly property real actionsWidth: root.showsFull
+                                         ? fullMetric.implicitWidth : 0
 
-    /// How many lines of a body the bubble shows before offering to open
-    /// it out. Enough for a paragraph, which is what most messages are.
+    /// How many lines of a body the bubble shows before sending the
+    /// reader to the page. Enough for a paragraph, which is what most
+    /// messages are.
+    ///
+    /// The cap does not lift here any more. Opening a body out in place
+    /// was a second way to read the same words, and the worse of the
+    /// two: it made one row taller than the view, which is a row that
+    /// cannot be scrolled past, and folding it again had to put the
+    /// reader back where they were by hand. The page shows the whole
+    /// message and nothing else, and leaving it puts them back.
     property int collapsedLines: 12
-    /// No cap at all. `Text.maximumLineCount` wants a number, and this is
-    /// the largest one it takes.
-    readonly property int everyLine: 2147483647
     /// Whether this row is showing words at all, and has all of them to
     /// show.
     ///
-    /// Both offers are about a long body and nothing else. A picture or
-    /// a document with no caption has no body to fold, and a message the
-    /// core is still holding back has none of it yet -- what that row
-    /// needs is Download, which it already offers. Neither was excluded
-    /// before, and an attachment arriving in an open chat grew an Expand
-    /// and a View full message it had no use for.
+    /// The offer is about a long body and nothing else. A picture or a
+    /// document with no caption has no body to read on a page, and a
+    /// message the core is still holding back has none of it yet -- what
+    /// that row needs is Download, which it already offers. Neither was
+    /// excluded before, and an attachment arriving in an open chat grew
+    /// a View full message it had no use for.
     readonly property bool hasBody: root.messageText.length > 0 && !root.heldBack
-    /// Whether there is anything to open out. `truncated` goes false the
-    /// moment the cap is lifted, so an opened body keeps the offer from
-    /// its own state rather than from the label's.
-    readonly property bool showsExpand: root.hasBody
-                                        && (root.expanded || messageLabel.truncated)
-    /// Whether to offer the page. Anything the bubble is not showing
+    /// Whether to offer the page: anything the bubble is not showing
     /// whole, and every message the sending core cut -- for those the
-    /// rest is not on this phone at all, and opening the row out would
-    /// show the same `[...]` again.
+    /// rest is not on this phone at all, and the page is the only thing
+    /// that can go and get it.
     readonly property bool showsFull: root.hasBody
-                                      && (root.hasHtml || root.showsExpand)
+                                      && (root.hasHtml || messageLabel.truncated)
 
     // A bubble is as wide as its content, up to most of the screen. The
     // widths come off unconstrained copies of the text: measuring the real
@@ -262,17 +244,9 @@ Item {
         text: attachment.genericText
     }
 
-    // The two offers, measured where nothing constrains them: reading a
-    // width off the labels themselves would come back through the
-    // bubble they are sizing.
-    Text {
-        id: expandMetric
-        visible: false
-        font.pixelSize: Theme.fontSizeSmall
-        textFormat: Text.PlainText
-        text: root.expandText
-    }
-
+    // The offer, measured where nothing constrains it: reading a width
+    // off the label itself would come back through the bubble it is
+    // sizing.
     Text {
         id: fullMetric
         visible: false
@@ -460,15 +434,14 @@ Item {
             width: root.contentWidth
             wrapMode: Text.Wrap
             // A bubble is a shape for a remark, not for a document. A
-            // long body is cut to a readable few lines and opened out on
-            // request: a to-do list somebody sent otherwise fills the
-            // screen and pushes the whole conversation out of it, and a
-            // row taller than the view is one that cannot be scrolled
-            // past. The cap is lifted rather than the text cut, so
-            // nothing has to slice a rendering in half and leave a tag
-            // open.
-            maximumLineCount: root.expanded ? root.everyLine
-                                            : root.collapsedLines
+            // long body is cut to a readable few lines and the rest is
+            // read on a page: a to-do list somebody sent otherwise fills
+            // the screen and pushes the whole conversation out of it,
+            // and a row taller than the view is one that cannot be
+            // scrolled past. A cap on the lines rather than a cut in the
+            // text, so nothing has to slice a rendering in half and
+            // leave a tag open.
+            maximumLineCount: root.collapsedLines
             truncationMode: TruncationMode.Elide
             color: Theme.primaryColor
             linkColor: Theme.highlightColor
@@ -479,48 +452,27 @@ Item {
             onLinkActivated: Qt.openUrlExternally(link)
         }
 
-        // What to do about a body that does not fit: open it out here,
-        // or read it on a page of its own. Two words rather than
-        // buttons, in the highlight colour the download offer uses --
-        // Silica's Button inside a bubble would be a box inside a box.
+        // What to do about a body that does not fit: read it on a page of
+        // its own. Two words rather than a button, in the highlight
+        // colour the download offer uses -- Silica's Button inside a
+        // bubble would be a box inside a box.
         Item {
             id: bodyActions
             objectName: "bodyActions"
-            visible: root.showsExpand || root.showsFull
+            visible: root.showsFull
             x: Theme.paddingMedium
             y: root.below(messageLabel, visible)
             width: root.contentWidth
-            height: visible ? fullLabel.y + fullLabel.implicitHeight
-                              + Theme.paddingSmall
-                            : 0
-
-            Label {
-                id: expandLabel
-                objectName: "expandButton"
-                visible: root.showsExpand
-                font.pixelSize: Theme.fontSizeSmall
-                color: Theme.highlightColor
-                textFormat: Text.PlainText
-                text: root.expandText
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: root.expandRequested()
-                    onPressAndHold: root.menuRequested()
-                }
-            }
+            height: visible ? fullLabel.implicitHeight + Theme.paddingSmall : 0
 
             Label {
                 id: fullLabel
                 objectName: "fullButton"
                 visible: root.showsFull
-                // At the far end of the row from Expand, or under it
-                // when the two do not fit on one line. Placed rather
-                // than anchored: an anchor cannot be turned off, and
-                // stacked they both start at the same edge.
-                x: root.actionsStack ? 0 : parent.width - width
-                y: root.actionsStack
-                   ? expandLabel.implicitHeight + Theme.paddingSmall : 0
+                // At the far end of the row. Placed rather than
+                // anchored, as it was when it had something beside it to
+                // be placed against.
+                x: parent.width - width
                 font.pixelSize: Theme.fontSizeSmall
                 color: Theme.highlightColor
                 textFormat: Text.PlainText

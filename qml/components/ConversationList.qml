@@ -118,63 +118,31 @@ SilicaListView {
     /// model's to decide, from what it knows the reader already sent.
     signal reactionRequested(int messageId, string emoji)
 
-    /// Which messages the reader has opened out, as a set of ids.
-    ///
-    /// Here rather than in the row: a delegate is destroyed as it
-    /// scrolls out of the view and built again when it comes back, so a
-    /// row cannot remember anything about itself. Replaced rather than
-    /// changed in place -- a binding does not re-run when the contents
-    /// of an object it read change, only when the property is assigned.
-    property var expandedIds: ({})
+    /// How long a message waits before it goes, in milliseconds. The
+    /// page does not set it; a test turns it down rather than waiting.
+    property alias pendingDelay: doomedMessages.delay
 
-    /// Whether this message is one of them.
-    function isExpanded(messageId) {
-        return root.expandedIds[messageId] === true
+    /// Send everything still waiting, now. The page calls this on its
+    /// way out of the chat (ConversationPage).
+    function flushDeletes() {
+        doomedMessages.flush()
     }
 
-    /// Open one out, or fold it back.
-    ///
-    /// Folding one back puts the view on it. A row that was filling the
-    /// screen and is suddenly a dozen lines takes everything below it up
-    /// with it, and the reader -- who had scrolled into the middle of
-    /// what they were reading -- is left looking at whatever happens to
-    /// be there. Where they wanted to be is the message they just
-    /// folded.
-    function toggleExpanded(messageId, index) {
-        var next = {}
-        for (var key in root.expandedIds) {
-            next[key] = root.expandedIds[key]
-        }
-        var folding = next[messageId] === true
-        if (folding) {
-            delete next[messageId]
-        } else {
-            next[messageId] = true
-        }
-        root.expandedIds = next
-        if (folding && index >= 0) {
-            // After the row has been given its new height, not before:
-            // the view lays out in a pass of its own, and asking it to
-            // show a row it still thinks is tall puts it somewhere else
-            // again.
-            root.foldedIndex = index
-            foldReturn.restart()
-        }
+    /// Whether this message is waiting to go. For a test to read: what
+    /// each row does with the answer is its own binding.
+    function pendingFor(messageId) {
+        return doomedMessages.pending(messageId)
     }
 
-    /// The row a fold is waiting to return to, -1 for none.
-    property int foldedIndex: -1
-
-    Timer {
-        id: foldReturn
-        objectName: "foldReturn"
-        interval: 1
-        onTriggered: {
-            if (root.foldedIndex >= 0) {
-                root.positionViewAtIndex(root.foldedIndex, ListView.Contain)
-                root.foldedIndex = -1
-            }
-        }
+    /// The messages the reader has asked to delete, waiting out the
+    /// moment in which they can say they did not mean it.
+    ///
+    /// Not Silica's `remorseAction`, which would put the wait on the row
+    /// -- and deleting a message is exactly what destroys rows, so a run
+    /// of deletes lost all but the first. See PendingRemoval.
+    PendingRemoval {
+        id: doomedMessages
+        onRemove: root.deleteRequested(id)
     }
 
     /// The emoji the menu offers first, as the reference clients offer
@@ -632,14 +600,13 @@ SilicaListView {
             MenuItem {
                 objectName: "deleteItem"
                 text: qsTr("Delete")
-                // Taken now rather than read in the callback: anything that
-                // reloads the model destroys this row, Silica runs the
-                // action as it goes, and `model` is gone by then.
+                // The list is told, not this row: the wait before a
+                // message goes has to outlive the row it was asked for
+                // on, and deleting one is what destroys rows. See
+                // PendingRemoval.
                 onClicked: {
-                    var doomed = model.message_id
-                    messageRow.remorseAction(qsTr("Deleting"), function() {
-                        root.deleteRequested(doomed)
-                    })
+                    doomedMessages.ask(model.message_id)
+                    messageRow.raiseRemorse()
                 }
             }
         }
@@ -653,9 +620,45 @@ SilicaListView {
         contentHeight: dayHeading.height + unreadLine.height
                        + (model.loaded ? body.height : Theme.itemSizeExtraSmall)
 
+        /// This message is on its way out.
+        readonly property bool doomed: doomedMessages.pending(model.message_id)
+
+        /// Silica's own countdown, drawn over the message: the bar, the
+        /// seconds, "Tap to cancel", all of it the platform's.
+        ///
+        /// The *deletion* is not its business -- that belongs to
+        /// `doomedMessages`, because a remorse item lives in the row it
+        /// covers and a row is what a delete destroys. So it is handed a
+        /// callback that does nothing and asked only to draw and to
+        /// report the tap.
+        function raiseRemorse() {
+            //: What Silica's countdown says it is doing, over a
+            //: message the reader has asked to delete.
+            remorse.execute(
+                body, qsTr("Deleting"), function() {},
+                doomedMessages.countdownFor(model.message_id))
+        }
+
+        RemorseItem {
+            id: remorse
+            objectName: "messageRemorse"
+            onCanceled: doomedMessages.spare(model.message_id)
+        }
+
+        // A row is rebuilt every time it scrolls back into view, so one
+        // scrolled past mid-wait comes back with no countdown on it. Put
+        // it up again with what is actually left of the wait.
+        Component.onCompleted: {
+            if (messageRow.doomed) {
+                messageRow.raiseRemorse()
+            }
+        }
+
         // One surface: a tap opens whatever the message has to open, a
         // long press opens the menu, wherever on the row either lands.
-        // The row is what takes the press, so the two cannot fight.
+        // The row is what takes the press, so the two cannot fight. A
+        // message waiting to go is covered by the remorse, which takes
+        // the tap itself and calls the delete off.
         onClicked: body.tapped()
 
         /// The date this row's day starts under, on the first row of each
@@ -763,7 +766,16 @@ SilicaListView {
         // message it has not got.
         MessageDelegate {
             id: body
+            objectName: "messageDelegate"
             visible: model.loaded
+            // Neither hidden nor faded here while the message waits to
+            // go: the remorse covering it does the fading, with its own
+            // `opacity: 0.0` on what it was handed. Hiding it would be
+            // wrong anyway -- that takes its children's `visible` with
+            // it, and every part of a message measures
+            // `visible ? implicitHeight : 0`, so the row would collapse
+            // under the countdown drawn over it.
+            enabled: !messageRow.doomed
             y: dayHeading.height + unreadLine.height
             width: parent.width
             messageText: model.text
@@ -792,7 +804,6 @@ SilicaListView {
             imageHeight: model.image_height
             isNew: model.is_new
             hasHtml: model.has_html
-            expanded: root.isExpanded(model.message_id)
             vcardName: model.vcard_name
             vcardAddr: model.vcard_addr
             vcardColor: model.vcard_color
@@ -804,7 +815,6 @@ SilicaListView {
             reactions: model.reactions
             onOpenRequested: root.openRequested(fileUrl, fileName, viewType,
                                                 previewWidth)
-            onExpandRequested: root.toggleExpanded(model.message_id, index)
             onFullTextRequested: root.fullTextRequested(model.message_id,
                                                        model.sender_name)
             onAppRequested: root.appRequested(model.message_id)

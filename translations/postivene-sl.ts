@@ -158,6 +158,7 @@
     </message>
     <message>
         <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a chat the reader has asked to delete.</extracomment>
         <translation>Brisanje</translation>
     </message>
     <message>
@@ -267,6 +268,7 @@
     </message>
     <message>
         <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a message the reader has asked to delete.</extracomment>
         <translation>Brisanje</translation>
     </message>
     <message>
@@ -469,6 +471,7 @@
     </message>
     <message>
         <source>Removing</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a member the reader has asked to remove from the group.</extracomment>
         <translation>Odstranjevanje</translation>
     </message>
     <message>
@@ -518,15 +521,6 @@
         <source>⬇ Download</source>
         <extracomment>Fetches a message the auto-download limit held back.</extracomment>
         <translation>⬇ Prenesi</translation>
-    </message>
-    <message>
-        <source>Collapse</source>
-        <extracomment>Opens out a long message inside the conversation, or folds it back.</extracomment>
-        <translation>Strni</translation>
-    </message>
-    <message>
-        <source>Expand</source>
-        <translation>Razširi</translation>
     </message>
     <message>
         <source>View full message</source>
@@ -776,6 +770,7 @@
     </message>
     <message>
         <source>Deleting profile</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a profile the reader has asked to delete.</extracomment>
         <translation>Brisanje profila</translation>
     </message>
     <message>

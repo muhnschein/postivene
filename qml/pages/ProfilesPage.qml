@@ -15,10 +15,13 @@ import "../components"
  * and to deleting it. Another profile is made from the plus under the
  * last row, where the group pages put "add members".
  *
- * Deleting counts down on the row, and the list is refreshed in place
- * rather than rebuilt when the deletion lands (core.rs): a rebuild
- * destroyed every row, and with them the countdowns of the other
- * profiles a reader had asked to delete in the same breath.
+ * Deleting counts down beside the list rather than on the row
+ * (PendingRemoval): the row goes whenever the list reloads, and it used
+ * to take the countdown with it, so the second of two profiles deleted
+ * in the same breath was never deleted at all. The list is also
+ * refreshed in place rather than rebuilt when a deletion lands
+ * (core.rs), which is worth keeping for its own sake -- it is what stops
+ * every row flickering -- but the countdown no longer depends on it.
  */
 Page {
     id: page
@@ -54,6 +57,29 @@ Page {
 
     property string errorMessage: ""
 
+    /// How long a profile waits before it goes, in milliseconds.
+    /// Nothing sets it; a test turns it down rather than waiting.
+    property alias pendingDelay: doomedProfiles.delay
+
+    /// The profiles the reader has asked to delete, waiting out the
+    /// moment in which they can say they did not mean it.
+    PendingRemoval {
+        id: doomedProfiles
+        onRemove: {
+            page.deleting = true
+            core.remove_account(id)
+        }
+    }
+
+    // A profile page pushed over this one, or a swipe back to the chats:
+    // either way, anything still waiting goes now. Leaving is exactly
+    // when a timer has not fired yet.
+    onStatusChanged: {
+        if (page.status === PageStatus.Deactivating) {
+            doomedProfiles.flush()
+        }
+    }
+
     SilicaListView {
         id: listView
         objectName: "profileList"
@@ -70,6 +96,35 @@ Page {
             objectName: "profileRow" + model.account_id
             contentHeight: body.height
 
+            /// This profile is on its way out.
+            readonly property bool doomed: doomedProfiles.pending(model.account_id)
+
+            /// Silica's own countdown, drawn over the profile. The
+            /// deletion is not its business -- that belongs to
+            /// `doomedProfiles`, because a remorse item lives in the row
+            /// it covers and the row goes whenever the list reloads. So
+            /// it draws, and reports the tap.
+            function raiseRemorse() {
+                //: What Silica's countdown says it is doing, over a
+                //: profile the reader has asked to delete.
+                remorse.execute(
+                    body, qsTr("Deleting profile"), function() {},
+                    doomedProfiles.countdownFor(model.account_id))
+            }
+
+            RemorseItem {
+                id: remorse
+                objectName: "profileRemorse"
+                onCanceled: doomedProfiles.spare(model.account_id)
+            }
+
+            // A row rebuilt mid-wait comes back with no countdown on it.
+            Component.onCompleted: {
+                if (profileDelegate.doomed) {
+                    profileDelegate.raiseRemorse()
+                }
+            }
+
             menu: ContextMenu {
                 MenuItem {
                     objectName: "profileSettingsItem"
@@ -80,24 +135,22 @@ Page {
                 MenuItem {
                     objectName: "deleteProfileItem"
                     text: qsTr("Delete profile")
-                    // The id is taken now rather than read inside the
-                    // callback: the row is destroyed when the list
-                    // reloads, and Silica runs a remorse action on that
-                    // destruction, by which point `model` resolves to
-                    // nothing. Same reason the chat list hoists its own.
+                    // The page is told, not this row: the row is
+                    // destroyed whenever the list reloads, and a wait
+                    // living on it would go too. Same as the chat list
+                    // and the conversation.
                     onClicked: {
-                        var doomed = model.account_id
-                        profileDelegate.remorseAction(qsTr("Deleting profile"),
-                                                      function() {
-                                                          page.deleting = true
-                                                          core.remove_account(doomed)
-                                                      })
+                        doomedProfiles.ask(model.account_id)
+                        profileDelegate.raiseRemorse()
                     }
                 }
             }
 
             ContactRow {
                 id: body
+                // The remorse covering this does the fading, with its
+                // own `opacity: 0.0` on what it was handed.
+                enabled: !profileDelegate.doomed
                 width: parent.width
                 displayName: model.display_name.length > 0
                              ? model.display_name : model.addr
@@ -117,6 +170,9 @@ Page {
 
             Row {
                 id: marks
+                // Beside the row rather than in it, so the remorse does
+                // not cover it: faded to match.
+                opacity: profileDelegate.doomed ? 0 : 1
                 anchors {
                     right: parent.right
                     rightMargin: Theme.horizontalPageMargin
@@ -163,6 +219,8 @@ Page {
                 }
             }
 
+            // A profile waiting to go is covered by the remorse, which
+            // takes the tap itself and calls the deletion off.
             onClicked: {
                 if (model.account_id !== page.currentAccountId) {
                     // The whole stack, not just this page. `replace`

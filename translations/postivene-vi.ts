@@ -158,6 +158,7 @@
     </message>
     <message>
         <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a chat the reader has asked to delete.</extracomment>
         <translation>Đang xóa</translation>
     </message>
     <message>
@@ -267,6 +268,7 @@
     </message>
     <message>
         <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a message the reader has asked to delete.</extracomment>
         <translation>Đang xóa</translation>
     </message>
     <message>
@@ -463,6 +465,7 @@
     </message>
     <message>
         <source>Removing</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a member the reader has asked to remove from the group.</extracomment>
         <translation>Đang xóa</translation>
     </message>
     <message>
@@ -512,15 +515,6 @@
         <source>⬇ Download</source>
         <extracomment>Fetches a message the auto-download limit held back.</extracomment>
         <translation>⬇ Tải xuống</translation>
-    </message>
-    <message>
-        <source>Collapse</source>
-        <extracomment>Opens out a long message inside the conversation, or folds it back.</extracomment>
-        <translation>Thu gọn</translation>
-    </message>
-    <message>
-        <source>Expand</source>
-        <translation>Mở rộng</translation>
     </message>
     <message>
         <source>View full message</source>
@@ -764,6 +758,7 @@
     </message>
     <message>
         <source>Deleting profile</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a profile the reader has asked to delete.</extracomment>
         <translation>Đang xóa hồ sơ</translation>
     </message>
     <message>

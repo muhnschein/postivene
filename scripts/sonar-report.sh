@@ -43,6 +43,12 @@ fi
 SONAR_TOKEN=$(printenv SONAR_TOKEN || true)
 SUMMARY=$(printenv GITHUB_STEP_SUMMARY || true)
 
+# How many issues to list. 500 is the most the API hands over in one page.
+# The first real run had 115 and this asked for 100, so the report ended
+# in "15 more not listed" -- which is precisely the reading this script
+# exists to replace.
+PAGE=500
+
 if [[ ! -f "$TASK_FILE" ]]; then
     echo "no $TASK_FILE -- the scanner did not get as far as uploading" >&2
     exit 1
@@ -177,14 +183,22 @@ if api "$SERVER/api/qualitygates/project_status?analysisId=$analysis"; then
 fi
 
 # ------------------------------------------------------------ measures
-metrics=ncloc,coverage,line_coverage,duplicated_lines_density,violations,security_hotspots,security_rating,reliability_rating,sqale_rating,new_coverage,new_violations
+# new_lines_to_cover is what turns "new_coverage: 0.0" from a verdict into
+# a reading: 0.0% of one line is a file no coverage tool can reach, not a
+# change nobody tested.
+metrics=ncloc,coverage,line_coverage,duplicated_lines_density,violations,security_hotspots,security_rating,reliability_rating,sqale_rating,new_coverage,new_lines_to_cover,new_violations
 if api "$SERVER/api/measures/component?component=$KEY&${SCOPE_Q}metricKeys=$metrics"; then
     {
         echo "### Measures"
         echo
+        # A new-code measure carries its value under `period` on SonarQube
+        # Server and under `periods` (an array of one) on SonarQube Cloud.
+        # Read either: with only the first, every new_* line printed "-"
+        # while the gate two sections up quoted a number for the same
+        # metric.
         jq -r '
             (.component.measures // [])[]
-            | "\(.metric)=\(.value // .period.value // "-")"
+            | "\(.metric)=\(.value // .period.value // (.periods // [])[0].value // "-")"
         ' "$BODY" | while IFS='=' read -r metric value; do
             case "$metric" in
                 *_rating) echo "- $metric: $(letter "$value")" ;;
@@ -196,7 +210,7 @@ if api "$SERVER/api/measures/component?component=$KEY&${SCOPE_Q}metricKeys=$metr
 fi
 
 # ------------------------------------------------------------ issues
-if api "$SERVER/api/issues/search?componentKeys=$KEY&${SCOPE_Q}resolved=false&ps=100"; then
+if api "$SERVER/api/issues/search?componentKeys=$KEY&${SCOPE_Q}resolved=false&ps=$PAGE"; then
     total=$(jq -r '.total // 0' "$BODY")
     {
         echo "### Open issues: $total"
@@ -209,8 +223,8 @@ if api "$SERVER/api/issues/search?componentKeys=$KEY&${SCOPE_Q}resolved=false&ps
                 (.issues // [])[]
                 | "\(.severity // (.impacts[0].severity? // "?"))  \(.rule)  \(.component | sub("^[^:]*:";""))\(if .line then ":\(.line)" else "" end)  \(.message)"
             ' "$BODY"
-            if [[ "$total" -gt 100 ]]; then
-                echo "... $((total - 100)) more not listed"
+            if [[ "$total" -gt "$PAGE" ]]; then
+                echo "... $((total - PAGE)) more not listed"
             fi
             echo '```'
         fi

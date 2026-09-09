@@ -22,13 +22,13 @@ mkdir -p "$pristine"
 tar -C "$root" -cf - \
     --exclude=./rust/target --exclude=./.git --exclude=./vendor \
     . 2>/dev/null | tar -C "$pristine" -xf -
-if [ ! -d "$pristine/ci" ] || [ ! -f "$pristine/.github/workflows/rpm.yml" ]; then
+if [[ ! -d "$pristine/ci" ]] || [[ ! -f "$pristine/.github/workflows/rpm.yml" ]]; then
     echo "selftest: FAIL could not stage a copy of the tree" >&2
     exit 1
 fi
 
-if [ ! -f "$pristine/rpm/harbour-postivene.spec" ] ||
-    [ ! -f "$pristine/harbour-postivene.desktop" ]; then
+if [[ ! -f "$pristine/rpm/harbour-postivene.spec" ]] ||
+    [[ ! -f "$pristine/harbour-postivene.desktop" ]]; then
     echo "selftest: FAIL the spec or the .desktop file is not where this test expects it" >&2
     exit 1
 fi
@@ -59,6 +59,7 @@ break_and_expect() {
         grep -E '^harbour-check: (FAIL|WAIVED)' <<< "$out" >&2 || echo "  (nothing failed)" >&2
         status=1
     fi
+    return 0
 }
 
 S='rpm/harbour-postivene.spec'
@@ -160,13 +161,14 @@ validate_rpm() {
     else
         local got=fail
     fi
-    if [ "$got" = "$expect" ]; then
+    if [[ "$got" = "$expect" ]]; then
         echo "selftest: ok   $what -> $expect"
     else
         echo "selftest: FAIL $what should $expect, got $got" >&2
         "$pristine/ci/harbour-validate-rpm.sh" --log "$log" >&2
         status=1
     fi
+    return 0
 }
 
 validate_rpm pass "an RPM breaking only the waived rules" \
@@ -240,7 +242,7 @@ else
 fi
 
 echo
-if [ "$status" -eq 0 ]; then
+if [[ "$status" -eq 0 ]]; then
     echo "selftest: ok ($cases cases)"
 else
     echo "selftest: FAILED" >&2

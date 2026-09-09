@@ -42,7 +42,10 @@ jobs:
           workspaces: rust
       - run: rustc --version && cargo --version
       - run: cd rust && cargo fmt --all --check
-      - run: cd rust && cargo clippy --workspace --all-targets -- -D warnings
+      # `--locked` on every cargo call that resolves dependencies: the
+      # lockfile is committed, so a manifest change without it fails here
+      # instead of cargo quietly rewriting the lock the build then uses.
+      - run: cd rust && cargo clippy --locked --workspace --all-targets -- -D warnings
       # nextest runs each test in its own process instead of one test
       # binary at a time. This suite is over a hundred binaries that mostly
       # wait on Qt timers, so the step went from about ten minutes to about
@@ -53,14 +56,14 @@ jobs:
           tool: cargo-nextest
       # Also set by the tests; here so a failure is never a missing
       # display.
-      - run: cd rust && cargo nextest run --workspace --profile ci
+      - run: cd rust && cargo nextest run --locked --workspace --profile ci
         env:
           QT_QPA_PLATFORM: offscreen
       # nextest does not run doctests. There are none today, which is
       # exactly how one would get added and never run again.
-      - run: cd rust && cargo test --workspace --doc
+      - run: cd rust && cargo test --locked --workspace --doc
       # Broken intra-doc links are errors.
-      - run: cd rust && RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
+      - run: cd rust && RUSTDOCFLAGS="-D warnings" cargo doc --locked --workspace --no-deps
 
   # The device toolchain floor: Sailfish ships Rust 1.75.0 and does not get
   # to pick a newer one.
@@ -80,7 +83,7 @@ jobs:
           key: msrv-1.75.0
       # Warnings are denied by the workspace lints table, not RUSTFLAGS:
       # see rust/Cargo.toml.
-      - run: cd rust && cargo +1.75.0 check --workspace --all-targets
+      - run: cd rust && cargo +1.75.0 check --locked --workspace --all-targets
       # Checked here, next to the toolchain it constrains.
       - run: ./ci/check-lockfile.sh
 
@@ -98,10 +101,10 @@ jobs:
           workspaces: rust
       # Checksum-pinned on the wheel and the extracted binary.
       - run: ./scripts/fetch-rpc-server.sh
-      - run: cd rust && cargo test -p deltachat-jsonrpc --test real_server
+      - run: cd rust && cargo test --locked -p deltachat-jsonrpc --test real_server
         env:
           DELTACHAT_RPC_SERVER: vendor/deltachat-rpc-server/x86_64/deltachat-rpc-server
-      - run: cd rust && cargo test -p postivene-shim --test real_core
+      - run: cd rust && cargo test --locked -p postivene-shim --test real_core
         env:
           DELTACHAT_RPC_SERVER: vendor/deltachat-rpc-server/x86_64/deltachat-rpc-server
           QT_QPA_PLATFORM: offscreen
@@ -151,7 +154,7 @@ jobs:
       # 1.7 reads the linked binary: that main() is exported, and that it
       # survives the strip rpmbuild does. Debug is enough -- both are
       # settled by the link, not the optimisation level.
-      - run: cd rust && cargo build -p postivene-app
+      - run: cd rust && cargo build --locked -p postivene-app
       # The gate itself, then the proof that the gate still bites.
       - run: ./ci/harbour-check.sh
         env:

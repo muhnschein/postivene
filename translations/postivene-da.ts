@@ -965,6 +965,19 @@
         <source>Only that something arrived</source>
         <translation>Kun at der er kommet noget</translation>
     </message>
+    <message>
+        <source>Apps</source>
+        <translation>Apps</translation>
+    </message>
+    <message>
+        <source>Enable webxdc apps (experimental)</source>
+        <extracomment>A webxdc app is a small program somebody sends into a chat and everyone in it plays with. Keep the name: it is what every other Delta Chat client calls them.</extracomment>
+        <translation>Aktivér webxdc-apps (eksperimentelt)</translation>
+    </message>
+    <message>
+        <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
+        <translation>Apps, som nogen sender, kører inde i samtalen, og vedhæftningsbakken tilbyder en butik, hvor nye kan hentes. En app er andres kode, og denne del er endnu ikke så gennemtestet som resten.</translation>
+    </message>
 </context>
 <context>
     <name>ShareTarget</name>

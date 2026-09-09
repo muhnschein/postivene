@@ -59,6 +59,12 @@ Item {
     property string webxdcDocument: ""
     property string webxdcSummary: ""
     property string webxdcIcon: ""
+    /// Whether webxdc apps are on. Off, a `.xdc` is drawn as the file it
+    /// is and handed to the system on a tap -- the same row the core's
+    /// own refusal to read one already lands on -- rather than as an app
+    /// with a tap that would run it. The page binds it from the reader's
+    /// setting, as it does the Markdown mode.
+    property bool appsEnabled: false
     /// How wide the bubble lets this be.
     property real contentWidth: 0
 
@@ -90,10 +96,11 @@ Item {
     readonly property bool isSound: root.viewType === "Audio"
                                     || root.viewType === "Voice"
     readonly property bool isCard: root.viewType === "Vcard"
-    /// An app somebody sent. A tap on one runs it rather than handing it
-    /// to another app, so the row says so whether or not the core could
-    /// read enough of it to draw a card.
+    /// An app somebody sent, where apps are on. A tap on one runs it
+    /// rather than handing it to another app, so the row says so whether
+    /// or not the core could read enough of it to draw a card.
     readonly property bool isApp: root.viewType === "Webxdc"
+                                  && root.appsEnabled
     /// A picture of some kind.
     readonly property bool isPicture: root.isStill || root.isAnimated
     /// True when this kind reads better filling the bubble than hugging

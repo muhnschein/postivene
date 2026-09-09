@@ -969,6 +969,19 @@
         <source>Only that something arrived</source>
         <translation>Doar că a sosit ceva</translation>
     </message>
+    <message>
+        <source>Apps</source>
+        <translation>Aplicații</translation>
+    </message>
+    <message>
+        <source>Enable webxdc apps (experimental)</source>
+        <extracomment>A webxdc app is a small program somebody sends into a chat and everyone in it plays with. Keep the name: it is what every other Delta Chat client calls them.</extracomment>
+        <translation>Activează aplicațiile webxdc (experimental)</translation>
+    </message>
+    <message>
+        <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
+        <translation>Aplicațiile trimise de cineva rulează în conversație, iar tava de atașamente oferă un magazin din care poți lua altele noi. O aplicație este codul altcuiva, iar această parte nu este încă atât de testată ca restul.</translation>
+    </message>
 </context>
 <context>
     <name>ShareTarget</name>

@@ -961,6 +961,19 @@
         <source>Only that something arrived</source>
         <translation>Нәрсәдер килгәнен генә</translation>
     </message>
+    <message>
+        <source>Apps</source>
+        <translation>Кушымталар</translation>
+    </message>
+    <message>
+        <source>Enable webxdc apps (experimental)</source>
+        <extracomment>A webxdc app is a small program somebody sends into a chat and everyone in it plays with. Keep the name: it is what every other Delta Chat client calls them.</extracomment>
+        <translation>webxdc кушымталарын кабызу (сынау режимы)</translation>
+    </message>
+    <message>
+        <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
+        <translation>Кемдер җибәргән кушымталар сөйләшү эчендә эшли, ә беркетмә тартмасы яңаларын алу өчен кибет тәкъдим итә. Кушымта — бүтән кешенең коды, һәм бу өлеш калганнары кебек әле сынап бетерелмәгән.</translation>
+    </message>
 </context>
 <context>
     <name>ShareTarget</name>

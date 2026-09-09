@@ -6,6 +6,13 @@
 //! rather than the chat's. What this pins is that both are offered on a
 //! message that carries a file, that neither is offered on one that does
 //! not, and that each says which file it means.
+//!
+//! A webxdc app is the one file Open does not mean: where apps are on it
+//! is run rather than handed over, so the offer is not there. Where they
+//! are off there is nothing to run, and the .xdc is offered like the
+//! note. Save is offered either way -- an app somebody sent is still a
+//! file the reader can keep. What a tap does with one is
+//! `qml_row_tap.rs`.
 
 // Qt harness: see qml_reactions.rs.
 #![allow(
@@ -64,6 +71,24 @@ const PROBE_QML: &str = r"
                 vcard_color: '', webxdc_name: '', webxdc_document: '',
                 webxdc_summary: '', webxdc_icon: '', reactions: '',
                 my_reaction: '', loaded: true
+            })
+            // A webxdc app: a file, and something to run, depending on
+            // whether the reader asked for apps at all.
+            rows.append({
+                message_id: 9, text: '', styled_text: '', plain_text: '',
+                is_outgoing: false, is_info: false, show_padlock: true,
+                state: 16, timestamp: 1700000200, day_number: 19675,
+                sender_name: 'Ada', sender_color: '#00875a',
+                is_forwarded: false, quote_text: '', quote_author: '',
+                file_path: '/tmp/postivene-menu/checkers.xdc',
+                file_name: 'checkers.xdc',
+                file_mime: 'application/octet-stream', file_bytes: 2400,
+                view_type: 'Webxdc', image_width: 0, image_height: 0,
+                is_new: false, has_html: false,
+                download_state: 'Done', vcard_name: '', vcard_addr: '',
+                vcard_color: '', webxdc_name: 'Checkers',
+                webxdc_document: '', webxdc_summary: '', webxdc_icon: '',
+                reactions: '', my_reaction: '', loaded: true
             })
             list.setSource(url, { model: rows })
             if (list.status !== Loader.Ready) { return 'load-failed' }
@@ -131,6 +156,7 @@ const PROBE_QML: &str = r"
             return 'ok'
         }
         function raisedSignal() { return raised }
+        function setApps(on) { list.item.appsEnabled = on; return 'ok' }
     }
 ";
 
@@ -188,9 +214,29 @@ fn a_message_carrying_a_file_offers_to_open_it_and_to_keep_it() {
         record!("words-save", call!("offered", 1, QString::from("saveItem")));
         record!("picked-open", call!("pick", 0, QString::from("openItem")));
         record!("picked-save", call!("pick", 0, QString::from("saveItem")));
+        // The .xdc, with apps off: a file, and both offers.
+        record!(
+            "xdc-open-off",
+            call!("offered", 2, QString::from("openItem"))
+        );
+        record!(
+            "xdc-save-off",
+            call!("offered", 2, QString::from("saveItem"))
+        );
+        record!("apps-on", call!("setApps", true));
     });
 
     single_shot(Duration::from_secs(3), move || unsafe {
+        // And with apps on: still the reader's to keep, but not Open --
+        // a tap on the row runs it.
+        record!(
+            "xdc-open-on",
+            call!("offered", 2, QString::from("openItem"))
+        );
+        record!(
+            "xdc-save-on",
+            call!("offered", 2, QString::from("saveItem"))
+        );
         record!("raised", call!("raisedSignal"));
         (*engine_ptr).quit();
     });
@@ -233,6 +279,27 @@ fn a_message_carrying_a_file_offers_to_open_it_and_to_keep_it() {
         value("words-save"),
         "false",
         "a message of three words offered to save a file it has not got. \
+         {context}"
+    );
+
+    assert_eq!(
+        (value("xdc-open-off"), value("xdc-save-off")),
+        ("true".to_string(), "true".to_string()),
+        "with apps off a .xdc is not offered as the file it is, so there \
+         is nothing the reader can do with one at all. {context}"
+    );
+    assert_eq!(value("apps-on"), "ok", "apps were not turned on. {context}");
+    assert_eq!(
+        value("xdc-open-on"),
+        "false",
+        "with apps on a webxdc still offers Open, which would hand the \
+         .xdc to whatever the system thinks opens one -- nothing. \
+         {context}"
+    );
+    assert_eq!(
+        value("xdc-save-on"),
+        "true",
+        "an app somebody sent cannot be kept, which every other file can. \
          {context}"
     );
 

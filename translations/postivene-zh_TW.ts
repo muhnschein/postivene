@@ -961,6 +961,19 @@
         <source>Only that something arrived</source>
         <translation>只顯示有訊息送達</translation>
     </message>
+    <message>
+        <source>Apps</source>
+        <translation>應用程式</translation>
+    </message>
+    <message>
+        <source>Enable webxdc apps (experimental)</source>
+        <extracomment>A webxdc app is a small program somebody sends into a chat and everyone in it plays with. Keep the name: it is what every other Delta Chat client calls them.</extracomment>
+        <translation>啟用 webxdc 應用程式（實驗性）</translation>
+    </message>
+    <message>
+        <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
+        <translation>別人傳來的應用程式會直接在聊天中執行，附件匣還會提供一個商店，可從那裡取得新的應用程式。應用程式是別人的程式碼，這部分還未像其餘部分那樣經過充分測試。</translation>
+    </message>
 </context>
 <context>
     <name>ShareTarget</name>

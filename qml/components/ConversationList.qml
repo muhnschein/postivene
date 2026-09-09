@@ -23,6 +23,10 @@ SilicaListView {
     /// How a message body is drawn: 0 Markdown, 1 its words only, 2 as
     /// written. The page binds it from the reader's setting.
     property int markdownMode: 2
+    /// Whether webxdc apps are on. Handed down to each row, which draws a
+    /// `.xdc` as a file rather than an app without it. The page binds it
+    /// from the reader's setting, as it does the Markdown mode.
+    property bool appsEnabled: false
 
     property bool stickToBottom: true
 
@@ -578,9 +582,12 @@ SilicaListView {
             MenuItem {
                 objectName: "openItem"
                 // Only a message that carries one; a webxdc app is run
-                // rather than opened, and has its own tap.
+                // rather than opened, and has its own tap. With apps off
+                // there is nothing to run, and the .xdc is a file like
+                // any other -- which is what the row already draws.
                 visible: model.file_path.length > 0
-                         && model.view_type !== "Webxdc"
+                         && !(root.appsEnabled
+                              && model.view_type === "Webxdc")
                 text: qsTr("Open")
                 onClicked: root.openRequested(
                                "file://" + model.file_path, model.file_name,
@@ -793,6 +800,7 @@ SilicaListView {
             webxdcDocument: model.webxdc_document
             webxdcSummary: model.webxdc_summary
             webxdcIcon: model.webxdc_icon
+            appsEnabled: root.appsEnabled
             reactions: model.reactions
             onOpenRequested: root.openRequested(fileUrl, fileName, viewType,
                                                 previewWidth)

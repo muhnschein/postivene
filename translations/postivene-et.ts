@@ -965,6 +965,19 @@
         <source>Only that something arrived</source>
         <translation>Ainult et midagi saabus</translation>
     </message>
+    <message>
+        <source>Apps</source>
+        <translation>Rakendused</translation>
+    </message>
+    <message>
+        <source>Enable webxdc apps (experimental)</source>
+        <extracomment>A webxdc app is a small program somebody sends into a chat and everyone in it plays with. Keep the name: it is what every other Delta Chat client calls them.</extracomment>
+        <translation>Luba webxdc rakendused (katseline)</translation>
+    </message>
+    <message>
+        <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
+        <translation>Rakendused, mille keegi saadab, töötavad vestluse sees ja manuste sahtel pakub poodi, kust uusi võtta. Rakendus on kellegi teise kood ja see osa pole veel nii läbi katsetatud kui ülejäänu.</translation>
+    </message>
 </context>
 <context>
     <name>ShareTarget</name>

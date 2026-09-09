@@ -4,10 +4,10 @@ import "../components"
 
 /*
  * The settings that belong to no profile: how a message is drawn, what
- * goes out with a link, how much of an attachment arrives unasked, and
- * how much a notification gives away. Reached from the chat list's
- * pull-down. A profile's own settings --
- * picture, name, address, read receipts, what the relay says -- are on
+ * goes out with a link, how much of an attachment arrives unasked, how
+ * much a notification gives away, and whether webxdc apps are offered at
+ * all. Reached from the chat list's pull-down. A profile's own settings
+ * -- picture, name, address, read receipts, what the relay says -- are on
  * the profile's page, reached from its row on the profiles page.
  *
  * The values live in dconf, behind the `Settings` singleton every page
@@ -185,6 +185,28 @@ Page {
                 automaticCheck: false
                 checked: Settings.cleanLinks === true
                 onClicked: Settings.cleanLinks = !checked
+            }
+
+            SectionHeader {
+                text: qsTr("Apps")
+            }
+
+            // Off until it is asked for, so this is the only place the
+            // word webxdc appears on a phone that has not asked. What it
+            // turns on is three things at once -- the tray's app entry,
+            // the store behind it, and running one somebody sent -- and
+            // each of them reads the setting rather than being told, so
+            // there is nothing to keep in step here.
+            TextSwitch {
+                objectName: "webxdcSwitch"
+                //: A webxdc app is a small program somebody sends into a
+                //: chat and everyone in it plays with. Keep the name:
+                //: it is what every other Delta Chat client calls them.
+                text: qsTr("Enable webxdc apps (experimental)")
+                description: qsTr("Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else's code, and this part is not yet as tested as the rest.")
+                automaticCheck: false
+                checked: Settings.webxdcEnabled === true
+                onClicked: Settings.webxdcEnabled = !checked
             }
         }
     }

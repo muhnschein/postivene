@@ -131,6 +131,11 @@ Item {
     property string webxdcDocument: ""
     property string webxdcSummary: ""
     property string webxdcIcon: ""
+    /// Whether webxdc apps are on. Handed down to the attachment, which
+    /// decides from it whether this row holds an app or a file; `tapped`
+    /// asks the attachment rather than reading this itself, so there is
+    /// one answer rather than two.
+    property bool appsEnabled: false
 
     property bool hasFile: filePath.length > 0
     // A sticker is a picture with no bubble behind it, which is the whole
@@ -440,6 +445,7 @@ Item {
             webxdcDocument: root.webxdcDocument
             webxdcSummary: root.webxdcSummary
             webxdcIcon: root.webxdcIcon
+            appsEnabled: root.appsEnabled
             // A long press on one of its own controls is the row's menu.
             onMenuRequested: root.menuRequested()
         }

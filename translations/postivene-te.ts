@@ -965,6 +965,19 @@
         <source>Only that something arrived</source>
         <translation>ఏదో వచ్చిందని మాత్రమే</translation>
     </message>
+    <message>
+        <source>Apps</source>
+        <translation>యాప్‌లు</translation>
+    </message>
+    <message>
+        <source>Enable webxdc apps (experimental)</source>
+        <extracomment>A webxdc app is a small program somebody sends into a chat and everyone in it plays with. Keep the name: it is what every other Delta Chat client calls them.</extracomment>
+        <translation>webxdc యాప్‌లను ప్రారంభించు (ప్రయోగాత్మకం)</translation>
+    </message>
+    <message>
+        <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
+        <translation>ఎవరైనా పంపిన యాప్‌లు సంభాషణలోనే నడుస్తాయి, మరియు అటాచ్‌మెంట్ ట్రే కొత్తవి తీసుకోవడానికి ఒక స్టోర్‌ను చూపుతుంది. యాప్ అంటే వేరొకరి కోడ్, ఈ భాగం మిగిలినవాటి అంత పరీక్షించబడలేదు.</translation>
+    </message>
 </context>
 <context>
     <name>ShareTarget</name>

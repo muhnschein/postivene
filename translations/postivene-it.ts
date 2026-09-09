@@ -965,6 +965,19 @@
         <source>Only that something arrived</source>
         <translation>Solo che è arrivato qualcosa</translation>
     </message>
+    <message>
+        <source>Apps</source>
+        <translation>App</translation>
+    </message>
+    <message>
+        <source>Enable webxdc apps (experimental)</source>
+        <extracomment>A webxdc app is a small program somebody sends into a chat and everyone in it plays with. Keep the name: it is what every other Delta Chat client calls them.</extracomment>
+        <translation>Abilita le app webxdc (sperimentale)</translation>
+    </message>
+    <message>
+        <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
+        <translation>Le app che qualcuno invia funzionano dentro la conversazione, e il vassoio degli allegati offre uno store da cui prenderne di nuove. Un’app è codice di qualcun altro, e questa parte non è ancora collaudata come il resto.</translation>
+    </message>
 </context>
 <context>
     <name>ShareTarget</name>

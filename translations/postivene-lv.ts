@@ -969,6 +969,19 @@
         <source>Only that something arrived</source>
         <translation>Tikai to, ka kaut kas pienāca</translation>
     </message>
+    <message>
+        <source>Apps</source>
+        <translation>Lietotnes</translation>
+    </message>
+    <message>
+        <source>Enable webxdc apps (experimental)</source>
+        <extracomment>A webxdc app is a small program somebody sends into a chat and everyone in it plays with. Keep the name: it is what every other Delta Chat client calls them.</extracomment>
+        <translation>Iespējot webxdc lietotnes (eksperimentāli)</translation>
+    </message>
+    <message>
+        <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
+        <translation>Kāda atsūtītās lietotnes darbojas pašā sarunā, un pielikumu paletē ir veikals, no kura ņemt jaunas. Lietotne ir cita cilvēka kods, un šī daļa vēl nav tik pārbaudīta kā pārējās.</translation>
+    </message>
 </context>
 <context>
     <name>ShareTarget</name>

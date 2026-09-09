@@ -4,8 +4,9 @@ import Nemo.Configuration 1.0
 
 /*
  * The settings that belong to no profile: how a message is drawn, what
- * goes out with a link, how much of an attachment arrives unasked, and
- * how much a notification gives away.
+ * goes out with a link, how much of an attachment arrives unasked, how
+ * much a notification gives away, and whether webxdc apps are offered
+ * at all.
  *
  * They live in dconf under the app's own path, and every page reads
  * them through this one object: the settings page (qml/pages/
@@ -31,6 +32,11 @@ QtObject {
     /// 2 only that something arrived. What the lock screen shows to
     /// whoever is looking at it.
     property alias notificationDetail: notificationDetailValue.value
+    /// Whether webxdc apps are offered: the tray's app entry, the store
+    /// behind it, and running one somebody sent. Off until it is asked
+    /// for, and every one of those three reads this rather than deciding
+    /// for itself.
+    property alias webxdcEnabled: webxdcEnabledValue.value
 
     // The keys, named here and nowhere else: tests/qml_syntax.rs holds
     // every other file to reading them through this object.
@@ -58,5 +64,16 @@ QtObject {
         id: notificationDetailValue
         key: "/apps/harbour-postivene/notification_detail"
         defaultValue: 0
+    }
+
+    property ConfigurationValue webxdcEnabledConfig: ConfigurationValue {
+        id: webxdcEnabledValue
+        key: "/apps/harbour-postivene/webxdc_enabled"
+        // Off on a phone that has never been asked. Running somebody
+        // else's code, however sandboxed the engine is, is not a thing
+        // to switch on for a reader who did not ask for it -- and the
+        // half of it that is ours is new enough to still be finding out
+        // what it gets wrong.
+        defaultValue: false
     }
 }

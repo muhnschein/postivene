@@ -137,6 +137,10 @@ fn the_settings_page_writes_what_the_app_reads() {
             call!("appKey", QString::from("notificationDetailConfig"))
         );
         record!(
+            "app-apps-key",
+            call!("appKey", QString::from("webxdcEnabledConfig"))
+        );
+        record!(
             "load",
             call!("load", QString::from(common::page_url("SettingsPage.qml")))
         );
@@ -164,6 +168,11 @@ fn the_settings_page_writes_what_the_app_reads() {
             "notification-index",
             get!("notificationCombo", "currentIndex")
         );
+        record!(
+            "apps-default",
+            call!("appReads", QString::from("webxdcEnabled"))
+        );
+        record!("apps-switch", get!("webxdcSwitch", "checked"));
         // Each control writes its setting, and the choice shown follows it.
         record!(
             "pick-markdown",
@@ -215,6 +224,21 @@ fn the_settings_page_writes_what_the_app_reads() {
             "notification-shown",
             get!("notificationCombo", "currentIndex")
         );
+        // Apps are the one setting the rest of the app hides behind, so
+        // both ways round it goes matter: off is what a phone that has
+        // never been asked reads, and the switch says so.
+        record!("flip-apps", call!("click", QString::from("webxdcSwitch")));
+        record!("apps-on", call!("appReads", QString::from("webxdcEnabled")));
+        record!("apps-switch-on", get!("webxdcSwitch", "checked"));
+        record!(
+            "flip-apps-back",
+            call!("click", QString::from("webxdcSwitch"))
+        );
+        record!(
+            "apps-off",
+            call!("appReads", QString::from("webxdcEnabled"))
+        );
+        record!("apps-switch-off", get!("webxdcSwitch", "checked"));
         // The other direction: a change made anywhere else reaches the
         // page's choice.
         record!(
@@ -269,6 +293,15 @@ fn the_settings_page_writes_what_the_app_reads() {
             "app-notification-key",
             "/apps/harbour-postivene/notification_detail",
         ),
+        ("app-apps-key", "/apps/harbour-postivene/webxdc_enabled"),
+        ("apps-default", "false"),
+        ("apps-switch", "false"),
+        ("flip-apps", "ok"),
+        ("apps-on", "true"),
+        ("apps-switch-on", "true"),
+        ("flip-apps-back", "ok"),
+        ("apps-off", "false"),
+        ("apps-switch-off", "false"),
         ("notification-default", "0"),
         ("notification-index", "0"),
         ("pick-notification", "ok"),

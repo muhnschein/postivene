@@ -88,7 +88,7 @@ const PROBE_QML: &str = r"
             view.deleteRequested.connect(function(id) { raised = 'delete:' + id })
             // The wait before a message goes, turned down so this does not
             // have to sit through four seconds of it.
-            view.deleteDelay = 60
+            view.pendingDelay = 60
             view.resendRequested.connect(function(id) { raised = 'resend:' + id })
             view.arrivedAtNewest.connect(function() { arrivals += 1 })
             return 'ok'
@@ -306,7 +306,8 @@ fn a_conversation_opens_at_the_newest_message_and_stays_where_it_is_left() {
         record!("copy", call!("raisedSignal"));
         call!("pickMenu", QString::from("resendItem"));
         record!("resend", call!("raisedSignal"));
-        // Deferred by the stub, as Silica defers it: read on the next step.
+        // The list waits before it deletes anything, so this is read on
+        // the next step rather than this one.
         call!("pickMenu", QString::from("deleteItem"));
 
         // Scrolled away again, so an arrival is counted rather than shown.

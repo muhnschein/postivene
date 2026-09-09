@@ -4,9 +4,13 @@
 //! The last was reported from a device: deleting two profiles in one go
 //! deleted the first. Its deletion reloaded the list, the reload rebuilt
 //! every row, and the second row's countdown -- Silica's remorse timer
-//! lives on the row -- went with it. The list is refreshed in place now
-//! (core.rs), so the row the reader is still counting down on is the same
-//! object after the first deletion as before it.
+//! lives on the row -- went with it. Two things answer that now and both
+//! are worth keeping. The wait is no longer on the row at all
+//! (`PendingRemoval`, and `qml_delete_run.rs` for the run of them). And
+//! the list is still refreshed in place rather than rebuilt, which
+//! is what stops every row flickering when one profile goes, and what
+//! this file measures: the second row is the same object after the first
+//! deletion as before it.
 
 // Qt harness: see qml_pages.rs.
 #![allow(
@@ -99,7 +103,12 @@ const PROBE_QML: &str = r"
         function refresh() { core.refresh_accounts(); return 'ok' }
         function load(url, currentAccountId) {
             loader.setSource('', {})
-            loader.setSource(url, { currentAccountId: currentAccountId })
+            loader.setSource(url, {
+                currentAccountId: currentAccountId,
+                // The wait before a profile goes, turned down so this
+                // does not have to sit through four seconds of it twice.
+                pendingDelay: 200
+            })
             return loader.status === Loader.Ready ? 'ok' : 'load-failed'
         }
         function findIn(node, name) {

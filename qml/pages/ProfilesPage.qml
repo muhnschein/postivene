@@ -15,10 +15,13 @@ import "../components"
  * and to deleting it. Another profile is made from the plus under the
  * last row, where the group pages put "add members".
  *
- * Deleting counts down on the row, and the list is refreshed in place
- * rather than rebuilt when the deletion lands (core.rs): a rebuild
- * destroyed every row, and with them the countdowns of the other
- * profiles a reader had asked to delete in the same breath.
+ * Deleting counts down beside the list rather than on the row
+ * (PendingRemoval): the row goes whenever the list reloads, and it used
+ * to take the countdown with it, so the second of two profiles deleted
+ * in the same breath was never deleted at all. The list is also
+ * refreshed in place rather than rebuilt when a deletion lands
+ * (core.rs), which is worth keeping for its own sake -- it is what stops
+ * every row flickering -- but the countdown no longer depends on it.
  */
 Page {
     id: page
@@ -54,6 +57,29 @@ Page {
 
     property string errorMessage: ""
 
+    /// The profiles the reader has asked to delete, waiting out the
+    /// moment in which they can say they did not mean it.
+    /// How long a profile waits before it goes, in milliseconds.
+    /// Nothing sets it; a test turns it down rather than waiting.
+    property alias pendingDelay: doomedProfiles.delay
+
+    PendingRemoval {
+        id: doomedProfiles
+        onRemove: {
+            page.deleting = true
+            core.remove_account(id)
+        }
+    }
+
+    // A profile page pushed over this one, or a swipe back to the chats:
+    // either way, anything still waiting goes now. Leaving is exactly
+    // when a timer has not fired yet.
+    onStatusChanged: {
+        if (page.status === PageStatus.Deactivating) {
+            doomedProfiles.flush()
+        }
+    }
+
     SilicaListView {
         id: listView
         objectName: "profileList"
@@ -70,6 +96,10 @@ Page {
             objectName: "profileRow" + model.account_id
             contentHeight: body.height
 
+            /// This profile is on its way out, and the row says so
+            /// instead of showing it.
+            readonly property bool doomed: doomedProfiles.pending(model.account_id)
+
             menu: ContextMenu {
                 MenuItem {
                     objectName: "profileSettingsItem"
@@ -80,24 +110,17 @@ Page {
                 MenuItem {
                     objectName: "deleteProfileItem"
                     text: qsTr("Delete profile")
-                    // The id is taken now rather than read inside the
-                    // callback: the row is destroyed when the list
-                    // reloads, and Silica runs a remorse action on that
-                    // destruction, by which point `model` resolves to
-                    // nothing. Same reason the chat list hoists its own.
-                    onClicked: {
-                        var doomed = model.account_id
-                        profileDelegate.remorseAction(qsTr("Deleting profile"),
-                                                      function() {
-                                                          page.deleting = true
-                                                          core.remove_account(doomed)
-                                                      })
-                    }
+                    // The page is told, not this row: the row is
+                    // destroyed whenever the list reloads, and a wait
+                    // living on it would go too. Same as the chat list
+                    // and the conversation.
+                    onClicked: doomedProfiles.ask(model.account_id)
                 }
             }
 
             ContactRow {
                 id: body
+                visible: !profileDelegate.doomed
                 width: parent.width
                 displayName: model.display_name.length > 0
                              ? model.display_name : model.addr
@@ -115,8 +138,32 @@ Page {
                 trailingSpace: marks.width + Theme.paddingMedium
             }
 
+            // A profile on its way out, in place of the profile. The row
+            // keeps the height it had, so nothing below it moves and
+            // comes back again if the reader changes their mind.
+            Item {
+                objectName: "doomedProfileRow"
+                visible: profileDelegate.doomed
+                width: parent.width
+                height: visible ? body.height : 0
+
+                Label {
+                    objectName: "doomedProfileLabel"
+                    anchors.centerIn: parent
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.highlightColor
+                    textFormat: Text.PlainText
+                    //: Over a profile the reader has asked to delete, for
+                    //: as long as they still have a moment to say they
+                    //: did not mean it. A tap on the profile is that
+                    //: moment taken.
+                    text: qsTr("Deleting profile")
+                }
+            }
+
             Row {
                 id: marks
+                visible: !profileDelegate.doomed
                 anchors {
                     right: parent.right
                     rightMargin: Theme.horizontalPageMargin
@@ -164,7 +211,11 @@ Page {
             }
 
             onClicked: {
-                if (model.account_id !== page.currentAccountId) {
+                if (profileDelegate.doomed) {
+                    // Taking the delete back, which is what a tap on a
+                    // row that says "Deleting profile" can only mean.
+                    doomedProfiles.spare(model.account_id)
+                } else if (model.account_id !== page.currentAccountId) {
                     // The whole stack, not just this page. `replace`
                     // swapped out the accounts page and left the previous
                     // account's chat list underneath it -- one swipe back

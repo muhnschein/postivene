@@ -129,11 +129,33 @@ Page {
         page.openChat(chatId, notifier.nameOf(chatId), 0)
     }
 
-    // Back on the list means no chat is being read.
+    // Back on the list means no chat is being read. Going the other way,
+    // any chat still waiting to be deleted goes now: leaving is exactly
+    // when a timer has not fired yet, and somebody who asked for a chat
+    // to go and then opened another one asked for it to go.
     onStatusChanged: {
         if (status === PageStatus.Active) {
             notifier.viewingChatId = 0
+        } else if (status === PageStatus.Deactivating) {
+            doomedChats.flush()
         }
+    }
+
+    /// The chats the reader has asked to delete, waiting out the moment
+    /// in which they can say they did not mean it.
+    ///
+    /// Not Silica's `remorseAction`, which would put the wait on the row:
+    /// a message arriving moves a chat up this list, which is a remove
+    /// and an insert, so the row -- and the wait on it -- can go at any
+    /// moment and for a reason that has nothing to do with the reader.
+    /// See PendingRemoval.
+    /// How long a chat waits before it goes, in milliseconds.
+    /// Nothing sets it; a test turns it down rather than waiting.
+    property alias pendingDelay: doomedChats.delay
+
+    PendingRemoval {
+        id: doomedChats
+        onRemove: chats.delete_chat(id)
     }
 
     property string errorMessage: ""
@@ -369,8 +391,13 @@ Page {
                 id: delegateRoot
                 contentHeight: body.height
 
+                /// This chat is on its way out, and the row says so
+                /// instead of showing it.
+                readonly property bool doomed: doomedChats.pending(model.chat_id)
+
                 ChatListDelegate {
                     id: body
+                    visible: !delegateRoot.doomed
                     width: parent.width
                     chatName: model.name
                     preview: model.preview
@@ -448,22 +475,47 @@ Page {
                     MenuItem {
                         objectName: "deleteItem"
                         text: qsTr("Delete")
-                        // The id is taken now, not read inside the callback: a
-                        // message arriving moves this chat up the list, which
-                        // is a remove and an insert, and the row this menu
-                        // belongs to is destroyed. Silica runs the action on
-                        // that destruction, and `model` no longer resolves.
-                        onClicked: {
-                            var doomed = model.chat_id
-                            delegateRoot.remorseAction(qsTr("Deleting"),
-                                                       function() {
-                                                           chats.delete_chat(doomed)
-                                                       })
-                        }
+                        // The page is told, not this row: a message
+                        // arriving moves this chat up the list, which is
+                        // a remove and an insert, and the row this menu
+                        // belongs to is destroyed. A wait living on it
+                        // would go too.
+                        onClicked: doomedChats.ask(model.chat_id)
                     }
                 }
 
-                onClicked: page.openChat(model.chat_id, model.name, 0)
+                // A chat on its way out, in place of the chat. The row
+                // keeps the height it had, so nothing below it moves and
+                // comes back again if the reader changes their mind.
+                Item {
+                    objectName: "doomedChatRow"
+                    visible: delegateRoot.doomed
+                    width: parent.width
+                    height: visible ? body.height : 0
+
+                    Label {
+                        objectName: "doomedChatLabel"
+                        anchors.centerIn: parent
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.highlightColor
+                        textFormat: Text.PlainText
+                        //: Over a chat the reader has asked to delete,
+                        //: for as long as they still have a moment to
+                        //: say they did not mean it. A tap on the chat
+                        //: is that moment taken.
+                        text: qsTr("Deleting")
+                    }
+                }
+
+                // A tap opens the chat, or takes back the delete when
+                // that is what the row is showing.
+                onClicked: {
+                    if (delegateRoot.doomed) {
+                        doomedChats.spare(model.chat_id)
+                    } else {
+                        page.openChat(model.chat_id, model.name, 0)
+                    }
+                }
             }
 
             ViewPlaceholder {

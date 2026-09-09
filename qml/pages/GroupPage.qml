@@ -117,12 +117,31 @@ Page {
 
     // Leaving is the other moment worth saving at: a back-swipe within
     // the pause above would otherwise drop what was typed. The name goes
-    // back to being a name on the way out too.
+    // back to being a name on the way out too, and any member still
+    // waiting to be removed goes now -- leaving is exactly when a timer
+    // has not fired yet.
     onStatusChanged: {
         if (status === PageStatus.Deactivating) {
             page.applyEdits()
             nameField.done()
+            doomedMembers.flush()
         }
+    }
+
+    /// The members the reader has asked to remove, waiting out the
+    /// moment in which they can say they did not mean it.
+    ///
+    /// Not Silica's `remorseAction`, which would put the wait on the row:
+    /// removing one member reloads the member list, so the row of the
+    /// second one asked for -- and the wait on it -- was destroyed before
+    /// it ever ran. See PendingRemoval.
+    /// How long a member waits before it goes, in milliseconds.
+    /// Nothing sets it; a test turns it down rather than waiting.
+    property alias pendingDelay: doomedMembers.delay
+
+    PendingRemoval {
+        id: doomedMembers
+        onRemove: chat.remove_member(id)
     }
 
     // The gallery, pushed by URL and connected to, the way the settings
@@ -281,6 +300,11 @@ Page {
                     width: column.width
                     contentHeight: body.height
 
+                    /// This member is on their way out, and the row says
+                    /// so instead of showing them.
+                    readonly property bool doomed:
+                        doomedMembers.pending(model.contact_id)
+
                     // Removing yourself is leaving, which has its own
                     // place in the pulley and its own countdown.
                     menu: ContextMenu {
@@ -288,28 +312,55 @@ Page {
                             objectName: "removeItem"
                             visible: chat.can_edit && !model.is_self
                             text: qsTr("Remove from group")
-                            // The id is taken now, not read inside the
-                            // callback: the reload that follows rebuilds
-                            // the rows, and `model` no longer resolves
-                            // from a row that is gone.
-                            onClicked: {
-                                var leaving = model.contact_id
-                                memberRow.remorseAction(qsTr("Removing"),
-                                                        function() {
-                                                            chat.remove_member(leaving)
-                                                        })
-                            }
+                            // The page is told, not this row: removing
+                            // one member reloads the list, and a wait
+                            // living on a row would go with the row.
+                            onClicked: doomedMembers.ask(model.contact_id)
                         }
                     }
 
                     ContactRow {
                         id: body
+                        visible: !memberRow.doomed
                         width: parent.width
                         displayName: model.display_name
                         ownColor: model.color
                         picturePath: model.avatar_path
                         isKeyContact: model.is_key_contact
                         isVerified: model.is_verified
+                    }
+
+                    // A member on their way out, in place of the member.
+                    // The row keeps the height it had, so nothing below
+                    // it moves and comes back again if the reader
+                    // changes their mind.
+                    Item {
+                        objectName: "doomedMemberRow"
+                        visible: memberRow.doomed
+                        width: parent.width
+                        height: visible ? body.height : 0
+
+                        Label {
+                            objectName: "doomedMemberLabel"
+                            anchors.centerIn: parent
+                            font.pixelSize: Theme.fontSizeSmall
+                            color: Theme.highlightColor
+                            textFormat: Text.PlainText
+                            //: Over a member the reader has asked to
+                            //: remove from the group, for as long as they
+                            //: still have a moment to say they did not
+                            //: mean it. A tap on the member is that
+                            //: moment taken.
+                            text: qsTr("Removing")
+                        }
+                    }
+
+                    // The row has nothing else a tap does, so a tap can
+                    // only mean taking the removal back.
+                    onClicked: {
+                        if (memberRow.doomed) {
+                            doomedMembers.spare(model.contact_id)
+                        }
                     }
                 }
             }

@@ -493,6 +493,80 @@ fn only_the_settings_object_names_the_dconf_keys() {
     );
 }
 
+/// Nothing waits on a row before it destroys something in the list.
+///
+/// Silica's `ListItem.remorseAction` parents the countdown to the row it
+/// was asked for on, and deleting out of a list is exactly what destroys
+/// rows: the first one to land takes every other countdown with it.
+/// Deleting a run of messages lost most of them, and the chat list, the
+/// profiles list and a group's members were all open to the same thing.
+/// The wait belongs to the list now (components/PendingRemoval.qml), so
+/// nothing may reach for Silica's again.
+#[test]
+fn no_wait_before_a_deletion_lives_on_the_row_it_was_asked_on() {
+    let mut offenders = Vec::new();
+    for file in qml_files() {
+        let code = code_only(&fs::read_to_string(&file).expect("read qml"));
+        for (number, line) in code.lines().enumerate() {
+            if line.contains("remorseAction(") {
+                offenders.push(format!("{}:{}", file.display(), number + 1));
+            }
+        }
+    }
+    assert!(
+        offenders.is_empty(),
+        "these put the wait before a deletion on the row it was asked \
+         for on, which the deletion itself destroys; use a \
+         PendingRemoval beside the list instead:\n  {}",
+        offenders.join("\n  ")
+    );
+}
+
+/// Every wait is emptied when what holds it is left.
+///
+/// A wait that nobody empties is a deletion the reader asked for and did
+/// not get: they tapped Delete, then went somewhere else inside four
+/// seconds. Each page that holds one flushes it as it deactivates, for
+/// the reason `ConversationPage` writes its draft there. `ConversationList`
+/// is not a page and offers `flushDeletes()` for its own page to call,
+/// which `the_conversation_page_uses_the_pieces_that_are_tested` checks.
+#[test]
+fn every_pending_removal_is_emptied_on_the_way_out() {
+    let pages = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../qml/pages");
+    let mut holders = 0;
+    let mut offenders = Vec::new();
+    for file in qml_files() {
+        let text = fs::read_to_string(&file).expect("read qml");
+        if !code_only(&text).contains("PendingRemoval {") {
+            continue;
+        }
+        holders += 1;
+        let leaving = if file.parent() == Some(pages.as_path()) {
+            block_of(&text, "PageStatus.Deactivating")
+        } else {
+            text.clone()
+        };
+        if !leaving.contains(".flush()") {
+            offenders.push(file.display().to_string());
+        }
+    }
+    // Otherwise this passes by finding nothing to check, which is what it
+    // would do if the four of them were quietly put back on their rows.
+    assert!(
+        holders >= 4,
+        "only {holders} files hold a PendingRemoval; there should be four \
+         -- the conversation, the chat list, the profiles and a group's \
+         members"
+    );
+    assert!(
+        offenders.is_empty(),
+        "these hold a wait before a deletion and never empty it, so \
+         leaving inside the wait keeps what the reader asked to \
+         delete:\n  {}",
+        offenders.join("\n  ")
+    );
+}
+
 /// A path the other end named becomes a URL one segment at a time.
 ///
 /// `encodeURI` leaves `#` and `?` alone -- to it they are URL syntax --

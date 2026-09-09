@@ -68,7 +68,7 @@ const PROBE_QML: &str = r"
             // Long enough that a step of this test lands inside one
             // wait, short enough that it does not sit through four
             // seconds of the real one.
-            list.item.deleteDelay = 2500
+            list.item.pendingDelay = 2500
             return 'ok'
         }
         function sentSoFar() { return sent }

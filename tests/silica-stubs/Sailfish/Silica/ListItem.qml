@@ -12,33 +12,14 @@ Item {
     // this for anything that took the press itself and wants the same.
     function openMenu() { menuOpen = true }
 
-    // Silica counts down before acting, and runs the action anyway if it is
-    // destroyed while the countdown is still going (RemorseItem's own
-    // `Component.onDestruction`). Both halves matter: a row that goes away
-    // mid-countdown still deletes something, and what it deletes is
-    // whatever the callback can still resolve by then.
-    property var _pendingAction: null
-
-    Timer {
-        id: remorseCountdown
-        interval: 50
-        onTriggered: {
-            var action = root._pendingAction
-            root._pendingAction = null
-            if (action) action()
-        }
-    }
-
-    function remorseAction(text, action) {
-        root._pendingAction = action
-        remorseCountdown.restart()
-    }
-
-    Component.onDestruction: {
-        if (remorseCountdown.running && root._pendingAction) {
-            root._pendingAction()
-        }
-    }
+    // No `remorseAction`. Silica has one and this stub used to model it,
+    // guessing at what it does when the row is destroyed mid-countdown --
+    // which is exactly the case that matters, and exactly the one a stub
+    // cannot answer for. Nothing in qml/ calls it any more: a wait before
+    // something is destroyed belongs to the list (components/
+    // PendingRemoval.qml), so a row going away is not part of it. Left out
+    // rather than left in, so anything that reaches for it again fails
+    // here rather than on a phone.
 
     width: parent ? parent.width : 540
     height: contentHeight

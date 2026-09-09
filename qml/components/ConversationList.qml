@@ -118,81 +118,25 @@ SilicaListView {
     /// model's to decide, from what it knows the reader already sent.
     signal reactionRequested(int messageId, string emoji)
 
-    /// The messages the reader has asked to delete, as a set of ids.
-    ///
-    /// Here rather than on the row, which is where Silica's own
-    /// `remorseAction` puts it. A countdown that belongs to a row does
-    /// not outlive the row -- and deleting a message is exactly what
-    /// destroys rows. Delete one, delete another before the first has
-    /// gone, and the first one lands, the list changes under the second,
-    /// and the second is never deleted at all. Deleting a run of
-    /// messages lost most of them that way.
-    ///
-    /// One countdown for all of them rather than one each: deleting
-    /// several is one go, and one wait is one thing to change your mind
-    /// about. Replaced rather than changed in place -- a binding does
-    /// not re-run when the contents of an object it read change, only
-    /// when the property is assigned.
-    property var doomedIds: ({})
+    /// How long a message waits before it goes, in milliseconds. The
+    /// page does not set it; a test turns it down rather than waiting.
+    property alias pendingDelay: doomedMessages.delay
 
-    /// Whether this message is on its way out.
-    function isDoomed(messageId) {
-        return root.doomedIds[messageId] === true
-    }
-
-    /// Ask for a message to go, once the reader has had their moment.
-    function doom(messageId) {
-        var next = {}
-        for (var key in root.doomedIds) {
-            next[key] = root.doomedIds[key]
-        }
-        next[messageId] = true
-        root.doomedIds = next
-        doomCountdown.restart()
-    }
-
-    /// The reader said they did not mean it, about one of them.
-    function spare(messageId) {
-        var next = {}
-        for (var kept in root.doomedIds) {
-            next[kept] = root.doomedIds[kept]
-        }
-        delete next[messageId]
-        root.doomedIds = next
-        if (Object.keys(next).length === 0) {
-            doomCountdown.stop()
-        }
-    }
-
-    /// Send everything still waiting, now.
-    ///
-    /// The page calls this on its way out (ConversationPage), for the
-    /// reason it writes the draft there too: leaving is exactly when a
-    /// timer has not fired yet, and a reader who asked for a message to
-    /// go and then left the chat asked for it to go.
+    /// Send everything still waiting, now. The page calls this on its
+    /// way out of the chat (ConversationPage).
     function flushDeletes() {
-        var going = root.doomedIds
-        root.doomedIds = ({})
-        doomCountdown.stop()
-        var ids = Object.keys(going)
-        for (var i = 0; i < ids.length; i++) {
-            root.deleteRequested(parseInt(ids[i], 10))
-        }
+        doomedMessages.flush()
     }
 
-    /// How long a message waits before it goes, in milliseconds.
+    /// The messages the reader has asked to delete, waiting out the
+    /// moment in which they can say they did not mean it.
     ///
-    /// Silica's own remorse waits five seconds. Four, because this one
-    /// starts again with every message added to it, and a run of them
-    /// should not keep the reader waiting much longer than one does. A
-    /// property because a test turns it down rather than waiting.
-    property int deleteDelay: 4000
-
-    Timer {
-        id: doomCountdown
-        objectName: "doomCountdown"
-        interval: root.deleteDelay
-        onTriggered: root.flushDeletes()
+    /// Not Silica's `remorseAction`, which would put the wait on the row
+    /// -- and deleting a message is exactly what destroys rows, so a run
+    /// of deletes lost all but the first. See PendingRemoval.
+    PendingRemoval {
+        id: doomedMessages
+        onRemove: root.deleteRequested(id)
     }
 
     /// The emoji the menu offers first, as the reference clients offer
@@ -653,8 +597,8 @@ SilicaListView {
                 // The list is told, not this row: the wait before a
                 // message goes has to outlive the row it was asked for
                 // on, and deleting one is what destroys rows. See
-                // `doomedIds`.
-                onClicked: root.doom(model.message_id)
+                // PendingRemoval.
+                onClicked: doomedMessages.ask(model.message_id)
             }
         }
         // Sized by its content, not fixed: a device message runs to a
@@ -669,7 +613,7 @@ SilicaListView {
 
         /// This message is on its way out, and the row says so instead
         /// of showing it.
-        readonly property bool doomed: root.isDoomed(model.message_id)
+        readonly property bool doomed: doomedMessages.pending(model.message_id)
 
         // One surface: a tap opens whatever the message has to open, a
         // long press opens the menu, wherever on the row either lands.
@@ -677,7 +621,7 @@ SilicaListView {
         // message about to go, that one tap is the way back.
         onClicked: {
             if (messageRow.doomed) {
-                root.spare(model.message_id)
+                doomedMessages.spare(model.message_id)
             } else {
                 body.tapped()
             }

@@ -327,7 +327,11 @@ removed from the store even after approval. Not an option.
    going. Then delete one more and leave the chat before the wait is up
    -- it should be gone when you come back. The wait used to belong to
    the row, and deleting the message above a waiting row destroyed it
-   and the wait with it, so most of a run never went at all.
+   and the wait with it, so most of a run never went at all. The chat
+   list, the profiles list and a group's member list all wait the same
+   way now and were all open to the same thing: delete two chats one
+   after another, delete two profiles, remove two members, and check
+   that both of each go.
    Sharing *to* the app is a device path of its own, and the sandbox is
    half of it: share a picture from the gallery, a document from the file
    manager and a link from the browser, and check that Postivene is in

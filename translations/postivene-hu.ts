@@ -158,6 +158,7 @@
     </message>
     <message>
         <source>Deleting</source>
+        <extracomment>Over a chat the reader has asked to delete, for as long as they still have a moment to say they did not mean it. A tap on the chat is that moment taken.</extracomment>
         <translation>Törlés folyamatban</translation>
     </message>
     <message>
@@ -464,6 +465,7 @@
     </message>
     <message>
         <source>Removing</source>
+        <extracomment>Over a member the reader has asked to remove from the group, for as long as they still have a moment to say they did not mean it. A tap on the member is that moment taken.</extracomment>
         <translation>Eltávolítás folyamatban</translation>
     </message>
     <message>
@@ -756,6 +758,7 @@
     </message>
     <message>
         <source>Deleting profile</source>
+        <extracomment>Over a profile the reader has asked to delete, for as long as they still have a moment to say they did not mean it. A tap on the profile is that moment taken.</extracomment>
         <translation>Profil törlése folyamatban</translation>
     </message>
     <message>

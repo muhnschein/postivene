@@ -194,22 +194,26 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   shape rather than trusting a reading of it.
 - **A wait before something is destroyed belongs to the list, not the
   row.** Silica's remorse is `ListItem.remorseAction`: the countdown is
-  an item parented to the row it was asked for on. For deleting a
-  message that is the one place it cannot go, because a delete is
-  exactly what destroys rows -- the first one lands, the core says so,
-  the row goes, and the countdown on it goes with it. Deleting a handful
-  of messages one after another lost most of them, which is how this was
-  found. So the countdown is the list's (`ConversationList.doomedIds`,
-  one wait for all of them rather than one each), a row on its way out
-  draws "Deleting" in place of the message and a tap on it puts that one
-  back, and the page sends whatever is still waiting when the reader
-  leaves the chat -- for the same reason it writes the draft there:
-  leaving is exactly when a timer has not fired yet. The chat list's own
-  Delete still uses Silica's and is open to the same thing -- a message
-  arriving reorders that list, which is a remove and an insert, and the
-  row goes -- but nobody has reported losing a chat that way and one
-  chat at a time is how they are deleted. It is left as it is until
-  somebody sees it happen.
+  an item parented to the row it was asked for on. For deleting *out of*
+  a list that is the one place it cannot go, because deleting is exactly
+  what destroys rows -- the first one lands, the core says so, the row
+  goes, and every other countdown goes with it. Deleting a handful of
+  messages one after another lost most of them, which is how this was
+  found, and the same held for the chat list (a message arriving reorders
+  it, which is a remove and an insert), the profiles list, and a group's
+  members.
+  So the wait is a `PendingRemoval` beside each list, one wait covering
+  everything asked for while it runs. A row on its way out draws
+  "Deleting" in place of what it held and keeps the height it had, a tap
+  on it puts that one back and leaves the rest going, and whoever holds
+  one empties it as they are left -- the conversation from its page's
+  `Deactivating`, the other three from their own -- for the reason
+  ConversationPage writes its draft there: leaving is exactly when a
+  timer has not fired yet. `qml_syntax.rs` holds every list to both
+  halves, and the stub `ListItem` no longer has a `remorseAction` for
+  anything to reach for. The profiles list keeps its in-place refresh
+  (`core.rs`) as well, which is what stops every row flickering when one
+  profile goes, but nothing depends on it any more.
 - **A file is opened elsewhere or kept; reading belongs to messages.** A
   picture and a video have pages of their own and everything else is
   handed to the system. A page for a file was built and taken out again

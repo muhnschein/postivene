@@ -57,12 +57,12 @@ Page {
 
     property string errorMessage: ""
 
-    /// The profiles the reader has asked to delete, waiting out the
-    /// moment in which they can say they did not mean it.
     /// How long a profile waits before it goes, in milliseconds.
     /// Nothing sets it; a test turns it down rather than waiting.
     property alias pendingDelay: doomedProfiles.delay
 
+    /// The profiles the reader has asked to delete, waiting out the
+    /// moment in which they can say they did not mean it.
     PendingRemoval {
         id: doomedProfiles
         onRemove: {
@@ -120,7 +120,18 @@ Page {
 
             ContactRow {
                 id: body
-                visible: !profileDelegate.doomed
+                // Kept laid out rather than hidden while it waits to go:
+                // hiding an item takes its children's `visible` with it,
+                // and any part whose height reads `visible` then
+                // measures zero and collapses the row under the label
+                // that replaced it. That is what happened in the
+                // conversation, whose every part is measured that way;
+                // this row is not, but the idiom is one thing in all
+                // four lists and `qml_syntax.rs` holds them to it.
+                // `enabled` takes the taps that belong to the row's own
+                // controls, which a tap on a waiting row must not reach.
+                opacity: profileDelegate.doomed ? 0 : 1
+                enabled: !profileDelegate.doomed
                 width: parent.width
                 displayName: model.display_name.length > 0
                              ? model.display_name : model.addr
@@ -163,7 +174,9 @@ Page {
 
             Row {
                 id: marks
-                visible: !profileDelegate.doomed
+                // Out of the way with the row, and by opacity for the
+                // same reason: this one is anchored to the row's centre.
+                opacity: profileDelegate.doomed ? 0 : 1
                 anchors {
                     right: parent.right
                     rightMargin: Theme.horizontalPageMargin

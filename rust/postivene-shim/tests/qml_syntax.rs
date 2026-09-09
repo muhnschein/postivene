@@ -522,6 +522,47 @@ fn no_wait_before_a_deletion_lives_on_the_row_it_was_asked_on() {
     );
 }
 
+/// A row waiting to go is faded, not hidden.
+///
+/// Hiding an item takes its children's `visible` with it, and the parts
+/// of a row measure `visible ? implicitHeight : 0` -- so hiding the
+/// content of a waiting row collapses the row to nothing. What replaces
+/// the content is centred in that nothing and drawn across the rows
+/// above and below: three messages deleted at once put three "Deleting"
+/// on top of each other on a phone, which is how this was found.
+/// `opacity` leaves the height alone, and `enabled` is what stops a tap
+/// reaching controls that can no longer be seen.
+///
+/// One line at a time, so a binding wrapped across two escapes it. The
+/// four files it applies to are counted by
+/// `every_pending_removal_is_emptied_on_the_way_out`.
+#[test]
+fn a_row_waiting_to_go_is_faded_rather_than_hidden() {
+    let mut offenders = Vec::new();
+    for file in qml_files() {
+        let code = code_only(&fs::read_to_string(&file).expect("read qml"));
+        if !code.contains("PendingRemoval {") {
+            continue;
+        }
+        for (number, line) in code.lines().enumerate() {
+            let line = line.trim();
+            let hides =
+                line.contains('!') && (line.contains("doomed") || line.contains(".pending("));
+            if line.starts_with("visible:") && hides {
+                offenders.push(format!("{}:{}: {line}", file.display(), number + 1));
+            }
+        }
+    }
+    assert!(
+        offenders.is_empty(),
+        "these hide a row's content while it waits to go, which collapses \
+         the row and draws what replaces it over the neighbours; fade it \
+         with `opacity` and take its taps with `enabled` \
+         instead:\n  {}",
+        offenders.join("\n  ")
+    );
+}
+
 /// Every wait is emptied when what holds it is left.
 ///
 /// A wait that nobody empties is a deletion the reader asked for and did

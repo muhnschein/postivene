@@ -130,9 +130,31 @@ const PROBE_QML: &str = r"
             var row = rowFor(messageId)
             if (!row) { return 'missing:row:' + messageId }
             var going = findIn(row, 'doomedRow')
-            var body = findIn(row, 'messageLabel')
+            var body = findIn(row, 'messageDelegate')
             if (!going || !body) { return 'missing:parts' }
-            return going.visible + '/' + body.visible
+            // The message is faded out rather than hidden -- hiding it
+            // would collapse the row -- so what says it is out of the
+            // way is its opacity, and what says it cannot be tapped
+            // through is `enabled`.
+            return going.visible + '/' + body.opacity + '/' + body.enabled
+        }
+        /// The row's own box: where it starts and how tall it is. A row
+        /// waiting to go has to keep the height it had -- what replaces
+        /// the message is centred in that height, and a row that
+        /// collapsed to nothing puts its label across its neighbours'.
+        function rowBox(messageId) {
+            var row = rowFor(messageId)
+            if (!row) { return 'missing:row:' + messageId }
+            return Math.round(row.y) + ':' + Math.round(row.height)
+        }
+        /// How tall the label in a waiting row is, against the row.
+        function labelFits(messageId) {
+            var row = rowFor(messageId)
+            if (!row) { return 'missing:row:' + messageId }
+            var label = findIn(row, 'doomedLabel')
+            if (!label) { return 'missing:doomedLabel' }
+            return (label.height <= row.height) + ':'
+                   + Math.round(label.height) + '/' + Math.round(row.height)
         }
         /// What a row on its way out says.
         function goingText(messageId) {
@@ -200,11 +222,17 @@ fn every_delete_in_a_run_arrives() {
     // them in the middle -- which is what the first delete of a run does
     // to the rows the rest are waiting on.
     single_shot(Duration::from_secs(2), move || unsafe {
+        record!("box-1-before", call!("rowBox", 1));
+        record!("box-2-before", call!("rowBox", 2));
         record!("delete-1", call!("deleteRow", 1));
         record!("delete-2", call!("deleteRow", 2));
         record!("going-1", call!("goingOut", 1));
         record!("going-text", call!("goingText", 1));
         record!("untouched-4", call!("goingOut", 4));
+        record!("box-1-after", call!("rowBox", 1));
+        record!("box-2-after", call!("rowBox", 2));
+        record!("label-1-fits", call!("labelFits", 1));
+        record!("label-2-fits", call!("labelFits", 2));
         record!("sent-so-far", call!("sentSoFar"));
         call!("removeRow", 0);
     });
@@ -254,7 +282,7 @@ fn every_delete_in_a_run_arrives() {
 
     assert_eq!(
         value("going-1"),
-        "true/false",
+        "true/0/false",
         "a message asked for and waiting to go is still drawn as a \
          message, or has nothing in its place. {context}"
     );
@@ -266,10 +294,51 @@ fn every_delete_in_a_run_arrives() {
     );
     assert_eq!(
         value("untouched-4"),
-        "false/true",
+        "false/1/true",
         "asking for one message to go marked another as going too. \
          {context}"
     );
+    // The height a row had, kept: what replaces the message is centred in
+    // it, and a row that collapses draws its label over its neighbours'.
+    // Two of them waiting at once is where that shows.
+    // Rounded to whole pixels on the way out of QML, so the boxes
+    // compare as text: `y:height`, and both halves matter -- a row that
+    // moved is as wrong as one that shrank.
+    let height = |label: &str| -> i64 {
+        value(label)
+            .rsplit(':')
+            .next()
+            .and_then(|number| number.parse().ok())
+            .unwrap_or(-1)
+    };
+    assert!(
+        height("box-1-before") > 0 && height("box-2-before") > 0,
+        "the rows were not measured before anything was deleted: {:?}, \
+         {:?}. {context}",
+        value("box-1-before"),
+        value("box-2-before")
+    );
+    for message in [1, 2] {
+        let before = value(&format!("box-{message}-before"));
+        let after = value(&format!("box-{message}-after"));
+        assert_eq!(
+            before, after,
+            "row {message}'s box changed when it was asked to go: \
+             {before} became {after}. It has to keep the height it had, \
+             or what replaces the message is centred in nothing and \
+             drawn across the rows above and below. {context}"
+        );
+    }
+    for label in ["label-1-fits", "label-2-fits"] {
+        assert!(
+            value(label).starts_with("true:"),
+            "the \"Deleting\" label is taller than the row holding it \
+             ({}), so it is drawn outside it and over its neighbours. \
+             {context}",
+            value(label)
+        );
+    }
+
     assert_eq!(
         value("sent-so-far"),
         "",
@@ -292,12 +361,12 @@ fn every_delete_in_a_run_arrives() {
     );
     assert_eq!(
         value("spared-4"),
-        "false/true",
+        "false/1/true",
         "tapping a message on its way out did not put it back. {context}"
     );
     assert_eq!(
         value("still-going-3"),
-        "true/false",
+        "true/0/false",
         "putting one message back put another one back with it. {context}"
     );
 
@@ -319,7 +388,7 @@ fn every_delete_in_a_run_arrives() {
     );
     assert_eq!(
         value("back-4"),
-        "false/true",
+        "false/1/true",
         "the message that was put back went anyway. {context}"
     );
 

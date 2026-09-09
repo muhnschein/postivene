@@ -732,7 +732,18 @@ SilicaListView {
         // message it has not got.
         MessageDelegate {
             id: body
-            visible: model.loaded && !messageRow.doomed
+            objectName: "messageDelegate"
+            visible: model.loaded
+            // Kept laid out rather than hidden while it waits to go:
+            // hiding an item takes its children's `visible` with it,
+            // and every part of a message measures
+            // `visible ? implicitHeight : 0` -- so hiding it collapsed
+            // the row to nothing and three of them drew their
+            // "Deleting" across each other. Opacity leaves the height
+            // alone; `enabled` takes the taps that belong to its own
+            // controls, which a tap on a waiting row must not reach.
+            opacity: messageRow.doomed ? 0 : 1
+            enabled: !messageRow.doomed
             y: dayHeading.height + unreadLine.height
             width: parent.width
             messageText: model.text

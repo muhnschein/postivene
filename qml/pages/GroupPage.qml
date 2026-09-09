@@ -128,6 +128,10 @@ Page {
         }
     }
 
+    /// How long a member waits before they go, in milliseconds. Nothing
+    /// sets it; a test turns it down rather than waiting.
+    property alias pendingDelay: doomedMembers.delay
+
     /// The members the reader has asked to remove, waiting out the
     /// moment in which they can say they did not mean it.
     ///
@@ -135,10 +139,6 @@ Page {
     /// removing one member reloads the member list, so the row of the
     /// second one asked for -- and the wait on it -- was destroyed before
     /// it ever ran. See PendingRemoval.
-    /// How long a member waits before it goes, in milliseconds.
-    /// Nothing sets it; a test turns it down rather than waiting.
-    property alias pendingDelay: doomedMembers.delay
-
     PendingRemoval {
         id: doomedMembers
         onRemove: chat.remove_member(id)
@@ -321,7 +321,13 @@ Page {
 
                     ContactRow {
                         id: body
-                        visible: !memberRow.doomed
+                        // Faded rather than hidden while it waits to go, and
+                        // its taps taken with it. Hiding a row can collapse
+                        // it under the label that replaced it -- see
+                        // PendingRemoval, and ConversationList where that is
+                        // exactly what happened.
+                        opacity: memberRow.doomed ? 0 : 1
+                        enabled: !memberRow.doomed
                         width: parent.width
                         displayName: model.display_name
                         ownColor: model.color

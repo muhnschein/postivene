@@ -144,6 +144,16 @@ const PROBE_QML: &str = r"
             item.clicked()
             return 'ok'
         }
+        /// Whether that profile's row is drawn as one on its way out,
+        /// and whether the label saying so fits inside it.
+        function goingOut(accountId) {
+            var row = findIn(loader.item, 'profileRow' + accountId)
+            if (!row) { return 'missing:profileRow' + accountId }
+            var going = findIn(row, 'doomedProfileRow')
+            var label = findIn(row, 'doomedProfileLabel')
+            if (!going || !label) { return 'missing:parts' }
+            return going.visible + ':' + (label.height <= row.height)
+        }
         // The row object for a profile, held to compare identity with.
         property var remembered: null
         function remember(accountId) {
@@ -262,6 +272,9 @@ fn a_profile_row_has_its_picture_leads_to_its_page_and_outlives_a_neighbour() {
             "delete-1",
             call!("clickIn", 1, QString::from("deleteProfileItem"))
         );
+        // Read while it is waiting, not after: this is the state the
+        // reader is looking at for those seconds.
+        record!("going-1", call!("goingOut", 1));
     });
     single_shot(Duration::from_secs(12), move || unsafe {
         record!("row-2-after", call!("stillThere", 2));
@@ -329,6 +342,14 @@ fn assert_rows(steps: &[(&str, String)], navigation: &str, calls: &[(String, Val
         navigation.contains("push:ProfilePage.qml:accountId=1|"),
         "the row's menu did not open the profile's page with its id. {context}"
     );
+    assert_eq!(
+        value("going-1"),
+        "true:true",
+        "a profile waiting to go is not drawn as one, or the label saying \
+         so is taller than the row holding it -- which is a label drawn \
+         over the rows above and below. {context}"
+    );
+
     assert_eq!(
         value("rows-after"),
         "1",

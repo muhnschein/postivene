@@ -141,6 +141,10 @@ Page {
         }
     }
 
+    /// How long a chat waits before it goes, in milliseconds. Nothing
+    /// sets it; a test turns it down rather than waiting.
+    property alias pendingDelay: doomedChats.delay
+
     /// The chats the reader has asked to delete, waiting out the moment
     /// in which they can say they did not mean it.
     ///
@@ -149,10 +153,6 @@ Page {
     /// and an insert, so the row -- and the wait on it -- can go at any
     /// moment and for a reason that has nothing to do with the reader.
     /// See PendingRemoval.
-    /// How long a chat waits before it goes, in milliseconds.
-    /// Nothing sets it; a test turns it down rather than waiting.
-    property alias pendingDelay: doomedChats.delay
-
     PendingRemoval {
         id: doomedChats
         onRemove: chats.delete_chat(id)
@@ -397,7 +397,13 @@ Page {
 
                 ChatListDelegate {
                     id: body
-                    visible: !delegateRoot.doomed
+                    // Faded rather than hidden while it waits to go, and
+                    // its taps taken with it. Hiding a row can collapse
+                    // it under the label that replaced it -- see
+                    // PendingRemoval, and ConversationList where that is
+                    // exactly what happened.
+                    opacity: delegateRoot.doomed ? 0 : 1
+                    enabled: !delegateRoot.doomed
                     width: parent.width
                     chatName: model.name
                     preview: model.preview

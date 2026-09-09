@@ -80,7 +80,91 @@ first time, and `deny` wants the advisory database.
    a SKIP; CI sets `PACKAGING_LINT_STRICT=1` so it is a failure there, as
    `HARBOUR_CHECK_STRICT=1` already does for the Harbour check.
 
+8. **Report-script tests** (`ci/sonar-report-selftest.sh`): the one script
+   here that talks to a service outside GitHub, run against a stub server
+   that answers SonarQube's four endpoints. It cannot be tested any other
+   way -- the analysis it reads does not exist when the tests run, and this
+   project's CI cannot reach `sonarcloud.io`, which is the reason the script
+   exists at all.
+
+9. **Runner-setup tests** (`ci/apt-install-selftest.sh`): the rule deciding
+   which apt sources every CI job keeps, proved on a directory of the
+   test's own. Getting it backwards deletes the archive the jobs install
+   from, which fails everything.
+
 Aspiration, tracked not gated: test volume exceeds source volume.
+
+## Static analysis
+
+SonarQube Cloud reads the tree on every pull request
+(`.github/workflows/build.yml`, configured by `sonar-project.properties`).
+It is a **report, not a gate**: `ci.yml` decides what is allowed in, and
+nothing Sonar says can turn a red build green or a green build red. Keeping
+that boundary is why it is a separate workflow -- folding it into the gate
+would make a hosted service part of the rule that a green `make check` on a
+laptop is a green CI.
+
+The scanner **imports** coverage; it does not measure it. `make
+sonar-reports` writes `rust/target/sonar/lcov.info` with `cargo llvm-cov`
+over the whole workspace, and the workflow runs it before the scan. Without
+it the reading is a confident 0.0% rather than "no data", which is what it
+read for as long as nothing wrote a report. The target needs
+`cargo-llvm-cov`, so it is opt-in rather than part of `make check`:
+
+```
+rustup component add llvm-tools-preview
+cargo install --locked cargo-llvm-cov
+make sonar-reports
+```
+
+Clippy findings are **not** handed over, and Sonar's own Clippy pass is off
+(`sonar.rust.clippy.enabled=false`), for two different reasons. Sonar's pass
+invokes cargo where it finds the project, and this workspace is under
+`rust/`, not at the root, so it would run a different clippy from the one
+that gates this project -- or none. And a report of our own would be empty:
+`make lint` denies warnings, so a warning in this project's code fails the
+gate and never reaches a branch Sonar analyses. One was produced and held
+four diagnostics, all in `third_party/qmetaobject`, which is excluded
+anyway. Producing it cost a `cargo clean` and a full recompile inside the
+scan job.
+
+`sonar.tests` separates the fixtures from the application, so coverage and
+duplication are measured on what ships. That matters more here than in most
+trees, because the rule above is that test volume exceeds source volume:
+indexed as main sources, the fixtures were most of what every ratio was
+computed over. `sonar.exclusions` drops the vendored crates, the patched
+qmetaobject, the rendered icons, and `translations/` -- a Qt catalog is
+named `.ts`, so the scanner reads thirty-nine of them as TypeScript.
+
+The scanner uploads a report and exits; the server processes it afterwards,
+so the run that produced an analysis finishes knowing nothing about its
+result. `scripts/sonar-report.sh` asks the server from the runner that just
+fed it and prints the quality gate, the measures and the open issues into
+the job log and the step summary. It reports and never gates: the step is
+`continue-on-error`, so a Sonar outage costs a warning, not a build.
+
+## CI
+
+`ci.yml` is the gate and runs what `make check` runs. Two things about the
+runners are worth knowing.
+
+**Packages come through `ci/apt-install.sh`**, not a bare `apt-get`.
+`apt-get update` exits non-zero when *any* configured repository fails, and
+the runner image ships several this project never installs from. On
+2026-09-09 Google Chrome's index served a hash that did not match its own
+Release file, and every job died before installing anything or running a
+test; nothing in this repository had changed. The script drops the
+third-party lists first, keeping Ubuntu's wherever the image puts them --
+a list survives only if something in it names an `ubuntu.com` host, which
+is what stops it deleting the archive it is about to install from.
+
+**The Rust jobs cache their `target/`** (`Swatinem/rust-cache`, scoped to
+the `rust` workspace). Every job used to compile the whole dependency
+graph from nothing on every push. `msrv` carries a cache key of its own
+because it builds with `+1.75.0` while the action keys on the default
+toolchain, and without it the two would share a slot and neither would
+ever hit. `CARGO_INCREMENTAL: 0` because a runner compiles once and throws
+the machine away, so incremental state is written, cached and never read.
 
 ## Translations
 

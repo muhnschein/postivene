@@ -16,7 +16,7 @@
 
 .PHONY: check test lint fmt qml-lint packaging-lint lockfile-lint doc-lint \
         msrv deny integration harbour vendor-check fetch-server \
-        translations clean
+        sonar-report-test apt-install-test sonar-reports translations clean
 
 CARGO ?= cargo
 # The shim's tests drive a real Qt event loop, which needs a platform
@@ -28,7 +28,7 @@ export QT_QPA_PLATFORM = offscreen
 ## `msrv` fetches a toolchain the first time, so this is not quite
 ## network-free; `deny` needs the advisory database and is CI's job.
 check: fmt lint test doc-lint msrv qml-lint lockfile-lint packaging-lint harbour \
-       vendor-check deny
+       sonar-report-test apt-install-test vendor-check deny
 
 ## Unit, integration, and Qt event-loop tests.
 test:
@@ -101,6 +101,48 @@ fetch-server:
 ## of the app finds them. The RPM does the same in %%build.
 translations:
 	./scripts/release-translations.sh
+
+## Prove scripts/sonar-report.sh still reports what it claims to, against a
+## stub server. The real service is unreachable from CI's network and from a
+## laptop behind one, which is the reason that script exists at all.
+sonar-report-test:
+	./ci/sonar-report-selftest.sh
+
+## Prove ci/apt-install.sh keeps Ubuntu's apt sources and drops the rest.
+## Getting that backwards deletes the archive every job installs from.
+apt-install-test:
+	./ci/apt-install-selftest.sh
+
+## sonar-reports: the coverage report SonarQube Cloud imports, written to
+## rust/target/sonar/lcov.info. The scanner does not measure coverage; it
+## only imports what someone else measured, which is why the reading was
+## 0.0% for as long as nothing wrote this.
+##
+## Clippy findings are deliberately NOT handed over. `make lint` runs clippy
+## with `-D warnings`, so a warning in this project's own code fails the gate
+## and never reaches a branch Sonar analyses -- the report was empty of our
+## code every time, and producing it cost a `cargo clean` and a full
+## recompile inside the scan job. Sonar's own clippy pass stays off for a
+## different reason; sonar-project.properties says which.
+##
+## Needs cargo-llvm-cov, so it is opt-in rather than part of `check`:
+##   rustup component add llvm-tools-preview
+##   cargo install --locked cargo-llvm-cov
+sonar-reports:
+	@echo "== coverage for SonarQube Cloud =="
+	@command -v cargo-llvm-cov >/dev/null 2>&1 || { \
+		echo "cargo-llvm-cov is not installed. Install it with:" >&2; \
+		echo "    rustup component add llvm-tools-preview" >&2; \
+		echo "    cargo install --locked cargo-llvm-cov" >&2; \
+		exit 1; \
+	}
+	@mkdir -p rust/target/sonar
+	# third_party/ and vendor/ are excluded for the reason given in
+	# sonar-project.properties: upstream's code, not ours to cover.
+	cd rust && $(CARGO) llvm-cov --workspace \
+		--ignore-filename-regex '(^|/)(third_party|vendor)/' \
+		--lcov --output-path target/sonar/lcov.info
+	@echo "== wrote rust/target/sonar/lcov.info =="
 
 ## The tests that drive the real core, offline. Needs `make fetch-server`.
 integration:

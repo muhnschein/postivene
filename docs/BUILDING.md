@@ -104,20 +104,12 @@ that boundary is why it is a separate workflow -- folding it into the gate
 would make a hosted service part of the rule that a green `make check` on a
 laptop is a green CI.
 
-The scanner **imports** coverage and Clippy findings; it measures neither.
-`make sonar-reports` writes both to `rust/target/sonar/`, and the workflow
-runs it before the scan:
-
-- `lcov.info`, from `cargo llvm-cov` over the whole workspace. Without it
-  the coverage reading is a confident 0.0% rather than "no data", which is
-  what it read for as long as nothing wrote a report.
-- `clippy.json`, from the same Clippy invocation `make lint` runs, minus
-  `-D warnings`. Sonar's own Clippy pass is switched off
-  (`sonar.rust.clippy.enabled=false`): it invokes cargo where it finds the
-  project, and this repository's workspace is under `rust/`, not at the root.
-
-The target needs `cargo-llvm-cov`, so it is opt-in rather than part of
-`make check`:
+The scanner **imports** coverage; it does not measure it. `make
+sonar-reports` writes `rust/target/sonar/lcov.info` with `cargo llvm-cov`
+over the whole workspace, and the workflow runs it before the scan. Without
+it the reading is a confident 0.0% rather than "no data", which is what it
+read for as long as nothing wrote a report. The target needs
+`cargo-llvm-cov`, so it is opt-in rather than part of `make check`:
 
 ```
 rustup component add llvm-tools-preview
@@ -125,10 +117,16 @@ cargo install --locked cargo-llvm-cov
 make sonar-reports
 ```
 
-One trap it works around: cargo prints each diagnostic once and caches it,
-so on a warm `target/` the Clippy report comes out empty and Sonar imports
-that as "Clippy found nothing". The target drops the three workspace crates
-first.
+Clippy findings are **not** handed over, and Sonar's own Clippy pass is off
+(`sonar.rust.clippy.enabled=false`), for two different reasons. Sonar's pass
+invokes cargo where it finds the project, and this workspace is under
+`rust/`, not at the root, so it would run a different clippy from the one
+that gates this project -- or none. And a report of our own would be empty:
+`make lint` denies warnings, so a warning in this project's code fails the
+gate and never reaches a branch Sonar analyses. One was produced and held
+four diagnostics, all in `third_party/qmetaobject`, which is excluded
+anyway. Producing it cost a `cargo clean` and a full recompile inside the
+scan job.
 
 `sonar.tests` separates the fixtures from the application, so coverage and
 duplication are measured on what ships. That matters more here than in most

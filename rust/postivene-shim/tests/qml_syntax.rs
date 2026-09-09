@@ -307,6 +307,16 @@ fn the_conversation_page_uses_the_pieces_that_are_tested() {
         block_of(&text, "id: inputRow").contains("rightMargin: Theme.horizontalPageMargin"),
         "the send button is flush against the edge of the screen"
     );
+    // Two things the page has to do on its way out, both of them a timer
+    // that has not fired yet: write the draft, and send the deletes the
+    // reader asked for. The list's own end of the second is
+    // `qml_delete_run.rs`; what cannot be tested by loading the list on
+    // its own is that the page ever asks.
+    assert!(
+        block_of(&text, "PageStatus.Deactivating").contains("listView.flushDeletes()"),
+        "leaving the chat does not send the deletes still waiting, so a \
+         reader who asked for a message to go and then left keeps it"
+    );
 }
 
 /// Anything showing a string the other end chose has to say it is plain

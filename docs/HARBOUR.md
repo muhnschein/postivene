@@ -316,10 +316,18 @@ removed from the store even after approval. Not an option.
    chat, that the return key puts in a line break instead of sending,
    and that the notice appears once the draft passes about forty lines.
    Send it, and check at the other end that its line breaks are line
-   breaks, that the bubble folds it, that Expand opens it in place, and
-   that View full message shows the whole of it -- including for a message another client sent long enough that
+   breaks, that the bubble folds it, and that View full message shows
+   the whole of it -- including for a message another client sent long enough that
    the core had to cut it, which is the case the page cannot be tested
    for anywhere else.
+   Deleting is a device path because the timing is: delete four messages
+   one after another, faster than the four seconds each waits, and check
+   that all four go. Each row says "Deleting" while it waits and keeps
+   its place; a tap on one puts that message back and leaves the others
+   going. Then delete one more and leave the chat before the wait is up
+   -- it should be gone when you come back. The wait used to belong to
+   the row, and deleting the message above a waiting row destroyed it
+   and the wait with it, so most of a run never went at all.
    Sharing *to* the app is a device path of its own, and the sandbox is
    half of it: share a picture from the gallery, a document from the file
    manager and a link from the browser, and check that Postivene is in

@@ -155,14 +155,20 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   right for something that happened and wrong for a view that never drew
   anything.
 - **A bubble holds a remark; anything longer gets a page.** A message
-  over a dozen lines is folded in the conversation, with Expand and View
-  full message under it: drawn whole, somebody's to-do document fills
-  the screen, pushes the chat out of it and leaves a row nobody can
-  scroll past. The fold is a cap on the label's lines rather than a cut
-  in the text, so nothing has to slice a rendering in half and leave a
-  tag open. And past a length the core does not carry a message whole at
-  all: it cuts the body and puts the rest in an HTML part, so the whole
-  of such a message is only behind `get_message_html` -- read as words,
+  over a dozen lines is folded in the conversation, with View full
+  message under it: drawn whole, somebody's to-do document fills the
+  screen, pushes the chat out of it and leaves a row nobody can scroll
+  past. The fold is a cap on the label's lines rather than a cut in the
+  text, so nothing has to slice a rendering in half and leave a tag
+  open. Opening one out in place was offered beside the page and is not
+  any more: it was a second way to read the same words and the worse of
+  the two, because what it made was exactly the row nobody can scroll
+  past, and folding it again had to put the reader back where they had
+  been by hand -- a timer, an index, and a view asked to show a row it
+  still thought was tall. And past a length the core does not carry a
+  message whole at all: it cuts the body and puts the rest in an HTML
+  part, so the whole of such a message is only behind
+  `get_message_html` -- read as words,
   never rendered as markup (`html.rs`), for the reason every label in
   the app is pinned to plain text. A newline in that part is *not* a
   line break: in HTML it is whitespace, and the core writes each line of
@@ -173,19 +179,37 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   line the reader typed survives as one. The fake core's fixture is
   written in that shape for the same reason -- it was one unbroken line,
   and every long message reached the phone double-spaced with nothing in
-  the suite to notice. Both offers belong to a body: an
-  attachment with no caption has none to fold, and a message the core is
-  still holding back has none of it here yet -- neither was excluded at
-  first, and an attachment arriving in an open chat grew two words of
-  chrome it had no use for. The same rule read from the other
-  end is the notice above the field while a long message is being
-  written, which is where parla puts its own.
+  the suite to notice. The offer belongs to a body: an attachment with
+  no caption has none to read on a page, and a message the core is still
+  holding back has none of it here yet -- neither was excluded at first,
+  and an attachment arriving in an open chat grew two words of chrome it
+  had no use for. The same rule read from the other end is the notice
+  above the field while a long message is being written, which is where
+  parla puts its own.
   What the renderer emits for a line break is `<br>` and not a newline:
   in `Text.StyledText` a newline is whitespace, so a body joined with
-  newlines is drawn as one running paragraph and the fold never sees
-  anything to open out. Both went unnoticed until a phone drew a to-do
-  list as a sentence; `qml_message_lines.rs` now measures what Qt makes
-  of each shape rather than trusting a reading of it.
+  newlines is drawn as one running paragraph and nothing is ever long
+  enough to fold. Both went unnoticed until a phone drew a to-do list as
+  a sentence; `qml_message_lines.rs` now measures what Qt makes of each
+  shape rather than trusting a reading of it.
+- **A wait before something is destroyed belongs to the list, not the
+  row.** Silica's remorse is `ListItem.remorseAction`: the countdown is
+  an item parented to the row it was asked for on. For deleting a
+  message that is the one place it cannot go, because a delete is
+  exactly what destroys rows -- the first one lands, the core says so,
+  the row goes, and the countdown on it goes with it. Deleting a handful
+  of messages one after another lost most of them, which is how this was
+  found. So the countdown is the list's (`ConversationList.doomedIds`,
+  one wait for all of them rather than one each), a row on its way out
+  draws "Deleting" in place of the message and a tap on it puts that one
+  back, and the page sends whatever is still waiting when the reader
+  leaves the chat -- for the same reason it writes the draft there:
+  leaving is exactly when a timer has not fired yet. The chat list's own
+  Delete still uses Silica's and is open to the same thing -- a message
+  arriving reorders that list, which is a remove and an insert, and the
+  row goes -- but nobody has reported losing a chat that way and one
+  chat at a time is how they are deleted. It is left as it is until
+  somebody sees it happen.
 - **A file is opened elsewhere or kept; reading belongs to messages.** A
   picture and a video have pages of their own and everything else is
   handed to the system. A page for a file was built and taken out again

@@ -86,6 +86,9 @@ const PROBE_QML: &str = r"
             })
             view.copyRequested.connect(function(body) { raised = 'copy:' + body })
             view.deleteRequested.connect(function(id) { raised = 'delete:' + id })
+            // The wait before a message goes, turned down so this does not
+            // have to sit through four seconds of it.
+            view.deleteDelay = 60
             view.resendRequested.connect(function(id) { raised = 'resend:' + id })
             view.arrivedAtNewest.connect(function() { arrivals += 1 })
             return 'ok'
@@ -356,11 +359,12 @@ fn a_conversation_opens_at_the_newest_message_and_stays_where_it_is_left() {
     single_shot(Duration::from_secs(9), move || unsafe {
         record!("jumped-mid-flick", call!("ended"));
 
-        // Picked, then the row destroyed before the countdown ends -- which
-        // is what a reload or a reorder does to it. Silica runs the action
-        // on the way out, so it must still name the message that was
-        // picked. Cleared first: a stale value would otherwise read as a
-        // fresh one and the assertion would hold either way.
+        // Picked, then the row destroyed before the countdown ends --
+        // which is what a reload or a reorder does to it, and what the
+        // delete before it in a run does. The countdown belongs to the
+        // list rather than to the row, so the row going takes nothing
+        // with it. Cleared first: a stale value would otherwise read as
+        // a fresh one and the assertion would hold either way.
         call!("clearRaised");
         call!("pickMenu", QString::from("deleteItem"));
         call!("removeRow", 0);
@@ -600,9 +604,10 @@ fn assert_outcome(steps: &[(&str, String)]) {
     assert_eq!(
         value("delete-after-removal"),
         "delete:1",
-        "a delete whose row was destroyed mid-countdown did not name the \
-         message that was picked -- read from the delegate as it went, \
-         `model` resolves to nothing and the deletion is dropped. {context}"
+        "a delete whose row was destroyed mid-countdown never arrived. \
+         The wait belongs to the list, not to the row: a row is destroyed \
+         by the very thing this is used for, which is deleting the \
+         message above it. {context}"
     );
 
     // DC_STATE_OUT_FAILED is the only state worth offering it in. Clicking

@@ -267,6 +267,7 @@
     </message>
     <message>
         <source>Deleting</source>
+        <extracomment>Over a message the reader has asked to delete, for as long as they still have a moment to say they did not mean it. A tap on the message is that moment taken.</extracomment>
         <translation>ഇല്ലാതാക്കുന്നു</translation>
     </message>
     <message>
@@ -514,15 +515,6 @@
         <source>⬇ Download</source>
         <extracomment>Fetches a message the auto-download limit held back.</extracomment>
         <translation>⬇ ഡൗൺലോഡ് ചെയ്യുക</translation>
-    </message>
-    <message>
-        <source>Collapse</source>
-        <extracomment>Opens out a long message inside the conversation, or folds it back.</extracomment>
-        <translation>ചുരുക്കുക</translation>
-    </message>
-    <message>
-        <source>Expand</source>
-        <translation>വികസിപ്പിക്കുക</translation>
     </message>
     <message>
         <source>View full message</source>

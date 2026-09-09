@@ -118,63 +118,81 @@ SilicaListView {
     /// model's to decide, from what it knows the reader already sent.
     signal reactionRequested(int messageId, string emoji)
 
-    /// Which messages the reader has opened out, as a set of ids.
+    /// The messages the reader has asked to delete, as a set of ids.
     ///
-    /// Here rather than in the row: a delegate is destroyed as it
-    /// scrolls out of the view and built again when it comes back, so a
-    /// row cannot remember anything about itself. Replaced rather than
-    /// changed in place -- a binding does not re-run when the contents
-    /// of an object it read change, only when the property is assigned.
-    property var expandedIds: ({})
+    /// Here rather than on the row, which is where Silica's own
+    /// `remorseAction` puts it. A countdown that belongs to a row does
+    /// not outlive the row -- and deleting a message is exactly what
+    /// destroys rows. Delete one, delete another before the first has
+    /// gone, and the first one lands, the list changes under the second,
+    /// and the second is never deleted at all. Deleting a run of
+    /// messages lost most of them that way.
+    ///
+    /// One countdown for all of them rather than one each: deleting
+    /// several is one go, and one wait is one thing to change your mind
+    /// about. Replaced rather than changed in place -- a binding does
+    /// not re-run when the contents of an object it read change, only
+    /// when the property is assigned.
+    property var doomedIds: ({})
 
-    /// Whether this message is one of them.
-    function isExpanded(messageId) {
-        return root.expandedIds[messageId] === true
+    /// Whether this message is on its way out.
+    function isDoomed(messageId) {
+        return root.doomedIds[messageId] === true
     }
 
-    /// Open one out, or fold it back.
-    ///
-    /// Folding one back puts the view on it. A row that was filling the
-    /// screen and is suddenly a dozen lines takes everything below it up
-    /// with it, and the reader -- who had scrolled into the middle of
-    /// what they were reading -- is left looking at whatever happens to
-    /// be there. Where they wanted to be is the message they just
-    /// folded.
-    function toggleExpanded(messageId, index) {
+    /// Ask for a message to go, once the reader has had their moment.
+    function doom(messageId) {
         var next = {}
-        for (var key in root.expandedIds) {
-            next[key] = root.expandedIds[key]
+        for (var key in root.doomedIds) {
+            next[key] = root.doomedIds[key]
         }
-        var folding = next[messageId] === true
-        if (folding) {
-            delete next[messageId]
-        } else {
-            next[messageId] = true
+        next[messageId] = true
+        root.doomedIds = next
+        doomCountdown.restart()
+    }
+
+    /// The reader said they did not mean it, about one of them.
+    function spare(messageId) {
+        var next = {}
+        for (var kept in root.doomedIds) {
+            next[kept] = root.doomedIds[kept]
         }
-        root.expandedIds = next
-        if (folding && index >= 0) {
-            // After the row has been given its new height, not before:
-            // the view lays out in a pass of its own, and asking it to
-            // show a row it still thinks is tall puts it somewhere else
-            // again.
-            root.foldedIndex = index
-            foldReturn.restart()
+        delete next[messageId]
+        root.doomedIds = next
+        if (Object.keys(next).length === 0) {
+            doomCountdown.stop()
         }
     }
 
-    /// The row a fold is waiting to return to, -1 for none.
-    property int foldedIndex: -1
+    /// Send everything still waiting, now.
+    ///
+    /// The page calls this on its way out (ConversationPage), for the
+    /// reason it writes the draft there too: leaving is exactly when a
+    /// timer has not fired yet, and a reader who asked for a message to
+    /// go and then left the chat asked for it to go.
+    function flushDeletes() {
+        var going = root.doomedIds
+        root.doomedIds = ({})
+        doomCountdown.stop()
+        var ids = Object.keys(going)
+        for (var i = 0; i < ids.length; i++) {
+            root.deleteRequested(parseInt(ids[i], 10))
+        }
+    }
+
+    /// How long a message waits before it goes, in milliseconds.
+    ///
+    /// Silica's own remorse waits five seconds. Four, because this one
+    /// starts again with every message added to it, and a run of them
+    /// should not keep the reader waiting much longer than one does. A
+    /// property because a test turns it down rather than waiting.
+    property int deleteDelay: 4000
 
     Timer {
-        id: foldReturn
-        objectName: "foldReturn"
-        interval: 1
-        onTriggered: {
-            if (root.foldedIndex >= 0) {
-                root.positionViewAtIndex(root.foldedIndex, ListView.Contain)
-                root.foldedIndex = -1
-            }
-        }
+        id: doomCountdown
+        objectName: "doomCountdown"
+        interval: root.deleteDelay
+        onTriggered: root.flushDeletes()
     }
 
     /// The emoji the menu offers first, as the reference clients offer
@@ -632,15 +650,11 @@ SilicaListView {
             MenuItem {
                 objectName: "deleteItem"
                 text: qsTr("Delete")
-                // Taken now rather than read in the callback: anything that
-                // reloads the model destroys this row, Silica runs the
-                // action as it goes, and `model` is gone by then.
-                onClicked: {
-                    var doomed = model.message_id
-                    messageRow.remorseAction(qsTr("Deleting"), function() {
-                        root.deleteRequested(doomed)
-                    })
-                }
+                // The list is told, not this row: the wait before a
+                // message goes has to outlive the row it was asked for
+                // on, and deleting one is what destroys rows. See
+                // `doomedIds`.
+                onClicked: root.doom(model.message_id)
             }
         }
         // Sized by its content, not fixed: a device message runs to a
@@ -653,10 +667,21 @@ SilicaListView {
         contentHeight: dayHeading.height + unreadLine.height
                        + (model.loaded ? body.height : Theme.itemSizeExtraSmall)
 
+        /// This message is on its way out, and the row says so instead
+        /// of showing it.
+        readonly property bool doomed: root.isDoomed(model.message_id)
+
         // One surface: a tap opens whatever the message has to open, a
         // long press opens the menu, wherever on the row either lands.
-        // The row is what takes the press, so the two cannot fight.
-        onClicked: body.tapped()
+        // The row is what takes the press, so the two cannot fight. On a
+        // message about to go, that one tap is the way back.
+        onClicked: {
+            if (messageRow.doomed) {
+                root.spare(model.message_id)
+            } else {
+                body.tapped()
+            }
+        }
 
         /// The date this row's day starts under, on the first row of each
         /// day and nowhere else.
@@ -763,7 +788,7 @@ SilicaListView {
         // message it has not got.
         MessageDelegate {
             id: body
-            visible: model.loaded
+            visible: model.loaded && !messageRow.doomed
             y: dayHeading.height + unreadLine.height
             width: parent.width
             messageText: model.text
@@ -792,7 +817,6 @@ SilicaListView {
             imageHeight: model.image_height
             isNew: model.is_new
             hasHtml: model.has_html
-            expanded: root.isExpanded(model.message_id)
             vcardName: model.vcard_name
             vcardAddr: model.vcard_addr
             vcardColor: model.vcard_color
@@ -804,7 +828,6 @@ SilicaListView {
             reactions: model.reactions
             onOpenRequested: root.openRequested(fileUrl, fileName, viewType,
                                                 previewWidth)
-            onExpandRequested: root.toggleExpanded(model.message_id, index)
             onFullTextRequested: root.fullTextRequested(model.message_id,
                                                        model.sender_name)
             onAppRequested: root.appRequested(model.message_id)
@@ -814,6 +837,31 @@ SilicaListView {
             // button: those take the press for themselves, and hand the
             // long one back to the row it means.
             onMenuRequested: messageRow.openMenu()
+        }
+
+        // A message on its way out, in place of the message. What
+        // Silica's remorse draws, drawn here because the countdown
+        // behind it belongs to the list rather than to this row. The row
+        // keeps the height it had, so nothing below it moves and comes
+        // back again if the reader changes their mind.
+        Item {
+            objectName: "doomedRow"
+            visible: messageRow.doomed
+            y: dayHeading.height + unreadLine.height
+            width: parent.width
+            height: visible ? body.height : 0
+
+            Label {
+                objectName: "doomedLabel"
+                anchors.centerIn: parent
+                font.pixelSize: Theme.fontSizeSmall
+                color: Theme.highlightColor
+                textFormat: Text.PlainText
+                //: Over a message the reader has asked to delete, for as
+                //: long as they still have a moment to say they did not
+                //: mean it. A tap on the message is that moment taken.
+                text: qsTr("Deleting")
+            }
         }
     }
 

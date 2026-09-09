@@ -43,6 +43,12 @@ fi
 SONAR_TOKEN=$(printenv SONAR_TOKEN || true)
 SUMMARY=$(printenv GITHUB_STEP_SUMMARY || true)
 
+# How many issues to list. 500 is the most the API hands over in one page.
+# The first real run had 115 and this asked for 100, so the report ended
+# in "15 more not listed" -- which is precisely the reading this script
+# exists to replace.
+PAGE=500
+
 if [[ ! -f "$TASK_FILE" ]]; then
     echo "no $TASK_FILE -- the scanner did not get as far as uploading" >&2
     exit 1
@@ -196,7 +202,7 @@ if api "$SERVER/api/measures/component?component=$KEY&${SCOPE_Q}metricKeys=$metr
 fi
 
 # ------------------------------------------------------------ issues
-if api "$SERVER/api/issues/search?componentKeys=$KEY&${SCOPE_Q}resolved=false&ps=100"; then
+if api "$SERVER/api/issues/search?componentKeys=$KEY&${SCOPE_Q}resolved=false&ps=$PAGE"; then
     total=$(jq -r '.total // 0' "$BODY")
     {
         echo "### Open issues: $total"
@@ -209,8 +215,8 @@ if api "$SERVER/api/issues/search?componentKeys=$KEY&${SCOPE_Q}resolved=false&ps
                 (.issues // [])[]
                 | "\(.severity // (.impacts[0].severity? // "?"))  \(.rule)  \(.component | sub("^[^:]*:";""))\(if .line then ":\(.line)" else "" end)  \(.message)"
             ' "$BODY"
-            if [[ "$total" -gt 100 ]]; then
-                echo "... $((total - 100)) more not listed"
+            if [[ "$total" -gt "$PAGE" ]]; then
+                echo "... $((total - PAGE)) more not listed"
             fi
             echo '```'
         fi

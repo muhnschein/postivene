@@ -252,6 +252,10 @@ expect "an issue names its file and line" "rust/postivene-shim/src/lib.rs:42" "$
 expect "an issue with only impacts still has a severity" "LOW  shell:S5678" "$work/out"
 expect "the dashboard link is printed" "/dashboard?id=muhnschein_postivene" "$work/out"
 
+# The first real run had 115 issues and the script asked for 100, so the
+# report ended in "15 more not listed". A page is the most the API gives.
+expect "the issue list asks for a whole page" "resolved=false&ps=500" "$work/seen"
+
 # A rating is 1..5 on the wire. Printed as a number it is unreadable, and
 # worse, it reads like a score out of five with the polarity reversed.
 expect "a rating is a letter" "- security_rating: A" "$work/out"

@@ -34,7 +34,8 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
 url="https://static.crates.io/crates/qmetaobject/qmetaobject-$version.crate"
-if ! curl -sSfL "$url" -o "$work/crate.tar.gz"; then
+# -L follows redirects; the two --proto flags keep every hop on HTTPS.
+if ! curl -sSfL --proto '=https' --proto-redir '=https' "$url" -o "$work/crate.tar.gz"; then
     echo "vendor-check: FAIL could not fetch $url" >&2
     exit 1
 fi

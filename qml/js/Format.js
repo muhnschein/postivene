@@ -16,7 +16,7 @@ function timeLabel(seconds) {
         return ""
     }
     var when = new Date(seconds * 1000)
-    var elapsed = (new Date()).getTime() - when.getTime()
+    var elapsed = Date.now() - when.getTime()
     if (elapsed < 60000) {
         return qsTr("now")
     }

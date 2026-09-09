@@ -7,24 +7,31 @@ import QtQuick 2.0
  * Silica has this already -- `ListItem.remorseAction` -- and puts the
  * countdown in an item parented to the row it was asked for on. For
  * deleting things *out of* a list that is the one place it cannot go: a
- * delete is exactly what destroys rows, so the first one to land takes
- * the countdown of everything else asked for with it. Deleting a run of
- * messages lost most of them, which is how this was found, and the chat
- * list, the profiles list and a group's members were all open to the
- * same thing -- any reload or reorder destroys rows, and a message
- * arriving reorders the chat list.
+ * delete is exactly what destroys rows. Deleting a run of messages lost
+ * most of itself on a phone, and the chat list, the profiles list and a
+ * group's members were all open to the same thing -- any reload or
+ * reorder destroys rows, and a message arriving reorders the chat list.
  *
- * So the countdown lives here, beside the list rather than inside it,
- * and one wait covers everything asked for while it runs: asking for
- * several is one go, and one wait is one thing to change your mind
- * about.
+ * So the wait lives here, beside the list rather than inside it. What is
+ * *drawn* is still Silica's own `RemorseItem`, raised by the row over
+ * what is going and handed a callback that does nothing; this is what
+ * actually acts when a wait is up.
  *
- * Whoever holds one of these draws a waiting row however that row
- * should look -- `pending(id)` says which -- and calls `spare(id)` when
- * the reader taps it to take it back. A page on its way out calls
- * `flush()`, for the reason ConversationPage writes its draft there:
- * leaving is exactly when a timer has not fired yet, and somebody who
- * asked for a thing to go and then left asked for it to go.
+ * Every id carries its own deadline, and the timer is armed for
+ * whichever is soonest. One countdown shared between them was tried and
+ * was wrong on a phone: it had to be restarted whenever another delete
+ * was asked for, so the first message's countdown ran out, the platform
+ * put the message back as though nothing had happened, and everything
+ * went together when the last countdown ended. One delete on its own
+ * looked right, which is why it took a phone to see. `qml_delete_clocks`
+ * is that shape, pinned.
+ *
+ * Whoever holds one of these draws the waiting row -- `pending(id)` says
+ * which, `remaining(id)` says how much of the wait is left, for a row
+ * rebuilt in the middle of one. A page on its way out calls `flush()`,
+ * for the reason ConversationPage writes its draft there: leaving is
+ * exactly when a timer has not fired yet, and somebody who asked for a
+ * thing to go and then left asked for it to go.
  *
  * A `QtObject` rather than an `Item`: it draws nothing, and an Item
  * declared inside a Column would take a turn in the layout.
@@ -32,17 +39,17 @@ import QtQuick 2.0
 QtObject {
     id: root
 
-    /// What to do to each one, once the wait is up.
+    /// What to do to each one, once its wait is up.
     signal remove(int id)
 
-    /// How long the wait is, in milliseconds. Silica's own remorse waits
-    /// five seconds; four, because this one starts again with every id
-    /// added to it, and a run should not keep the reader waiting much
-    /// longer than one does. A property because a test turns it down
-    /// rather than sitting through it.
+    /// How long a wait is, in milliseconds. Silica's own remorse waits
+    /// five seconds; four, to match what the rows ask their `RemorseItem`
+    /// for. A property because a test turns it down rather than sitting
+    /// through it.
     property int delay: 4000
 
-    /// The ids waiting, as a set.
+    /// The ids waiting, each against the clock reading its own wait is up
+    /// at.
     ///
     /// Replaced rather than changed in place -- a binding does not re-run
     /// when the contents of an object it read change, only when the
@@ -52,57 +59,108 @@ QtObject {
 
     /// Whether this one is on its way out.
     function pending(id) {
-        return root.ids[id] === true
+        return root.ids[id] !== undefined
     }
 
-    /// When the wait now running is up, as a millisecond clock reading.
-    /// 0 when nothing is waiting.
-    ///
-    /// Kept so a row rebuilt mid-wait -- scrolled out of the view and
-    /// back -- can put the platform's countdown up again with the time
-    /// that is actually left on it, rather than a fresh one or none.
-    property real dueAt: 0
-
-    /// How much of the wait is left for this one, in milliseconds. 0 if
-    /// it is not waiting at all.
+    /// How much of this one's wait is left, in milliseconds; 0 if it is
+    /// not waiting. What a row rebuilt mid-wait puts the platform's
+    /// countdown back up with.
     function remaining(id) {
         if (!root.pending(id)) {
             return 0
         }
-        return Math.max(1, root.dueAt - Date.now())
+        return Math.max(1, root.ids[id] - Date.now())
+    }
+
+    /// How long to give the platform's countdown over this one: what is
+    /// left of a wait already running, or a whole one if it has only
+    /// just been asked for.
+    ///
+    /// The one number a row is allowed to pass `RemorseItem.execute`, so
+    /// the drawn countdown and the deletion behind it cannot end at
+    /// different moments. They did once: the countdown ran out and the
+    /// platform put the message back while the list was still waiting on
+    /// a shared clock. `qml_syntax.rs` holds every row to asking here.
+    function countdownFor(id) {
+        var left = root.remaining(id)
+        return left > 0 ? left : root.delay
     }
 
     /// Ask for one to go, once the reader has had their moment.
+    ///
+    /// Nothing already waiting is touched: its deadline is its own, and
+    /// moving it is the bug this shape exists to prevent.
     function ask(id) {
         var next = root.copied()
-        next[id] = true
+        next[id] = Date.now() + root.delay
         root.ids = next
-        root.dueAt = Date.now() + root.delay
-        root.countdown.restart()
+        root.arm()
     }
 
     /// The reader said they did not mean it, about one of them. The rest
-    /// keep going.
+    /// keep their own deadlines.
     function spare(id) {
         var next = root.copied()
         delete next[id]
         root.ids = next
-        if (Object.keys(next).length === 0) {
-            root.countdown.stop()
-            root.dueAt = 0
-        }
+        root.arm()
     }
 
-    /// Everything still waiting goes now.
+    /// Everything still waiting goes now, whatever is left on it.
     function flush() {
         var going = root.ids
         root.ids = ({})
         root.countdown.stop()
-        root.dueAt = 0
         // Cleared before any of them is acted on: whatever answers
         // `remove` may come straight back here, and must not find a
         // list this is still working through.
-        var waiting = Object.keys(going)
+        root.send(Object.keys(going))
+    }
+
+    /// Point the timer at the soonest deadline there is, or stop it when
+    /// there is none. Called whenever the set changes, and again after
+    /// each firing.
+    function arm() {
+        var soonest = 0
+        for (var key in root.ids) {
+            if (soonest === 0 || root.ids[key] < soonest) {
+                soonest = root.ids[key]
+            }
+        }
+        if (soonest === 0) {
+            root.countdown.stop()
+            return
+        }
+        // At least a millisecond: an interval of 0 is a timer that never
+        // fires on some Qt versions, and a deadline already past should
+        // be acted on at once rather than never.
+        root.countdown.interval = Math.max(1, soonest - Date.now())
+        root.countdown.restart()
+    }
+
+    /// Whatever is due goes; the rest keep waiting.
+    function ripe() {
+        var now = Date.now()
+        var going = []
+        var next = {}
+        for (var key in root.ids) {
+            if (root.ids[key] <= now) {
+                going.push(key)
+            } else {
+                next[key] = root.ids[key]
+            }
+        }
+        root.ids = next
+        root.arm()
+        root.send(going)
+    }
+
+    /// Say `remove` for each of them, in the order their ids were asked
+    /// for, oldest first.
+    function send(waiting) {
+        waiting.sort(function(one, other) {
+            return parseInt(one, 10) - parseInt(other, 10)
+        })
         for (var i = 0; i < waiting.length; i++) {
             root.remove(parseInt(waiting[i], 10))
         }
@@ -119,7 +177,6 @@ QtObject {
 
     property Timer countdown: Timer {
         objectName: "removalCountdown"
-        interval: root.delay
-        onTriggered: root.flush()
+        onTriggered: root.ripe()
     }
 }

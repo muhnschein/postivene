@@ -310,12 +310,13 @@ Page {
                     /// in the row it covers and removing one member
                     /// reloads the whole member list. So it draws, and
                     /// reports the tap.
-                    function raiseRemorse(milliseconds) {
+                    function raiseRemorse() {
                         //: What Silica's countdown says it is doing,
                         //: over a member the reader has asked to
                         //: remove from the group.
-                        remorse.execute(body, qsTr("Removing"),
-                                        function() {}, milliseconds)
+                        remorse.execute(
+                            body, qsTr("Removing"), function() {},
+                            doomedMembers.countdownFor(model.contact_id))
                     }
 
                     RemorseItem {
@@ -327,8 +328,7 @@ Page {
                     // A row rebuilt mid-wait comes back bare.
                     Component.onCompleted: {
                         if (memberRow.doomed) {
-                            memberRow.raiseRemorse(
-                                doomedMembers.remaining(model.contact_id))
+                            memberRow.raiseRemorse()
                         }
                     }
 
@@ -344,7 +344,7 @@ Page {
                             // living on a row would go with the row.
                             onClicked: {
                                 doomedMembers.ask(model.contact_id)
-                                memberRow.raiseRemorse(doomedMembers.delay)
+                                memberRow.raiseRemorse()
                             }
                         }
                     }

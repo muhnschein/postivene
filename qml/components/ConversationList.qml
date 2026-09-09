@@ -128,6 +128,12 @@ SilicaListView {
         doomedMessages.flush()
     }
 
+    /// Whether this message is waiting to go. For a test to read: what
+    /// each row does with the answer is its own binding.
+    function pendingFor(messageId) {
+        return doomedMessages.pending(messageId)
+    }
+
     /// The messages the reader has asked to delete, waiting out the
     /// moment in which they can say they did not mean it.
     ///
@@ -600,7 +606,7 @@ SilicaListView {
                 // PendingRemoval.
                 onClicked: {
                     doomedMessages.ask(model.message_id)
-                    messageRow.raiseRemorse(doomedMessages.delay)
+                    messageRow.raiseRemorse()
                 }
             }
         }
@@ -625,11 +631,12 @@ SilicaListView {
         /// covers and a row is what a delete destroys. So it is handed a
         /// callback that does nothing and asked only to draw and to
         /// report the tap.
-        function raiseRemorse(milliseconds) {
+        function raiseRemorse() {
             //: What Silica's countdown says it is doing, over a
             //: message the reader has asked to delete.
-            remorse.execute(body, qsTr("Deleting"), function() {},
-                            milliseconds)
+            remorse.execute(
+                body, qsTr("Deleting"), function() {},
+                doomedMessages.countdownFor(model.message_id))
         }
 
         RemorseItem {
@@ -643,8 +650,7 @@ SilicaListView {
         // it up again with what is actually left of the wait.
         Component.onCompleted: {
             if (messageRow.doomed) {
-                messageRow.raiseRemorse(
-                    doomedMessages.remaining(model.message_id))
+                messageRow.raiseRemorse()
             }
         }
 

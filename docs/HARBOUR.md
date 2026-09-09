@@ -320,11 +320,19 @@ removed from the store even after approval. Not an option.
    the whole of it -- including for a message another client sent long enough that
    the core had to cut it, which is the case the page cannot be tested
    for anywhere else.
-   Deleting is a device path twice over, for the timing and for the
-   look. Delete four messages one after another, faster than the four
-   seconds each waits, and check that all four go: the wait used to
-   belong to the row, and deleting the message above a waiting row took
-   its wait with it, so most of a run never went at all.
+   Deleting is a device path three times over: for the timing, for the
+   look, and for the two agreeing. Delete four messages one after
+   another, faster than the four seconds each waits, and check that all
+   four go: the wait used to belong to the row, and deleting the message
+   above a waiting row took its wait with it, so most of a run never
+   went at all.
+   Watch them go one at a time, in the order they were asked for, each
+   as its own countdown ends. They shared one countdown once, restarted
+   on every new delete, so a message's countdown would run out, the
+   message would come back as though nothing had happened, and the lot
+   would go together at the end. Deleting a single message looked right
+   the whole time that was true, so delete two a second apart and watch
+   the first one specifically.
    The look is Silica's own countdown and has to be indistinguishable
    from every other one on the phone -- the same bar, the same seconds,
    the same "Tap to cancel" -- because it *is* the platform's

@@ -555,6 +555,44 @@ fn every_pending_removal_is_drawn_by_the_platform() {
     );
 }
 
+/// The drawn countdown is given the list's own number, never its own.
+///
+/// A row raises Silica's `RemorseItem` over what is going, and the list
+/// deletes when the wait is up. Those are two clocks, and they have to
+/// end at the same moment: when they did not, the countdown ran out and
+/// the platform put the message back while the list was still waiting,
+/// and everything went together at the end instead. So the only value a
+/// row may hand `execute` is `PendingRemoval.countdownFor(id)`, which
+/// answers with what is left of that id's own wait.
+///
+/// Counted rather than matched line by line, because the call wraps: as
+/// many `countdownFor(` as there are `.execute(`.
+#[test]
+fn the_drawn_countdown_is_asked_for_rather_than_chosen() {
+    let mut offenders = Vec::new();
+    for file in qml_files() {
+        let code = code_only(&fs::read_to_string(&file).expect("read qml"));
+        if !code.contains("PendingRemoval {") {
+            continue;
+        }
+        let raised = code.matches(".execute(").count();
+        let asked = code.matches("countdownFor(").count();
+        if raised != asked {
+            offenders.push(format!(
+                "{}: {raised} countdown(s) raised, {asked} asked for",
+                file.display()
+            ));
+        }
+    }
+    assert!(
+        offenders.is_empty(),
+        "these raise a countdown with a length of their own choosing; \
+         pass PendingRemoval.countdownFor(id) instead, so what is drawn \
+         and what is deleted end together:\n  {}",
+        offenders.join("\n  ")
+    );
+}
+
 /// A row waiting to go is faded, not hidden.
 ///
 /// Hiding an item takes its children's `visible` with it, and the parts

@@ -104,11 +104,12 @@ Page {
             /// `doomedProfiles`, because a remorse item lives in the row
             /// it covers and the row goes whenever the list reloads. So
             /// it draws, and reports the tap.
-            function raiseRemorse(milliseconds) {
+            function raiseRemorse() {
                 //: What Silica's countdown says it is doing, over a
                 //: profile the reader has asked to delete.
-                remorse.execute(body, qsTr("Deleting profile"),
-                                function() {}, milliseconds)
+                remorse.execute(
+                    body, qsTr("Deleting profile"), function() {},
+                    doomedProfiles.countdownFor(model.account_id))
             }
 
             RemorseItem {
@@ -120,8 +121,7 @@ Page {
             // A row rebuilt mid-wait comes back with no countdown on it.
             Component.onCompleted: {
                 if (profileDelegate.doomed) {
-                    profileDelegate.raiseRemorse(
-                        doomedProfiles.remaining(model.account_id))
+                    profileDelegate.raiseRemorse()
                 }
             }
 
@@ -141,7 +141,7 @@ Page {
                     // and the conversation.
                     onClicked: {
                         doomedProfiles.ask(model.account_id)
-                        profileDelegate.raiseRemorse(doomedProfiles.delay)
+                        profileDelegate.raiseRemorse()
                     }
                 }
             }

@@ -208,11 +208,22 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   lives somewhere that volatile has to be proved every release; a wait
   that lives beside the list does not.
   So the two halves are kept apart. The *action* is a `PendingRemoval`
-  beside each list, one wait covering everything asked for while it
-  runs, emptied as whoever holds it is left -- the conversation from its
-  page's `Deactivating`, the other three from their own -- for the
-  reason ConversationPage writes its draft there: leaving is exactly
-  when a timer has not fired yet. The *look* is still Silica's own
+  beside each list, emptied as whoever holds it is left -- the
+  conversation from its page's `Deactivating`, the other three from
+  their own -- for the reason ConversationPage writes its draft there:
+  leaving is exactly when a timer has not fired yet.
+  Every id waiting carries its own deadline and goes on it, with the
+  timer armed for whichever is soonest. One countdown shared between
+  them was tried and was wrong on a phone: it had to be restarted
+  whenever another delete was asked for, so the first message's drawn
+  countdown ran out, the platform put the message back as though nothing
+  had happened, and everything went together when the last one ended.
+  One delete on its own looked right, which is why it took a phone to
+  see it. The two clocks -- the drawn one and the deleting one -- are
+  tied by `countdownFor(id)`, the only length a row may hand
+  `RemorseItem.execute`, and `qml_syntax.rs` counts that every raised
+  countdown asked for its length rather than choosing one.
+  The *look* is still Silica's own
   `RemorseItem`, raised by the row over what is going and handed a
   callback that does nothing: the bar, the seconds, "Tap to cancel", and
   the fade over the row, all of it the platform's, because a reader

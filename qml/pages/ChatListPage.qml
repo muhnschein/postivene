@@ -400,11 +400,12 @@ Page {
                 /// row it covers and this list reorders under its rows
                 /// whenever a message arrives. So it draws, and reports
                 /// the tap.
-                function raiseRemorse(milliseconds) {
+                function raiseRemorse() {
                     //: What Silica's countdown says it is doing, over
                     //: a chat the reader has asked to delete.
-                    remorse.execute(body, qsTr("Deleting"), function() {},
-                                    milliseconds)
+                    remorse.execute(
+                        body, qsTr("Deleting"), function() {},
+                        doomedChats.countdownFor(model.chat_id))
                 }
 
                 RemorseItem {
@@ -418,8 +419,7 @@ Page {
                 // it. Put it up again with what is left of the wait.
                 Component.onCompleted: {
                     if (delegateRoot.doomed) {
-                        delegateRoot.raiseRemorse(
-                            doomedChats.remaining(model.chat_id))
+                        delegateRoot.raiseRemorse()
                     }
                 }
 
@@ -516,7 +516,7 @@ Page {
                         // would go too.
                         onClicked: {
                             doomedChats.ask(model.chat_id)
-                            delegateRoot.raiseRemorse(doomedChats.delay)
+                            delegateRoot.raiseRemorse()
                         }
                     }
                 }

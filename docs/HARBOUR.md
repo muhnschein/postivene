@@ -328,8 +328,16 @@ removed from the store even after approval. Not an option.
    field), and that sending it works -- a file the sandbox will not let
    the app read fails here and nowhere else, which is what `UserDirs` and
    `Pictures` are for.
-   A webxdc is the path nothing off-device can vouch for at all: open the
-   tray's app entry, take one from the store, send it, open it, and check
+   A webxdc is the path nothing off-device can vouch for at all, and the
+   first half of it is the setting: on a fresh install the tray has no app
+   entry at all and a `.xdc` somebody sent is a paperclip row that saves
+   like any other file, so check that before turning anything on. Then
+   turn on Settings > Apps > "Enable webxdc apps (experimental)", go back
+   to the chat without restarting -- the setting is dconf and every open
+   page follows it -- and check that the entry has appeared and that the
+   same `.xdc` is now the app's own card. Turn it off again and the row
+   should go back to a paperclip. With it on: open the tray's app entry,
+   take one from the store, send it, open it, and check
    that it draws, that a move reaches the other end and comes back, that
    its row shows what the app says about itself, and that leaving the page
    stops it -- `ss -ltn` should show no loopback port of ours afterwards.

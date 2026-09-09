@@ -282,7 +282,9 @@ fn each_view_type_reaches_the_renderer_meant_for_it() {
 
         // The same .xdc once the core has read the app inside it: its own
         // card rather than the paperclip row, with the name and the line
-        // the app keeps about itself.
+        // the app keeps about itself. Only where apps are on, though --
+        // off, an app the core read perfectly well is still a file, and
+        // the row it draws is the paperclip one above.
         (*steps_ptr).push(("app", show!("Webxdc", "/tmp/game.xdc", "game.xdc")));
         call!(
             "set",
@@ -297,6 +299,12 @@ fn each_view_type_reaches_the_renderer_meant_for_it() {
     });
 
     single_shot(Duration::from_secs(10), move || unsafe {
+        (*steps_ptr).push(("app-off-showing", call!("showing")));
+        (*steps_ptr).push(("app-off-is-app", call!("get", QString::from("isApp"))));
+        call!("set", QString::from("appsEnabled"), true);
+    });
+
+    single_shot(Duration::from_secs(11), move || unsafe {
         (*steps_ptr).push(("app-showing", call!("showing")));
         (*steps_ptr).push((
             "app-name",
@@ -362,6 +370,7 @@ fn assert_outcome(steps: &[(&str, String)]) {
         ("voice-showing", "attachmentAudio"),
         ("card-showing", "attachmentVcard"),
         ("xdc-showing", "attachmentLabel"),
+        ("app-off-showing", "attachmentLabel"),
         ("app-showing", "attachmentApp"),
     ] {
         assert_eq!(
@@ -388,6 +397,12 @@ fn assert_outcome(steps: &[(&str, String)]) {
         "true",
         "a webxdc is not marked as one, so a tap would hand the .xdc to \
          another app rather than run it. {context}"
+    );
+    assert_eq!(
+        value("app-off-is-app"),
+        "false",
+        "a webxdc is marked as an app where apps are off, so a tap would \
+         run one the reader never asked to be able to run. {context}"
     );
 
     assert!(

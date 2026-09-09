@@ -274,7 +274,9 @@ fn the_reply_bar_wraps_the_jump_button_is_opaque_and_a_notice_is_quiet() {
 
         // The attach tray: four choices, and the one that sends an app
         // says so and puts the tray away rather than leaving it over the
-        // picker it opens.
+        // picker it opens. The app entry is the one that has to be asked
+        // for -- webxdc is off until the settings page turns it on -- so
+        // it is not there until the page says it is.
         record!(
             "tray-load",
             call!("load", QString::from(component_url("AttachButton.qml")))
@@ -282,10 +284,22 @@ fn the_reply_bar_wraps_the_jump_button_is_opaque_and_a_notice_is_quiet() {
         record!("tray-watch", call!("watchTray"));
         call!("set", QString::from("open"), true);
         record!("tray-open", call!("own", QString::from("open")));
-        record!("tray-tap", call!("tap", QString::from("attachApp")));
     });
 
+    // A tick later, because a child of a tray still fading in reads as
+    // invisible whatever its own binding says: an item's `visible` is the
+    // parent's too, and the tray's follows a 150ms opacity animation.
     single_shot(Duration::from_secs(6), move || unsafe {
+        record!(
+            "tray-app-hidden",
+            call!("get", QString::from("attachApp"), QString::from("visible"))
+        );
+        call!("set", QString::from("appsAvailable"), true);
+        record!(
+            "tray-app-shown",
+            call!("get", QString::from("attachApp"), QString::from("visible"))
+        );
+        record!("tray-tap", call!("tap", QString::from("attachApp")));
         record!("tray-asked", call!("askedSoFar"));
         record!("tray-closed", call!("own", QString::from("open")));
         (*engine_ptr).quit();
@@ -422,6 +436,18 @@ fn assert_outcome(steps: &[(&str, String)]) {
         value("tray-open"),
         "true",
         "the tray did not open. {context}"
+    );
+    assert_eq!(
+        value("tray-app-hidden"),
+        "false",
+        "the tray offers an app before webxdc has been asked for, so the \
+         setting hides nothing. {context}"
+    );
+    assert_eq!(
+        value("tray-app-shown"),
+        "true",
+        "the tray still hides the app entry with webxdc turned on, so \
+         there is no way to send one. {context}"
     );
     assert_eq!(
         value("tray-tap"),

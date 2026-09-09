@@ -15,7 +15,8 @@ import Sailfish.Silica 1.0
  * over everything the phone has indexed -- pictures, videos, music,
  * documents -- rather than one entry per kind; the microphone, for
  * a voice message, offered only where something can record one; and the
- * grid of squares that means "apps", for sending a webxdc one.
+ * grid of squares that means "apps", for sending a webxdc one, offered
+ * only where the reader has asked for those.
  *
  * Nothing is opened here. The page that owns the pageStack pushes the
  * pickers and starts the recording, the way ConversationPage already
@@ -31,6 +32,10 @@ Item {
     /// Whether a voice message can be recorded here. Without it the
     /// microphone is not offered at all.
     property bool voiceAvailable: false
+    /// Whether webxdc apps are on. Without it the grid of squares is not
+    /// offered at all, the way the microphone is not where nothing can
+    /// record. The page binds it from the reader's setting.
+    property bool appsAvailable: false
     /// A picture or a video, taken now.
     signal cameraRequested()
     /// Something the phone has indexed: a picture, a video, a song, a
@@ -123,6 +128,7 @@ Item {
             BackgroundItem {
                 id: appChoice
                 objectName: "attachApp"
+                visible: root.appsAvailable
                 width: toggle.width
                 height: toggle.height
 

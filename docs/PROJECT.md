@@ -51,7 +51,20 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   away from CFFI. The OpenRPC spec is the interface contract.
 - **Core events run off the main thread**, marshalled to the Qt main thread
   via queued signals.
-- **A webxdc app is served, not unpacked.** An app somebody sent is a zip
+- **A webxdc app is served, not unpacked.** All of this is behind one
+  setting, off until it is asked for: "Enable webxdc apps
+  (experimental)" on the settings page, `webxdc_enabled` in dconf. Off,
+  the tray has no app entry, the store behind it is unreachable, and a
+  `.xdc` somebody sent is drawn as the file it is and handed on by a tap
+  -- the row a `.xdc` the core could not read as an app already lands on.
+  The gate is three bindings on that one value rather than a check at
+  each door: the pages read it and hand it down as a property, so the
+  tray entry and the row simply are not there to tap, and nothing has to
+  be kept in step. It is off by default because an app is somebody
+  else's code and this is the newest part of the app; it is one switch
+  rather than a build flag because the reader is the one who gets to
+  decide that.
+  An app somebody sent is a zip
   with an index.html in it, and the core reads the archive
   (`get_webxdc_blob`). So the shim puts one app on a loopback address of
   its own while it is open and answers every request out of the core

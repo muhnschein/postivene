@@ -377,6 +377,10 @@ Page {
         // when the chat was opened.
         unreadFrom: messages.unread_from
         markdownMode: Settings.markdownMode
+        // Off until the reader asks for it, so a `.xdc` in the chat is a
+        // file until then. `=== true` because dconf hands back
+        // `undefined` before it has read the key.
+        appsEnabled: Settings.webxdcEnabled === true
         placeholderText: qsTr("No messages yet")
 
         // Reaching the newest message is what marks what is there read.
@@ -654,6 +658,7 @@ Page {
             anchors.bottom: parent.bottom
             anchors.bottomMargin: inputRow.buttonLift
             voiceAvailable: voiceBar.available
+            appsAvailable: Settings.webxdcEnabled === true
             onCameraRequested: page.pickWith("CapturePage.qml")
             onLibraryRequested: page.pickWith("AttachLibraryPage.qml")
             onVoiceRequested: voiceBar.start()
@@ -753,6 +758,11 @@ Page {
     // on the phone the way a picker reports the file that was chosen.
     // Pushed by URL like the pickers, since it names a `Sailfish.WebView`
     // type and should cost this button rather than the conversation.
+    //
+    // Neither this nor `openApp` checks whether apps are on: what calls
+    // them is a tray entry and a row that are bound to the setting, so
+    // with apps off there is nothing to tap. A check here would be a
+    // second answer to the same question, and dead either way.
     function pickApp() {
         var store = pageStack.push(Qt.resolvedUrl("WebxdcStorePage.qml"),
                                    { accountId: page.accountId })

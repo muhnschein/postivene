@@ -471,8 +471,10 @@ fn only_the_settings_object_names_the_dconf_keys() {
         elsewhere.join("\n  ")
     );
     assert!(
-        keys.len() >= 3,
-        "Settings.qml names fewer keys than the three settings it exists for: {keys:?}"
+        keys.len() >= 5,
+        "Settings.qml names fewer keys than the settings it exists for -- \
+         Markdown, clean links, the download limit, notification detail, \
+         and whether webxdc apps are offered: {keys:?}"
     );
     assert!(
         keys.iter()

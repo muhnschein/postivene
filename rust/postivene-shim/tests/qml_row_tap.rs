@@ -53,8 +53,12 @@ const PROBE_QML: &str = r"
             list.item.downloadRequested.connect(function(id) {
                 raised = 'download:' + id
             })
+            list.item.appRequested.connect(function(id) {
+                raised = 'app:' + id
+            })
             return 'ok'
         }
+        function setApps(on) { list.item.appsEnabled = on; return 'ok' }
         function show(viewType, path, downloadState) {
             rows.set(0, row(viewType, path, downloadState))
             raised = ''
@@ -181,6 +185,19 @@ fn a_tap_opens_the_attachment_and_a_long_press_anywhere_opens_the_menu() {
     });
     single_shot(Duration::from_secs(7), move || unsafe {
         record!("text-tap", call!("tapRow"));
+        // A webxdc app, with apps off: nothing to run, so the row hands
+        // the .xdc on like any other file. Every row the probe makes is
+        // called holiday.png, this one included.
+        show!("Webxdc", "/tmp/checkers.xdc", "Done");
+    });
+    single_shot(Duration::from_secs(8), move || unsafe {
+        record!("xdc-tap-off", call!("tapRow"));
+        record!("apps-on", call!("setApps", true));
+    });
+    single_shot(Duration::from_secs(9), move || unsafe {
+        // And with apps on: run here, rather than handed to whatever the
+        // system thinks opens a .xdc.
+        record!("xdc-tap-on", call!("tapRow"));
         (*engine_ptr).quit();
     });
 
@@ -237,5 +254,17 @@ fn a_tap_opens_the_attachment_and_a_long_press_anywhere_opens_the_menu() {
         value("text-tap"),
         "",
         "a tap on a plain text message did something. {context}"
+    );
+    assert_eq!(
+        value("xdc-tap-off"),
+        "open:Webxdc:holiday.png:true",
+        "a tap on a .xdc did not hand it on where apps are off, so the \
+         reader has a row that does nothing. {context}"
+    );
+    assert_eq!(value("apps-on"), "ok", "apps were not turned on. {context}");
+    assert_eq!(
+        value("xdc-tap-on"),
+        "app:7",
+        "a tap on a webxdc did not ask to run it. {context}"
     );
 }

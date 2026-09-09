@@ -183,14 +183,22 @@ if api "$SERVER/api/qualitygates/project_status?analysisId=$analysis"; then
 fi
 
 # ------------------------------------------------------------ measures
-metrics=ncloc,coverage,line_coverage,duplicated_lines_density,violations,security_hotspots,security_rating,reliability_rating,sqale_rating,new_coverage,new_violations
+# new_lines_to_cover is what turns "new_coverage: 0.0" from a verdict into
+# a reading: 0.0% of one line is a file no coverage tool can reach, not a
+# change nobody tested.
+metrics=ncloc,coverage,line_coverage,duplicated_lines_density,violations,security_hotspots,security_rating,reliability_rating,sqale_rating,new_coverage,new_lines_to_cover,new_violations
 if api "$SERVER/api/measures/component?component=$KEY&${SCOPE_Q}metricKeys=$metrics"; then
     {
         echo "### Measures"
         echo
+        # A new-code measure carries its value under `period` on SonarQube
+        # Server and under `periods` (an array of one) on SonarQube Cloud.
+        # Read either: with only the first, every new_* line printed "-"
+        # while the gate two sections up quoted a number for the same
+        # metric.
         jq -r '
             (.component.measures // [])[]
-            | "\(.metric)=\(.value // .period.value // "-")"
+            | "\(.metric)=\(.value // .period.value // (.periods // [])[0].value // "-")"
         ' "$BODY" | while IFS='=' read -r metric value; do
             case "$metric" in
                 *_rating) echo "- $metric: $(letter "$value")" ;;

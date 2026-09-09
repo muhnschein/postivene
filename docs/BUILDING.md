@@ -162,6 +162,9 @@ indexed as main sources, the fixtures were most of what every ratio was
 computed over. `sonar.exclusions` drops the vendored crates, the patched
 qmetaobject, the rendered icons, and `translations/` -- a Qt catalog is
 named `.ts`, so the scanner reads thirty-nine of them as TypeScript.
+`sonar.coverage.exclusions` keeps `qml/` out of the coverage arithmetic
+alone: nothing there can produce a report, and one changed line of QML
+JavaScript otherwise reads as 0% coverage on new code and fails the gate.
 
 The scanner uploads a report and exits; the server processes it afterwards,
 so the run that produced an analysis finishes knowing nothing about its

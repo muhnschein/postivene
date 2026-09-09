@@ -77,6 +77,7 @@ MEASURES = {
             {"metric": "security_rating", "value": "1.0"},
             {"metric": "sqale_rating", "value": "2.0"},
             {"metric": "new_coverage", "period": {"value": "91.4"}},
+            {"metric": "new_lines_to_cover", "periods": [{"index": 1, "value": "1"}]},
         ]
     }
 }
@@ -247,6 +248,9 @@ expect "a passing condition is listed" "OK  new_coverage LT 80 (actual: 91.4)" "
 expect "a failing condition is listed" "ERROR  new_violations GT 0 (actual: 2)" "$work/out"
 expect "measures are rendered" "- coverage: 73.1" "$work/out"
 expect "a new-code measure reads its period value" "- new_coverage: 91.4" "$work/out"
+# SonarQube Cloud answers with `periods`, an array, where Server answers
+# with `period`. The first real run printed "-" for every new_* measure.
+expect "and one in Cloud's periods shape too" "- new_lines_to_cover: 1" "$work/out"
 expect "issues are counted" "### Open issues: 2" "$work/out"
 expect "an issue names its file and line" "rust/postivene-shim/src/lib.rs:42" "$work/out"
 expect "an issue with only impacts still has a severity" "LOW  shell:S5678" "$work/out"

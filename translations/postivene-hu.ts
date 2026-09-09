@@ -963,16 +963,16 @@
     </message>
     <message>
         <source>Apps</source>
-        <translation type="unfinished">Alkalmazások</translation>
+        <translation>Alkalmazások</translation>
     </message>
     <message>
         <source>Enable webxdc apps (experimental)</source>
         <extracomment>A webxdc app is a small program somebody sends into a chat and everyone in it plays with. Keep the name: it is what every other Delta Chat client calls them.</extracomment>
-        <translation type="unfinished"></translation>
+        <translation>webxdc alkalmazások engedélyezése (kísérleti)</translation>
     </message>
     <message>
-        <source>Apps somebody sends run inside the chat -- a game, a poll, a shared list -- and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, run in the browser engine and given nothing but the chat it arrived in. This half of the app is the newest, and the least tested on a phone.</source>
-        <translation type="unfinished"></translation>
+        <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
+        <translation>A valaki által küldött alkalmazások a beszélgetésen belül futnak, a csatolótálca pedig áruházat kínál újak beszerzéséhez. Az alkalmazás más kódja, és ez a rész még nincs annyira letesztelve, mint a többi.</translation>
     </message>
 </context>
 <context>

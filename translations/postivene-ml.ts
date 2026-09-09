@@ -967,16 +967,16 @@
     </message>
     <message>
         <source>Apps</source>
-        <translation type="unfinished">ആപ്പുകൾ</translation>
+        <translation>ആപ്പുകൾ</translation>
     </message>
     <message>
         <source>Enable webxdc apps (experimental)</source>
         <extracomment>A webxdc app is a small program somebody sends into a chat and everyone in it plays with. Keep the name: it is what every other Delta Chat client calls them.</extracomment>
-        <translation type="unfinished"></translation>
+        <translation>webxdc ആപ്പുകൾ പ്രവർത്തനക്ഷമമാക്കുക (പരീക്ഷണാത്മകം)</translation>
     </message>
     <message>
-        <source>Apps somebody sends run inside the chat -- a game, a poll, a shared list -- and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, run in the browser engine and given nothing but the chat it arrived in. This half of the app is the newest, and the least tested on a phone.</source>
-        <translation type="unfinished"></translation>
+        <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
+        <translation>ആരെങ്കിലും അയയ്ക്കുന്ന ആപ്പുകൾ ചാറ്റിനുള്ളിൽ തന്നെ പ്രവർത്തിക്കും, കൂടാതെ അറ്റാച്ച്മെന്റ് ട്രേ പുതിയവ എടുക്കാൻ ഒരു സ്റ്റോർ നൽകുന്നു. ആപ്പ് മറ്റൊരാളുടെ കോഡ് ആണ്, ഈ ഭാഗം മറ്റുള്ളവയോളം പരീക്ഷിക്കപ്പെട്ടിട്ടില്ല.</translation>
     </message>
 </context>
 <context>

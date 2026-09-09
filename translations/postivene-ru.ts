@@ -971,16 +971,16 @@
     </message>
     <message>
         <source>Apps</source>
-        <translation type="unfinished">Приложения</translation>
+        <translation>Приложения</translation>
     </message>
     <message>
         <source>Enable webxdc apps (experimental)</source>
         <extracomment>A webxdc app is a small program somebody sends into a chat and everyone in it plays with. Keep the name: it is what every other Delta Chat client calls them.</extracomment>
-        <translation type="unfinished"></translation>
+        <translation>Включить приложения webxdc (эксперимент)</translation>
     </message>
     <message>
-        <source>Apps somebody sends run inside the chat -- a game, a poll, a shared list -- and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, run in the browser engine and given nothing but the chat it arrived in. This half of the app is the newest, and the least tested on a phone.</source>
-        <translation type="unfinished"></translation>
+        <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
+        <translation>Присланные кем-то приложения запускаются прямо в переписке, а на панели вложений появляется магазин, откуда можно взять новые. Приложение — это чужой код, и эта часть проверена ещё не так хорошо, как остальные.</translation>
     </message>
 </context>
 <context>

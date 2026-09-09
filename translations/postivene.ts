@@ -971,7 +971,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Apps somebody sends run inside the chat -- a game, a poll, a shared list -- and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, run in the browser engine and given nothing but the chat it arrived in. This half of the app is the newest, and the least tested on a phone.</source>
+        <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

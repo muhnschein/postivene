@@ -203,7 +203,7 @@ Page {
                 //: chat and everyone in it plays with. Keep the name:
                 //: it is what every other Delta Chat client calls them.
                 text: qsTr("Enable webxdc apps (experimental)")
-                description: qsTr("Apps somebody sends run inside the chat -- a game, a poll, a shared list -- and the attach tray offers a store to take new ones from. An app is somebody else's code, run in the browser engine and given nothing but the chat it arrived in. This half of the app is the newest, and the least tested on a phone.")
+                description: qsTr("Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else's code, and this part is not yet as tested as the rest.")
                 automaticCheck: false
                 checked: Settings.webxdcEnabled === true
                 onClicked: Settings.webxdcEnabled = !checked

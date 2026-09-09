@@ -50,6 +50,33 @@ is on a phone. The tests aim at that.
 Sailfish SDK. Not quite offline — `msrv` fetches the 1.75 toolchain the
 first time, and `deny` wants the advisory database.
 
+**How the suite is run.** Through `cargo nextest`, which puts each test in
+its own process rather than running one test binary at a time. That matters
+here more than in most workspaces: there are over a hundred test binaries,
+almost every one starts a Qt engine and then waits on real timers, so under
+`cargo test` the suite spent about ten minutes mostly idle and serialised.
+The same 207 tests take about two and a half minutes on four cores. Nothing
+is shared between them — the webxdc host binds port 0 and lets the kernel
+choose, and the QML probes copy the tree into a directory named for their
+own pid — which is what makes running them at once safe.
+
+```
+cargo install --locked cargo-nextest
+```
+
+Without it `make test` still runs everything, the slow way, because
+`make check` has to work on a laptop that has installed nothing extra.
+`rust/.config/nextest.toml` carries the rest: a 30-second slow warning and
+a two-minute kill, so a Qt test waiting on a signal that never arrives is
+reported against its own name instead of hanging until the job's timeout;
+and no retries, because a test that passes on the second attempt is a
+defect this project wants to see.
+
+nextest does not run doctests. `cargo test --doc` runs beside it in both
+the Makefile and `ci.yml`, and `ci/packaging-lint.sh` fails a tree where
+one is there without the other — there are no doctests today, so nothing
+would notice the first one silently never running.
+
 1. **Transport unit tests** against a fake stdio server.
 2. **Protocol-contract tests** against a recording double that journals
    every request, pinning the call sequence of each onboarding action.
@@ -145,8 +172,8 @@ the job log and the step summary. It reports and never gates: the step is
 
 ## CI
 
-`ci.yml` is the gate and runs what `make check` runs. Two things about the
-runners are worth knowing.
+`ci.yml` is the gate and runs what `make check` runs. Three things about
+the runners are worth knowing.
 
 **Packages come through `ci/apt-install.sh`**, not a bare `apt-get`.
 `apt-get update` exits non-zero when *any* configured repository fails, and
@@ -165,6 +192,18 @@ because it builds with `+1.75.0` while the action keys on the default
 toolchain, and without it the two would share a slot and neither would
 ever hit. `CARGO_INCREMENTAL: 0` because a runner compiles once and throws
 the machine away, so incremental state is written, cached and never read.
+
+Caching was measured and is worth less than it looks: with a warm cache
+clippy compiles the workspace in about twenty seconds, but the `test` job
+barely moved, because compilation was never its cost. Ten of its twelve
+minutes were the suite waiting on timers, which is what nextest addresses
+above.
+
+**The test job installs `cargo-nextest`** and runs the suite under the
+`ci` profile, which differs from a laptop's in two ways: `fail-fast` is
+off, because CI is asked once and should report everything it knows; and
+failures are printed where they happen and again at the end, because in a
+two-hundred-line log the summary is what anyone reads.
 
 ## Translations
 

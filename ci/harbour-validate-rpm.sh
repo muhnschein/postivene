@@ -33,21 +33,21 @@ usage() {
 log=""
 rpm=""
 case "${1:-}" in
-    --log) [ $# -eq 2 ] || usage; log=$2 ;;
+    --log) [[ $# -eq 2 ]] || usage; log=$2 ;;
     "" | -*) usage ;;
-    *) [ $# -eq 1 ] || usage; rpm=$1 ;;
+    *) [[ $# -eq 1 ]] || usage; rpm=$1 ;;
 esac
 
-if [ -n "$rpm" ]; then
-    [ -f "$rpm" ] || { echo "harbour-rpm: FAIL no such RPM: $rpm" >&2; exit 1; }
-    if [ ! -x "$validator/rpmvalidation.sh" ]; then
+if [[ -n "$rpm" ]]; then
+    [[ -f "$rpm" ]] || { echo "harbour-rpm: FAIL no such RPM: $rpm" >&2; exit 1; }
+    if [[ ! -x "$validator/rpmvalidation.sh" ]]; then
         # The commit ci/harbour/UPSTREAM names, so the rules vendored here
         # and the code that reads them are the same Harbour -- and so CI
         # is not executing whatever that repository's HEAD is today.
         # scripts/update-harbour-rules.sh moves both together.
         commit=$(sed -n 's/^at commit \([0-9a-f]\{40\}\).*/\1/p' \
             "$root/ci/harbour/UPSTREAM" | head -1)
-        if [ -z "$commit" ]; then
+        if [[ -z "$commit" ]]; then
             echo "harbour-rpm: FAIL ci/harbour/UPSTREAM names no commit to pin the validator to" >&2
             exit 1
         fi
@@ -65,8 +65,8 @@ if [ -n "$rpm" ]; then
     # difference is a vendored file edited by hand.
     for conf in "$root"/ci/harbour/*.conf; do
         name=$(basename "$conf")
-        [ "$name" = waivers.conf ] && continue
-        [ -f "$validator/$name" ] || continue
+        [[ "$name" = waivers.conf ]] && continue
+        [[ -f "$validator/$name" ]] || continue
         if ! diff -q "$conf" "$validator/$name" >/dev/null; then
             echo "harbour-rpm: FAIL ci/harbour/$name is not the validator's own;" \
                  "run scripts/update-harbour-rules.sh" >&2
@@ -84,7 +84,7 @@ if [ -n "$rpm" ]; then
     cat "$log"
 fi
 
-[ -f "$log" ] || { echo "harbour-rpm: FAIL no validation log: $log" >&2; exit 1; }
+[[ -f "$log" ]] || { echo "harbour-rpm: FAIL no validation log: $log" >&2; exit 1; }
 
 if ! grep -q '^!END!' "$log"; then
     echo "harbour-rpm: FAIL the validator produced no verdict" >&2
@@ -100,11 +100,11 @@ fi
 # upstream's own allow-list matching is.
 waived_line() {
     local subject=$1 message=$2 entry wid wsubject wmessage
-    [ -f "$waivers" ] || return 1
+    [[ -f "$waivers" ]] || return 1
     while IFS= read -r entry; do
         entry=${entry%%#*}
         read -r wid wsubject wmessage <<< "$entry"
-        { [ -n "${wid:-}" ] && [ -n "${wsubject:-}" ] && [ -n "${wmessage:-}" ]; } || continue
+        { [[ -n "${wid:-}" ]] && [[ -n "${wsubject:-}" ]] && [[ -n "${wmessage:-}" ]]; } || continue
         # shellcheck disable=SC2053 # unquoted on purpose: they are globs.
         [[ $subject == $wsubject ]] && [[ $message == $wmessage ]] && return 0
     done < "$waivers"
@@ -131,13 +131,13 @@ while IFS= read -r line; do
 done < <(grep '^WARNING|' "$log" || true)
 
 echo
-if [ "$errors" -gt 0 ]; then
+if [[ "$errors" -gt 0 ]]; then
     echo "harbour-rpm: FAILED -- $errors finding(s) Harbour would reject" >&2
     echo "harbour-rpm: $waived other finding(s) are waived in ci/harbour/waivers.conf" >&2
     exit 1
 fi
 
-if [ "$waived" -gt 0 ]; then
+if [[ "$waived" -gt 0 ]]; then
     echo "harbour-rpm: ok -- nothing new; $waived waived finding(s) still block" \
          "submission (docs/HARBOUR.md)"
 else

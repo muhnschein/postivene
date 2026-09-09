@@ -13,12 +13,17 @@ ran=0
 # apt line that installs the tools changes.
 strict=${PACKAGING_LINT_STRICT:-0}
 skip() {
+    # Plain assignments: this is POSIX sh, which has no `local`, and
+    # nothing else in the file uses these names.
+    tool=$1
+    hint=$2
     if [ "$strict" = 1 ]; then
-        echo "packaging-lint: FAIL $1 is not installed ($2) (strict mode)" >&2
+        echo "packaging-lint: FAIL $tool is not installed ($hint) (strict mode)" >&2
         status=1
     else
-        echo "packaging-lint: SKIP $1 ($2)"
+        echo "packaging-lint: SKIP $tool ($hint)"
     fi
+    return 0
 }
 
 if command -v rpmspec >/dev/null 2>&1; then

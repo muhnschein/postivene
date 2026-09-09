@@ -26,7 +26,7 @@ waivers="$rules/waivers.conf"
 # own idea of what it is called: rename the spec and the .desktop file,
 # and the check renames with them.
 spec=$(find "$root/rpm" -maxdepth 1 -name '*.spec' | sort | head -1)
-if [ -z "$spec" ]; then
+if [[ -z "$spec" ]]; then
     echo "harbour-check: FAIL no .spec file in rpm/" >&2
     exit 1
 fi
@@ -47,16 +47,18 @@ declare -A waiver_used=()
 # failure. CI sets it, so a check can never quietly stop running there.
 strict=${HARBOUR_CHECK_STRICT:-0}
 
-note() { echo "harbour-check: $*"; }
+note() { echo "harbour-check: $*"; return 0; }
 
 skip() {
-    if [ "$strict" = 1 ]; then
-        echo "harbour-check: FAIL [$1] cannot run: $2 (strict mode)" >&2
+    local id=$1 why=$2
+    if [[ "$strict" = 1 ]]; then
+        echo "harbour-check: FAIL [$id] cannot run: $why (strict mode)" >&2
         status=1
     else
-        echo "harbour-check: SKIP [$1] $2"
+        echo "harbour-check: SKIP [$id] $why"
         skipped=$((skipped + 1))
     fi
+    return 0
 }
 
 # A finding is (check id, subject, message). The subject is what the
@@ -73,24 +75,25 @@ fail() {
     echo "harbour-check: FAIL [$id] $subject -- $message" >&2
     findings=$((findings + 1))
     status=1
+    return 0
 }
 
 # ci/harbour/waivers.conf: `<check id> <subject pattern> # why`. Returns
 # the matched line's key so a waiver that stops matching can be reported.
 waived() {
     local id=$1 subject=$2 line wid wsubject
-    [ -f "$waivers" ] || return 1
+    [[ -f "$waivers" ]] || return 1
     while IFS= read -r line; do
         line=${line%%#*}
         # shellcheck disable=SC2086 # deliberate: split into id and pattern.
         set -- $line
-        [ $# -ge 2 ] || continue
+        [[ $# -ge 2 ]] || continue
         wid=$1
         wsubject=$2
         # Unquoted on purpose: the pattern is a glob, as upstream's own
         # allow-list matching is.
         # shellcheck disable=SC2053
-        if [ "$id" = "$wid" ] && [[ $subject == $wsubject ]]; then
+        if [[ "$id" = "$wid" ]] && [[ $subject == $wsubject ]]; then
             echo "$wid $wsubject"
             return 0
         fi
@@ -104,7 +107,7 @@ contained_in() {
     local query=$1 pat
     shift
     while read -r pat; do
-        case "$pat" in '#'*|'') continue ;; esac
+        [[ -z $pat || $pat == '#'* ]] && continue
         # shellcheck disable=SC2053
         [[ $query == $pat ]] && return 0
         # shellcheck disable=SC2053
@@ -120,7 +123,7 @@ name=$(sed -n 's/^Name:[[:space:]]*//p' "$spec" | head -1 | tr -d '[:space:]')
 version=$(sed -n 's/^Version:[[:space:]]*//p' "$spec" | head -1 | tr -d '[:space:]')
 release=$(sed -n 's/^Release:[[:space:]]*//p' "$spec" | head -1 | tr -d '[:space:]')
 
-if [ -z "$name" ]; then
+if [[ -z "$name" ]]; then
     echo "harbour-check: FAIL $spec has no Name:" >&2
     exit 1
 fi
@@ -154,7 +157,7 @@ fi
 # 1.1.2 is the built file's name, which follows from Name/Version/Release
 # and the arch, and 1.1.5 is that arch. Both are decided by whatever the
 # rpm workflow can be asked to build.
-if [ -f "$root/.github/workflows/rpm.yml" ]; then
+if [[ -f "$root/.github/workflows/rpm.yml" ]]; then
     while read -r arch; do
         case "$arch" in
             armv7hl|aarch64|i486|noarch)
@@ -171,7 +174,7 @@ if [ -f "$root/.github/workflows/rpm.yml" ]; then
     # The Release the workflow stamps is what reaches an RPM, so it is the
     # one Harbour sees.
     stamped=$(sed -n 's/.*release="\(.*\)".*/\1/p' "$root/.github/workflows/rpm.yml" | head -1)
-    if [ -n "$stamped" ]; then
+    if [[ -n "$stamped" ]]; then
         # Substitute a plausible value for each shell expansion, then
         # judge the shape that leaves.
         # shellcheck disable=SC2016 # the patterns are the literal text.
@@ -193,7 +196,7 @@ if ! command -v rpmspec >/dev/null 2>&1; then
 else
     for arch in $ARCHES; do
         expanded=$(rpmspec -P --target "$arch" "$spec" 2>/dev/null)
-        if [ -z "$expanded" ]; then
+        if [[ -z "$expanded" ]]; then
             fail 1.2.1 "$spec" "does not parse for $arch"
             continue
         fi
@@ -207,7 +210,7 @@ else
             grep '^/' || true)
 
         while read -r path; do
-            [ -n "$path" ] || continue
+            [[ -n "$path" ]] || continue
             case "$path" in
                 "/usr/bin/$name") ;;
                 "/usr/share/applications/$name.desktop") ;;
@@ -254,21 +257,17 @@ else
             sed -E 's#[^ ]*/BUILDROOT/[^/ ]+##g')
         while read -r line; do
             mode=$(echo "$line" | sed -n 's/.*-D\{0,1\}m[[:space:]]*\([0-7]\{3,4\}\).*/\1/p')
-            [ -n "$mode" ] || continue
+            [[ -n "$mode" ]] || continue
             # Pad to four digits so the setuid/setgid/sticky digit is
             # always in the same place.
-            [ ${#mode} -eq 3 ] && mode="0$mode"
+            [[ ${#mode} -eq 3 ]] && mode="0$mode"
             dst=$(echo "$line" | awk '{print $NF}')
             case "${mode:0:1}" in
                 0) ;;
                 *) fail 1.2.8 "$dst" "setuid, setgid or sticky bit set (mode $mode)" ;;
             esac
-            case "${mode:3:1}" in
-                [2367]) fail 1.2.7 "$dst" "world-writable (mode $mode)" ;;
-            esac
-            case "${mode:2:1}" in
-                [2367]) fail 1.2.7 "$dst" "group-writable (mode $mode)" ;;
-            esac
+            [[ ${mode:3:1} == [2367] ]] && fail 1.2.7 "$dst" "world-writable (mode $mode)"
+            [[ ${mode:2:1} == [2367] ]] && fail 1.2.7 "$dst" "group-writable (mode $mode)"
         done <<< "$install_section"
 
         # 1.6.7: an ELF file may only be /usr/bin/<NAME> or a private
@@ -285,7 +284,7 @@ else
             # 1.7 covers it. Anything else the spec installs from the tree
             # has to be there, or this check is reading half a package --
             # `scripts/fetch-rpc-server.sh` puts the bundled ones in place.
-            if [ ! -f "$root/$src" ]; then
+            if [[ ! -f "$root/$src" ]]; then
                 # shellcheck disable=SC2016 # '$builddir' is literal text.
                 case "$src" in
                     *'$builddir'*|*target/*) ;;
@@ -334,7 +333,7 @@ else
 
     for tag in Provides Obsoletes Conflicts Recommends Suggests Supplements Enhances; do
         while read -r value; do
-            [ -n "$value" ] || continue
+            [[ -n "$value" ]] || continue
             fail 1.8.2 "$tag: $value" "'$tag:' is not allowed in a Harbour RPM"
         done < <(sed -n "s/^$tag:[[:space:]]*//p" <<< "$expanded")
     done
@@ -344,7 +343,7 @@ else
     # runtime Requires are judged.
     requires=$(sed -n 's/^Requires:[[:space:]]*//p' <<< "$expanded")
     while read -r req; do
-        [ -n "$req" ] || continue
+        [[ -n "$req" ]] || continue
         # rpm hands the validator each whitespace-separated token, so a
         # versioned dependency arrives as three of them and the operator
         # and the version are both rejected.
@@ -388,15 +387,15 @@ while IFS= read -r qml; do
     while IFS= read -r line; do
         # One line can carry several statements: `import a 1.0; import b 1.0`.
         while IFS= read -r statement; do
-            [ -n "$statement" ] || continue
+            [[ -n "$statement" ]] || continue
             # rpmvalidation.sh's normalisation: drop `as Foo`, collapse
             # whitespace, keep the module and its version.
             import=$(sed -e 's/^[[:space:]]*import/import/' -e 's/[[:space:]]\+/ /g' \
                 -e 's/ as .*$//' -e 's/;$//' <<< "$statement" | cut -f2-3 -d' ')
-            [ -n "$import" ] || continue
+            [[ -n "$import" ]] || continue
 
-            [ "$import" = "Sailfish.Silica 1.0" ] && uses_silica=1
-            case "$import" in QtQuick.XmlListModel*) uses_xmllistmodel=1 ;; esac
+            [[ "$import" = "Sailfish.Silica 1.0" ]] && uses_silica=1
+            [[ $import == QtQuick.XmlListModel* ]] && uses_xmllistmodel=1
 
             if contained_in "$import" "$rules/allowed_qmlimports.conf"; then
                 continue
@@ -437,16 +436,16 @@ while IFS= read -r qml; do
                             # has to be inside the tree.
                             if [[ $path == *.js ]]; then
                                 target=$(cd "$(dirname "$qml")" 2>/dev/null &&
-                                    [ -f "$path" ] &&
+                                    [[ -f "$path" ]] &&
                                     cd "$(dirname "$path")" 2>/dev/null && pwd)
                             else
                                 target=$(cd "$(dirname "$qml")" 2>/dev/null &&
                                     cd "$path" 2>/dev/null && pwd)
                             fi
-                            if [ -z "$target" ]; then
+                            if [[ -z "$target" ]]; then
                                 fail 1.6.6 "$import" \
                                     "relative import does not resolve to a directory ($relative)"
-                            elif [ "${target#"$root/qml"}" = "$target" ]; then
+                            elif [[ "${target#"$root/qml"}" = "$target" ]]; then
                                 fail 1.6.6 "$import" \
                                     "relative import resolves to '$target', outside the installed qml/ tree ($relative)"
                             fi
@@ -466,7 +465,7 @@ while IFS= read -r qml; do
     done < <(grep -e '^[[:space:]]*import[[:space:]]' "$qml" | sed -e 's/\x0D$//')
 done < <(find "$root/qml" -name '*.qml' | sort)
 
-if [ "$qml_files" -eq 0 ]; then
+if [[ "$qml_files" -eq 0 ]]; then
     fail 1.6.4 "qml/" "no .qml files were found -- did the tree move?"
 else
     note "[1.6.x] imports checked in $qml_files .qml files"
@@ -476,7 +475,7 @@ fi
 # 1.3 The .desktop file, and 1.4 its [X-Sailjail] section
 #
 uses_sailfish_qml=0
-if [ ! -f "$desktop" ]; then
+if [[ ! -f "$desktop" ]]; then
     fail 1.3.1 "$desktop" "the .desktop file is missing"
 else
     if grep -qE '^Name=.+' "$desktop"; then
@@ -516,7 +515,7 @@ else
     # start it.
     if grep -qE '^X-Nemo-Application-Type=silica-qt5[[:space:]]*$' "$desktop"; then
         note "[1.3.5] X-Nemo-Application-Type=silica-qt5"
-    elif [ "$uses_silica" = 1 ]; then
+    elif [[ "$uses_silica" = 1 ]]; then
         fail 1.3.5 "X-Nemo-Application-Type" \
             "must be silica-qt5: the app imports Sailfish.Silica"
     elif grep -qE '^X-Nemo-Application-Type=(no-invoker|generic|qtquick2|qt5)[[:space:]]*$' "$desktop"; then
@@ -535,14 +534,14 @@ else
     else
         sailjail=$(sed -n '/^\[X-Sailjail\]/,$p' "$desktop" |
             sed '1d;/^\[/,$d' | grep -vE '^[[:space:]]*(#|$)')
-        if [ -z "$sailjail" ]; then
+        if [[ -z "$sailjail" ]]; then
             fail 1.3.7 "[X-Sailjail]" "the section must not be empty"
         fi
 
         org=""
         app=""
         while IFS= read -r line; do
-            [ -n "$line" ] || continue
+            [[ -n "$line" ]] || continue
             key=${line%%=*}
             value=${line#*=}
             if ! contained_in "$key" "$rules/allowed_sailjailkeys.conf"; then
@@ -573,17 +572,17 @@ else
                     ;;
                 Permissions)
                     while IFS= read -r permission; do
-                        [ -n "$permission" ] || continue
+                        [[ -n "$permission" ]] || continue
                         if ! contained_in "$permission" "$rules/allowed_permissions.conf"; then
                             fail 1.4.5 "$permission" "permission is not on Harbour's whitelist"
-                        elif [ "$permission" = Compatibility ]; then
+                        elif [[ "$permission" = Compatibility ]]; then
                             fail 1.4.5 "$permission" \
                                 "the Compatibility permission exists for pre-sandboxing apps and invites QA scrutiny"
                         fi
                     done < <(tr ';' '\n' <<< "$value")
                     ;;
                 ExecDBus)
-                    if [ "$uses_sailfish_qml" = 1 ]; then
+                    if [[ "$uses_sailfish_qml" = 1 ]]; then
                         expect="^sailfish-qml[[:space:]]+$name([[:space:]]+[A-Za-z_-][A-Z0-9a-z_-]*)?$"
                     else
                         expect="^$name([[:space:]]+[A-Za-z_-][A-Z0-9a-z_-]*)?$"
@@ -593,6 +592,8 @@ else
                             "ExecDBus must be the Exec value, optionally plus one argument"
                     fi
                     ;;
+                # Any other key on the allow-list has nothing to check.
+                *) ;;
             esac
         done <<< "$sailjail"
         note "[1.4.x] [X-Sailjail] keys, OrganizationName, ApplicationName and Permissions checked"
@@ -601,7 +602,7 @@ else
         # $XDG_DATA_HOME/<Org>/<App>, so the path the app builds has to be
         # spelled the same way. A rename on one side only is silent until
         # the app is confined on a device.
-        if [ -n "$org" ] && [ -n "$app" ]; then
+        if [[ -n "$org" ]] && [[ -n "$app" ]]; then
             if grep -rqF --exclude-dir=target "\"$org/$app/" "$root/rust"; then
                 note "[2.5] the app's data path uses OrganizationName/ApplicationName ($org/$app)"
             else
@@ -619,18 +620,18 @@ fi
 # 1.8.6/1.8.7: two Requires the validator derives from what the app is
 # rather than from what the spec says. After both the QML pass and the
 # .desktop file, since it reads a conclusion from each.
-if [ -n "${expanded:-}" ]; then
-    if [ "$uses_xmllistmodel" = 1 ] &&
+if [[ -n "${expanded:-}" ]]; then
+    if [[ "$uses_xmllistmodel" = 1 ]] &&
         ! grep -qE '^Requires:[[:space:]]*qt5-qtdeclarative-import-xmllistmodel' <<< "$expanded"; then
         fail 1.8.6 "qt5-qtdeclarative-import-xmllistmodel" \
             "QtQuick.XmlListModel is imported but not required; it is not on devices by default"
     fi
     if grep -qE '^Requires:[[:space:]]*libsailfishapp-launcher' <<< "$expanded" &&
-        [ "$uses_sailfish_qml" = 0 ]; then
+        [[ "$uses_sailfish_qml" = 0 ]]; then
         fail 1.8.7 "libsailfishapp-launcher" \
             "required but the .desktop file does not use the sailfish-qml launcher; drop the dependency"
     fi
-    if [ "$uses_sailfish_qml" = 1 ] &&
+    if [[ "$uses_sailfish_qml" = 1 ]] &&
         ! grep -qE '^Requires:[[:space:]]*libsailfishapp-launcher' <<< "$expanded"; then
         fail 1.8.7 "libsailfishapp-launcher" \
             "a sailfish-qml app must require the package that provides the launcher"
@@ -645,7 +646,7 @@ if ! command -v file >/dev/null 2>&1; then
 else
     for size in $ICON_SIZES; do
         icon="$root/icons/$size/$name.png"
-        if [ ! -f "$icon" ]; then
+        if [[ ! -f "$icon" ]]; then
             fail 1.5.1 "icons/$size/$name.png" "icon is missing"
             continue
         fi
@@ -673,7 +674,7 @@ fi
 # straight to /usr/bin/<NAME>.
 cargo_bin=$(sed -n '/^\[\[bin\]\]/,/^\[/p' "$root/rust/postivene-app/Cargo.toml" |
     sed -n 's/^name = "\(.*\)"/\1/p' | head -1)
-if [ "$cargo_bin" = "$name" ]; then
+if [[ "$cargo_bin" = "$name" ]]; then
     note "[1.2.3] the cargo binary is named '$name'"
 else
     fail 1.2.3 "$cargo_bin" \
@@ -682,10 +683,10 @@ fi
 
 binary=""
 for candidate in "$root/rust/target/release/$name" "$root/rust/target/debug/$name"; do
-    [ -x "$candidate" ] && { binary=$candidate; break; }
+    [[ -x "$candidate" ]] && { binary=$candidate; break; }
 done
 
-if [ -z "$binary" ]; then
+if [[ -z "$binary" ]]; then
     skip 1.7.3 "no built binary (run: cd rust && cargo build -p postivene-app)"
 elif ! command -v readelf >/dev/null 2>&1; then
     skip 1.7.3 "readelf not found (install binutils)"
@@ -717,8 +718,8 @@ else
         skip 1.6.1 "objdump not found (install binutils)"
     else
         while read -r lib; do
-            [ -n "$lib" ] || continue
-            case "$lib" in ld-linux*) continue ;; esac
+            [[ -n "$lib" ]] || continue
+            [[ $lib == ld-linux* ]] && continue
             if contained_in "$lib" "$rules/allowed_libraries.conf"; then
                 continue
             fi
@@ -744,7 +745,7 @@ fi
 hits=$(grep -rn --include='*.rs' --include='*.qml' --include='*.js' \
     --exclude-dir=target -E '/home/(nemo|defaultuser)' "$root/rust" "$root/qml" 2>/dev/null |
     grep -v '/target/' || true)
-if [ -n "$hits" ]; then
+if [[ -n "$hits" ]]; then
     while IFS= read -r hit; do
         fail 2.1 "${hit%%:*}" "hardcoded home directory: ${hit#*:}"
     done <<< "$hits"
@@ -775,13 +776,13 @@ fi
 # Stale waivers. A waiver that no longer matches anything is a rule that
 # was fixed and a licence that outlived it.
 #
-if [ -f "$waivers" ]; then
+if [[ -f "$waivers" ]]; then
     while IFS= read -r line; do
         line=${line%%#*}
         # shellcheck disable=SC2086
         set -- $line
-        [ $# -ge 2 ] || continue
-        if [ -z "${waiver_used["$1 $2"]:-}" ]; then
+        [[ $# -ge 2 ]] || continue
+        if [[ -z "${waiver_used["$1 $2"]:-}" ]]; then
             echo "harbour-check: FAIL stale waiver '$1 $2' in ci/harbour/waivers.conf matches nothing; delete it" >&2
             status=1
         fi
@@ -789,14 +790,14 @@ if [ -f "$waivers" ]; then
 fi
 
 echo
-if [ "$status" -eq 0 ]; then
-    if [ "$skipped" -gt 0 ]; then
+if [[ "$status" -eq 0 ]]; then
+    if [[ "$skipped" -gt 0 ]]; then
         note "ok, with $skipped check(s) skipped for want of a tool"
     else
         note "ok"
     fi
 else
-    if [ "$findings" -gt 0 ]; then
+    if [[ "$findings" -gt 0 ]]; then
         note "FAILED: $findings finding(s)" >&2
     else
         note "FAILED" >&2

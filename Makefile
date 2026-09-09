@@ -16,7 +16,7 @@
 
 .PHONY: check test lint fmt qml-lint packaging-lint lockfile-lint doc-lint \
         msrv deny integration harbour vendor-check fetch-server \
-        translations clean
+        sonar-report-test sonar-reports translations clean
 
 CARGO ?= cargo
 # The shim's tests drive a real Qt event loop, which needs a platform
@@ -28,7 +28,7 @@ export QT_QPA_PLATFORM = offscreen
 ## `msrv` fetches a toolchain the first time, so this is not quite
 ## network-free; `deny` needs the advisory database and is CI's job.
 check: fmt lint test doc-lint msrv qml-lint lockfile-lint packaging-lint harbour \
-       vendor-check deny
+       sonar-report-test vendor-check deny
 
 ## Unit, integration, and Qt event-loop tests.
 test:
@@ -101,6 +101,47 @@ fetch-server:
 ## of the app finds them. The RPM does the same in %%build.
 translations:
 	./scripts/release-translations.sh
+
+## Prove scripts/sonar-report.sh still reports what it claims to, against a
+## stub server. The real service is unreachable from CI's network and from a
+## laptop behind one, which is the reason that script exists at all.
+sonar-report-test:
+	./ci/sonar-report-selftest.sh
+
+## sonar-reports: the two files SonarQube Cloud imports -- coverage and
+## clippy diagnostics -- written to rust/target/sonar/. The scanner produces
+## neither itself: it only imports what someone else measured, which is why
+## the coverage reading was 0.0% for as long as nothing wrote this.
+##
+## Needs cargo-llvm-cov, so it is opt-in rather than part of `check`:
+##   rustup component add llvm-tools-preview
+##   cargo install --locked cargo-llvm-cov
+sonar-reports:
+	@echo "== reports for SonarQube Cloud =="
+	@command -v cargo-llvm-cov >/dev/null 2>&1 || { \
+		echo "cargo-llvm-cov is not installed. Install it with:" >&2; \
+		echo "    rustup component add llvm-tools-preview" >&2; \
+		echo "    cargo install --locked cargo-llvm-cov" >&2; \
+		exit 1; \
+	}
+	@mkdir -p rust/target/sonar
+	# cargo prints each diagnostic ONCE and caches it afterwards, so on a
+	# warm target/ this writes an EMPTY report -- which SonarQube imports
+	# without complaint as "clippy found nothing". Dropping the three
+	# workspace crates costs a recompile of this project's own code and
+	# keeps the dependency build.
+	cd rust && $(CARGO) clean -p deltachat-jsonrpc -p postivene-shim -p postivene-app
+	@: > rust/target/sonar/clippy.json
+	# Deliberately without `-- -D warnings`, unlike the `lint` target: this
+	# one reports, and `make check` is the one that refuses.
+	cd rust && $(CARGO) clippy --workspace --all-targets \
+		--message-format=json >> target/sonar/clippy.json
+	# third_party/ and vendor/ are excluded for the reason given in
+	# sonar-project.properties: upstream's code, not ours to cover.
+	cd rust && $(CARGO) llvm-cov --workspace \
+		--ignore-filename-regex '(^|/)(third_party|vendor)/' \
+		--lcov --output-path target/sonar/lcov.info
+	@echo "== wrote rust/target/sonar/{clippy.json,lcov.info} =="
 
 ## The tests that drive the real core, offline. Needs `make fetch-server`.
 integration:

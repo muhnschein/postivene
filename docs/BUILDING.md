@@ -80,7 +80,65 @@ first time, and `deny` wants the advisory database.
    a SKIP; CI sets `PACKAGING_LINT_STRICT=1` so it is a failure there, as
    `HARBOUR_CHECK_STRICT=1` already does for the Harbour check.
 
+8. **Report-script tests** (`ci/sonar-report-selftest.sh`): the one script
+   here that talks to a service outside GitHub, run against a stub server
+   that answers SonarQube's four endpoints. It cannot be tested any other
+   way -- the analysis it reads does not exist when the tests run, and this
+   project's CI cannot reach `sonarcloud.io`, which is the reason the script
+   exists at all.
+
 Aspiration, tracked not gated: test volume exceeds source volume.
+
+## Static analysis
+
+SonarQube Cloud reads the tree on every pull request
+(`.github/workflows/build.yml`, configured by `sonar-project.properties`).
+It is a **report, not a gate**: `ci.yml` decides what is allowed in, and
+nothing Sonar says can turn a red build green or a green build red. Keeping
+that boundary is why it is a separate workflow -- folding it into the gate
+would make a hosted service part of the rule that a green `make check` on a
+laptop is a green CI.
+
+The scanner **imports** coverage and Clippy findings; it measures neither.
+`make sonar-reports` writes both to `rust/target/sonar/`, and the workflow
+runs it before the scan:
+
+- `lcov.info`, from `cargo llvm-cov` over the whole workspace. Without it
+  the coverage reading is a confident 0.0% rather than "no data", which is
+  what it read for as long as nothing wrote a report.
+- `clippy.json`, from the same Clippy invocation `make lint` runs, minus
+  `-D warnings`. Sonar's own Clippy pass is switched off
+  (`sonar.rust.clippy.enabled=false`): it invokes cargo where it finds the
+  project, and this repository's workspace is under `rust/`, not at the root.
+
+The target needs `cargo-llvm-cov`, so it is opt-in rather than part of
+`make check`:
+
+```
+rustup component add llvm-tools-preview
+cargo install --locked cargo-llvm-cov
+make sonar-reports
+```
+
+One trap it works around: cargo prints each diagnostic once and caches it,
+so on a warm `target/` the Clippy report comes out empty and Sonar imports
+that as "Clippy found nothing". The target drops the three workspace crates
+first.
+
+`sonar.tests` separates the fixtures from the application, so coverage and
+duplication are measured on what ships. That matters more here than in most
+trees, because the rule above is that test volume exceeds source volume:
+indexed as main sources, the fixtures were most of what every ratio was
+computed over. `sonar.exclusions` drops the vendored crates, the patched
+qmetaobject, the rendered icons, and `translations/` -- a Qt catalog is
+named `.ts`, so the scanner reads thirty-nine of them as TypeScript.
+
+The scanner uploads a report and exits; the server processes it afterwards,
+so the run that produced an analysis finishes knowing nothing about its
+result. `scripts/sonar-report.sh` asks the server from the runner that just
+fed it and prints the quality gate, the measures and the open issues into
+the job log and the step summary. It reports and never gates: the step is
+`continue-on-error`, so a Sonar outage costs a warning, not a build.
 
 ## Translations
 

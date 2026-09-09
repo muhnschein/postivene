@@ -96,6 +96,10 @@ jobs:
       - run: ./ci/packaging-lint.sh
         env:
           PACKAGING_LINT_STRICT: 1
+      # scripts/sonar-report.sh talks to a service no test can reach, so it
+      # is proved against a stub server instead. It runs here rather than in
+      # `test` because it is a shell script with no cargo in it.
+      - run: ./ci/sonar-report-selftest.sh
 
   # What Harbour would reject, caught before it is written rather than at
   # intake. `sfdk check -s harbour` on the real RPM is the authority and

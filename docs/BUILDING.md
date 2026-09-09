@@ -87,6 +87,11 @@ first time, and `deny` wants the advisory database.
    project's CI cannot reach `sonarcloud.io`, which is the reason the script
    exists at all.
 
+9. **Runner-setup tests** (`ci/apt-install-selftest.sh`): the rule deciding
+   which apt sources every CI job keeps, proved on a directory of the
+   test's own. Getting it backwards deletes the archive the jobs install
+   from, which fails everything.
+
 Aspiration, tracked not gated: test volume exceeds source volume.
 
 ## Static analysis
@@ -139,6 +144,29 @@ result. `scripts/sonar-report.sh` asks the server from the runner that just
 fed it and prints the quality gate, the measures and the open issues into
 the job log and the step summary. It reports and never gates: the step is
 `continue-on-error`, so a Sonar outage costs a warning, not a build.
+
+## CI
+
+`ci.yml` is the gate and runs what `make check` runs. Two things about the
+runners are worth knowing.
+
+**Packages come through `ci/apt-install.sh`**, not a bare `apt-get`.
+`apt-get update` exits non-zero when *any* configured repository fails, and
+the runner image ships several this project never installs from. On
+2026-09-09 Google Chrome's index served a hash that did not match its own
+Release file, and every job died before installing anything or running a
+test; nothing in this repository had changed. The script drops the
+third-party lists first, keeping Ubuntu's wherever the image puts them --
+a list survives only if something in it names an `ubuntu.com` host, which
+is what stops it deleting the archive it is about to install from.
+
+**The Rust jobs cache their `target/`** (`Swatinem/rust-cache`, scoped to
+the `rust` workspace). Every job used to compile the whole dependency
+graph from nothing on every push. `msrv` carries a cache key of its own
+because it builds with `+1.75.0` while the action keys on the default
+toolchain, and without it the two would share a slot and neither would
+ever hit. `CARGO_INCREMENTAL: 0` because a runner compiles once and throws
+the machine away, so incremental state is written, cached and never read.
 
 ## Translations
 

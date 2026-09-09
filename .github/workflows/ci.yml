@@ -19,6 +19,10 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  # A runner compiles once and throws the machine away, so incremental
+  # state is written, cached and never read. Off, it is smaller to cache
+  # and slightly faster to produce.
+  CARGO_INCREMENTAL: 0
 
 jobs:
   # Lints, unit tests, and the Qt event-loop tests. The toolchain comes from
@@ -28,12 +32,14 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: sudo apt-get update
       # qml-module-qtquick2 is the QtQuick runtime plugin, which the -dev
       # packages do not pull in. qttools5-dev-tools is lrelease, which the
       # app's translation test compiles a catalog with. qtmultimedia5-dev
       # is QAudioRecorder, which the shim's voice recorder is built on.
-      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qtmultimedia5-dev qtdeclarative5-dev-tools qml-module-qtquick2 qml-module-qtgraphicaleffects qttools5-dev-tools
+      - run: ./ci/apt-install.sh qtbase5-dev qtdeclarative5-dev qtmultimedia5-dev qtdeclarative5-dev-tools qml-module-qtquick2 qml-module-qtgraphicaleffects qttools5-dev-tools
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: rust
       - run: rustc --version && cargo --version
       - run: cd rust && cargo fmt --all --check
       - run: cd rust && cargo clippy --workspace --all-targets -- -D warnings
@@ -52,9 +58,15 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: sudo apt-get update
-      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qtmultimedia5-dev
+      - run: ./ci/apt-install.sh qtbase5-dev qtdeclarative5-dev qtmultimedia5-dev
       - run: rustup toolchain install 1.75.0 --profile minimal
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: rust
+          # rust-cache keys on the DEFAULT toolchain, and this job builds
+          # with `+1.75.0`. Without a key of its own the entry would collide
+          # with the stable jobs' and neither would ever hit.
+          key: msrv-1.75.0
       # Warnings are denied by the workspace lints table, not RUSTFLAGS:
       # see rust/Cargo.toml.
       - run: cd rust && cargo +1.75.0 check --workspace --all-targets
@@ -68,9 +80,11 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: sudo apt-get update
       # real_core drives the shim through a QML probe.
-      - run: sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qtmultimedia5-dev qml-module-qtquick2 qml-module-qtgraphicaleffects
+      - run: ./ci/apt-install.sh qtbase5-dev qtdeclarative5-dev qtmultimedia5-dev qml-module-qtquick2 qml-module-qtgraphicaleffects
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: rust
       # Checksum-pinned on the wheel and the extracted binary.
       - run: ./scripts/fetch-rpc-server.sh
       - run: cd rust && cargo test -p deltachat-jsonrpc --test real_server
@@ -88,8 +102,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: sudo apt-get update
-      - run: sudo apt-get install -y qtdeclarative5-dev-tools qttools5-dev-tools qml-module-qtgraphicaleffects rpm desktop-file-utils shellcheck
+      - run: ./ci/apt-install.sh qtdeclarative5-dev-tools qttools5-dev-tools qml-module-qtgraphicaleffects rpm desktop-file-utils shellcheck
       - run: ./ci/qml-lint.sh
       # Strict: a checker that is not installed fails here, so the job
       # cannot quietly stop checking when the apt line above changes.
@@ -100,6 +113,10 @@ jobs:
       # is proved against a stub server instead. It runs here rather than in
       # `test` because it is a shell script with no cargo in it.
       - run: ./ci/sonar-report-selftest.sh
+      # ci/apt-install.sh decides which apt sources every other job keeps.
+      # Getting that wrong deletes the archive and fails everything, so the
+      # rule is proved on a directory of the test's own.
+      - run: ./ci/apt-install-selftest.sh
 
   # What Harbour would reject, caught before it is written rather than at
   # intake. `sfdk check -s harbour` on the real RPM is the authority and
@@ -111,10 +128,12 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: sudo apt-get update
       # rpm for rpmspec (the %files layout), file for the icons, binutils
       # for the binary's symbols.
-      - run: sudo apt-get install -y rpm file binutils qtbase5-dev qtdeclarative5-dev qtmultimedia5-dev
+      - run: ./ci/apt-install.sh rpm file binutils qtbase5-dev qtdeclarative5-dev qtmultimedia5-dev
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: rust
       # The bundled server is one of the files the package installs, so
       # the layout check cannot judge it while it is absent.
       - run: ./scripts/fetch-rpc-server.sh

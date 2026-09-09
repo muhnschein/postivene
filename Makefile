@@ -16,7 +16,7 @@
 
 .PHONY: check test lint fmt qml-lint packaging-lint lockfile-lint doc-lint \
         msrv deny integration harbour vendor-check fetch-server \
-        sonar-report-test sonar-reports translations clean
+        sonar-report-test apt-install-test sonar-reports translations clean
 
 CARGO ?= cargo
 # The shim's tests drive a real Qt event loop, which needs a platform
@@ -28,7 +28,7 @@ export QT_QPA_PLATFORM = offscreen
 ## `msrv` fetches a toolchain the first time, so this is not quite
 ## network-free; `deny` needs the advisory database and is CI's job.
 check: fmt lint test doc-lint msrv qml-lint lockfile-lint packaging-lint harbour \
-       sonar-report-test vendor-check deny
+       sonar-report-test apt-install-test vendor-check deny
 
 ## Unit, integration, and Qt event-loop tests.
 test:
@@ -107,6 +107,11 @@ translations:
 ## laptop behind one, which is the reason that script exists at all.
 sonar-report-test:
 	./ci/sonar-report-selftest.sh
+
+## Prove ci/apt-install.sh keeps Ubuntu's apt sources and drops the rest.
+## Getting that backwards deletes the archive every job installs from.
+apt-install-test:
+	./ci/apt-install-selftest.sh
 
 ## sonar-reports: the two files SonarQube Cloud imports -- coverage and
 ## clippy diagnostics -- written to rust/target/sonar/. The scanner produces

@@ -230,8 +230,7 @@ jobs:
       # and docs/HARBOUR.md says why. Anything else does.
       - name: Validate the RPM against Harbour's rules
         run: |
-          sudo apt-get update
-          sudo apt-get install -y binutils rpm cpio file
+          ./ci/apt-install.sh binutils rpm cpio file
           rpm=$(find . -name 'harbour-postivene-*.rpm' ! -name '*debug*' \
                        ! -name '*.src.rpm' | head -1)
           [ -n "$rpm" ] || { echo "::error::no RPM to validate"; exit 1; }

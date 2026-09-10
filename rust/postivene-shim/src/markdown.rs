@@ -42,47 +42,81 @@ pub(crate) fn strip(text: &str) -> String {
 /// block's tag goes on the line after it, or the line before.
 fn convert(text: &str, styled: bool) -> String {
     let mut lines: Vec<String> = Vec::new();
-    let mut in_fence = false;
-    // The next line drawn opens a block.
-    let mut opening = false;
+    let mut fence = Fence::default();
     for line in text.split('\n') {
         let trimmed = line.trim_start();
-        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
-            if in_fence && styled {
-                // A block with nothing in it is no block at all.
-                if opening {
-                    opening = false;
-                } else if let Some(last) = lines.last_mut() {
-                    last.push_str("</pre>");
-                }
-            } else if styled {
-                opening = true;
-            }
-            in_fence = !in_fence;
+        if is_fence(trimmed) {
+            fence.cross(styled, &mut lines);
             continue;
         }
         let mut out = String::with_capacity(line.len() + 8);
-        if opening {
+        if fence.opening {
             out.push_str("<pre>");
-            opening = false;
+            fence.opening = false;
         }
-        if in_fence {
+        if fence.inside {
             push_escaped(&mut out, line, styled);
         } else {
             block(line, trimmed, styled, &mut out);
         }
         lines.push(out);
     }
-    if in_fence && styled && !opening {
-        // A block that was never closed is still a block.
-        if let Some(last) = lines.last_mut() {
-            last.push_str("</pre>");
-        }
-    }
     if styled {
+        fence.finish(&mut lines);
         join_styled(&lines)
     } else {
         lines.join("\n")
+    }
+}
+
+/// A line that is a fence marker: three backticks or tildes, with or
+/// without a language word after them.
+fn is_fence(trimmed: &str) -> bool {
+    trimmed.starts_with("```") || trimmed.starts_with("~~~")
+}
+
+/// Where the walk stands with respect to code blocks, between lines.
+#[derive(Default)]
+struct Fence {
+    /// Inside a block: lines are code, escaped and never styled.
+    inside: bool,
+    /// The next line drawn opens a block, and gets the tag in front.
+    opening: bool,
+}
+
+impl Fence {
+    /// A fence line was read: a block opens or closes here.
+    ///
+    /// Only the styled output carries tags. The closing one goes on the
+    /// line before, since the marker leaves no line of its own -- unless
+    /// nothing was drawn since the block opened, in which case there is
+    /// no block.
+    fn cross(&mut self, styled: bool, lines: &mut [String]) {
+        if styled {
+            if !self.inside {
+                self.opening = true;
+            } else if self.opening {
+                // A block with nothing in it is no block at all.
+                self.opening = false;
+            } else {
+                close_block(lines);
+            }
+        }
+        self.inside = !self.inside;
+    }
+
+    /// The text ended: a block that was never closed is still a block.
+    fn finish(&self, lines: &mut [String]) {
+        if self.inside && !self.opening {
+            close_block(lines);
+        }
+    }
+}
+
+/// End the block on the last line drawn.
+fn close_block(lines: &mut [String]) {
+    if let Some(last) = lines.last_mut() {
+        last.push_str("</pre>");
     }
 }
 

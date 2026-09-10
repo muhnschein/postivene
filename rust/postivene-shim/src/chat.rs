@@ -599,33 +599,7 @@ impl ChatMessages {
         if account_id == 0 || chat_id == 0 || self.hydrating {
             return;
         }
-        let count = self.rows.borrow().iter().count();
-        if count == 0 {
-            return;
-        }
-        let first = usize::try_from(first.max(0))
-            .unwrap_or(0)
-            .saturating_sub(MARGIN);
-        let last = usize::try_from(last.max(0))
-            .unwrap_or(0)
-            .saturating_add(MARGIN)
-            .min(count - 1);
-        if first > last {
-            return;
-        }
-        // Only what is not there yet, and never more than a page at a time:
-        // a reader who flings the view the length of a long chat would
-        // otherwise ask for every row they passed.
-        let wanted: Vec<u32> = self
-            .rows
-            .borrow()
-            .iter()
-            .skip(first)
-            .take(last - first + 1)
-            .filter(|item| !item.loaded)
-            .map(|item| item.message_id)
-            .take(PAGE)
-            .collect();
+        let wanted = self.unloaded_between(first, last);
         if wanted.is_empty() {
             return;
         }
@@ -638,59 +612,93 @@ impl ChatMessages {
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
         let done = queued_callback(move |result: Result<Vec<MessageListItem>, String>| {
-            let Some(this) = ptr.as_pinned() else { return };
-            // The flag is its own guard: `reload` puts it down, so a reply
-            // for rows that have since been replaced drops here.
-            if !this.borrow().hydrating || this.borrow().chat_id != chat_id {
-                return;
-            }
-            match result {
-                Ok(items) => {
-                    let mut filled = 0_usize;
-                    {
-                        let this_mut = this.borrow_mut();
-                        let mut rows = this_mut.rows.borrow_mut();
-                        // By id rather than by index: rows can have been
-                        // added or taken out while this ran, and writing to
-                        // a remembered index would put a message where
-                        // another one is. Looked up through a map rather
-                        // than by scanning, because the rows are the whole
-                        // chat -- a scan per fetched message is a scan of
-                        // ten thousand rows fifty times over.
-                        let index_of: BTreeMap<u32, usize> = rows
-                            .iter()
-                            .enumerate()
-                            .map(|(index, row)| (row.message_id, index))
-                            .collect();
-                        for item in items {
-                            let Some(index) = index_of.get(&item.message_id).copied() else {
-                                continue;
-                            };
-                            // Filling a row in place leaves the order and
-                            // the count alone, so the map stays true.
-                            rows.change_line(index, item);
-                            filled += 1;
-                        }
-                    }
-                    this.borrow_mut().hydrating = false;
-                    this.borrow().hydrating_changed();
-                    if filled > 0 {
-                        // Changed in place, so the view keeps its position
-                        // and its delegates: nothing here moves the reader.
-                        this.borrow().rows_changed();
-                    }
-                }
-                Err(err) => {
-                    this.borrow_mut().hydrating = false;
-                    this.borrow().hydrating_changed();
-                    this.borrow().error(err.into());
-                }
+            if let Some(this) = ptr.as_pinned() {
+                this.borrow_mut().hydrated(chat_id, result);
             }
         });
 
         runtime.spawn(async move {
             done(fetch_messages(&rpc, account_id, &wanted).await);
         });
+    }
+
+    /// The ids of the rows between two view indices, plus a margin either
+    /// side, that have not been fetched yet.
+    ///
+    /// Only what is not there yet, and never more than a page at a time: a
+    /// reader who flings the view the length of a long chat would otherwise
+    /// ask for every row they passed.
+    fn unloaded_between(&self, first: i32, last: i32) -> Vec<u32> {
+        let rows = self.rows.borrow();
+        let count = rows.iter().count();
+        if count == 0 {
+            return Vec::new();
+        }
+        let first = usize::try_from(first.max(0))
+            .unwrap_or(0)
+            .saturating_sub(MARGIN);
+        let last = usize::try_from(last.max(0))
+            .unwrap_or(0)
+            .saturating_add(MARGIN)
+            .min(count - 1);
+        if first > last {
+            return Vec::new();
+        }
+        let wanted: Vec<u32> = rows
+            .iter()
+            .skip(first)
+            .take(last - first + 1)
+            .filter(|item| !item.loaded)
+            .map(|item| item.message_id)
+            .take(PAGE)
+            .collect();
+        wanted
+    }
+
+    /// The rows a `hydrate` asked for came back: fill them in, in place.
+    fn hydrated(&mut self, chat_id: u32, result: Result<Vec<MessageListItem>, String>) {
+        // The flag is its own guard: `reload` puts it down, so a reply
+        // for rows that have since been replaced drops here.
+        if !self.hydrating || self.chat_id != chat_id {
+            return;
+        }
+        let filled = result.map(|items| self.fill_rows(items));
+        self.hydrating = false;
+        self.hydrating_changed();
+        match filled {
+            // Changed in place, so the view keeps its position and its
+            // delegates: nothing here moves the reader.
+            Ok(filled) if filled > 0 => self.rows_changed(),
+            Ok(_) => {}
+            Err(err) => self.error(err.into()),
+        }
+    }
+
+    /// Fill fetched rows in place, by id, and say how many were.
+    ///
+    /// By id rather than by index: rows can have been added or taken out
+    /// while the fetch ran, and writing to a remembered index would put a
+    /// message where another one is. Looked up through a map rather than
+    /// by scanning, because the rows are the whole chat -- a scan per
+    /// fetched message is a scan of ten thousand rows fifty times over.
+    fn fill_rows(&mut self, items: Vec<MessageListItem>) -> usize {
+        let mut rows = self.rows.borrow_mut();
+        let index_of: BTreeMap<u32, usize> = rows
+            .iter()
+            .enumerate()
+            .map(|(index, row)| (row.message_id, index))
+            .collect();
+        let mut filled = 0_usize;
+        for item in items {
+            let Some(index) = index_of.get(&item.message_id).copied() else {
+                continue;
+            };
+            // Filling a row in place leaves the order and the count alone,
+            // so the map stays true.
+            rows.change_line(index, item);
+            filled += 1;
+        }
+        filled
     }
 
     /// Apply one core event.
@@ -799,65 +807,46 @@ impl ChatMessages {
             if this.borrow().chat_id != chat_id {
                 return;
             }
-            let entries = match result {
-                Ok(entries) => entries,
-                Err(err) => {
-                    this.borrow().error(err.into());
-                    return;
-                }
-            };
-            let ids = ids_of(&entries);
-
-            let current: Vec<u32> = this
-                .borrow()
-                .rows
-                .borrow()
-                .iter()
-                .map(|item| item.message_id)
-                .collect();
-            if current == ids {
-                return;
-            }
-
-            let present: HashSet<u32> = ids.iter().copied().collect();
-            let kept: Vec<u32> = current
-                .iter()
-                .copied()
-                .filter(|id| present.contains(id))
-                .collect();
-            // Whatever is left has to still be the front of the chat, or
-            // this is a reorder rather than an arrival and a removal.
-            if !ids.starts_with(&kept) {
-                this.borrow_mut().reload();
-                return;
-            }
-
-            let gone: Vec<usize> = current
-                .iter()
-                .enumerate()
-                .filter(|(_, id)| !present.contains(id))
-                .map(|(index, _)| index)
-                .collect();
-            if !gone.is_empty() {
-                let this_mut = this.borrow_mut();
-                let mut rows = this_mut.rows.borrow_mut();
-                // Backwards, so each index still means what it did when it
-                // was worked out.
-                for index in gone.into_iter().rev() {
-                    rows.remove(index);
-                }
-            }
-
-            let arrived: Vec<u32> = ids[kept.len()..].to_vec();
-            this.borrow().rows_changed();
-            if !arrived.is_empty() {
-                this.borrow_mut().absorb(arrived);
+            match result {
+                Ok(entries) => this.borrow_mut().synced(&ids_of(&entries)),
+                Err(err) => this.borrow().error(err.into()),
             }
         });
 
         runtime.spawn(async move {
             done(message_entries(&rpc, account_id, chat_id).await);
         });
+    }
+
+    /// The chat's id list came back: take out what has gone and fetch what
+    /// has arrived, both in place, so neither moves the reader.
+    fn synced(&mut self, ids: &[u32]) {
+        let current: Vec<u32> = self
+            .rows
+            .borrow()
+            .iter()
+            .map(|item| item.message_id)
+            .collect();
+        match RowDiff::between(&current, ids) {
+            RowDiff::Same => {}
+            RowDiff::Reordered => self.reload(),
+            RowDiff::Changed { gone, arrived } => {
+                self.remove_rows(&gone);
+                self.rows_changed();
+                if !arrived.is_empty() {
+                    self.absorb(arrived);
+                }
+            }
+        }
+    }
+
+    /// Take rows out by index. Backwards, so each index still means what it
+    /// did when it was worked out.
+    fn remove_rows(&mut self, gone: &[usize]) {
+        let mut rows = self.rows.borrow_mut();
+        for index in gone.iter().rev() {
+            rows.remove(*index);
+        }
     }
 
     /// Fetch messages that have just arrived and put them at the end.
@@ -1280,110 +1269,200 @@ impl ChatMessages {
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
         let done = queued_callback(move |result: Result<MessageListItem, String>| {
-            let Some(this) = ptr.as_pinned() else { return };
-            // Cleared before anything else, and on both paths: a send that
-            // failed has to leave the reader able to try again.
-            this.borrow_mut().sending = false;
-            this.borrow().sending_changed();
-            match result {
-                Ok(item) => {
-                    let message_id = item.message_id;
-                    {
-                        let this_mut = this.borrow_mut();
-                        let mut rows = this_mut.rows.borrow_mut();
-                        // The event for our own send can beat this reply,
-                        // in which case the row is already there. Wherever
-                        // the reader happens to be in the chat, the message
-                        // goes at the end of it and nothing else moves.
-                        let existing = rows.iter().position(|row| row.message_id == message_id);
-                        if let Some(index) = existing {
-                            rows.change_line(index, item);
-                        } else {
-                            rows.push(item);
-                        }
-                    }
-                    this.borrow().rows_changed();
-                    // Cleared once the message is really gone, not before
-                    // it is sent: a send that fails leaves the reader with
-                    // the reply they chose rather than silently dropping it.
-                    if quoted != 0 {
-                        this.borrow_mut().quoted_message_id = 0;
-                        this.borrow().quote_changed();
-                    }
-                    this.borrow().sent(message_id);
-                }
-                Err(err) => this.borrow().error(err.into()),
+            if let Some(this) = ptr.as_pinned() {
+                this.borrow_mut().sent_or_not(quoted, result);
             }
         });
 
+        let outgoing = Outgoing { text, file, quoted };
+        runtime.spawn(async move {
+            done(outgoing.send(&rpc, account_id, chat_id).await);
+        });
+    }
+
+    /// The core answered a send: clear the way for the next one, then put
+    /// the message on its row or say what went wrong.
+    fn sent_or_not(&mut self, quoted: u32, result: Result<MessageListItem, String>) {
+        // Cleared before anything else, and on both paths: a send that
+        // failed has to leave the reader able to try again.
+        self.sending = false;
+        self.sending_changed();
+        match result {
+            Ok(item) => self.place_sent(quoted, item),
+            Err(err) => self.error(err.into()),
+        }
+    }
+
+    /// A sent message goes at the end of the chat, wherever the reader
+    /// happens to be, and nothing else moves. Unless the event for our own
+    /// send beat the reply, in which case the row is already there and is
+    /// filled in instead.
+    fn place_sent(&mut self, quoted: u32, item: MessageListItem) {
+        let message_id = item.message_id;
+        {
+            let mut rows = self.rows.borrow_mut();
+            let existing = rows.iter().position(|row| row.message_id == message_id);
+            if let Some(index) = existing {
+                rows.change_line(index, item);
+            } else {
+                rows.push(item);
+            }
+        }
+        self.rows_changed();
+        // Cleared once the message is really gone, not before it is sent:
+        // a send that fails leaves the reader with the reply they chose
+        // rather than silently dropping it.
+        if quoted != 0 {
+            self.quoted_message_id = 0;
+            self.quote_changed();
+        }
+        self.sent(message_id);
+    }
+}
+
+/// One message on its way to the core.
+struct Outgoing {
+    /// The body, which may be empty beside a file.
+    text: String,
+    /// The path the core should attach and the name the recipient should
+    /// see -- an empty name for a voice message, which is not named for
+    /// anyone.
+    file: Option<(String, String)>,
+    /// The message this one replies to, or 0.
+    quoted: u32,
+}
+
+impl Outgoing {
+    /// Hand the message to the core and fetch the row it became.
+    async fn send(
+        self,
+        rpc: &RpcClient,
+        account_id: u32,
+        chat_id: u32,
+    ) -> Result<MessageListItem, String> {
         // A file with no name is a voice message: the one kind the core
         // has to be told, since to it a recording is a sound file like any
         // other. It takes the shape `send_msg` takes and `misc_send_msg`
         // does not, and answers with the id alone, so the row is fetched
         // the way every other row is.
-        let voice = matches!(&file, Some((_, name)) if name.is_empty());
-        let (path, name) = file.unzip();
-        runtime.spawn(async move {
-            let result = if voice {
-                // send_msg params: account, chat, MessageData -- camelCase
-                // fields, the view type by its variant name. Pinned
-                // against the real core by
-                // deltachat-jsonrpc/tests/real_server.rs.
-                let data = serde_json::json!({
-                    "file": path,
-                    "viewtype": "Voice",
-                    "quotedMessageId": (quoted != 0).then_some(quoted),
-                });
-                match rpc
-                    .call::<_, u32>("send_msg", (account_id, chat_id, data))
-                    .await
-                {
-                    Ok(message_id) => fetch_messages(&rpc, account_id, &[message_id])
-                        .await
-                        .and_then(|items| {
-                            items
-                                .into_iter()
-                                .next()
-                                .ok_or_else(|| "the core lost the voice message".to_string())
-                        }),
-                    Err(err) => Err(err.to_string()),
-                }
-            } else {
-                // misc_send_msg params: account, chat, text, file, filename,
-                // location, quoted_message_id. Pinned against the real core by
-                // deltachat-jsonrpc/tests/real_server.rs, which sends one of
-                // each.
-                let sent = rpc
-                    .call::<_, (u32, serde_json::Value)>(
-                        "misc_send_msg",
-                        (
-                            account_id,
-                            chat_id,
-                            // A caption-only send is a text message; an empty
-                            // string here would be a message whose body is "".
-                            (!text.is_empty()).then_some(text),
-                            path,
-                            name,
-                            Option::<(f64, f64)>::None,
-                            (quoted != 0).then_some(quoted),
-                        ),
-                    )
-                    .await
-                    .map_err(|err| err.to_string());
-                match sent {
-                    Ok((message_id, message)) => {
-                        let mut row = row_from(message_id, &message);
-                        // A .xdc sent from here is an app on its own row
-                        // at once, rather than a file until the chat is
-                        // next opened.
-                        with_webxdc(&rpc, account_id, &mut row).await;
-                        Ok(row)
-                    }
-                    Err(err) => Err(err),
-                }
-            };
-            done(result);
+        let voice = matches!(&self.file, Some((_, name)) if name.is_empty());
+        if voice {
+            self.send_voice(rpc, account_id, chat_id).await
+        } else {
+            self.send_text_or_file(rpc, account_id, chat_id).await
+        }
+    }
+
+    /// A voice message, through `send_msg`.
+    async fn send_voice(
+        self,
+        rpc: &RpcClient,
+        account_id: u32,
+        chat_id: u32,
+    ) -> Result<MessageListItem, String> {
+        let (path, _) = self.file.unzip();
+        // send_msg params: account, chat, MessageData -- camelCase
+        // fields, the view type by its variant name. Pinned against the
+        // real core by deltachat-jsonrpc/tests/real_server.rs.
+        let data = serde_json::json!({
+            "file": path,
+            "viewtype": "Voice",
+            "quotedMessageId": (self.quoted != 0).then_some(self.quoted),
         });
+        match rpc
+            .call::<_, u32>("send_msg", (account_id, chat_id, data))
+            .await
+        {
+            Ok(message_id) => fetch_messages(rpc, account_id, &[message_id])
+                .await
+                .and_then(|items| {
+                    items
+                        .into_iter()
+                        .next()
+                        .ok_or_else(|| "the core lost the voice message".to_string())
+                }),
+            Err(err) => Err(err.to_string()),
+        }
+    }
+
+    /// Text, a file, or both, through `misc_send_msg`.
+    async fn send_text_or_file(
+        self,
+        rpc: &RpcClient,
+        account_id: u32,
+        chat_id: u32,
+    ) -> Result<MessageListItem, String> {
+        let (path, name) = self.file.unzip();
+        // A caption-only send is a text message; an empty string here
+        // would be a message whose body is "".
+        let text = (!self.text.is_empty()).then_some(self.text);
+        // misc_send_msg params: account, chat, text, file, filename,
+        // location, quoted_message_id. Pinned against the real core by
+        // deltachat-jsonrpc/tests/real_server.rs, which sends one of each.
+        let sent = rpc
+            .call::<_, (u32, serde_json::Value)>(
+                "misc_send_msg",
+                (
+                    account_id,
+                    chat_id,
+                    text,
+                    path,
+                    name,
+                    Option::<(f64, f64)>::None,
+                    (self.quoted != 0).then_some(self.quoted),
+                ),
+            )
+            .await
+            .map_err(|err| err.to_string());
+        match sent {
+            Ok((message_id, message)) => {
+                let mut row = row_from(message_id, &message);
+                // A .xdc sent from here is an app on its own row at once,
+                // rather than a file until the chat is next opened.
+                with_webxdc(rpc, account_id, &mut row).await;
+                Ok(row)
+            }
+            Err(err) => Err(err),
+        }
+    }
+}
+
+/// What separates the rows from the chat's current id list.
+enum RowDiff {
+    /// Nothing: the rows are the list.
+    Same,
+    /// Something moved, which only a reload can honour.
+    Reordered,
+    /// Messages gone, by row index, and messages arrived, by id.
+    Changed { gone: Vec<usize>, arrived: Vec<u32> },
+}
+
+impl RowDiff {
+    /// Compare the rows' ids, in order, with the chat's.
+    ///
+    /// Whatever the rows keep has to still be the front of the chat, or
+    /// this is a reorder rather than an arrival and a removal.
+    fn between(current: &[u32], ids: &[u32]) -> Self {
+        if current == ids {
+            return Self::Same;
+        }
+        let present: HashSet<u32> = ids.iter().copied().collect();
+        let kept: Vec<u32> = current
+            .iter()
+            .copied()
+            .filter(|id| present.contains(id))
+            .collect();
+        if !ids.starts_with(&kept) {
+            return Self::Reordered;
+        }
+        let gone = current
+            .iter()
+            .enumerate()
+            .filter(|(_, id)| !present.contains(id))
+            .map(|(index, _)| index)
+            .collect();
+        let arrived = ids[kept.len()..].to_vec();
+        Self::Changed { gone, arrived }
     }
 }
 
@@ -1898,6 +1977,7 @@ fn file_name_of(path: &str) -> String {
 mod tests {
     use super::{
         file_name_of, gif_dimensions, local_path, own_reaction, reactions_json, video_dimensions,
+        RowDiff,
     };
     use serde_json::json;
 
@@ -2111,5 +2191,26 @@ mod tests {
         assert_eq!(file_name_of("a.png"), "a.png");
         assert_eq!(file_name_of("/home/user/"), "user");
         assert_eq!(file_name_of(""), "");
+    }
+
+    #[test]
+    fn a_row_diff_tells_arrivals_and_departures_from_a_reorder() {
+        assert!(matches!(
+            RowDiff::between(&[1, 2, 3], &[1, 2, 3]),
+            RowDiff::Same
+        ));
+        // One gone from the front, two arrived at the end: both in place.
+        match RowDiff::between(&[1, 2, 3], &[2, 3, 4, 5]) {
+            RowDiff::Changed { gone, arrived } => {
+                assert_eq!(gone, vec![0]);
+                assert_eq!(arrived, vec![4, 5]);
+            }
+            _ => panic!("gone and arrived should be a change"),
+        }
+        // The same ids in another order: nothing to do in place.
+        assert!(matches!(
+            RowDiff::between(&[1, 2, 3], &[2, 1, 3]),
+            RowDiff::Reordered
+        ));
     }
 }

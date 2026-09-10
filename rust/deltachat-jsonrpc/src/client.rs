@@ -8,7 +8,7 @@ use std::time::Duration;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::process::{Child, Command};
+use tokio::process::{Child, ChildStderr, ChildStdin, ChildStdout, Command};
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
 
@@ -54,6 +54,85 @@ const STDERR_TAIL_CAPACITY: usize = 200;
 /// open -- hangs the caller for the life of the app, with no error and
 /// nothing to cancel.
 const CALL_TIMEOUT: Duration = Duration::from_secs(60);
+
+/// Feed the server's stdin from the request channel, one line per request,
+/// until the channel closes or a write fails.
+async fn write_requests(mut stdin: ChildStdin, mut requests: mpsc::UnboundedReceiver<String>) {
+    while let Some(line) = requests.recv().await {
+        if write_line(&mut stdin, &line).await.is_err() {
+            break;
+        }
+    }
+}
+
+/// One request, newline-terminated and flushed, so the server reads it now.
+async fn write_line(stdin: &mut ChildStdin, line: &str) -> std::io::Result<()> {
+    stdin.write_all(line.as_bytes()).await?;
+    stdin.write_all(b"\n").await?;
+    stdin.flush().await
+}
+
+/// Match the server's stdout to the calls waiting on it, and wake anyone
+/// still waiting once the stream ends.
+///
+/// Ends on end-of-stdout or a failed read: the server is gone either way.
+/// A line that is not UTF-8 is neither -- it is one answer nobody can
+/// read, and the call it answered times out -- so the stream carries on
+/// past it rather than reporting a live server as closed.
+async fn read_responses(stdout: ChildStdout, pending: &PendingMap) {
+    let mut lines = BufReader::new(stdout).lines();
+    loop {
+        let line = match lines.next_line().await {
+            Ok(Some(line)) => line,
+            Err(err) if err.kind() == std::io::ErrorKind::InvalidData => continue,
+            Ok(None) | Err(_) => break,
+        };
+        let Some((id, outcome)) = parse_response(&line) else {
+            continue;
+        };
+        if let Some(sender) = lock(pending).remove(&id) {
+            let _ = sender.send(outcome);
+        }
+    }
+    // Transport is gone: wake up anyone still waiting rather than leaving
+    // them hanging forever.
+    for (_, sender) in lock(pending).drain() {
+        let _ = sender.send(Err(RpcError::TransportClosed));
+    }
+}
+
+/// One line of stdout as the answer it carries, or nothing for a line that
+/// is not a JSON-RPC response -- skipped rather than tearing down a live
+/// transport.
+fn parse_response(line: &str) -> Option<(u64, Result<serde_json::Value, RpcError>)> {
+    if line.trim().is_empty() {
+        return None;
+    }
+    let envelope = serde_json::from_str::<ResponseEnvelope>(line).ok()?;
+    // The core delivers events by polling, not by notification, so an
+    // answer without an id should not happen.
+    let id = envelope.id?;
+    let outcome = match (envelope.result, envelope.error) {
+        (_, Some(err)) => Err(RpcError::Remote(err)),
+        (Some(result), None) => Ok(result),
+        (None, None) => Ok(serde_json::Value::Null),
+    };
+    Some((id, outcome))
+}
+
+/// Keep the last few lines the server wrote to stderr, for the message
+/// shown when it dies.
+async fn keep_stderr_tail(stderr: ChildStderr, tail: &Mutex<Vec<String>>) {
+    let mut lines = BufReader::new(stderr).lines();
+    while let Ok(Some(line)) = lines.next_line().await {
+        let mut kept = lock(tail);
+        kept.push(line);
+        if kept.len() > STDERR_TAIL_CAPACITY {
+            let excess = kept.len() - STDERR_TAIL_CAPACITY;
+            kept.drain(0..excess);
+        }
+    }
+}
 
 impl RpcClient {
     /// Spawn `program` (typically the path to a bundled
@@ -113,77 +192,15 @@ impl RpcClient {
         let pending: PendingMap = Arc::new(Mutex::new(HashMap::new()));
         let stderr_tail = Arc::new(Mutex::new(Vec::new()));
 
-        let (stdin_tx, mut stdin_rx) = mpsc::unbounded_channel::<String>();
-        let writer_task = tokio::spawn(async move {
-            let mut stdin = stdin;
-            while let Some(line) = stdin_rx.recv().await {
-                if stdin.write_all(line.as_bytes()).await.is_err() {
-                    break;
-                }
-                if stdin.write_all(b"\n").await.is_err() {
-                    break;
-                }
-                if stdin.flush().await.is_err() {
-                    break;
-                }
-            }
-        });
+        let (stdin_tx, stdin_rx) = mpsc::unbounded_channel::<String>();
+        let writer_task = tokio::spawn(write_requests(stdin, stdin_rx));
 
         let reader_pending = pending.clone();
-        let reader_task = tokio::spawn(async move {
-            let mut lines = BufReader::new(stdout).lines();
-            // Ends on end-of-stdout or a failed read: the server is gone
-            // either way. A line that is not UTF-8 is neither -- it is one
-            // answer nobody can read, and the call it answered times out
-            // -- so the stream carries on past it rather than reporting a
-            // live server as closed.
-            loop {
-                let line = match lines.next_line().await {
-                    Ok(Some(line)) => line,
-                    Err(err) if err.kind() == std::io::ErrorKind::InvalidData => continue,
-                    Ok(None) | Err(_) => break,
-                };
-                if line.trim().is_empty() {
-                    continue;
-                }
-                // Skip anything that is not a JSON-RPC response rather than
-                // tearing down a live transport.
-                let Ok(envelope) = serde_json::from_str::<ResponseEnvelope>(&line) else {
-                    continue;
-                };
-                let Some(id) = envelope.id else {
-                    // The core delivers events by polling, not by
-                    // notification, so this should not happen.
-                    continue;
-                };
-                let outcome = match (envelope.result, envelope.error) {
-                    (_, Some(err)) => Err(RpcError::Remote(err)),
-                    (Some(result), None) => Ok(result),
-                    (None, None) => Ok(serde_json::Value::Null),
-                };
-                if let Some(sender) = lock(&reader_pending).remove(&id) {
-                    let _ = sender.send(outcome);
-                }
-            }
-            // Transport is gone: wake up anyone still waiting rather than
-            // leaving them hanging forever.
-            for (_, sender) in lock(&reader_pending).drain() {
-                let _ = sender.send(Err(RpcError::TransportClosed));
-            }
-        });
+        let reader_task =
+            tokio::spawn(async move { read_responses(stdout, &reader_pending).await });
 
         let stderr_capture = stderr_tail.clone();
-        tokio::spawn(async move {
-            let mut lines = BufReader::new(stderr).lines();
-            while let Ok(Some(line)) = lines.next_line().await {
-                let mut tail = lock(&stderr_capture);
-                tail.push(line);
-                if tail.len() > STDERR_TAIL_CAPACITY {
-                    let excess = tail.len() - STDERR_TAIL_CAPACITY;
-                    tail.drain(0..excess);
-                }
-            }
-        });
+        tokio::spawn(async move { keep_stderr_tail(stderr, &stderr_capture).await });
 
         Ok(Self {
             stdin_tx,

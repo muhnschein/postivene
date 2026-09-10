@@ -48,31 +48,7 @@ pub(crate) struct Grey {
 /// Read a binary PGM (`P5`) or PPM (`P6`), which is what Qt writes for a
 /// `.pgm` or `.ppm` path. Colour is averaged down to grey.
 pub(crate) fn parse_pnm(bytes: &[u8]) -> Option<Grey> {
-    let mut at = 0;
-    let mut tokens: Vec<String> = Vec::new();
-    // The header is four whitespace-separated tokens -- magic, width,
-    // height, maximum -- with `#` comments allowed between them.
-    while tokens.len() < 4 && at < bytes.len() {
-        let byte = bytes[at];
-        if byte == b'#' {
-            while at < bytes.len() && bytes[at] != b'\n' {
-                at += 1;
-            }
-        } else if byte.is_ascii_whitespace() {
-            at += 1;
-        } else {
-            let start = at;
-            while at < bytes.len() && !bytes[at].is_ascii_whitespace() {
-                at += 1;
-            }
-            tokens.push(String::from_utf8_lossy(&bytes[start..at]).into_owned());
-        }
-    }
-    if tokens.len() < 4 {
-        return None;
-    }
-    // Exactly one whitespace byte separates the maximum from the data.
-    at += 1;
+    let (tokens, at) = pnm_header(bytes)?;
     let width: usize = tokens[1].parse().ok()?;
     let height: usize = tokens[2].parse().ok()?;
     let maximum: u32 = tokens[3].parse().ok()?;
@@ -98,6 +74,51 @@ pub(crate) fn parse_pnm(bytes: &[u8]) -> Option<Grey> {
         height,
         pixels,
     })
+}
+
+/// The header's four tokens -- magic, width, height, maximum -- and the
+/// offset of the first pixel byte.
+///
+/// The tokens are separated by whitespace, with `#` comments allowed
+/// between them, and exactly one whitespace byte separates the maximum
+/// from the data.
+fn pnm_header(bytes: &[u8]) -> Option<(Vec<String>, usize)> {
+    let mut at = 0;
+    let mut tokens: Vec<String> = Vec::new();
+    while tokens.len() < 4 && at < bytes.len() {
+        let byte = bytes[at];
+        if byte == b'#' {
+            at = end_of_line(bytes, at);
+        } else if byte.is_ascii_whitespace() {
+            at += 1;
+        } else {
+            let end = end_of_token(bytes, at);
+            tokens.push(String::from_utf8_lossy(&bytes[at..end]).into_owned());
+            at = end;
+        }
+    }
+    if tokens.len() < 4 {
+        return None;
+    }
+    Some((tokens, at + 1))
+}
+
+/// Where the line starting at `at` ends: its newline, which is left to be
+/// read as whitespace, or the end of the data.
+fn end_of_line(bytes: &[u8], at: usize) -> usize {
+    at + bytes[at..]
+        .iter()
+        .take_while(|byte| **byte != b'\n')
+        .count()
+}
+
+/// Where the token starting at `at` ends: the first whitespace byte, or
+/// the end of the data.
+fn end_of_token(bytes: &[u8], at: usize) -> usize {
+    at + bytes[at..]
+        .iter()
+        .take_while(|byte| !byte.is_ascii_whitespace())
+        .count()
 }
 
 /// The text of the first code found in the image, if any.

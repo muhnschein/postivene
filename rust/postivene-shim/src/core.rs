@@ -612,45 +612,7 @@ impl DeltaChatCore {
         });
         let emit = queued_callback(move |event: CoreEvent| {
             if let Some(this) = ptr.as_pinned() {
-                let kind = match json::str_at(&event.event, "kind") {
-                    "" => "Unknown".to_string(),
-                    kind => kind.to_string(),
-                };
-                let payload = serde_json::to_string(&event.event).unwrap_or_default();
-                // A typed signal too, so a progress bar need not parse
-                // JSON. Both fire for these events.
-                if kind == "Error" {
-                    let text = match json::str_at(&event.event, "msg") {
-                        "" => "the core reported an error",
-                        text => text,
-                    };
-                    this.borrow().core_error(text.into());
-                }
-                if kind == "ConfigureProgress" {
-                    if let Some(permille) = json::u32_opt(&event.event, "progress") {
-                        this.borrow().configure_progress(event.context_id, permille);
-                    }
-                }
-                // The count on the profile's row follows whatever could
-                // have moved it: a message in, a chat read or marked
-                // unread, a chat gone. The overflow could have hidden any
-                // of those.
-                if matches!(
-                    kind.as_str(),
-                    "IncomingMsg"
-                        | "IncomingMsgBunch"
-                        | "MsgsChanged"
-                        | "MsgsNoticed"
-                        | "ChatModified"
-                        | "ChatDeleted"
-                        | "ChatlistChanged"
-                        | "ChatlistItemChanged"
-                        | "EventChannelOverflow"
-                ) {
-                    this.borrow().refresh_unread(event.context_id);
-                }
-                this.borrow()
-                    .core_event(event.context_id, kind.into(), payload.into());
+                this.borrow().relay(&event);
             }
         });
         runtime.spawn(async move {
@@ -663,6 +625,49 @@ impl DeltaChatCore {
             // it wrote to stderr on the way out is the only clue why.
             stopped(rpc.stderr_tail());
         });
+    }
+
+    /// One event off the stream, as the signals the QML side listens for.
+    ///
+    /// Every event fires `core_event`, with its payload as JSON. A few
+    /// kinds fire a typed signal too, so a progress bar need not parse
+    /// JSON, and a few are the ones that could have moved an unread count.
+    fn relay(&self, event: &CoreEvent) {
+        let kind = match json::str_at(&event.event, "kind") {
+            "" => "Unknown".to_string(),
+            kind => kind.to_string(),
+        };
+        let payload = serde_json::to_string(&event.event).unwrap_or_default();
+        if kind == "Error" {
+            let text = match json::str_at(&event.event, "msg") {
+                "" => "the core reported an error",
+                text => text,
+            };
+            self.core_error(text.into());
+        }
+        if kind == "ConfigureProgress" {
+            if let Some(permille) = json::u32_opt(&event.event, "progress") {
+                self.configure_progress(event.context_id, permille);
+            }
+        }
+        // The count on the profile's row follows whatever could have
+        // moved it: a message in, a chat read or marked unread, a chat
+        // gone. The overflow could have hidden any of those.
+        if matches!(
+            kind.as_str(),
+            "IncomingMsg"
+                | "IncomingMsgBunch"
+                | "MsgsChanged"
+                | "MsgsNoticed"
+                | "ChatModified"
+                | "ChatDeleted"
+                | "ChatlistChanged"
+                | "ChatlistItemChanged"
+                | "EventChannelOverflow"
+        ) {
+            self.refresh_unread(event.context_id);
+        }
+        self.core_event(event.context_id, kind.into(), payload.into());
     }
 
     /// Run a `get_system_info` round trip into

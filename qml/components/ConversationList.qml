@@ -71,6 +71,21 @@ SilicaListView {
         onTriggered: root.askForRows()
     }
 
+    /// Ask for rows a moment from now, unless an ask is already on its way.
+    ///
+    /// Started, never restarted. A flick changes `contentY` every frame,
+    /// and a timer restarted on each of them did not fire until the flick
+    /// had stopped -- so nothing was fetched for as long as the reader was
+    /// moving, and a fast scroll up into the history ended on a screen of
+    /// blanks that filled in a moment later. Left to run, the timer fires
+    /// every sixty milliseconds of a flick instead, and the rows in front
+    /// of the reader are asked for while they are still on their way there.
+    function askSoon() {
+        if (!fillRows.running) {
+            fillRows.start()
+        }
+    }
+
     // How many rows the model holds. Bound by the page rather than read off
     // the view: `count` there only changes when the view has laid out, and
     // an arrival has to be noticed whether or not it is on screen yet.
@@ -226,7 +241,7 @@ SilicaListView {
         // And whatever is on screen now wants filling in. Opening a chat
         // may never move contentY at all, so this is the ask that covers
         // the first screen.
-        fillRows.restart()
+        root.askSoon()
     }
 
     // Where the view was before this change, so a move can be told from
@@ -254,7 +269,7 @@ SilicaListView {
         // change `contentHeight` at all -- they are the same height as each
         // other -- so without this the reader can walk into a screenful of
         // blanks and nothing ever asks for them.
-        fillRows.restart()
+        root.askSoon()
         // Something has moved the view up, a long way from the newest
         // message, without touching it: the system's own scroll-to-top,
         // which is how one gets to the beginning of a chat. Following would

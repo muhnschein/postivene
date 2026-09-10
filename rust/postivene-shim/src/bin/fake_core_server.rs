@@ -346,6 +346,9 @@ impl State {
     }
 }
 
+/// When the server came up, for the journal's clock.
+static STARTED: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+
 fn journal(method: &str, params: &Value) {
     let Ok(path) = std::env::var("POSTIVENE_FAKE_JOURNAL") else {
         return;
@@ -354,7 +357,14 @@ fn journal(method: &str, params: &Value) {
     if method == "get_next_event_batch" {
         return;
     }
-    let line = json!({"method": method, "params": params}).to_string() + "\n";
+    // When it arrived, in milliseconds since the server came up: a test
+    // that asks whether two calls overlapped cannot read that off a Qt
+    // timer of its own, which is coarse enough to fire two probes at once.
+    let at = STARTED
+        .get_or_init(std::time::Instant::now)
+        .elapsed()
+        .as_millis();
+    let line = json!({"method": method, "params": params, "at": at}).to_string() + "\n";
     if let Ok(mut file) = std::fs::OpenOptions::new()
         .create(true)
         .append(true)

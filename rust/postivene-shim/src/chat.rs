@@ -41,7 +41,21 @@ const PAGE: usize = 50;
 
 /// How far beyond what the reader can see to fill in, so that scrolling
 /// does not walk into blank rows before the next fetch answers.
-const MARGIN: usize = 25;
+///
+/// In rows, and a placeholder is one line tall, so a screen of them is
+/// thirty-odd rows: a margin smaller than a screen ran out in the middle
+/// of one on a fast scroll, and the rest of the screen waited for the next
+/// round trip.
+const MARGIN: usize = 40;
+
+/// How many fetches may be in the air at once.
+///
+/// One was not enough. A reader flinging up through the history moves
+/// faster than a round trip, and a fetch for rows they have already passed
+/// held up the fetch for the rows in front of them until it landed -- which
+/// was a screen of blanks for as long as that took. Bounded, so a long
+/// flick asks for what it passes over rather than for everything at once.
+const IN_FLIGHT: usize = 4;
 
 /// A message as the id list knows it: which message, and which day it is
 /// under.
@@ -165,7 +179,7 @@ pub struct ChatMessages {
     /// stay as placeholders; this is the only thing that fetches messages
     /// after the chat is opened.
     pub hydrate: qt_method!(fn(&mut self, first: i32, last: i32)),
-    /// True while rows are being filled in, for a quiet indicator.
+    /// True while any rows are being filled in, for a quiet indicator.
     pub hydrating: qt_property!(bool; NOTIFY hydrating_changed),
     /// Emitted when [`Self::hydrating`] changes.
     pub hydrating_changed: qt_signal!(),
@@ -300,6 +314,16 @@ pub struct ChatMessages {
     /// keeps the line where it was rather than asking again and being
     /// told, correctly, that there is nothing unread any more.
     unread_marked_chat: u32,
+
+    /// The rows asked for and not yet answered, so the next ask skips them
+    /// rather than asking twice.
+    pending: HashSet<u32>,
+    /// How many fetches are in the air; `hydrating` is whether any are.
+    fetches: usize,
+    /// Counts reloads, so a fill that was in flight when the rows were
+    /// replaced lands nowhere: the view asks again for whatever it is
+    /// looking at once the new rows are in.
+    generation: u64,
 }
 
 impl ChatMessages {
@@ -496,10 +520,13 @@ impl ChatMessages {
         if account_id == 0 || chat_id == 0 {
             return;
         }
-        // Anything in flight is filling rows this reload is replacing; the
-        // flag being down is what tells such a reply to drop.
-        self.hydrating = false;
-        self.hydrating_changed();
+        // Anything in flight is filling rows this reload is replacing: its
+        // reply is dropped by the generation, and the view asks again once
+        // the new rows are in.
+        self.generation = self.generation.wrapping_add(1);
+        self.pending.clear();
+        self.fetches = 0;
+        self.set_hydrating(false);
         // The name is its own small fetch, on both paths below: the
         // prefetch does not carry it, and the page opens with the name the
         // list handed it anyway.
@@ -593,10 +620,14 @@ impl ChatMessages {
     /// side.
     ///
     /// The view asks as it scrolls, and asks generously: rows already
-    /// filled in are skipped here rather than counted there.
+    /// filled in, or already asked for, are skipped here rather than
+    /// counted there. Fetches overlap, up to `IN_FLIGHT` of them, so the
+    /// rows in front of a moving reader are asked for while the ones
+    /// behind them are still on their way; past that the ask is dropped,
+    /// and the page asks again when a fetch lands.
     pub fn hydrate(&mut self, first: i32, last: i32) {
         let (account_id, chat_id) = (self.account_id, self.chat_id);
-        if account_id == 0 || chat_id == 0 || self.hydrating {
+        if account_id == 0 || chat_id == 0 || self.fetches >= IN_FLIGHT {
             return;
         }
         let wanted = self.unloaded_between(first, last);
@@ -607,19 +638,30 @@ impl ChatMessages {
             return;
         };
 
-        self.hydrating = true;
-        self.hydrating_changed();
+        self.pending.extend(wanted.iter().copied());
+        self.fetches += 1;
+        self.set_hydrating(true);
+        let generation = self.generation;
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
+        let asked = wanted.clone();
         let done = queued_callback(move |result: Result<Vec<MessageListItem>, String>| {
             if let Some(this) = ptr.as_pinned() {
-                this.borrow_mut().hydrated(chat_id, result);
+                this.borrow_mut().hydrated(generation, &asked, result);
             }
         });
 
         runtime.spawn(async move {
             done(fetch_messages(&rpc, account_id, &wanted).await);
         });
+    }
+
+    /// Say whether rows are being filled in, when that changes.
+    fn set_hydrating(&mut self, hydrating: bool) {
+        if self.hydrating != hydrating {
+            self.hydrating = hydrating;
+            self.hydrating_changed();
+        }
     }
 
     /// The ids of the rows between two view indices, plus a margin either
@@ -639,22 +681,31 @@ impl ChatMessages {
         fill_order(first, last, rows.iter().count())
             .into_iter()
             .map(|index| &rows[index])
-            .filter(|item| !item.loaded)
+            .filter(|item| !item.loaded && !self.pending.contains(&item.message_id))
             .map(|item| item.message_id)
             .take(PAGE)
             .collect()
     }
 
     /// The rows a `hydrate` asked for came back: fill them in, in place.
-    fn hydrated(&mut self, chat_id: u32, result: Result<Vec<MessageListItem>, String>) {
-        // The flag is its own guard: `reload` puts it down, so a reply
-        // for rows that have since been replaced drops here.
-        if !self.hydrating || self.chat_id != chat_id {
+    fn hydrated(
+        &mut self,
+        generation: u64,
+        asked: &[u32],
+        result: Result<Vec<MessageListItem>, String>,
+    ) {
+        // From before a reload, which replaced the rows this was filling
+        // -- another chat's, or this one's read again. Dropped: the view
+        // has asked for what it is looking at now.
+        if generation != self.generation {
             return;
         }
+        for id in asked {
+            self.pending.remove(id);
+        }
+        self.fetches = self.fetches.saturating_sub(1);
         let filled = result.map(|items| self.fill_rows(items).len());
-        self.hydrating = false;
-        self.hydrating_changed();
+        self.set_hydrating(self.fetches > 0);
         match filled {
             // Changed in place, so the view keeps its position and its
             // delegates: nothing here moves the reader.
@@ -2394,24 +2445,36 @@ mod tests {
 
     #[test]
     fn the_screen_is_filled_before_the_margin_and_the_margin_nearest_first() {
-        let order = fill_order(30, 34, 100);
-        assert_eq!(&order[..5], &[30, 31, 32, 33, 34]);
-        assert_eq!(&order[5..9], &[35, 29, 36, 28]);
+        // A window with a whole margin's room on either side of it.
+        let (first, last, count) = (2 * MARGIN, 2 * MARGIN + 4, 5 * MARGIN);
+        let order = fill_order(first, last, count);
+        assert_eq!(&order[..5], &[first, first + 1, first + 2, first + 3, last]);
+        assert_eq!(&order[5..9], &[last + 1, first - 1, last + 2, first - 2]);
         assert_eq!(order.len(), 5 + 2 * MARGIN);
-        assert_eq!(order.iter().max(), Some(&(34 + MARGIN)));
-        assert_eq!(order.iter().min(), Some(&(30 - MARGIN)));
+        assert_eq!(order.iter().max(), Some(&(last + MARGIN)));
+        assert_eq!(order.iter().min(), Some(&(first - MARGIN)));
 
         // Against either end the margin is only what is there.
-        let top = fill_order(0, 4, 100);
+        let top = fill_order(0, 4, count);
         assert_eq!(&top[..6], &[0, 1, 2, 3, 4, 5]);
         assert_eq!(top.len(), 5 + MARGIN);
-        let bottom = fill_order(95, 99, 100);
-        assert_eq!(&bottom[..6], &[95, 96, 97, 98, 99, 94]);
+        let bottom = fill_order(count - 5, count - 1, count);
+        assert_eq!(
+            &bottom[..6],
+            &[
+                count - 5,
+                count - 4,
+                count - 3,
+                count - 2,
+                count - 1,
+                count - 6
+            ]
+        );
         assert_eq!(bottom.len(), 5 + MARGIN);
 
         // A view past the end, and no rows at all.
-        assert_eq!(fill_order(120, 130, 100)[0], 99);
+        assert_eq!(fill_order(count + 20, count + 30, count)[0], count - 1);
         assert!(fill_order(0, 0, 0).is_empty());
-        assert!(fill_order(5, 2, 100).is_empty());
+        assert!(fill_order(5, 2, count).is_empty());
     }
 }

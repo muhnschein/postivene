@@ -165,6 +165,10 @@ named `.ts`, so the scanner reads thirty-nine of them as TypeScript.
 `sonar.coverage.exclusions` keeps `qml/` out of the coverage arithmetic
 alone: nothing there can produce a report, and one changed line of QML
 JavaScript otherwise reads as 0% coverage on new code and fails the gate.
+`sonar.issue.ignore.multicriteria` closes the findings the project has
+decided against, one rule on one path each, with the reason beside it:
+qmetaobject's glob import, cognitive complexity in tests and in the fake
+servers, and a character-class name Sonar took for a repeated literal.
 
 The scanner uploads a report and exits; the server processes it afterwards,
 so the run that produced an analysis finishes knowing nothing about its

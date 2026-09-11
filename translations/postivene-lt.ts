@@ -1044,10 +1044,6 @@
         <translation>Po 1 metų</translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation>Ištrinti senas žinutes</translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation>Ištrinti žinutes iš įrenginio</translation>
     </message>

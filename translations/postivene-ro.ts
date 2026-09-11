@@ -1044,10 +1044,6 @@
         <translation>După 1 an</translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation>Șterge mesajele vechi</translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation>Șterge mesajele de pe dispozitiv</translation>
     </message>

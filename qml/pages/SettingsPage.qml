@@ -223,14 +223,12 @@ Page {
                 }
             }
 
-            SectionHeader {
-                text: qsTr("Delete old messages")
-            }
-
             // The core's own `delete_device_after`, which it applies to
             // every chat whatever that chat's disappearing messages timer
             // says -- that timer is the chat's, agreed between its
-            // members; this is the phone's, and only the phone's.
+            // members; this is the phone's, and only the phone's. Under
+            // Messages with the rest of what happens to one, rather than
+            // under a heading of its own.
             ComboBox {
                 id: deletionCombo
                 objectName: "deletionCombo"

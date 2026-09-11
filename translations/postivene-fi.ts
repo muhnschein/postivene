@@ -1039,10 +1039,6 @@
         <translation>1 vuoden kuluttua</translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation>Poista vanhat viestit</translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation>Poista viestit laitteesta</translation>
     </message>

@@ -1039,10 +1039,6 @@
         <translation>1 ವರ್ಷದ ನಂತರ</translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation>ಹಳೆಯ ಸಂದೇಶಗಳನ್ನು ಅಳಿಸಿ</translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation>ಸಾಧನದಿಂದ ಸಂದೇಶಗಳನ್ನು ಅಳಿಸಿ</translation>
     </message>

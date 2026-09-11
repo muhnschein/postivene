@@ -1039,10 +1039,6 @@
         <translation>Dopo 1 anno</translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation>Elimina i messaggi vecchi</translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation>Elimina i messaggi dal dispositivo</translation>
     </message>

@@ -1039,10 +1039,6 @@
         <translation>Etter 1 år</translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation>Slett gamle meldinger</translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation>Slett meldinger fra enheten</translation>
     </message>

@@ -1039,10 +1039,6 @@
         <translation>1 సంవత్సరం తర్వాత</translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation>పాత సందేశాలను తొలగించు</translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation>పరికరం నుండి సందేశాలను తొలగించు</translation>
     </message>

@@ -1039,10 +1039,6 @@
         <translation>1 বছর পরে</translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation>পুরোনো বার্তা মুছুন</translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation>ডিভাইস থেকে বার্তা মুছুন</translation>
     </message>

@@ -1039,10 +1039,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation type="unfinished"></translation>
     </message>

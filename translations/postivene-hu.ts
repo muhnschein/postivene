@@ -1034,10 +1034,6 @@
         <translation>1 év után</translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation>Régi üzenetek törlése</translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation>Üzenetek törlése az eszközről</translation>
     </message>

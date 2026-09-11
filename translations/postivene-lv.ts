@@ -1044,10 +1044,6 @@
         <translation>Pēc 1 gada</translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation>Dzēst vecās ziņas</translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation>Dzēst ziņas no ierīces</translation>
     </message>

@@ -1044,10 +1044,6 @@
         <translation>Po 1 roku</translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation>Mazanie starých správ</translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation>Mazať správy zo zariadenia</translation>
     </message>

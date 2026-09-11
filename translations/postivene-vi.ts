@@ -1034,10 +1034,6 @@
         <translation>Sau 1 năm</translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation>Xóa tin nhắn cũ</translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation>Xóa tin nhắn khỏi thiết bị</translation>
     </message>

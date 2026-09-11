@@ -1044,10 +1044,6 @@
         <translation>Через 1 рік</translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation>Видалення старих повідомлень</translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation>Видаляти повідомлення з пристрою</translation>
     </message>

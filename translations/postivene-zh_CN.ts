@@ -1034,10 +1034,6 @@
         <translation>1 年后</translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation>删除旧消息</translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation>从设备删除消息</translation>
     </message>

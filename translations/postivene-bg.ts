@@ -1039,10 +1039,6 @@
         <translation>След 1 година</translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation>Изтриване на стари съобщения</translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation>Изтриване на съобщения от устройството</translation>
     </message>

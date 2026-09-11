@@ -1039,10 +1039,6 @@
         <translation>Na 1 jaar</translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation>Oude berichten verwijderen</translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation>Berichten van apparaat verwijderen</translation>
     </message>

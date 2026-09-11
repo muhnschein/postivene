@@ -1034,10 +1034,6 @@
         <translation>1 елдан соң</translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation>Иске хәбәрләрне бетерү</translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation>Хәбәрләрне җайланмадан бетерергә</translation>
     </message>

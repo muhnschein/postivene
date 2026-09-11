@@ -1049,10 +1049,6 @@
         <translation>Po 1 letu</translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation>Brisanje starih sporočil</translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation>Briši sporočila z naprave</translation>
     </message>

@@ -1044,10 +1044,6 @@
         <translation>Po 1 roku</translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation>Usuwanie starych wiadomości</translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation>Usuwaj wiadomości z urządzenia</translation>
     </message>

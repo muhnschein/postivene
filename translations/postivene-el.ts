@@ -1039,10 +1039,6 @@
         <translation>Μετά από 1 έτος</translation>
     </message>
     <message>
-        <source>Delete old messages</source>
-        <translation>Διαγραφή παλιών μηνυμάτων</translation>
-    </message>
-    <message>
         <source>Delete messages from device</source>
         <translation>Διαγραφή μηνυμάτων από τη συσκευή</translation>
     </message>

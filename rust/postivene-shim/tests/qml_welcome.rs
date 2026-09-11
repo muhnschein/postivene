@@ -224,7 +224,13 @@ fn the_welcome_page_draws_the_field_and_turns_with_the_phone() {
 
     engine.exec();
 
-    let steps = steps.borrow();
+    assert_field_drawn(&steps.borrow());
+}
+
+/// The page upright draws the portrait master, the mask loads and the
+/// shader shows over it, the box is cleared where the words are, the
+/// name leads, and the page on its side swaps to the landscape master.
+fn assert_field_drawn(steps: &[(String, String)]) {
     let value = |label: &str| -> &str {
         steps
             .iter()

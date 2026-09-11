@@ -327,44 +327,54 @@ Environment requirements, each of which cost an attempt:
 
 ## What a device build costs
 
-Seven and a half minutes, once, measured across eighty-nine runs of
-`rpm.yml` and the one job log that could still be read in full. Where it
-went, and what each part is now:
+Seven and a quarter minutes before this, and a little over three now. The
+before column is run 89, the last one built the old way; the two after it
+are runs 98 and 99, both against a published SDK image and a warm cache.
 
-| Phase | Was | Now |
-|---|---|---|
-| Pull the SDK image | 2.5-3.1 min | about 1.2 min |
-| `build-init`, and zypper installing 17 packages | about 0.5 min | seconds |
-| cargo, cross-compiling 56 crates | about 3.8 min | about 1 min warm |
-| install, rpmbuild, upload, validate | about 0.7 min | unchanged |
+| Step | Before | One job | Four jobs |
+|---|---|---|---|
+| Pull the SDK image | 144 s | 105 s | 80 s |
+| Build the RPM | 270 s | 142 s | 82 s |
+| Validate against Harbour | 12 s | 10 s | 10 s |
+| **The whole run** | **437 s** | **284 s** | **190 s** |
 
-Three changes, in the order they pay:
+Four changes, in the order they pay:
 
 **The SDK image is derived, not upstream's.** `ci/build-sdk-image.sh` takes
 `coderus/sailfishos-platform-sdk` by digest and produces an image with one
 architecture instead of three, this package's `BuildRequires` already
-installed in the target, and the i686 rustlib already at
-`/usr/lib/rustlib`. 5.04 GB of pull becomes about 2.3 GB, and `zypper`
-leaves the build's critical path. `sdk-image.yml` publishes it to the
-repository's registry; `rpm.yml` derives and publishes one itself when it
-finds none, so nothing has to be done by hand when an SDK version is added.
-Adding one is a pinned digest in `ci/build-sdk-image.sh` and a dispatch.
+installed, and the i686 rustlib already at `/usr/lib/rustlib`. It has to
+flatten the result rather than layer it, because files deleted in a new
+layer still weigh what they weighed. 5.04 GB of pull becomes about 2.3 GB,
+and `zypper` leaves the critical path: `build-init` and `build-requires`
+together took 30 s and now take 3.
+
+A target here is two rootfs -- the pristine one, and the `<target>.default`
+snapshot that mb2 actually builds in and that `build-requires` installs
+into. Both are kept. Deleting the snapshot as a redundant copy is what
+made the first derived image come out with no rust in it.
+
+`sdk-image.yml` publishes the image to the repository's registry; `rpm.yml`
+derives and publishes one itself when it finds none, so a new SDK version
+needs a pinned digest in `ci/build-sdk-image.sh` and nothing else. That
+first run pays for it: run 97 took 850 s, of which 576 was deriving and
+pushing.
 
 **`rust/target` and the crates are carried between runs.** Keyed on the
-lockfile and the image, because they are artifacts for one target triple
-built by the rust that image ships. Of the 56 crates, 52 come from the
-lockfile and change only when it does; the four this project writes are
-rebuilt every time and are most of what a warm build spends. A fresh
-`actions/checkout` gives every file a new mtime and does *not* defeat this:
-cargo fingerprints registry crates by their content, and only the path
-crates -- the three workspace members and the vendored qmetaobject --
-rebuild.
+lockfile and on the image, because they are artifacts for one target triple
+built by the rust that image ships. It is worth 103 s: the same build cold
+took 245 s and warm 142 s. Of the 56 crates, 52 come from the lockfile and
+change only when it does. A fresh `actions/checkout` gives every file a new
+mtime and does *not* defeat this -- cargo fingerprints registry crates by
+content, so only the path crates rebuild. The two caches are small, 112 MB
+and 12 MB.
+
+**cargo runs four jobs inside scratchbox2**, which is worth another 60 s.
+See the job count under "Spec constraints" below for what that setting is
+and why it was one for so long.
 
 **Both architectures build at once**, as a matrix, so a release is one run
 rather than two dispatches.
-
-`cargo_jobs` is the fourth, and the one with a history: see the job count
-under "Spec constraints" below.
 
 ## Spec constraints
 

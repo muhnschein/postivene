@@ -72,6 +72,47 @@
     </message>
 </context>
 <context>
+    <name>AutoDeleteDialog</name>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Удалять сообщения с устройства</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Удалить</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Отмена</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n message(s) will be deleted now, and from then on every message will be once it is that old.</source>
+        <extracomment>%n is how many messages would be deleted straight away.</extracomment>
+        <translation>
+            <numerusform>%n сообщение будет удалено сейчас, а затем каждое сообщение — как только станет настолько старым.</numerusform>
+            <numerusform>%n сообщения будут удалены сейчас, а затем каждое сообщение — как только станет настолько старым.</numerusform>
+            <numerusform>%n сообщений будут удалены сейчас, а затем каждое сообщение — как только станет настолько старым.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>This includes pictures, videos and files.</source>
+        <translation>Это касается и изображений, видео и файлов.</translation>
+    </message>
+    <message>
+        <source>Messages are deleted whether they were read or not.</source>
+        <translation>Сообщения удаляются независимо от того, прочитаны они или нет.</translation>
+    </message>
+    <message>
+        <source>&quot;Saved messages&quot; are kept.</source>
+        <extracomment>&quot;Saved messages&quot; is the name of the chat with oneself.</extracomment>
+        <translation>«Сохранённые сообщения» остаются.</translation>
+    </message>
+    <message>
+        <source>I understand, delete all these messages</source>
+        <translation>Понимаю, удалить все эти сообщения</translation>
+    </message>
+</context>
+<context>
     <name>CapturePage</name>
     <message>
         <source>The video could not be saved</source>
@@ -283,6 +324,10 @@
     <message>
         <source>Save</source>
         <translation>Сохранить</translation>
+    </message>
+    <message>
+        <source>Edit</source>
+        <translation>Изменить</translation>
     </message>
 </context>
 <context>
@@ -524,6 +569,10 @@
         <source>View full message</source>
         <extracomment>Opens the whole message on a page of its own.</extracomment>
         <translation>Показать всё сообщение</translation>
+    </message>
+    <message>
+        <source>Edited</source>
+        <translation>Изменено</translation>
     </message>
 </context>
 <context>
@@ -815,6 +864,11 @@
         <source>Replying to %1</source>
         <translation>Ответ для %1</translation>
     </message>
+    <message>
+        <source>Editing message</source>
+        <extracomment>Above the message field while a sent message&apos;s text is being changed; the message&apos;s text follows.</extracomment>
+        <translation>Изменение сообщения</translation>
+    </message>
 </context>
 <context>
     <name>ScanView</name>
@@ -913,10 +967,6 @@
         <translation>Оформлено: жирный, курсив, ссылки</translation>
     </message>
     <message>
-        <source>Taken out: the words only</source>
-        <translation>Убрано: только слова</translation>
-    </message>
-    <message>
         <source>As written</source>
         <translation>Как написано</translation>
     </message>
@@ -943,10 +993,6 @@
     <message>
         <source>Notifications</source>
         <translation>Уведомления</translation>
-    </message>
-    <message>
-        <source>A new message shows</source>
-        <translation>Новое сообщение показывает</translation>
     </message>
     <message>
         <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
@@ -976,6 +1022,51 @@
     <message>
         <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
         <translation>Присланные кем-то приложения запускаются прямо в переписке, а на панели вложений появляется магазин, откуда можно взять новые. Приложение — это чужой код, и эта часть проверена ещё не так хорошо, как остальные.</translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation>Через 1 час</translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation>Через 1 день</translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation>Через 1 неделю</translation>
+    </message>
+    <message>
+        <source>After 5 weeks</source>
+        <translation>Через 5 нед.</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>Через 1 год</translation>
+    </message>
+    <message>
+        <source>Delete old messages</source>
+        <translation>Удаление старых сообщений</translation>
+    </message>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Удалять сообщения с устройства</translation>
+    </message>
+    <message>
+        <source>Older messages go from this phone, in every chat of every profile, whatever a chat&apos;s own disappearing messages setting says. &quot;Saved messages&quot; are kept.</source>
+        <translation>Старые сообщения удаляются с этого телефона, в каждом чате каждого профиля, что бы ни говорила настройка исчезающих сообщений самого чата. «Сохранённые сообщения» остаются.</translation>
+    </message>
+    <message>
+        <source>A new notification shows</source>
+        <translation>Новое уведомление показывает</translation>
+    </message>
+    <message>
+        <source>Mentions</source>
+        <extracomment>A reply to one of the reader&apos;s own messages, arriving in a group they have muted.</extracomment>
+        <translation>Упоминания</translation>
+    </message>
+    <message>
+        <source>In a muted group, a reply to one of your messages still notifies you.</source>
+        <translation>В группе с отключёнными уведомлениями ответ на ваше сообщение всё равно вас уведомит.</translation>
     </message>
 </context>
 <context>

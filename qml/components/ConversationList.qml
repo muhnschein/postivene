@@ -20,9 +20,14 @@ SilicaListView {
     /// not move it afterwards; see `ChatMessages.unread_from`.
     property int unreadFrom: 0
     property string placeholderText
-    /// How a message body is drawn: 0 Markdown, 1 its words only, 2 as
-    /// written. The page binds it from the reader's setting.
-    property int markdownMode: 2
+    /// How a message body is drawn: 0 Markdown, anything else as written.
+    /// The page binds it from the reader's setting.
+    property int markdownMode: 1
+    /// Whether a message of the reader's own is offered for editing at
+    /// all: the chat takes messages, and is encrypted. The page binds it
+    /// from the model, which asks the core; what the row adds is whether
+    /// this message is one the core would let them edit.
+    property bool canEdit: false
     /// Whether webxdc apps are on. Handed down to each row, which draws a
     /// `.xdc` as a file rather than an app without it. The page binds it
     /// from the reader's setting, as it does the Markdown mode.
@@ -106,6 +111,10 @@ SilicaListView {
     // Raised rather than acted on: the component knows nothing about the
     // core, which is what makes it loadable on its own.
     signal replyRequested(int messageId, string body, string author)
+    /// The reader asked to change the text of a message of their own.
+    /// The text travels with it: the field is filled from here, and this
+    /// row may be gone by the time the page gets round to it.
+    signal editRequested(int messageId, string body)
     signal copyRequested(string body)
     signal deleteRequested(int messageId)
     signal resendRequested(int messageId)
@@ -164,6 +173,17 @@ SilicaListView {
     /// them. Anything else is a chip someone else's reaction has put on
     /// the message, which a tap answers in kind.
     readonly property var quickReactions: ["👍", "❤️", "😂", "😮", "😢", "🙏"]
+
+    /// Whether a tap on an attachment of this kind opens a page of the
+    /// app's own -- PicturePage for a picture, VideoPage for a video --
+    /// rather than handing the file to the system. Those pages carry
+    /// Open and Save on their pull-down, so the row's menu does not
+    /// offer them a second time. What the page pushes for each kind is
+    /// ConversationPage.openAttachment.
+    function opensOnItsOwnPage(viewType) {
+        return viewType === "Image" || viewType === "Gif"
+               || viewType === "Sticker" || viewType === "Video"
+    }
 
     /// Back to the newest message, and following again.
     function jumpToNewest() {
@@ -641,6 +661,20 @@ SilicaListView {
                                                    model.sender_name)
                 }
                 MenuItem {
+                    objectName: "editItem"
+                    // Only what the core will take an edit of, which is
+                    // what deltachat-android asks before offering it: a
+                    // message of one's own, not a notice, not a call,
+                    // with text to change -- an edit cannot add words to
+                    // a picture sent bare -- and not one the sending
+                    // core cut, whose whole text is not here to edit.
+                    visible: root.canEdit && model.is_outgoing && !model.is_info
+                             && model.text.length > 0 && !model.has_html
+                             && model.view_type !== "Call"
+                    text: qsTr("Edit")
+                    onClicked: root.editRequested(model.message_id, model.text)
+                }
+                MenuItem {
                     objectName: "copyItem"
                     // An image or a voice message with no caption has no text:
                     // copying one emptied the clipboard and said it had worked.
@@ -653,8 +687,11 @@ SilicaListView {
                     // Only a message that carries one; a webxdc app is run
                     // rather than opened, and has its own tap. With apps off
                     // there is nothing to run, and the .xdc is a file like
-                    // any other -- which is what the row already draws.
+                    // any other -- which is what the row already draws. A
+                    // picture or a video has a page of its own, whose
+                    // pull-down offers this, so the menu does not.
                     visible: model.file_path.length > 0
+                             && !root.opensOnItsOwnPage(model.view_type)
                              && !(root.appsEnabled
                                   && model.view_type === "Webxdc")
                     text: qsTr("Open")
@@ -666,7 +703,10 @@ SilicaListView {
                     objectName: "saveItem"
                     // The reader's own copy, outside the app: what makes a
                     // file somebody sent theirs rather than the chat's.
+                    // Not for what has a page of its own, for the reason
+                    // Open is not.
                     visible: model.file_path.length > 0
+                             && !root.opensOnItsOwnPage(model.view_type)
                     text: qsTr("Save")
                     onClicked: root.saveRequested("file://" + model.file_path,
                                                   model.view_type)
@@ -896,7 +936,7 @@ SilicaListView {
             width: parent.width
             messageText: model.text
             styledText: model.styled_text
-            plainText: model.plain_text
+            isEdited: model.is_edited
             markdownMode: root.markdownMode
             downloadState: model.download_state
             isOutgoing: model.is_outgoing

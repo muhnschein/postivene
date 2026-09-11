@@ -72,6 +72,46 @@
     </message>
 </context>
 <context>
+    <name>AutoDeleteDialog</name>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Διαγραφή μηνυμάτων από τη συσκευή</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Διαγραφή</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Ακύρωση</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n message(s) will be deleted now, and from then on every message will be once it is that old.</source>
+        <extracomment>%n is how many messages would be deleted straight away.</extracomment>
+        <translation>
+            <numerusform>%n μήνυμα θα διαγραφεί τώρα, και από εδώ και πέρα κάθε μήνυμα θα διαγράφεται μόλις γίνει τόσο παλιό.</numerusform>
+            <numerusform>%n μηνύματα θα διαγραφούν τώρα, και από εδώ και πέρα κάθε μήνυμα θα διαγράφεται μόλις γίνει τόσο παλιό.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>This includes pictures, videos and files.</source>
+        <translation>Αυτό περιλαμβάνει εικόνες, βίντεο και αρχεία.</translation>
+    </message>
+    <message>
+        <source>Messages are deleted whether they were read or not.</source>
+        <translation>Τα μηνύματα διαγράφονται είτε έχουν διαβαστεί είτε όχι.</translation>
+    </message>
+    <message>
+        <source>&quot;Saved messages&quot; are kept.</source>
+        <extracomment>&quot;Saved messages&quot; is the name of the chat with oneself.</extracomment>
+        <translation>Τα «Αποθηκευμένα μηνύματα» διατηρούνται.</translation>
+    </message>
+    <message>
+        <source>I understand, delete all these messages</source>
+        <translation>Καταλαβαίνω, διαγραφή όλων αυτών των μηνυμάτων</translation>
+    </message>
+</context>
+<context>
     <name>CapturePage</name>
     <message>
         <source>The video could not be saved</source>
@@ -283,6 +323,10 @@
     <message>
         <source>Save</source>
         <translation>Αποθήκευση</translation>
+    </message>
+    <message>
+        <source>Edit</source>
+        <translation>Επεξεργασία</translation>
     </message>
 </context>
 <context>
@@ -522,6 +566,10 @@
         <source>View full message</source>
         <extracomment>Opens the whole message on a page of its own.</extracomment>
         <translation>Προβολή ολόκληρου μηνύματος</translation>
+    </message>
+    <message>
+        <source>Edited</source>
+        <translation>Επεξεργασμένο</translation>
     </message>
 </context>
 <context>
@@ -811,6 +859,11 @@
         <source>Replying to %1</source>
         <translation>Απάντηση σε %1</translation>
     </message>
+    <message>
+        <source>Editing message</source>
+        <extracomment>Above the message field while a sent message&apos;s text is being changed; the message&apos;s text follows.</extracomment>
+        <translation>Επεξεργασία μηνύματος</translation>
+    </message>
 </context>
 <context>
     <name>ScanView</name>
@@ -909,10 +962,6 @@
         <translation>Μορφοποιημένο: έντονα, πλάγια, σύνδεσμοι</translation>
     </message>
     <message>
-        <source>Taken out: the words only</source>
-        <translation>Αφαιρεμένο: μόνο οι λέξεις</translation>
-    </message>
-    <message>
         <source>As written</source>
         <translation>Όπως γράφτηκε</translation>
     </message>
@@ -939,10 +988,6 @@
     <message>
         <source>Notifications</source>
         <translation>Ειδοποιήσεις</translation>
-    </message>
-    <message>
-        <source>A new message shows</source>
-        <translation>Ένα νέο μήνυμα δείχνει</translation>
     </message>
     <message>
         <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
@@ -972,6 +1017,51 @@
     <message>
         <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
         <translation>Οι εφαρμογές που στέλνει κάποιος εκτελούνται μέσα στη συνομιλία, και ο δίσκος συνημμένων προσφέρει ένα κατάστημα για νέες. Μια εφαρμογή είναι κώδικας άλλου, και αυτό το μέρος δεν είναι ακόμη τόσο δοκιμασμένο όσο τα υπόλοιπα.</translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation>Μετά από 1 ώρα</translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation>Μετά από 1 ημέρα</translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation>Μετά από 1 εβδομάδα</translation>
+    </message>
+    <message>
+        <source>After 5 weeks</source>
+        <translation>Μετά από 5 εβδομάδες</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>Μετά από 1 έτος</translation>
+    </message>
+    <message>
+        <source>Delete old messages</source>
+        <translation>Διαγραφή παλιών μηνυμάτων</translation>
+    </message>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Διαγραφή μηνυμάτων από τη συσκευή</translation>
+    </message>
+    <message>
+        <source>Older messages go from this phone, in every chat of every profile, whatever a chat&apos;s own disappearing messages setting says. &quot;Saved messages&quot; are kept.</source>
+        <translation>Τα παλαιότερα μηνύματα διαγράφονται από αυτό το τηλέφωνο, σε κάθε συνομιλία κάθε προφίλ, ό,τι κι αν λέει η ρύθμιση της συνομιλίας για τα μηνύματα που εξαφανίζονται. Τα «Αποθηκευμένα μηνύματα» διατηρούνται.</translation>
+    </message>
+    <message>
+        <source>A new notification shows</source>
+        <translation>Μια νέα ειδοποίηση δείχνει</translation>
+    </message>
+    <message>
+        <source>Mentions</source>
+        <extracomment>A reply to one of the reader&apos;s own messages, arriving in a group they have muted.</extracomment>
+        <translation>Αναφορές</translation>
+    </message>
+    <message>
+        <source>In a muted group, a reply to one of your messages still notifies you.</source>
+        <translation>Σε μια ομάδα σε σίγαση, μια απάντηση σε δικό σας μήνυμα σας ειδοποιεί έτσι κι αλλιώς.</translation>
     </message>
 </context>
 <context>

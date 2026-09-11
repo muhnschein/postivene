@@ -72,6 +72,46 @@
     </message>
 </context>
 <context>
+    <name>AutoDeleteDialog</name>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Nachrichten vom Gerät löschen</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Löschen</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Abbrechen</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n message(s) will be deleted now, and from then on every message will be once it is that old.</source>
+        <extracomment>%n is how many messages would be deleted straight away.</extracomment>
+        <translation>
+            <numerusform>%n Nachricht wird jetzt gelöscht, und von da an jede Nachricht, sobald sie so alt ist.</numerusform>
+            <numerusform>%n Nachrichten werden jetzt gelöscht, und von da an jede Nachricht, sobald sie so alt ist.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>This includes pictures, videos and files.</source>
+        <translation>Das schließt Bilder, Videos und Dateien ein.</translation>
+    </message>
+    <message>
+        <source>Messages are deleted whether they were read or not.</source>
+        <translation>Nachrichten werden gelöscht, ob gelesen oder nicht.</translation>
+    </message>
+    <message>
+        <source>&quot;Saved messages&quot; are kept.</source>
+        <extracomment>&quot;Saved messages&quot; is the name of the chat with oneself.</extracomment>
+        <translation>„Gespeicherte Nachrichten“ bleiben erhalten.</translation>
+    </message>
+    <message>
+        <source>I understand, delete all these messages</source>
+        <translation>Ich verstehe, alle diese Nachrichten löschen</translation>
+    </message>
+</context>
+<context>
     <name>CapturePage</name>
     <message>
         <source>The video could not be saved</source>
@@ -283,6 +323,10 @@
     <message>
         <source>Save</source>
         <translation>Speichern</translation>
+    </message>
+    <message>
+        <source>Edit</source>
+        <translation>Bearbeiten</translation>
     </message>
 </context>
 <context>
@@ -522,6 +566,10 @@
         <source>View full message</source>
         <extracomment>Opens the whole message on a page of its own.</extracomment>
         <translation>Ganze Nachricht anzeigen</translation>
+    </message>
+    <message>
+        <source>Edited</source>
+        <translation>Bearbeitet</translation>
     </message>
 </context>
 <context>
@@ -811,6 +859,11 @@
         <source>Replying to %1</source>
         <translation>Antwort an %1</translation>
     </message>
+    <message>
+        <source>Editing message</source>
+        <extracomment>Above the message field while a sent message&apos;s text is being changed; the message&apos;s text follows.</extracomment>
+        <translation>Nachricht bearbeiten</translation>
+    </message>
 </context>
 <context>
     <name>ScanView</name>
@@ -909,10 +962,6 @@
         <translation>Dargestellt: fett, kursiv, Links</translation>
     </message>
     <message>
-        <source>Taken out: the words only</source>
-        <translation>Entfernt: nur der Text</translation>
-    </message>
-    <message>
         <source>As written</source>
         <translation>Wie geschrieben</translation>
     </message>
@@ -939,10 +988,6 @@
     <message>
         <source>Notifications</source>
         <translation>Benachrichtigungen</translation>
-    </message>
-    <message>
-        <source>A new message shows</source>
-        <translation>Eine neue Nachricht zeigt</translation>
     </message>
     <message>
         <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
@@ -972,6 +1017,51 @@
     <message>
         <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
         <translation>Apps, die jemand sendet, laufen direkt im Chat, und das Anhang-Menü bietet einen Store für neue an. Eine App ist fremder Code, und dieser Teil ist noch nicht so gut getestet wie der Rest.</translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation>Nach 1 Stunde</translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation>Nach 1 Tag</translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation>Nach 1 Woche</translation>
+    </message>
+    <message>
+        <source>After 5 weeks</source>
+        <translation>Nach 5 Wochen</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>Nach 1 Jahr</translation>
+    </message>
+    <message>
+        <source>Delete old messages</source>
+        <translation>Alte Nachrichten löschen</translation>
+    </message>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Nachrichten vom Gerät löschen</translation>
+    </message>
+    <message>
+        <source>Older messages go from this phone, in every chat of every profile, whatever a chat&apos;s own disappearing messages setting says. &quot;Saved messages&quot; are kept.</source>
+        <translation>Ältere Nachrichten verschwinden von diesem Telefon, in jedem Chat jedes Profils, was auch immer die Einstellung des Chats für verschwindende Nachrichten sagt. „Gespeicherte Nachrichten“ bleiben erhalten.</translation>
+    </message>
+    <message>
+        <source>A new notification shows</source>
+        <translation>Eine neue Benachrichtigung zeigt</translation>
+    </message>
+    <message>
+        <source>Mentions</source>
+        <extracomment>A reply to one of the reader&apos;s own messages, arriving in a group they have muted.</extracomment>
+        <translation>Erwähnungen</translation>
+    </message>
+    <message>
+        <source>In a muted group, a reply to one of your messages still notifies you.</source>
+        <translation>In einer stummgeschalteten Gruppe benachrichtigt eine Antwort auf eine Ihrer Nachrichten Sie trotzdem.</translation>
     </message>
 </context>
 <context>

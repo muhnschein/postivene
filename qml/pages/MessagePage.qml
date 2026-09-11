@@ -25,8 +25,8 @@ Page {
     property int messageId: 0
     /// Who wrote it, for under the heading.
     property string senderName: ""
-    /// 0 draws Markdown, 1 takes its markers out, 2 shows it as written.
-    property int markdownMode: 2
+    /// 0 draws Markdown; anything else shows the message as written.
+    property int markdownMode: 1
 
     /// What went wrong, when something did. Kept on the screen rather
     /// than shown and cleared: a page with nothing on it and no reason
@@ -50,9 +50,7 @@ Page {
     /// The body as the setting wants it shown.
     readonly property string shownText: page.drawsStyled
                                         ? whole.styled_text
-                                        : page.markdownMode === 1 && whole.plain_text.length > 0
-                                          ? whole.plain_text
-                                          : whole.text
+                                        : whole.text
 
     SilicaFlickable {
         id: flickable

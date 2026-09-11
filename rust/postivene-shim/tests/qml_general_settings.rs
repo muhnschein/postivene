@@ -6,6 +6,12 @@
 //! anywhere reaches the page, and a change made on the page reaches the
 //! conversation. Both are loaded here against a stub `ConfigurationValue`
 //! that holds a value and stores nothing.
+//!
+//! The deletion period is the one setting the page does not write on the
+//! tap: it asks the core how much would go first, and the core here has
+//! not been started, so what this pins is that nothing was written and
+//! the page said why. The whole of that flow, dialog included, is
+//! `qml_auto_delete_flow.rs`.
 
 // Qt harness: see qml_pages.rs.
 #![allow(
@@ -19,6 +25,7 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
+use postivene_shim::DeltaChatCore;
 use qmetaobject::*;
 
 mod common;
@@ -86,10 +93,14 @@ fn the_settings_page_writes_what_the_app_reads() {
         std::env::set_var("QT_QPA_PLATFORM", "offscreen");
     }
 
+    // The page asks the core how much a deletion period would take; a
+    // core never started answers that it is not there.
+    let core_box = QObjectBox::new(DeltaChatCore::default());
     let mut engine = QmlEngine::new();
     engine.add_import_path(QString::from(
         common::stubs_dir().to_string_lossy().into_owned(),
     ));
+    engine.set_object_property("core".into(), core_box.pinned());
     engine.load_data(QByteArray::from(probe_qml()));
 
     let engine_ptr = std::ptr::addr_of_mut!(engine);
@@ -133,8 +144,16 @@ fn the_settings_page_writes_what_the_app_reads() {
             call!("appKey", QString::from("downloadLimitConfig"))
         );
         record!(
+            "app-deletion-key",
+            call!("appKey", QString::from("deleteDeviceAfterConfig"))
+        );
+        record!(
             "app-notification-key",
             call!("appKey", QString::from("notificationDetailConfig"))
+        );
+        record!(
+            "app-mentions-key",
+            call!("appKey", QString::from("mentionNotificationsConfig"))
         );
         record!(
             "app-apps-key",
@@ -150,11 +169,20 @@ fn the_settings_page_writes_what_the_app_reads() {
             call!("appReads", QString::from("markdownMode"))
         );
         record!("markdown-index", get!("markdownCombo", "currentIndex"));
+        // Two choices, drawn or as written: the one that took the
+        // markers out is gone.
+        record!("markdown-third", get!("markdownOption2", "text"));
         record!(
             "download-default",
             call!("appReads", QString::from("downloadLimit"))
         );
         record!("download-index", get!("downloadCombo", "currentIndex"));
+        record!(
+            "deletion-default",
+            call!("appReads", QString::from("deleteDeviceAfter"))
+        );
+        record!("deletion-index", get!("deletionCombo", "currentIndex"));
+        record!("deletion-label", get!("deletionCombo", "label"));
         record!(
             "links-default",
             call!("appReads", QString::from("cleanLinks"))
@@ -168,6 +196,12 @@ fn the_settings_page_writes_what_the_app_reads() {
             "notification-index",
             get!("notificationCombo", "currentIndex")
         );
+        record!("notification-label", get!("notificationCombo", "label"));
+        record!(
+            "mentions-default",
+            call!("appReads", QString::from("mentionNotifications"))
+        );
+        record!("mentions-switch", get!("mentionsSwitch", "checked"));
         record!(
             "apps-default",
             call!("appReads", QString::from("webxdcEnabled"))
@@ -224,6 +258,25 @@ fn the_settings_page_writes_what_the_app_reads() {
             "notification-shown",
             get!("notificationCombo", "currentIndex")
         );
+        // Mentions are on until the reader says otherwise, as the
+        // reference clients have them.
+        record!(
+            "flip-mentions",
+            call!("click", QString::from("mentionsSwitch"))
+        );
+        record!(
+            "mentions-off",
+            call!("appReads", QString::from("mentionNotifications"))
+        );
+        record!("mentions-switch-off", get!("mentionsSwitch", "checked"));
+        record!(
+            "flip-mentions-back",
+            call!("click", QString::from("mentionsSwitch"))
+        );
+        record!(
+            "mentions-on",
+            call!("appReads", QString::from("mentionNotifications"))
+        );
         // Apps are the one setting the rest of the app hides behind, so
         // both ways round it goes matter: off is what a phone that has
         // never been asked reads, and the switch says so.
@@ -239,13 +292,34 @@ fn the_settings_page_writes_what_the_app_reads() {
             call!("appReads", QString::from("webxdcEnabled"))
         );
         record!("apps-switch-off", get!("webxdcSwitch", "checked"));
+        // A deletion period is not written on the tap: the core is asked
+        // first, and this one is not there to answer.
+        record!(
+            "pick-deletion",
+            call!("click", QString::from("deletionOption3600"))
+        );
+        record!(
+            "deletion-unwritten",
+            call!("appReads", QString::from("deleteDeviceAfter"))
+        );
+        record!("deletion-shown", get!("deletionCombo", "currentIndex"));
         // The other direction: a change made anywhere else reaches the
-        // page's choice.
+        // page's choice. A stored 2, which an older build wrote for "as
+        // written", still reads as that.
         record!(
             "app-write",
             call!("appWrites", QString::from("markdownMode"), 2)
         );
         record!("page-follows", get!("markdownCombo", "currentIndex"));
+        record!(
+            "app-write-deletion",
+            call!("appWrites", QString::from("deleteDeviceAfter"), 604_800)
+        );
+        record!("deletion-follows", get!("deletionCombo", "currentIndex"));
+    });
+    // The core's refusal arrives a turn later.
+    single_shot(Duration::from_secs(2), move || unsafe {
+        record!("deletion-error", get!("errorBanner", "text"));
         (*engine_ptr).quit();
     });
 
@@ -268,8 +342,12 @@ fn the_settings_page_writes_what_the_app_reads() {
     for (label, expected) in [
         ("markdown-default", "0"),
         ("markdown-index", "0"),
+        ("markdown-third", "missing:markdownOption2"),
         ("download-default", "1048576"),
         ("download-index", "3"),
+        ("deletion-default", "0"),
+        ("deletion-index", "0"),
+        ("deletion-label", "Delete messages from device"),
         ("links-default", "false"),
         ("links-switch", "false"),
         ("pick-markdown", "ok"),
@@ -290,8 +368,16 @@ fn the_settings_page_writes_what_the_app_reads() {
         ("app-links-key", "/apps/harbour-postivene/clean_links"),
         ("app-download-key", "/apps/harbour-postivene/download_limit"),
         (
+            "app-deletion-key",
+            "/apps/harbour-postivene/delete_device_after",
+        ),
+        (
             "app-notification-key",
             "/apps/harbour-postivene/notification_detail",
+        ),
+        (
+            "app-mentions-key",
+            "/apps/harbour-postivene/mention_notifications",
         ),
         ("app-apps-key", "/apps/harbour-postivene/webxdc_enabled"),
         ("apps-default", "false"),
@@ -304,12 +390,30 @@ fn the_settings_page_writes_what_the_app_reads() {
         ("apps-switch-off", "false"),
         ("notification-default", "0"),
         ("notification-index", "0"),
+        ("notification-label", "A new notification shows"),
         ("pick-notification", "ok"),
         ("notification-picked", "2"),
         ("notification-shown", "2"),
+        ("mentions-default", "true"),
+        ("mentions-switch", "true"),
+        ("flip-mentions", "ok"),
+        ("mentions-off", "false"),
+        ("mentions-switch-off", "false"),
+        ("flip-mentions-back", "ok"),
+        ("mentions-on", "true"),
+        ("pick-deletion", "ok"),
+        ("deletion-unwritten", "0"),
+        ("deletion-shown", "0"),
         ("app-write", "ok"),
-        ("page-follows", "2"),
+        ("page-follows", "1"),
+        ("app-write-deletion", "ok"),
+        ("deletion-follows", "3"),
     ] {
         assert_eq!(value(label), expected, "{label} is wrong. {context}");
     }
+    assert!(
+        value("deletion-error").contains("not started"),
+        "the page did not say why the period was not set, got {:?}. {context}",
+        value("deletion-error")
+    );
 }

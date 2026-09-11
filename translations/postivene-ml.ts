@@ -72,6 +72,46 @@
     </message>
 </context>
 <context>
+    <name>AutoDeleteDialog</name>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>ഉപകരണത്തിൽ നിന്ന് സന്ദേശങ്ങൾ ഇല്ലാതാക്കുക</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>ഇല്ലാതാക്കുക</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>റദ്ദാക്കുക</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n message(s) will be deleted now, and from then on every message will be once it is that old.</source>
+        <extracomment>%n is how many messages would be deleted straight away.</extracomment>
+        <translation>
+            <numerusform>%n സന്ദേശം ഇപ്പോൾ ഇല്ലാതാക്കും, അതിനുശേഷം ഓരോ സന്ദേശവും അത്ര പഴയതാകുമ്പോൾ.</numerusform>
+            <numerusform>%n സന്ദേശങ്ങൾ ഇപ്പോൾ ഇല്ലാതാക്കും, അതിനുശേഷം ഓരോ സന്ദേശവും അത്ര പഴയതാകുമ്പോൾ.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>This includes pictures, videos and files.</source>
+        <translation>ഇതിൽ ചിത്രങ്ങളും വീഡിയോകളും ഫയലുകളും ഉൾപ്പെടുന്നു.</translation>
+    </message>
+    <message>
+        <source>Messages are deleted whether they were read or not.</source>
+        <translation>സന്ദേശങ്ങൾ വായിച്ചാലും ഇല്ലെങ്കിലും ഇല്ലാതാക്കും.</translation>
+    </message>
+    <message>
+        <source>&quot;Saved messages&quot; are kept.</source>
+        <extracomment>&quot;Saved messages&quot; is the name of the chat with oneself.</extracomment>
+        <translation>&quot;സംരക്ഷിച്ച സന്ദേശങ്ങൾ&quot; നിലനിർത്തും.</translation>
+    </message>
+    <message>
+        <source>I understand, delete all these messages</source>
+        <translation>എനിക്കു മനസ്സിലായി, ഈ സന്ദേശങ്ങളെല്ലാം ഇല്ലാതാക്കുക</translation>
+    </message>
+</context>
+<context>
     <name>CapturePage</name>
     <message>
         <source>The video could not be saved</source>
@@ -283,6 +323,10 @@
     <message>
         <source>Save</source>
         <translation>സൂക്ഷിക്കുക</translation>
+    </message>
+    <message>
+        <source>Edit</source>
+        <translation>തിരുത്തുക</translation>
     </message>
 </context>
 <context>
@@ -522,6 +566,10 @@
         <source>View full message</source>
         <extracomment>Opens the whole message on a page of its own.</extracomment>
         <translation>മുഴുവൻ സന്ദേശം കാണുക</translation>
+    </message>
+    <message>
+        <source>Edited</source>
+        <translation>തിരുത്തിയത്</translation>
     </message>
 </context>
 <context>
@@ -811,6 +859,11 @@
         <source>Replying to %1</source>
         <translation>%1 ന് മറുപടി</translation>
     </message>
+    <message>
+        <source>Editing message</source>
+        <extracomment>Above the message field while a sent message&apos;s text is being changed; the message&apos;s text follows.</extracomment>
+        <translation>സന്ദേശം തിരുത്തുന്നു</translation>
+    </message>
 </context>
 <context>
     <name>ScanView</name>
@@ -909,10 +962,6 @@
         <translation>അലങ്കരിച്ചത്: ബോൾഡ്, ഇറ്റാലിക്, ലിങ്കുകൾ</translation>
     </message>
     <message>
-        <source>Taken out: the words only</source>
-        <translation>നീക്കിയത്: വാക്കുകൾ മാത്രം</translation>
-    </message>
-    <message>
         <source>As written</source>
         <translation>എഴുതിയതുപോലെ</translation>
     </message>
@@ -939,10 +988,6 @@
     <message>
         <source>Notifications</source>
         <translation>അറിയിപ്പുകൾ</translation>
-    </message>
-    <message>
-        <source>A new message shows</source>
-        <translation>പുതിയ സന്ദേശം കാണിക്കുന്നത്</translation>
     </message>
     <message>
         <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
@@ -972,6 +1017,51 @@
     <message>
         <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
         <translation>ആരെങ്കിലും അയയ്ക്കുന്ന ആപ്പുകൾ ചാറ്റിനുള്ളിൽ തന്നെ പ്രവർത്തിക്കും, കൂടാതെ അറ്റാച്ച്മെന്റ് ട്രേ പുതിയവ എടുക്കാൻ ഒരു സ്റ്റോർ നൽകുന്നു. ആപ്പ് മറ്റൊരാളുടെ കോഡ് ആണ്, ഈ ഭാഗം മറ്റുള്ളവയോളം പരീക്ഷിക്കപ്പെട്ടിട്ടില്ല.</translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation>1 മണിക്കൂറിനു ശേഷം</translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation>1 ദിവസത്തിനു ശേഷം</translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation>1 ആഴ്ചയ്ക്കു ശേഷം</translation>
+    </message>
+    <message>
+        <source>After 5 weeks</source>
+        <translation>5 ആഴ്ചയ്ക്കു ശേഷം</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>1 വർഷത്തിനു ശേഷം</translation>
+    </message>
+    <message>
+        <source>Delete old messages</source>
+        <translation>പഴയ സന്ദേശങ്ങൾ ഇല്ലാതാക്കുക</translation>
+    </message>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>ഉപകരണത്തിൽ നിന്ന് സന്ദേശങ്ങൾ ഇല്ലാതാക്കുക</translation>
+    </message>
+    <message>
+        <source>Older messages go from this phone, in every chat of every profile, whatever a chat&apos;s own disappearing messages setting says. &quot;Saved messages&quot; are kept.</source>
+        <translation>പഴയ സന്ദേശങ്ങൾ ഈ ഫോണിൽ നിന്ന് പോകും, ഓരോ പ്രൊഫൈലിന്റെയും ഓരോ ചാറ്റിലും, ചാറ്റിന്റെ സ്വന്തം അപ്രത്യക്ഷമാകുന്ന സന്ദേശങ്ങളുടെ ക്രമീകരണം എന്തു പറഞ്ഞാലും. &quot;സംരക്ഷിച്ച സന്ദേശങ്ങൾ&quot; നിലനിർത്തും.</translation>
+    </message>
+    <message>
+        <source>A new notification shows</source>
+        <translation>പുതിയ അറിയിപ്പ് കാണിക്കുന്നത്</translation>
+    </message>
+    <message>
+        <source>Mentions</source>
+        <extracomment>A reply to one of the reader&apos;s own messages, arriving in a group they have muted.</extracomment>
+        <translation>പരാമർശങ്ങൾ</translation>
+    </message>
+    <message>
+        <source>In a muted group, a reply to one of your messages still notifies you.</source>
+        <translation>മ്യൂട്ട് ചെയ്ത ഗ്രൂപ്പിൽ, നിങ്ങളുടെ സന്ദേശത്തിനുള്ള മറുപടി എന്നാലും നിങ്ങളെ അറിയിക്കും.</translation>
     </message>
 </context>
 <context>

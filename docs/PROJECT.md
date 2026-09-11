@@ -246,6 +246,44 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   or save it -- because the reader whose problem it answered said there
   should be no such thing. What an attachment needs and a tap cannot
   give is a copy, and that is on the row's menu, beside Open.
+- **A message of one's own can be reworded, and the phone can forget
+  old ones.** Both are the core's: an edit is `send_edit_request`, which
+  changes the text at every end and marks the message `isEdited`, and
+  the footer says "Edited" as the reference clients' footers do. The
+  menu offers Edit on what the core would take an edit of, which is the
+  rule deltachat-android applies before offering it -- a message of
+  one's own, not a notice, not a call, with text to change, not one the
+  sending core cut -- and only in a chat that takes messages and is
+  encrypted, which the conversation model asks the core about beside
+  the chat's kind. Editing is a mode of the field: it holds the
+  message's text, the bar above it says which message, the attach tray
+  steps aside, and send means keep the change. The reader's unsent
+  draft is put aside for the edit and put back afterwards; the
+  reference clients throw it away, which is a loss with no reason
+  behind it. Deleting old messages is the core's `delete_device_after`,
+  one setting for every profile like the download limit, applied to
+  every chat whatever that chat's own disappearing-messages timer says
+  and never to "Saved messages". It deletes the moment it is set, so
+  the settings page asks the core how many messages that is
+  (`estimate_auto_deletion_count`) and puts the number to the reader on
+  a page of its own, with a switch they have to turn before accept means
+  anything -- the checkbox deltachat-android and deltachat-ios put on
+  the same question. A picture or a video has a page of its own with
+  Open and Save on its pull-down, so the message menu no longer offers
+  either for those: two ways to the same two things was one too many.
+- **A muted group stays quiet, except for a reply to the reader.** The
+  chat list decides what is announced and never announces a muted chat;
+  the one exception is what the reference clients call a mention, and
+  it is on by default as they have it: a message in a muted *group*
+  that quotes one of the account's own messages. The core does not say
+  so on the event, and the quote names its message and nothing else
+  about it, so the list reads the message and the one it quotes
+  (`chatlist.rs`, `is_mention`). The answer lands after the refresh the
+  event started has usually left the chat unannounced, so a mention
+  starts a refresh of its own with the chat marked to pass the mute
+  once -- the announcement then carries the row's preview like every
+  other. A muted one-to-one chat is not a group: it was muted with the
+  one person in it in mind.
 - **What is made on the phone is made by the platform.** A picture or a
   video comes from QML's `Camera`; a voice message from `QAudioRecorder`,
   which QML on Qt 5.6 does not offer and the shim reaches through the

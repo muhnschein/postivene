@@ -96,6 +96,10 @@ Page {
         objectName: "chats"
         account_id: page.accountId
         archived: page.archived
+        // A reply to one of the reader's own messages gets through a
+        // muted group, when they want it to. `=== true` because dconf
+        // hands back `undefined` before it has read the key.
+        notify_mentions: Settings.mentionNotifications === true
         onError: page.errorMessage = message
     }
 

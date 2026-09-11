@@ -72,6 +72,46 @@
     </message>
 </context>
 <context>
+    <name>AutoDeleteDialog</name>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>ઉપકરણમાંથી સંદેશ કાઢી નાખો</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>કાઢી નાખો</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>રદ કરો</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n message(s) will be deleted now, and from then on every message will be once it is that old.</source>
+        <extracomment>%n is how many messages would be deleted straight away.</extracomment>
+        <translation>
+            <numerusform>%n સંદેશ હમણાં કાઢી નાખવામાં આવશે, અને ત્યારપછી દરેક સંદેશ એટલો જૂનો થાય કે તરત.</numerusform>
+            <numerusform>%n સંદેશ હમણાં કાઢી નાખવામાં આવશે, અને ત્યારપછી દરેક સંદેશ એટલો જૂનો થાય કે તરત.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>This includes pictures, videos and files.</source>
+        <translation>આમાં ચિત્રો, વિડિઓ અને ફાઇલો શામેલ છે.</translation>
+    </message>
+    <message>
+        <source>Messages are deleted whether they were read or not.</source>
+        <translation>સંદેશ વાંચ્યા હોય કે ન હોય, કાઢી નાખવામાં આવે છે.</translation>
+    </message>
+    <message>
+        <source>&quot;Saved messages&quot; are kept.</source>
+        <extracomment>&quot;Saved messages&quot; is the name of the chat with oneself.</extracomment>
+        <translation>&quot;સાચવેલા સંદેશ&quot; રાખવામાં આવે છે.</translation>
+    </message>
+    <message>
+        <source>I understand, delete all these messages</source>
+        <translation>હું સમજું છું, આ બધા સંદેશ કાઢી નાખો</translation>
+    </message>
+</context>
+<context>
     <name>CapturePage</name>
     <message>
         <source>The video could not be saved</source>
@@ -283,6 +323,10 @@
     <message>
         <source>Save</source>
         <translation>સાચવો</translation>
+    </message>
+    <message>
+        <source>Edit</source>
+        <translation>સંપાદિત કરો</translation>
     </message>
 </context>
 <context>
@@ -522,6 +566,10 @@
         <source>View full message</source>
         <extracomment>Opens the whole message on a page of its own.</extracomment>
         <translation>આખો સંદેશ જુઓ</translation>
+    </message>
+    <message>
+        <source>Edited</source>
+        <translation>સંપાદિત</translation>
     </message>
 </context>
 <context>
@@ -811,6 +859,11 @@
         <source>Replying to %1</source>
         <translation>%1 ને જવાબ</translation>
     </message>
+    <message>
+        <source>Editing message</source>
+        <extracomment>Above the message field while a sent message&apos;s text is being changed; the message&apos;s text follows.</extracomment>
+        <translation>સંદેશ સંપાદિત થઈ રહ્યો છે</translation>
+    </message>
 </context>
 <context>
     <name>ScanView</name>
@@ -909,10 +962,6 @@
         <translation>સજાવેલ: બોલ્ડ, ત્રાંસુ, લિંક</translation>
     </message>
     <message>
-        <source>Taken out: the words only</source>
-        <translation>કાઢી નાખેલ: ફક્ત શબ્દો</translation>
-    </message>
-    <message>
         <source>As written</source>
         <translation>જેમ લખ્યું તેમ</translation>
     </message>
@@ -939,10 +988,6 @@
     <message>
         <source>Notifications</source>
         <translation>સૂચનાઓ</translation>
-    </message>
-    <message>
-        <source>A new message shows</source>
-        <translation>નવો સંદેશ બતાવે છે</translation>
     </message>
     <message>
         <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
@@ -972,6 +1017,51 @@
     <message>
         <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
         <translation>કોઈ મોકલે તે એપ ચેટમાં જ ચાલે છે, અને જોડાણ ટ્રે નવી લેવા માટે એક સ્ટોર આપે છે. એપ બીજા કોઈનો કોડ છે, અને આ ભાગ બાકીના જેટલો પરીક્ષણ થયેલો નથી.</translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation>1 કલાક પછી</translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation>1 દિવસ પછી</translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation>1 અઠવાડિયા પછી</translation>
+    </message>
+    <message>
+        <source>After 5 weeks</source>
+        <translation>5 અઠવાડિયા પછી</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>1 વર્ષ પછી</translation>
+    </message>
+    <message>
+        <source>Delete old messages</source>
+        <translation>જૂના સંદેશ કાઢી નાખો</translation>
+    </message>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>ઉપકરણમાંથી સંદેશ કાઢી નાખો</translation>
+    </message>
+    <message>
+        <source>Older messages go from this phone, in every chat of every profile, whatever a chat&apos;s own disappearing messages setting says. &quot;Saved messages&quot; are kept.</source>
+        <translation>જૂના સંદેશ આ ફોનમાંથી નીકળી જાય છે, દરેક પ્રોફાઇલની દરેક ચેટમાં, ચેટની પોતાની ગાયબ થતા સંદેશની સેટિંગ ગમે તે કહે. &quot;સાચવેલા સંદેશ&quot; રાખવામાં આવે છે.</translation>
+    </message>
+    <message>
+        <source>A new notification shows</source>
+        <translation>નવી સૂચના બતાવે છે</translation>
+    </message>
+    <message>
+        <source>Mentions</source>
+        <extracomment>A reply to one of the reader&apos;s own messages, arriving in a group they have muted.</extracomment>
+        <translation>ઉલ્લેખો</translation>
+    </message>
+    <message>
+        <source>In a muted group, a reply to one of your messages still notifies you.</source>
+        <translation>મ્યૂટ કરેલા જૂથમાં, તમારા સંદેશનો જવાબ તમને તો પણ સૂચિત કરે છે.</translation>
     </message>
 </context>
 <context>

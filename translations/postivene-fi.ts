@@ -72,6 +72,46 @@
     </message>
 </context>
 <context>
+    <name>AutoDeleteDialog</name>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Poista viestit laitteesta</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Poista</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Peruuta</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n message(s) will be deleted now, and from then on every message will be once it is that old.</source>
+        <extracomment>%n is how many messages would be deleted straight away.</extracomment>
+        <translation>
+            <numerusform>%n viesti poistetaan nyt, ja siitä lähtien jokainen viesti, kun se on niin vanha.</numerusform>
+            <numerusform>%n viestiä poistetaan nyt, ja siitä lähtien jokainen viesti, kun se on niin vanha.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>This includes pictures, videos and files.</source>
+        <translation>Tämä sisältää kuvat, videot ja tiedostot.</translation>
+    </message>
+    <message>
+        <source>Messages are deleted whether they were read or not.</source>
+        <translation>Viestit poistetaan riippumatta siitä, onko ne luettu.</translation>
+    </message>
+    <message>
+        <source>&quot;Saved messages&quot; are kept.</source>
+        <extracomment>&quot;Saved messages&quot; is the name of the chat with oneself.</extracomment>
+        <translation>&quot;Tallennetut viestit&quot; säilytetään.</translation>
+    </message>
+    <message>
+        <source>I understand, delete all these messages</source>
+        <translation>Ymmärrän, poista kaikki nämä viestit</translation>
+    </message>
+</context>
+<context>
     <name>CapturePage</name>
     <message>
         <source>The video could not be saved</source>
@@ -283,6 +323,10 @@
     <message>
         <source>Save</source>
         <translation>Tallenna</translation>
+    </message>
+    <message>
+        <source>Edit</source>
+        <translation>Muokkaa</translation>
     </message>
 </context>
 <context>
@@ -522,6 +566,10 @@
         <source>View full message</source>
         <extracomment>Opens the whole message on a page of its own.</extracomment>
         <translation>Näytä koko viesti</translation>
+    </message>
+    <message>
+        <source>Edited</source>
+        <translation>Muokattu</translation>
     </message>
 </context>
 <context>
@@ -811,6 +859,11 @@
         <source>Replying to %1</source>
         <translation>Vastaus: %1</translation>
     </message>
+    <message>
+        <source>Editing message</source>
+        <extracomment>Above the message field while a sent message&apos;s text is being changed; the message&apos;s text follows.</extracomment>
+        <translation>Muokataan viestiä</translation>
+    </message>
 </context>
 <context>
     <name>ScanView</name>
@@ -909,10 +962,6 @@
         <translation>Muotoiltuna: lihavointi, kursiivi, linkit</translation>
     </message>
     <message>
-        <source>Taken out: the words only</source>
-        <translation>Poistettuna: vain sanat</translation>
-    </message>
-    <message>
         <source>As written</source>
         <translation>Kuten kirjoitettu</translation>
     </message>
@@ -939,10 +988,6 @@
     <message>
         <source>Notifications</source>
         <translation>Ilmoitukset</translation>
-    </message>
-    <message>
-        <source>A new message shows</source>
-        <translation>Uusi viesti näyttää</translation>
     </message>
     <message>
         <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
@@ -972,6 +1017,51 @@
     <message>
         <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
         <translation>Jonkun lähettämät sovellukset toimivat keskustelun sisällä, ja liitepaletti tarjoaa kaupan, josta saa uusia. Sovellus on toisen koodia, eikä tämä osa ole vielä yhtä testattu kuin muu.</translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation>1 tunnin kuluttua</translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation>1 päivän kuluttua</translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation>1 viikon kuluttua</translation>
+    </message>
+    <message>
+        <source>After 5 weeks</source>
+        <translation>5 viikon kuluttua</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>1 vuoden kuluttua</translation>
+    </message>
+    <message>
+        <source>Delete old messages</source>
+        <translation>Poista vanhat viestit</translation>
+    </message>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Poista viestit laitteesta</translation>
+    </message>
+    <message>
+        <source>Older messages go from this phone, in every chat of every profile, whatever a chat&apos;s own disappearing messages setting says. &quot;Saved messages&quot; are kept.</source>
+        <translation>Vanhemmat viestit katoavat tästä puhelimesta, jokaisen profiilin jokaisesta keskustelusta, sanoipa keskustelun oma katoavien viestien asetus mitä tahansa. &quot;Tallennetut viestit&quot; säilytetään.</translation>
+    </message>
+    <message>
+        <source>A new notification shows</source>
+        <translation>Uusi ilmoitus näyttää</translation>
+    </message>
+    <message>
+        <source>Mentions</source>
+        <extracomment>A reply to one of the reader&apos;s own messages, arriving in a group they have muted.</extracomment>
+        <translation>Maininnat</translation>
+    </message>
+    <message>
+        <source>In a muted group, a reply to one of your messages still notifies you.</source>
+        <translation>Mykistetyssä ryhmässä vastaus viestiisi ilmoittaa silti sinulle.</translation>
     </message>
 </context>
 <context>

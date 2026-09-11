@@ -72,6 +72,46 @@
     </message>
 </context>
 <context>
+    <name>AutoDeleteDialog</name>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Berichten van apparaat verwijderen</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Verwijderen</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Annuleren</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n message(s) will be deleted now, and from then on every message will be once it is that old.</source>
+        <extracomment>%n is how many messages would be deleted straight away.</extracomment>
+        <translation>
+            <numerusform>%n bericht wordt nu verwijderd, en daarna elk bericht zodra het zo oud is.</numerusform>
+            <numerusform>%n berichten worden nu verwijderd, en daarna elk bericht zodra het zo oud is.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>This includes pictures, videos and files.</source>
+        <translation>Dit omvat afbeeldingen, video&apos;s en bestanden.</translation>
+    </message>
+    <message>
+        <source>Messages are deleted whether they were read or not.</source>
+        <translation>Berichten worden verwijderd, gelezen of niet.</translation>
+    </message>
+    <message>
+        <source>&quot;Saved messages&quot; are kept.</source>
+        <extracomment>&quot;Saved messages&quot; is the name of the chat with oneself.</extracomment>
+        <translation>&quot;Opgeslagen berichten&quot; blijft bewaard.</translation>
+    </message>
+    <message>
+        <source>I understand, delete all these messages</source>
+        <translation>Ik begrijp het, verwijder al deze berichten</translation>
+    </message>
+</context>
+<context>
     <name>CapturePage</name>
     <message>
         <source>The video could not be saved</source>
@@ -283,6 +323,10 @@
     <message>
         <source>Save</source>
         <translation>Opslaan</translation>
+    </message>
+    <message>
+        <source>Edit</source>
+        <translation>Bewerken</translation>
     </message>
 </context>
 <context>
@@ -522,6 +566,10 @@
         <source>View full message</source>
         <extracomment>Opens the whole message on a page of its own.</extracomment>
         <translation>Volledig bericht bekijken</translation>
+    </message>
+    <message>
+        <source>Edited</source>
+        <translation>Bewerkt</translation>
     </message>
 </context>
 <context>
@@ -811,6 +859,11 @@
         <source>Replying to %1</source>
         <translation>Antwoord aan %1</translation>
     </message>
+    <message>
+        <source>Editing message</source>
+        <extracomment>Above the message field while a sent message&apos;s text is being changed; the message&apos;s text follows.</extracomment>
+        <translation>Bericht bewerken</translation>
+    </message>
 </context>
 <context>
     <name>ScanView</name>
@@ -909,10 +962,6 @@
         <translation>Opgemaakt: vet, cursief, links</translation>
     </message>
     <message>
-        <source>Taken out: the words only</source>
-        <translation>Weggehaald: alleen de woorden</translation>
-    </message>
-    <message>
         <source>As written</source>
         <translation>Zoals geschreven</translation>
     </message>
@@ -939,10 +988,6 @@
     <message>
         <source>Notifications</source>
         <translation>Meldingen</translation>
-    </message>
-    <message>
-        <source>A new message shows</source>
-        <translation>Een nieuw bericht toont</translation>
     </message>
     <message>
         <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
@@ -972,6 +1017,51 @@
     <message>
         <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
         <translation>Apps die iemand stuurt draaien in het gesprek zelf, en het bijlagevak biedt een winkel om nieuwe te halen. Een app is code van iemand anders, en dit deel is nog niet zo goed getest als de rest.</translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation>Na 1 uur</translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation>Na 1 dag</translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation>Na 1 week</translation>
+    </message>
+    <message>
+        <source>After 5 weeks</source>
+        <translation>Na 5 weken</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>Na 1 jaar</translation>
+    </message>
+    <message>
+        <source>Delete old messages</source>
+        <translation>Oude berichten verwijderen</translation>
+    </message>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Berichten van apparaat verwijderen</translation>
+    </message>
+    <message>
+        <source>Older messages go from this phone, in every chat of every profile, whatever a chat&apos;s own disappearing messages setting says. &quot;Saved messages&quot; are kept.</source>
+        <translation>Oudere berichten verdwijnen van deze telefoon, in elke chat van elk profiel, wat de instelling voor verdwijnende berichten van de chat zelf ook zegt. &quot;Opgeslagen berichten&quot; blijft bewaard.</translation>
+    </message>
+    <message>
+        <source>A new notification shows</source>
+        <translation>Een nieuwe melding toont</translation>
+    </message>
+    <message>
+        <source>Mentions</source>
+        <extracomment>A reply to one of the reader&apos;s own messages, arriving in a group they have muted.</extracomment>
+        <translation>Vermeldingen</translation>
+    </message>
+    <message>
+        <source>In a muted group, a reply to one of your messages still notifies you.</source>
+        <translation>In een gedempte groep meldt een antwoord op een van je berichten zich toch.</translation>
     </message>
 </context>
 <context>

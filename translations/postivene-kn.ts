@@ -72,6 +72,46 @@
     </message>
 </context>
 <context>
+    <name>AutoDeleteDialog</name>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>ಸಾಧನದಿಂದ ಸಂದೇಶಗಳನ್ನು ಅಳಿಸಿ</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>ಅಳಿಸಿ</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>ರದ್ದುಮಾಡಿ</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n message(s) will be deleted now, and from then on every message will be once it is that old.</source>
+        <extracomment>%n is how many messages would be deleted straight away.</extracomment>
+        <translation>
+            <numerusform>%n ಸಂದೇಶವನ್ನು ಈಗ ಅಳಿಸಲಾಗುತ್ತದೆ, ಮತ್ತು ಇನ್ನು ಮುಂದೆ ಪ್ರತಿ ಸಂದೇಶವೂ ಅಷ್ಟು ಹಳೆಯದಾದ ಕೂಡಲೇ ಅಳಿಸಲಾಗುತ್ತದೆ.</numerusform>
+            <numerusform>%n ಸಂದೇಶಗಳನ್ನು ಈಗ ಅಳಿಸಲಾಗುತ್ತದೆ, ಮತ್ತು ಇನ್ನು ಮುಂದೆ ಪ್ರತಿ ಸಂದೇಶವೂ ಅಷ್ಟು ಹಳೆಯದಾದ ಕೂಡಲೇ ಅಳಿಸಲಾಗುತ್ತದೆ.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>This includes pictures, videos and files.</source>
+        <translation>ಇದರಲ್ಲಿ ಚಿತ್ರಗಳು, ವೀಡಿಯೊಗಳು ಮತ್ತು ಫೈಲ್‌ಗಳು ಸೇರಿವೆ.</translation>
+    </message>
+    <message>
+        <source>Messages are deleted whether they were read or not.</source>
+        <translation>ಸಂದೇಶಗಳನ್ನು ಓದಿರಲಿ ಅಥವಾ ಇಲ್ಲದಿರಲಿ, ಅಳಿಸಲಾಗುತ್ತದೆ.</translation>
+    </message>
+    <message>
+        <source>&quot;Saved messages&quot; are kept.</source>
+        <extracomment>&quot;Saved messages&quot; is the name of the chat with oneself.</extracomment>
+        <translation>&quot;ಉಳಿಸಿದ ಸಂದೇಶಗಳು&quot; ಉಳಿಯುತ್ತವೆ.</translation>
+    </message>
+    <message>
+        <source>I understand, delete all these messages</source>
+        <translation>ನನಗೆ ಅರ್ಥವಾಯಿತು, ಈ ಎಲ್ಲ ಸಂದೇಶಗಳನ್ನು ಅಳಿಸಿ</translation>
+    </message>
+</context>
+<context>
     <name>CapturePage</name>
     <message>
         <source>The video could not be saved</source>
@@ -283,6 +323,10 @@
     <message>
         <source>Save</source>
         <translation>ಉಳಿಸಿ</translation>
+    </message>
+    <message>
+        <source>Edit</source>
+        <translation>ಸಂಪಾದಿಸಿ</translation>
     </message>
 </context>
 <context>
@@ -522,6 +566,10 @@
         <source>View full message</source>
         <extracomment>Opens the whole message on a page of its own.</extracomment>
         <translation>ಪೂರ್ಣ ಸಂದೇಶ ನೋಡಿ</translation>
+    </message>
+    <message>
+        <source>Edited</source>
+        <translation>ಸಂಪಾದಿಸಲಾಗಿದೆ</translation>
     </message>
 </context>
 <context>
@@ -811,6 +859,11 @@
         <source>Replying to %1</source>
         <translation>%1 ಗೆ ಉತ್ತರ</translation>
     </message>
+    <message>
+        <source>Editing message</source>
+        <extracomment>Above the message field while a sent message&apos;s text is being changed; the message&apos;s text follows.</extracomment>
+        <translation>ಸಂದೇಶವನ್ನು ಸಂಪಾದಿಸಲಾಗುತ್ತಿದೆ</translation>
+    </message>
 </context>
 <context>
     <name>ScanView</name>
@@ -909,10 +962,6 @@
         <translation>ಅಲಂಕರಿಸಿದ: ದಪ್ಪ, ಓರೆ, ಲಿಂಕ್‌ಗಳು</translation>
     </message>
     <message>
-        <source>Taken out: the words only</source>
-        <translation>ತೆಗೆದುಹಾಕಿದ: ಪದಗಳು ಮಾತ್ರ</translation>
-    </message>
-    <message>
         <source>As written</source>
         <translation>ಬರೆದಂತೆಯೇ</translation>
     </message>
@@ -939,10 +988,6 @@
     <message>
         <source>Notifications</source>
         <translation>ಅಧಿಸೂಚನೆಗಳು</translation>
-    </message>
-    <message>
-        <source>A new message shows</source>
-        <translation>ಹೊಸ ಸಂದೇಶ ತೋರಿಸುವುದು</translation>
     </message>
     <message>
         <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
@@ -972,6 +1017,51 @@
     <message>
         <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
         <translation>ಯಾರಾದರೂ ಕಳುಹಿಸಿದ ಅಪ್ಲಿಕೇಶನ್‌ಗಳು ಸಂಭಾಷಣೆಯ ಒಳಗೇ ಚಲಿಸುತ್ತವೆ, ಮತ್ತು ಲಗತ್ತು ಟ್ರೇ ಹೊಸದನ್ನು ಪಡೆಯಲು ಒಂದು ಸ್ಟೋರ್ ನೀಡುತ್ತದೆ. ಅಪ್ಲಿಕೇಶನ್ ಬೇರೊಬ್ಬರ ಕೋಡ್, ಮತ್ತು ಈ ಭಾಗ ಉಳಿದಷ್ಟು ಪರೀಕ್ಷಿಸಲಾಗಿಲ್ಲ.</translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation>1 ಗಂಟೆಯ ನಂತರ</translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation>1 ದಿನದ ನಂತರ</translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation>1 ವಾರದ ನಂತರ</translation>
+    </message>
+    <message>
+        <source>After 5 weeks</source>
+        <translation>5 ವಾರಗಳ ನಂತರ</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>1 ವರ್ಷದ ನಂತರ</translation>
+    </message>
+    <message>
+        <source>Delete old messages</source>
+        <translation>ಹಳೆಯ ಸಂದೇಶಗಳನ್ನು ಅಳಿಸಿ</translation>
+    </message>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>ಸಾಧನದಿಂದ ಸಂದೇಶಗಳನ್ನು ಅಳಿಸಿ</translation>
+    </message>
+    <message>
+        <source>Older messages go from this phone, in every chat of every profile, whatever a chat&apos;s own disappearing messages setting says. &quot;Saved messages&quot; are kept.</source>
+        <translation>ಹಳೆಯ ಸಂದೇಶಗಳು ಈ ಫೋನ್‌ನಿಂದ ಹೋಗುತ್ತವೆ, ಪ್ರತಿ ಪ್ರೊಫೈಲ್‌ನ ಪ್ರತಿ ಚಾಟ್‌ನಲ್ಲಿ, ಚಾಟ್‌ನ ಸ್ವಂತ ಮಾಯವಾಗುವ ಸಂದೇಶಗಳ ಸೆಟ್ಟಿಂಗ್ ಏನೇ ಹೇಳಿದರೂ. &quot;ಉಳಿಸಿದ ಸಂದೇಶಗಳು&quot; ಉಳಿಯುತ್ತವೆ.</translation>
+    </message>
+    <message>
+        <source>A new notification shows</source>
+        <translation>ಹೊಸ ಅಧಿಸೂಚನೆ ತೋರಿಸುವುದು</translation>
+    </message>
+    <message>
+        <source>Mentions</source>
+        <extracomment>A reply to one of the reader&apos;s own messages, arriving in a group they have muted.</extracomment>
+        <translation>ಉಲ್ಲೇಖಗಳು</translation>
+    </message>
+    <message>
+        <source>In a muted group, a reply to one of your messages still notifies you.</source>
+        <translation>ಮ್ಯೂಟ್ ಮಾಡಿದ ಗುಂಪಿನಲ್ಲಿ, ನಿಮ್ಮ ಸಂದೇಶಕ್ಕೆ ಬಂದ ಉತ್ತರ ನಿಮಗೆ ಆದರೂ ತಿಳಿಸುತ್ತದೆ.</translation>
     </message>
 </context>
 <context>

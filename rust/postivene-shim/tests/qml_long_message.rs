@@ -103,7 +103,7 @@ const PROBE_QML: &str = r"
         function loadList(url, longText) {
             rows.append({
                 message_id: 7, text: longText, styled_text: '',
-                plain_text: '', is_outgoing: false, is_info: false,
+                is_edited: false, is_outgoing: false, is_info: false,
                 show_padlock: true, state: 16, timestamp: 1700000000,
                 day_number: 19675, sender_name: 'Ada',
                 sender_color: '#00875a', is_forwarded: false,

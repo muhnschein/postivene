@@ -72,6 +72,46 @@
     </message>
 </context>
 <context>
+    <name>AutoDeleteDialog</name>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>சாதனத்திலிருந்து செய்திகளை நீக்கு</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>நீக்கு</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>ரத்துசெய்</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n message(s) will be deleted now, and from then on every message will be once it is that old.</source>
+        <extracomment>%n is how many messages would be deleted straight away.</extracomment>
+        <translation>
+            <numerusform>%n செய்தி இப்போது நீக்கப்படும், அதன் பிறகு ஒவ்வொரு செய்தியும் அவ்வளவு பழையதானதும் நீக்கப்படும்.</numerusform>
+            <numerusform>%n செய்திகள் இப்போது நீக்கப்படும், அதன் பிறகு ஒவ்வொரு செய்தியும் அவ்வளவு பழையதானதும் நீக்கப்படும்.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>This includes pictures, videos and files.</source>
+        <translation>இதில் படங்கள், வீடியோக்கள் மற்றும் கோப்புகள் அடங்கும்.</translation>
+    </message>
+    <message>
+        <source>Messages are deleted whether they were read or not.</source>
+        <translation>செய்திகள் படிக்கப்பட்டாலும் இல்லாவிட்டாலும் நீக்கப்படும்.</translation>
+    </message>
+    <message>
+        <source>&quot;Saved messages&quot; are kept.</source>
+        <extracomment>&quot;Saved messages&quot; is the name of the chat with oneself.</extracomment>
+        <translation>&quot;சேமித்த செய்திகள்&quot; வைக்கப்படும்.</translation>
+    </message>
+    <message>
+        <source>I understand, delete all these messages</source>
+        <translation>எனக்குப் புரிகிறது, இந்த எல்லா செய்திகளையும் நீக்கு</translation>
+    </message>
+</context>
+<context>
     <name>CapturePage</name>
     <message>
         <source>The video could not be saved</source>
@@ -283,6 +323,10 @@
     <message>
         <source>Save</source>
         <translation>சேமி</translation>
+    </message>
+    <message>
+        <source>Edit</source>
+        <translation>திருத்து</translation>
     </message>
 </context>
 <context>
@@ -522,6 +566,10 @@
         <source>View full message</source>
         <extracomment>Opens the whole message on a page of its own.</extracomment>
         <translation>முழுச் செய்தியைக் காண்க</translation>
+    </message>
+    <message>
+        <source>Edited</source>
+        <translation>திருத்தப்பட்டது</translation>
     </message>
 </context>
 <context>
@@ -811,6 +859,11 @@
         <source>Replying to %1</source>
         <translation>%1 க்குப் பதில்</translation>
     </message>
+    <message>
+        <source>Editing message</source>
+        <extracomment>Above the message field while a sent message&apos;s text is being changed; the message&apos;s text follows.</extracomment>
+        <translation>செய்தி திருத்தப்படுகிறது</translation>
+    </message>
 </context>
 <context>
     <name>ScanView</name>
@@ -909,10 +962,6 @@
         <translation>வடிவமைக்கப்பட்டது: தடித்த, சாய்ந்த, இணைப்புகள்</translation>
     </message>
     <message>
-        <source>Taken out: the words only</source>
-        <translation>நீக்கப்பட்டது: சொற்கள் மட்டும்</translation>
-    </message>
-    <message>
         <source>As written</source>
         <translation>எழுதியபடியே</translation>
     </message>
@@ -939,10 +988,6 @@
     <message>
         <source>Notifications</source>
         <translation>அறிவிப்புகள்</translation>
-    </message>
-    <message>
-        <source>A new message shows</source>
-        <translation>புதிய செய்தி காட்டுவது</translation>
     </message>
     <message>
         <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
@@ -972,6 +1017,51 @@
     <message>
         <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
         <translation>யாராவது அனுப்பும் செயலிகள் உரையாடலுக்குள்ளேயே இயங்கும், மேலும் இணைப்புத் தட்டு புதியவற்றை எடுக்க ஒரு கடையை வழங்குகிறது. செயலி என்பது வேறு ஒருவரின் நிரல், இந்தப் பகுதி மற்றவற்றைப் போல் இன்னும் சோதிக்கப்படவில்லை.</translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation>1 மணிநேரத்திற்குப் பிறகு</translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation>1 நாளுக்குப் பிறகு</translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation>1 வாரத்திற்குப் பிறகு</translation>
+    </message>
+    <message>
+        <source>After 5 weeks</source>
+        <translation>5 வாரங்களுக்குப் பிறகு</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>1 ஆண்டுக்குப் பிறகு</translation>
+    </message>
+    <message>
+        <source>Delete old messages</source>
+        <translation>பழைய செய்திகளை நீக்கு</translation>
+    </message>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>சாதனத்திலிருந்து செய்திகளை நீக்கு</translation>
+    </message>
+    <message>
+        <source>Older messages go from this phone, in every chat of every profile, whatever a chat&apos;s own disappearing messages setting says. &quot;Saved messages&quot; are kept.</source>
+        <translation>பழைய செய்திகள் இந்த ஃபோனிலிருந்து நீங்கும், ஒவ்வொரு சுயவிவரத்தின் ஒவ்வொரு அரட்டையிலும், அரட்டையின் சொந்த மறையும் செய்திகள் அமைப்பு என்ன சொன்னாலும். &quot;சேமித்த செய்திகள்&quot; வைக்கப்படும்.</translation>
+    </message>
+    <message>
+        <source>A new notification shows</source>
+        <translation>புதிய அறிவிப்பு காட்டுவது</translation>
+    </message>
+    <message>
+        <source>Mentions</source>
+        <extracomment>A reply to one of the reader&apos;s own messages, arriving in a group they have muted.</extracomment>
+        <translation>குறிப்பிடல்கள்</translation>
+    </message>
+    <message>
+        <source>In a muted group, a reply to one of your messages still notifies you.</source>
+        <translation>ஒலியடக்கிய குழுவில், உங்கள் செய்திக்கான பதில் இருந்தாலும் உங்களுக்கு அறிவிக்கும்.</translation>
     </message>
 </context>
 <context>

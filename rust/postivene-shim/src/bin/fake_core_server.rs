@@ -86,6 +86,17 @@ struct State {
     /// The real core numbers them from 1 and hands out everything after
     /// the serial it is asked from; so does this.
     webxdc_updates: std::collections::BTreeMap<u32, Vec<Value>>,
+    /// Texts changed after sending, by message: what `send_edit_request`
+    /// leaves behind, and what marks a message edited.
+    edits: std::collections::BTreeMap<u32, String>,
+    /// Chats muted from the list. The real core keeps a duration; this
+    /// keeps whether.
+    muted: std::collections::BTreeSet<u32>,
+    /// The message each sent message quotes, when it quotes one.
+    quotes: std::collections::BTreeMap<u32, u32>,
+    /// Messages sent from here, in the order they went. Read as the
+    /// account's own when a test asks for that; see `full_message`.
+    sent: std::collections::BTreeSet<u32>,
 }
 
 impl State {
@@ -282,6 +293,67 @@ impl State {
 
     /// Append a message to a chat and announce it, the way a send or an
     /// incoming message does.
+    /// One message with everything the fake knows about it laid over the
+    /// seeded shape: which chat it is in, what was sent with it, what its
+    /// text was changed to, what it quotes, and whether the download
+    /// limit is holding it back. What `get_message` and `get_messages`
+    /// both answer with, so the two cannot disagree.
+    ///
+    /// A message sent from here reads as the account's own only under
+    /// `POSTIVENE_FAKE_SELF_SENT`: the rest of the suite leans on a sent
+    /// message coming back as somebody else's, which is how a message
+    /// can be made to arrive without a network.
+    fn full_message(&self, msg: u64) -> Value {
+        let mut message = message_object(msg);
+        let id = u32::try_from(msg).unwrap_or_default();
+        message["chatId"] = json!(self.chat_of(id));
+        if let Some((file, view_type)) = self.sent_files.get(&id) {
+            message["file"] = file.clone();
+            message["viewType"] = json!(view_type);
+            message["fromId"] = json!(SELF);
+        }
+        if std::env::var_os("POSTIVENE_FAKE_SELF_SENT").is_some() && self.sent.contains(&id) {
+            message["fromId"] = json!(SELF);
+        }
+        if let Some(text) = self.edits.get(&id) {
+            message["text"] = json!(text);
+            message["isEdited"] = json!(true);
+        }
+        if let Some(quoted) = self.quotes.get(&id) {
+            // The real core's `WithMessage` quote: the quoted message's
+            // id beside its text and author.
+            message["quote"] = json!({
+                "kind": "WithMessage",
+                "messageId": quoted,
+                "text": wordy(u64::from(*quoted)),
+                "authorDisplayName": "Ada Lovelace",
+            });
+        }
+        // One message the download limit held back, when a test names
+        // it, until its remainder is asked for.
+        let held_back = std::env::var("POSTIVENE_FAKE_HELD_BACK_MSG")
+            .ok()
+            .and_then(|value| value.parse::<u64>().ok());
+        let fetched = self.downloaded.contains(&id);
+        message["downloadState"] = json!(if held_back == Some(msg) && !fetched {
+            "Available"
+        } else {
+            "Done"
+        });
+        message["reactions"] = self.reactions_object(id);
+        message
+    }
+
+    /// Remember what a message sent from here quoted, if anything.
+    fn note_quote(&mut self, msg: u32, quoted: &Value) {
+        self.sent.insert(msg);
+        if let Some(quoted) = quoted.as_u64().and_then(|value| u32::try_from(value).ok()) {
+            if quoted != 0 {
+                self.quotes.insert(msg, quoted);
+            }
+        }
+    }
+
     fn add_message(&mut self, account_id: u32, chat_id: u32) -> u32 {
         self.seed_chats();
         self.next_message_id += 1;
@@ -820,7 +892,6 @@ async fn serve() {
                 | "stop_ongoing_process"
                 | "markseen_msgs"
                 | "set_chat_visibility"
-                | "set_chat_mute_duration"
                 | "resend_messages" => ok(&id, &Value::Null),
                 "add_transport_from_qr" => {
                     let qr = positional(1).as_str().unwrap_or_default().to_string();
@@ -923,7 +994,9 @@ async fn serve() {
                 // is more of it.
                 "get_message" => {
                     let msg = positional(1).as_u64().unwrap_or_default();
-                    ok(&id, &message_object(msg))
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    ok(&id, &state.full_message(msg))
                 }
                 // The whole of a message the sending core cut. Only the
                 // one seeded as cut has one; every other message is
@@ -1271,8 +1344,95 @@ async fn serve() {
                             "id": chat,
                             "chatType": if state.is_group(chat) { "Group" } else { "Single" },
                             "name": state.chat_name(chat),
+                            "isEncrypted": true,
+                            "isMuted": state.muted.contains(&chat),
                         }),
                     )
+                }
+                // Whether the account can write into a chat: not into a
+                // group it has left, as `get_full_chat_by_id` says too.
+                "can_send" => {
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let state = state.lock().await;
+                    ok(&id, &json!(!state.left_groups.contains(&chat)))
+                }
+                // Replace the text of a message sent from here. The real
+                // core refuses an empty text and somebody else's message;
+                // the menu offers neither, so only the first is refused
+                // here, and a text asking to fail fails the way a send
+                // does. The change is announced as the real core announces
+                // it, so a model re-reads the row.
+                "send_edit_request" => {
+                    let account = account_id();
+                    let msg = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let text = positional(2).as_str().unwrap_or_default().to_string();
+                    if text.trim().is_empty() {
+                        err(&id, "Edited text cannot be empty")
+                    } else if should_fail(&text) {
+                        err(&id, "could not send")
+                    } else {
+                        let mut state = state.lock().await;
+                        state.seed_chats();
+                        let chat = state.chat_of(msg);
+                        state.edits.insert(msg, text);
+                        state.events.push_back(json!({
+                            "contextId": account,
+                            "event": {"kind": "MsgsChanged", "chatId": chat, "msgId": msg},
+                        }));
+                        ok(&id, &Value::Null)
+                    }
+                }
+                // How many messages a deletion period would take now: every
+                // message in every chat older than it, which with the seeded
+                // timestamps is all of them for any period a page offers.
+                "estimate_auto_deletion_count" => {
+                    let seconds = positional(2).as_i64().unwrap_or_default();
+                    let cutoff = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .map_or(0, |since| i64::try_from(since.as_secs()).unwrap_or(i64::MAX))
+                        .saturating_sub(seconds);
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    let count = state
+                        .chats
+                        .values()
+                        .flatten()
+                        .filter(|msg| message_timestamp(u64::from(**msg)) < cutoff)
+                        .count();
+                    ok(&id, &json!(count))
+                }
+                // Mute a chat, or unmute it. The real core keeps a duration
+                // and announces the change as a `ChatModified`; the list
+                // reads `isMuted` back off the row.
+                "set_chat_mute_duration" => {
+                    let account = account_id();
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok())
+                        .unwrap_or_default();
+                    let kind = positional(2)
+                        .get("kind")
+                        .and_then(Value::as_str)
+                        .unwrap_or_default()
+                        .to_string();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    if kind == "NotMuted" {
+                        state.muted.remove(&chat);
+                    } else {
+                        state.muted.insert(chat);
+                    }
+                    state.events.push_back(json!({
+                        "contextId": account,
+                        "event": {"kind": "ChatModified", "chatId": chat},
+                    }));
+                    ok(&id, &Value::Null)
                 }
                 // One contact by id, the account's own included: the
                 // profile page asks for its colour this way.
@@ -1374,6 +1534,8 @@ async fn serve() {
                                 "summaryStatus": if draft.is_some() { 19 } else { 0 },
                                 "freshMessageCounter": u32::from(fresh),
                                 "isEncrypted": true,
+                                "isMuted": u32::try_from(chat)
+                                    .is_ok_and(|chat| state.muted.contains(&chat)),
                                 // The chat with oneself and the core's
                                 // device chat, when a test names them:
                                 // what the cover leaves out of its grid.
@@ -1453,32 +1615,8 @@ async fn serve() {
                     let mut state = state.lock().await;
                     state.seed_chats();
                     let mut loaded = serde_json::Map::new();
-                    // One message the download limit held back, when a
-                    // test names it, until its remainder is asked for.
-                    let held_back = std::env::var("POSTIVENE_FAKE_HELD_BACK_MSG")
-                        .ok()
-                        .and_then(|value| value.parse::<u64>().ok());
                     for msg in ids {
-                        let mut message = message_object(msg);
-                        let chat = u32::try_from(msg).map_or(0, |msg| state.chat_of(msg));
-                        message["chatId"] = json!(chat);
-                        if let Some((file, view_type)) =
-                            u32::try_from(msg).ok().and_then(|msg| state.sent_files.get(&msg))
-                        {
-                            message["file"] = file.clone();
-                            message["viewType"] = json!(view_type);
-                            message["fromId"] = json!(SELF);
-                        }
-                        let fetched =
-                            u32::try_from(msg).is_ok_and(|msg| state.downloaded.contains(&msg));
-                        message["downloadState"] = json!(if held_back == Some(msg) && !fetched {
-                            "Available"
-                        } else {
-                            "Done"
-                        });
-                        message["reactions"] =
-                            u32::try_from(msg).map_or(Value::Null, |msg| state.reactions_object(msg));
-                        loaded.insert(msg.to_string(), message);
+                        loaded.insert(msg.to_string(), state.full_message(msg));
                     }
                     ok(&id, &Value::Object(loaded))
                 }
@@ -1528,6 +1666,7 @@ async fn serve() {
                     // sees carries the attachment, as the real one does.
                     let file = positional(3);
                     let file_name = positional(4);
+                    let quoted = positional(6);
                     if should_fail(&text) {
                         // The real core reports a failed send as an Error
                         // event, not only as a failed call.
@@ -1537,7 +1676,12 @@ async fn serve() {
                         }));
                         err(&id, "could not send")
                     } else {
-                        let msg = state.lock().await.add_message(account, chat);
+                        let msg = {
+                            let mut state = state.lock().await;
+                            let msg = state.add_message(account, chat);
+                            state.note_quote(msg, &quoted);
+                            msg
+                        };
                         // The event is queued above, so a delay here puts it
                         // ahead of this call's own reply -- the ordering the
                         // real core can produce, and the one that duplicated a
@@ -1604,6 +1748,10 @@ async fn serve() {
                         let mut state = state.lock().await;
                         let msg = state.add_message(account, chat);
                         state.sent_files.insert(msg, (file, view_type));
+                        state.note_quote(
+                            msg,
+                            data.get("quotedMessageId").unwrap_or(&Value::Null),
+                        );
                         ok(&id, &json!(msg))
                     }
                 }

@@ -134,8 +134,10 @@ pub struct MessageListItem {
     /// The text rendered as `Text.StyledText`, for when Markdown is drawn.
     /// Made here rather than in the row, so a message is rendered once.
     pub styled_text: QString,
-    /// The text with its Markdown markers taken out.
-    pub plain_text: QString,
+    /// `isEdited` upstream: the text is not what was first sent, because
+    /// the sender changed it afterwards. What the footer says "Edited"
+    /// for.
+    pub is_edited: bool,
     /// The reactions on this message, as a JSON array of
     /// `{"emoji", "count", "self"}` in the core's order, most frequent
     /// first. Empty when there are none. One string rather than a model

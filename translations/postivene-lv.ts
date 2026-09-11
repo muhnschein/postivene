@@ -72,6 +72,47 @@
     </message>
 </context>
 <context>
+    <name>AutoDeleteDialog</name>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Dzēst ziņas no ierīces</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Dzēst</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Atcelt</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n message(s) will be deleted now, and from then on every message will be once it is that old.</source>
+        <extracomment>%n is how many messages would be deleted straight away.</extracomment>
+        <translation>
+            <numerusform>%n ziņa tiks dzēsta tagad, un no tā brīža katra ziņa, tiklīdz tā būs tik veca.</numerusform>
+            <numerusform>%n ziņas tiks dzēstas tagad, un no tā brīža katra ziņa, tiklīdz tā būs tik veca.</numerusform>
+            <numerusform>%n ziņu tiks dzēsts tagad, un no tā brīža katra ziņa, tiklīdz tā būs tik veca.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>This includes pictures, videos and files.</source>
+        <translation>Tas ietver attēlus, video un failus.</translation>
+    </message>
+    <message>
+        <source>Messages are deleted whether they were read or not.</source>
+        <translation>Ziņas tiek dzēstas neatkarīgi no tā, vai tās ir izlasītas.</translation>
+    </message>
+    <message>
+        <source>&quot;Saved messages&quot; are kept.</source>
+        <extracomment>&quot;Saved messages&quot; is the name of the chat with oneself.</extracomment>
+        <translation>„Saglabātās ziņas“ paliek.</translation>
+    </message>
+    <message>
+        <source>I understand, delete all these messages</source>
+        <translation>Saprotu, dzēst visas šīs ziņas</translation>
+    </message>
+</context>
+<context>
     <name>CapturePage</name>
     <message>
         <source>The video could not be saved</source>
@@ -283,6 +324,10 @@
     <message>
         <source>Save</source>
         <translation>Saglabāt</translation>
+    </message>
+    <message>
+        <source>Edit</source>
+        <translation>Rediģēt</translation>
     </message>
 </context>
 <context>
@@ -524,6 +569,10 @@
         <source>View full message</source>
         <extracomment>Opens the whole message on a page of its own.</extracomment>
         <translation>Skatīt visu ziņu</translation>
+    </message>
+    <message>
+        <source>Edited</source>
+        <translation>Rediģēts</translation>
     </message>
 </context>
 <context>
@@ -815,6 +864,11 @@
         <source>Replying to %1</source>
         <translation>Atbilde %1</translation>
     </message>
+    <message>
+        <source>Editing message</source>
+        <extracomment>Above the message field while a sent message&apos;s text is being changed; the message&apos;s text follows.</extracomment>
+        <translation>Ziņas rediģēšana</translation>
+    </message>
 </context>
 <context>
     <name>ScanView</name>
@@ -913,10 +967,6 @@
         <translation>Noformēts: treknraksts, slīpraksts, saites</translation>
     </message>
     <message>
-        <source>Taken out: the words only</source>
-        <translation>Noņemts: tikai vārdi</translation>
-    </message>
-    <message>
         <source>As written</source>
         <translation>Kā rakstīts</translation>
     </message>
@@ -943,10 +993,6 @@
     <message>
         <source>Notifications</source>
         <translation>Paziņojumi</translation>
-    </message>
-    <message>
-        <source>A new message shows</source>
-        <translation>Jauna ziņa rāda</translation>
     </message>
     <message>
         <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
@@ -976,6 +1022,51 @@
     <message>
         <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
         <translation>Kāda atsūtītās lietotnes darbojas pašā sarunā, un pielikumu paletē ir veikals, no kura ņemt jaunas. Lietotne ir cita cilvēka kods, un šī daļa vēl nav tik pārbaudīta kā pārējās.</translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation>Pēc 1 stundas</translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation>Pēc 1 dienas</translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation>Pēc 1 nedēļas</translation>
+    </message>
+    <message>
+        <source>After 5 weeks</source>
+        <translation>Pēc 5 nedēļām</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>Pēc 1 gada</translation>
+    </message>
+    <message>
+        <source>Delete old messages</source>
+        <translation>Dzēst vecās ziņas</translation>
+    </message>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Dzēst ziņas no ierīces</translation>
+    </message>
+    <message>
+        <source>Older messages go from this phone, in every chat of every profile, whatever a chat&apos;s own disappearing messages setting says. &quot;Saved messages&quot; are kept.</source>
+        <translation>Vecākas ziņas pazūd no šī tālruņa, katrā katra profila sarunā, lai ko teiktu pašas sarunas pazūdošo ziņu iestatījums. „Saglabātās ziņas“ paliek.</translation>
+    </message>
+    <message>
+        <source>A new notification shows</source>
+        <translation>Jauns paziņojums rāda</translation>
+    </message>
+    <message>
+        <source>Mentions</source>
+        <extracomment>A reply to one of the reader&apos;s own messages, arriving in a group they have muted.</extracomment>
+        <translation>Pieminējumi</translation>
+    </message>
+    <message>
+        <source>In a muted group, a reply to one of your messages still notifies you.</source>
+        <translation>Apklusinātā grupā atbilde uz jūsu ziņu jūs tomēr informē.</translation>
     </message>
 </context>
 <context>

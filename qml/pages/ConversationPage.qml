@@ -51,6 +51,9 @@ Page {
             page.dropVoice()
             listView.jumpToNewest()
         }
+        // An edit is not a send: the row shows the new text, and the
+        // field goes back to whatever was in it before the edit began.
+        onEdited: page.finishEdit()
         onArrived: listView.noteArrivals(count)
         // The chat's unsent text, once the core has answered with it.
         //
@@ -138,6 +141,12 @@ Page {
 
     function storeDraft() {
         draftDebounce.stop()
+        // Not while the field holds a message already sent: what the
+        // core is keeping is the reader's own unsent words, put aside
+        // for the edit and put back after it.
+        if (page.editing) {
+            return
+        }
         messages.save_draft(textField.text)
     }
 
@@ -145,7 +154,47 @@ Page {
     Timer {
         id: draftDebounce
         interval: 1000
-        onTriggered: messages.save_draft(textField.text)
+        onTriggered: page.storeDraft()
+    }
+
+    /// The message of the reader's own whose text is in the field to be
+    /// changed, 0 for none. Editing is a mode of the field: while it is
+    /// on, the field holds that message's text, the bar above it says
+    /// so, the attachment tray is out of reach, and send means "send the
+    /// change" -- the shape deltachat-android and deltachat-ios give it.
+    property int editingMessageId: 0
+    /// The text as it was sent, for the bar to show.
+    property string editingBody: ""
+    /// What the field held before the edit began: the reader's unsent
+    /// draft, put back when the edit is sent or cancelled. The reference
+    /// clients throw it away, which is a loss with no reason behind it.
+    property string stashedDraft: ""
+    readonly property bool editing: page.editingMessageId !== 0
+
+    function beginEdit(messageId, body) {
+        // A second Edit while one is under way keeps the first stash:
+        // what is in the field now is the first message's text, not
+        // anything the reader wants back.
+        if (!page.editing) {
+            page.stashedDraft = textField.text
+        }
+        page.editingMessageId = messageId
+        page.editingBody = body
+        textField.text = body
+        textField.forceActiveFocus()
+    }
+
+    function cancelEdit() {
+        page.editingMessageId = 0
+        page.editingBody = ""
+        textField.text = page.stashedDraft
+        page.stashedDraft = ""
+    }
+
+    /// The edit reached the core: the same as cancelling, as far as the
+    /// field is concerned.
+    function finishEdit() {
+        page.cancelEdit()
     }
 
     // Where a search result lands. The row cannot be looked up until the
@@ -386,6 +435,8 @@ Page {
         // file until then. `=== true` because dconf hands back
         // `undefined` before it has read the key.
         appsEnabled: Settings.webxdcEnabled === true
+        // What the core would take an edit in: see the model.
+        canEdit: messages.can_send && messages.is_encrypted
         placeholderText: qsTr("No messages yet")
 
         // Reaching the newest message is what marks what is there read.
@@ -395,6 +446,7 @@ Page {
             page.replyBody = body
             page.replyAuthor = author
         }
+        onEditRequested: page.beginEdit(messageId, body)
         onCopyRequested: {
             Clipboard.text = body
             notice.show(qsTr("Copied to clipboard"))
@@ -467,7 +519,11 @@ Page {
         onDismissed: page.errorMessage = ""
     }
 
-    // What the next send replies to, and a way out of replying.
+    // What the next send replies to, and a way out of replying -- or,
+    // while a message is being edited, which one, and a way out of that.
+    // One bar for both: the two cannot be wanted at once, since an edit
+    // is not a send, and the reply comes back into view when the edit is
+    // done.
     ReplyBar {
         id: replyBar
         objectName: "replyBar"
@@ -476,9 +532,16 @@ Page {
             right: parent.right
             bottom: attachmentBar.top
         }
-        author: page.replyAuthor
-        body: page.replyBody
-        onCancelled: page.cancelReply()
+        editing: page.editing
+        author: page.editing ? "" : page.replyAuthor
+        body: page.editing ? page.editingBody : page.replyBody
+        onCancelled: {
+            if (page.editing) {
+                page.cancelEdit()
+            } else {
+                page.cancelReply()
+            }
+        }
     }
 
     // Directly above the field, below the reply bar: reading downwards,
@@ -492,7 +555,10 @@ Page {
             right: parent.right
             bottom: longMessageBar.top
         }
-        filePath: page.attachmentPath
+        // Put aside with the draft while a message is edited: an edit
+        // carries no file, and a bar saying one is about to be sent would
+        // be saying something untrue. The file is still here afterwards.
+        filePath: page.editing ? "" : page.attachmentPath
         fileName: page.attachmentName
         onCancelled: page.dropAttachment()
     }
@@ -549,9 +615,11 @@ Page {
         onDismissed: notice.text = ""
     }
 
-    /// The text and the file: what send has to send.
+    /// The text and the file: what send has to send. While a message is
+    /// being edited the file is put aside, and only the text counts.
     readonly property bool hasSomethingToSend:
-        textField.text.trim().length > 0 || page.attachmentPath.length > 0
+        textField.text.trim().length > 0
+        || (!page.editing && page.attachmentPath.length > 0)
 
     // A tap anywhere but the tray closes the tray: over everything
     // declared above -- the list, the bars -- and under the input row,
@@ -627,7 +695,11 @@ Page {
             id: textField
             objectName: "messageField"
             visible: !voiceBar.recording
-            width: parent.width - attachButton.width - sendButton.width
+            // Only the buttons that are there: a Row lays out what is
+            // visible, and the tray steps aside while a message is
+            // edited.
+            width: parent.width - (attachButton.visible ? attachButton.width : 0)
+                   - sendButton.width
             // Against the bottom of the row, as the buttons are: a Row
             // lays its children out from the top, so a field left there
             // would rise with the row whenever the row grew for the
@@ -659,7 +731,9 @@ Page {
         AttachButton {
             id: attachButton
             objectName: "attachButton"
-            visible: !voiceBar.recording
+            // Nor while a message is being edited: an edit changes the
+            // words and nothing else, so there is nothing to attach to it.
+            visible: !voiceBar.recording && !page.editing
             anchors.bottom: parent.bottom
             anchors.bottomMargin: inputRow.buttonLift
             voiceAvailable: voiceBar.available
@@ -679,8 +753,12 @@ Page {
             anchors.bottom: parent.bottom
             anchors.bottomMargin: inputRow.buttonLift
             // Hidden rather than greyed while a send is in flight: the
-            // indicator takes its place, so the row keeps its shape.
-            icon.source: messages.sending ? "" : "image://theme/icon-m-send"
+            // indicator takes its place, so the row keeps its shape. A
+            // tick while a message is being edited, since what the tap
+            // does then is keep a change rather than send a message.
+            icon.source: messages.sending ? ""
+                         : page.editing ? "image://theme/icon-m-accept"
+                                        : "image://theme/icon-m-send"
             // A file on its own is a message; an empty field with nothing
             // attached is not, and neither is one holding only spaces. A
             // recording under way is what send stops and sends. And
@@ -798,6 +876,17 @@ Page {
         // A recording under way is what the button sends.
         if (voiceBar.recording) {
             voiceBar.send()
+            return
+        }
+        // A message being edited: the change goes to the core, and the
+        // field is put back once it has taken it. The reply and the
+        // file, put aside for the edit, are not part of it.
+        if (page.editing) {
+            var changed = textField.text.trim()
+            if (changed.length > 0) {
+                page.errorMessage = ""
+                messages.edit_message(page.editingMessageId, changed)
+            }
             return
         }
         // The bars are cleared from `onSent`, with the model's own copy:

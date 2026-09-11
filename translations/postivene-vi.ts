@@ -72,6 +72,45 @@
     </message>
 </context>
 <context>
+    <name>AutoDeleteDialog</name>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Xóa tin nhắn khỏi thiết bị</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Xóa</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Hủy</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n message(s) will be deleted now, and from then on every message will be once it is that old.</source>
+        <extracomment>%n is how many messages would be deleted straight away.</extracomment>
+        <translation>
+            <numerusform>%n tin nhắn sẽ bị xóa ngay, và từ đó về sau mọi tin nhắn sẽ bị xóa khi đủ cũ như vậy.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>This includes pictures, videos and files.</source>
+        <translation>Bao gồm cả hình ảnh, video và tệp.</translation>
+    </message>
+    <message>
+        <source>Messages are deleted whether they were read or not.</source>
+        <translation>Tin nhắn bị xóa dù đã đọc hay chưa.</translation>
+    </message>
+    <message>
+        <source>&quot;Saved messages&quot; are kept.</source>
+        <extracomment>&quot;Saved messages&quot; is the name of the chat with oneself.</extracomment>
+        <translation>&quot;Tin nhắn đã lưu&quot; được giữ lại.</translation>
+    </message>
+    <message>
+        <source>I understand, delete all these messages</source>
+        <translation>Tôi hiểu, xóa tất cả các tin nhắn này</translation>
+    </message>
+</context>
+<context>
     <name>CapturePage</name>
     <message>
         <source>The video could not be saved</source>
@@ -283,6 +322,10 @@
     <message>
         <source>Save</source>
         <translation>Lưu</translation>
+    </message>
+    <message>
+        <source>Edit</source>
+        <translation>Sửa</translation>
     </message>
 </context>
 <context>
@@ -520,6 +563,10 @@
         <source>View full message</source>
         <extracomment>Opens the whole message on a page of its own.</extracomment>
         <translation>Xem toàn bộ tin nhắn</translation>
+    </message>
+    <message>
+        <source>Edited</source>
+        <translation>Đã sửa</translation>
     </message>
 </context>
 <context>
@@ -807,6 +854,11 @@
         <source>Replying to %1</source>
         <translation>Đang trả lời %1</translation>
     </message>
+    <message>
+        <source>Editing message</source>
+        <extracomment>Above the message field while a sent message&apos;s text is being changed; the message&apos;s text follows.</extracomment>
+        <translation>Đang sửa tin nhắn</translation>
+    </message>
 </context>
 <context>
     <name>ScanView</name>
@@ -905,10 +957,6 @@
         <translation>Định dạng: đậm, nghiêng, liên kết</translation>
     </message>
     <message>
-        <source>Taken out: the words only</source>
-        <translation>Lược bỏ: chỉ còn chữ</translation>
-    </message>
-    <message>
         <source>As written</source>
         <translation>Như đã viết</translation>
     </message>
@@ -935,10 +983,6 @@
     <message>
         <source>Notifications</source>
         <translation>Thông báo</translation>
-    </message>
-    <message>
-        <source>A new message shows</source>
-        <translation>Tin nhắn mới hiển thị</translation>
     </message>
     <message>
         <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
@@ -968,6 +1012,51 @@
     <message>
         <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
         <translation>Ứng dụng do người khác gửi sẽ chạy ngay trong cuộc trò chuyện, và khay tệp đính kèm cung cấp một cửa hàng để lấy ứng dụng mới. Ứng dụng là mã của người khác, và phần này chưa được kiểm thử nhiều như phần còn lại.</translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation>Sau 1 giờ</translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation>Sau 1 ngày</translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation>Sau 1 tuần</translation>
+    </message>
+    <message>
+        <source>After 5 weeks</source>
+        <translation>Sau 5 tuần</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>Sau 1 năm</translation>
+    </message>
+    <message>
+        <source>Delete old messages</source>
+        <translation>Xóa tin nhắn cũ</translation>
+    </message>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Xóa tin nhắn khỏi thiết bị</translation>
+    </message>
+    <message>
+        <source>Older messages go from this phone, in every chat of every profile, whatever a chat&apos;s own disappearing messages setting says. &quot;Saved messages&quot; are kept.</source>
+        <translation>Tin nhắn cũ hơn sẽ bị xóa khỏi điện thoại này, trong mọi cuộc trò chuyện của mọi hồ sơ, bất kể cài đặt tin nhắn tự hủy của chính cuộc trò chuyện. &quot;Tin nhắn đã lưu&quot; được giữ lại.</translation>
+    </message>
+    <message>
+        <source>A new notification shows</source>
+        <translation>Thông báo mới hiển thị</translation>
+    </message>
+    <message>
+        <source>Mentions</source>
+        <extracomment>A reply to one of the reader&apos;s own messages, arriving in a group they have muted.</extracomment>
+        <translation>Nhắc đến</translation>
+    </message>
+    <message>
+        <source>In a muted group, a reply to one of your messages still notifies you.</source>
+        <translation>Trong nhóm đã tắt thông báo, trả lời cho một tin nhắn của bạn vẫn thông báo cho bạn.</translation>
     </message>
 </context>
 <context>

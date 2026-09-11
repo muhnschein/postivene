@@ -72,6 +72,45 @@
     </message>
 </context>
 <context>
+    <name>AutoDeleteDialog</name>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>從裝置刪除訊息</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>刪除</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>取消</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n message(s) will be deleted now, and from then on every message will be once it is that old.</source>
+        <extracomment>%n is how many messages would be deleted straight away.</extracomment>
+        <translation>
+            <numerusform>現在將刪除 %n 則訊息，此後每則訊息一到這個時間也會被刪除。</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>This includes pictures, videos and files.</source>
+        <translation>這包括圖片、影片和檔案。</translation>
+    </message>
+    <message>
+        <source>Messages are deleted whether they were read or not.</source>
+        <translation>無論是否已讀，訊息都會被刪除。</translation>
+    </message>
+    <message>
+        <source>&quot;Saved messages&quot; are kept.</source>
+        <extracomment>&quot;Saved messages&quot; is the name of the chat with oneself.</extracomment>
+        <translation>「已儲存的訊息」會保留。</translation>
+    </message>
+    <message>
+        <source>I understand, delete all these messages</source>
+        <translation>我明白，刪除所有這些訊息</translation>
+    </message>
+</context>
+<context>
     <name>CapturePage</name>
     <message>
         <source>The video could not be saved</source>
@@ -283,6 +322,10 @@
     <message>
         <source>Save</source>
         <translation>儲存</translation>
+    </message>
+    <message>
+        <source>Edit</source>
+        <translation>編輯</translation>
     </message>
 </context>
 <context>
@@ -520,6 +563,10 @@
         <source>View full message</source>
         <extracomment>Opens the whole message on a page of its own.</extracomment>
         <translation>檢視完整訊息</translation>
+    </message>
+    <message>
+        <source>Edited</source>
+        <translation>已編輯</translation>
     </message>
 </context>
 <context>
@@ -807,6 +854,11 @@
         <source>Replying to %1</source>
         <translation>回覆 %1</translation>
     </message>
+    <message>
+        <source>Editing message</source>
+        <extracomment>Above the message field while a sent message&apos;s text is being changed; the message&apos;s text follows.</extracomment>
+        <translation>正在編輯訊息</translation>
+    </message>
 </context>
 <context>
     <name>ScanView</name>
@@ -905,10 +957,6 @@
         <translation>呈現：粗體、斜體、連結</translation>
     </message>
     <message>
-        <source>Taken out: the words only</source>
-        <translation>去除：只保留文字</translation>
-    </message>
-    <message>
         <source>As written</source>
         <translation>照原樣</translation>
     </message>
@@ -935,10 +983,6 @@
     <message>
         <source>Notifications</source>
         <translation>通知</translation>
-    </message>
-    <message>
-        <source>A new message shows</source>
-        <translation>新訊息顯示</translation>
     </message>
     <message>
         <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
@@ -968,6 +1012,51 @@
     <message>
         <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
         <translation>別人傳來的應用程式會直接在聊天中執行，附件匣還會提供一個商店，可從那裡取得新的應用程式。應用程式是別人的程式碼，這部分還未像其餘部分那樣經過充分測試。</translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation>1 小時後</translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation>1 天後</translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation>1 週後</translation>
+    </message>
+    <message>
+        <source>After 5 weeks</source>
+        <translation>5 週後</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>1 年後</translation>
+    </message>
+    <message>
+        <source>Delete old messages</source>
+        <translation>刪除舊訊息</translation>
+    </message>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>從裝置刪除訊息</translation>
+    </message>
+    <message>
+        <source>Older messages go from this phone, in every chat of every profile, whatever a chat&apos;s own disappearing messages setting says. &quot;Saved messages&quot; are kept.</source>
+        <translation>較舊的訊息會從此手機刪除，涵蓋每個個人檔案的每個聊天，無論聊天本身的閱後即焚設定為何。「已儲存的訊息」會保留。</translation>
+    </message>
+    <message>
+        <source>A new notification shows</source>
+        <translation>新通知顯示</translation>
+    </message>
+    <message>
+        <source>Mentions</source>
+        <extracomment>A reply to one of the reader&apos;s own messages, arriving in a group they have muted.</extracomment>
+        <translation>提及</translation>
+    </message>
+    <message>
+        <source>In a muted group, a reply to one of your messages still notifies you.</source>
+        <translation>在已靜音的群組中，對你訊息的回覆仍會通知你。</translation>
     </message>
 </context>
 <context>

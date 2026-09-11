@@ -235,6 +235,36 @@
     </message>
 </context>
 <context>
+    <name>ChatMediaPage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>ડાઉનલોડ્સમાં સાચવ્યું</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>બીજી ઍપમાં ખોલો</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>ઉપકરણ પર સાચવો</translation>
+    </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>કાઢી નાખવામાં આવે છે</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>ચેટમાં બતાવો</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>કાઢી નાખો</translation>
+    </message>
+</context>
+<context>
     <name>ChatPickerPage</name>
     <message>
         <source>Forward to</source>
@@ -537,6 +567,45 @@
         <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
         <extracomment>%1 is the group&apos;s name.</extracomment>
         <translation>%1 છોડવું છે? તમને તેના સંદેશા મળવાનું બંધ થશે, અને માત્ર કોઈ સભ્ય જ તમને પાછા ઉમેરી શકશે.</translation>
+    </message>
+</context>
+<context>
+    <name>Media</name>
+    <message>
+        <source>Gallery</source>
+        <extracomment>The pictures and videos of a chat: a tile, and a page heading.</extracomment>
+        <translation>ગેલેરી</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <extracomment>The voice messages and music of a chat.</extracomment>
+        <translation>ઑડિયો</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <extracomment>The documents and other files of a chat.</extracomment>
+        <translation>ફાઇલો</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <extracomment>The webxdc apps of a chat.</extracomment>
+        <translation>એપ્સ</translation>
+    </message>
+    <message>
+        <source>No pictures or videos yet</source>
+        <translation>હજુ સુધી કોઈ ચિત્રો કે વિડિયો નથી</translation>
+    </message>
+    <message>
+        <source>No voice messages or music yet</source>
+        <translation>હજુ સુધી કોઈ વૉઇસ સંદેશ કે સંગીત નથી</translation>
+    </message>
+    <message>
+        <source>No files yet</source>
+        <translation>હજુ સુધી કોઈ ફાઇલો નથી</translation>
+    </message>
+    <message>
+        <source>No apps yet</source>
+        <translation>હજુ સુધી કોઈ એપ્સ નથી</translation>
     </message>
 </context>
 <context>
@@ -1058,6 +1127,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>મ્યૂટ કરેલા જૂથમાં, તમારા સંદેશનો જવાબ તમને તો પણ સૂચિત કરે છે.</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>Enter સંદેશ મોકલે છે</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>બંધ હોય ત્યારે Enter કી નવી લાઇન શરૂ કરે છે, સંદેશ ક્ષેત્ર લખાણ સાથે વધે છે અને મોકલો બટન મોકલે છે.</translation>
     </message>
 </context>
 <context>

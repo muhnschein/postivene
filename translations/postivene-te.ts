@@ -235,6 +235,36 @@
     </message>
 </context>
 <context>
+    <name>ChatMediaPage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>డౌన్‌లోడ్‌లలో భద్రపరచబడింది</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>మరో యాప్‌లో తెరువు</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>పరికరంలో సేవ్ చేయి</translation>
+    </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>తొలగిస్తోంది</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>చాట్‌లో చూపించు</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>తొలగించు</translation>
+    </message>
+</context>
+<context>
     <name>ChatPickerPage</name>
     <message>
         <source>Forward to</source>
@@ -537,6 +567,45 @@
         <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
         <extracomment>%1 is the group&apos;s name.</extracomment>
         <translation>%1 నుండి నిష్క్రమించాలా? దాని సందేశాలు మీకు ఇక రావు, మరియు ఒక సభ్యుడు మాత్రమే మిమ్మల్ని తిరిగి చేర్చగలరు.</translation>
+    </message>
+</context>
+<context>
+    <name>Media</name>
+    <message>
+        <source>Gallery</source>
+        <extracomment>The pictures and videos of a chat: a tile, and a page heading.</extracomment>
+        <translation>గ్యాలరీ</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <extracomment>The voice messages and music of a chat.</extracomment>
+        <translation>ఆడియో</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <extracomment>The documents and other files of a chat.</extracomment>
+        <translation>ఫైళ్లు</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <extracomment>The webxdc apps of a chat.</extracomment>
+        <translation>యాప్‌లు</translation>
+    </message>
+    <message>
+        <source>No pictures or videos yet</source>
+        <translation>ఇంకా చిత్రాలు లేదా వీడియోలు లేవు</translation>
+    </message>
+    <message>
+        <source>No voice messages or music yet</source>
+        <translation>ఇంకా వాయిస్ సందేశాలు లేదా సంగీతం లేవు</translation>
+    </message>
+    <message>
+        <source>No files yet</source>
+        <translation>ఇంకా ఫైళ్లు లేవు</translation>
+    </message>
+    <message>
+        <source>No apps yet</source>
+        <translation>ఇంకా యాప్‌లు లేవు</translation>
     </message>
 </context>
 <context>
@@ -1058,6 +1127,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>మ్యూట్ చేసిన గుంపులో, మీ సందేశానికి వచ్చిన ప్రత్యుత్తరం అయినా మీకు తెలియజేస్తుంది.</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>Enter సందేశాన్ని పంపుతుంది</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>ఆఫ్‌లో ఉంటే Enter కీ కొత్త పంక్తిని మొదలుపెడుతుంది, సందేశ ఫీల్డ్ రాసినదానితో పెరుగుతుంది, పంపు బటన్ పంపుతుంది.</translation>
     </message>
 </context>
 <context>

@@ -235,6 +235,36 @@
     </message>
 </context>
 <context>
+    <name>ChatMediaPage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>Lagret i Nedlastinger</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>Åpne i en annen app</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>Lagre på enheten</translation>
+    </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>Sletter</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>Vis i chatten</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Slett</translation>
+    </message>
+</context>
+<context>
     <name>ChatPickerPage</name>
     <message>
         <source>Forward to</source>
@@ -537,6 +567,45 @@
         <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
         <extracomment>%1 is the group&apos;s name.</extracomment>
         <translation>Forlate %1? Du slutter å motta meldingene derfra, og bare et medlem kan legge deg til igjen.</translation>
+    </message>
+</context>
+<context>
+    <name>Media</name>
+    <message>
+        <source>Gallery</source>
+        <extracomment>The pictures and videos of a chat: a tile, and a page heading.</extracomment>
+        <translation>Galleri</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <extracomment>The voice messages and music of a chat.</extracomment>
+        <translation>Lyd</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <extracomment>The documents and other files of a chat.</extracomment>
+        <translation>Filer</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <extracomment>The webxdc apps of a chat.</extracomment>
+        <translation>Apper</translation>
+    </message>
+    <message>
+        <source>No pictures or videos yet</source>
+        <translation>Ingen bilder eller videoer ennå</translation>
+    </message>
+    <message>
+        <source>No voice messages or music yet</source>
+        <translation>Ingen talemeldinger eller musikk ennå</translation>
+    </message>
+    <message>
+        <source>No files yet</source>
+        <translation>Ingen filer ennå</translation>
+    </message>
+    <message>
+        <source>No apps yet</source>
+        <translation>Ingen apper ennå</translation>
     </message>
 </context>
 <context>
@@ -1058,6 +1127,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>I en dempet gruppe varsler et svar på en av meldingene dine deg likevel.</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>Enter sender meldingen</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>Avslått begynner Enter-tasten en ny linje, meldingsfeltet vokser med det som skrives, og send-knappen sender.</translation>
     </message>
 </context>
 <context>

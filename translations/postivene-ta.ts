@@ -235,6 +235,36 @@
     </message>
 </context>
 <context>
+    <name>ChatMediaPage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>பதிவிறக்கங்களில் சேமிக்கப்பட்டது</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>வேறு பயன்பாட்டில் திற</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>சாதனத்தில் சேமி</translation>
+    </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>நீக்கப்படுகிறது</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>அரட்டையில் காட்டு</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>நீக்கு</translation>
+    </message>
+</context>
+<context>
     <name>ChatPickerPage</name>
     <message>
         <source>Forward to</source>
@@ -537,6 +567,45 @@
         <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
         <extracomment>%1 is the group&apos;s name.</extracomment>
         <translation>%1 குழுவிலிருந்து வெளியேறவா? அதன் செய்திகள் இனி உங்களுக்கு வராது, ஒரு உறுப்பினர் மட்டுமே உங்களை மீண்டும் சேர்க்க முடியும்.</translation>
+    </message>
+</context>
+<context>
+    <name>Media</name>
+    <message>
+        <source>Gallery</source>
+        <extracomment>The pictures and videos of a chat: a tile, and a page heading.</extracomment>
+        <translation>கேலரி</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <extracomment>The voice messages and music of a chat.</extracomment>
+        <translation>ஆடியோ</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <extracomment>The documents and other files of a chat.</extracomment>
+        <translation>கோப்புகள்</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <extracomment>The webxdc apps of a chat.</extracomment>
+        <translation>செயலிகள்</translation>
+    </message>
+    <message>
+        <source>No pictures or videos yet</source>
+        <translation>இன்னும் படங்களோ வீடியோக்களோ இல்லை</translation>
+    </message>
+    <message>
+        <source>No voice messages or music yet</source>
+        <translation>இன்னும் குரல் செய்திகளோ இசையோ இல்லை</translation>
+    </message>
+    <message>
+        <source>No files yet</source>
+        <translation>இன்னும் கோப்புகள் இல்லை</translation>
+    </message>
+    <message>
+        <source>No apps yet</source>
+        <translation>இன்னும் செயலிகள் இல்லை</translation>
     </message>
 </context>
 <context>
@@ -1058,6 +1127,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>ஒலியடக்கிய குழுவில், உங்கள் செய்திக்கான பதில் இருந்தாலும் உங்களுக்கு அறிவிக்கும்.</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>Enter செய்தியை அனுப்பும்</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>அணைக்கப்பட்டிருந்தால் Enter விசை புதிய வரியைத் தொடங்கும், செய்திப் புலம் எழுதியதற்கேற்ப வளரும், அனுப்பு பொத்தான் அனுப்பும்.</translation>
     </message>
 </context>
 <context>

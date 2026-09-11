@@ -128,7 +128,33 @@ Page {
             listView.flushDeletes()
         } else if (page.status === PageStatus.Active) {
             listView.restorePlace()
+            // A message asked for while the page was away -- from a
+            // media page over the contact's, on its way back here --
+            // lands on top of the place just put back, not under it.
+            page.revealIfAsked()
             page.attachInfo()
+        }
+    }
+
+    /// Go to one message: what a search result asks for as the chat
+    /// opens, and what a media page over this one asks for on the way
+    /// back (ChatMediaPage.showInChat). Acted on now if this is the page
+    /// on screen; kept until it is otherwise, since coming back puts
+    /// the view where the reader left it and the message has to land
+    /// over that.
+    function showMessage(messageId) {
+        page.findMessageId = messageId
+        if (page.status === PageStatus.Active) {
+            page.revealIfAsked()
+        }
+    }
+
+    /// Ask the model where the message that was asked for is, once
+    /// there is one and the rows are in. Where it answers is
+    /// `onRevealed` below.
+    function revealIfAsked() {
+        if (page.findMessageId !== 0 && messages.loaded) {
+            messages.reveal(page.findMessageId)
         }
     }
 
@@ -621,6 +647,11 @@ Page {
         textField.text.trim().length > 0
         || (!page.editing && page.attachmentPath.length > 0)
 
+    /// Whether the return key sends, from the settings page. Off, it
+    /// puts in a line break and the button sends. `=== true` because
+    /// dconf hands back `undefined` before it has read the key.
+    readonly property bool enterSends: Settings.enterSends === true
+
     // A tap anywhere but the tray closes the tray: over everything
     // declared above -- the list, the bars -- and under the input row,
     // which is declared after it. Silica's own menus close the same way.
@@ -690,7 +721,9 @@ Page {
         // long. This is an area: return puts in a newline, the field
         // grows as the message does, and send is the button -- which is
         // what every other client on this phone does with a message
-        // longer than a remark.
+        // longer than a remark. Unless the reader turns the key back
+        // into send on the settings page, when a message is one line by
+        // construction again, and knowingly.
         TextArea {
             id: textField
             objectName: "messageField"
@@ -712,6 +745,15 @@ Page {
             // Silica's own label sits above the text and says the same
             // thing the placeholder does.
             labelVisible: false
+            // The return key: a line break, unless the reader has asked
+            // for it to send, when the keyboard draws it as the accept
+            // key and greys it while there is nothing to send, as the
+            // button is. Each on one line of its own: the tests load
+            // this page with these lines taken out, since the attached
+            // type has no stub (common::qml_tree_without_enter_key).
+            EnterKey.iconSource: page.enterSends ? "image://theme/icon-m-enter-accept" : "image://theme/icon-m-enter"
+            EnterKey.enabled: !page.enterSends || page.hasSomethingToSend
+            EnterKey.onClicked: page.enterPressed()
             // It grows with what is in it, up to a point: past a third
             // of the screen the conversation it is written in would be
             // gone, so the area keeps that height and scrolls inside it.
@@ -863,6 +905,16 @@ Page {
             accountId: page.accountId,
             messageId: messageId
         })
+    }
+
+    /// The return key, once the reader has made it send. Only then: the
+    /// key is the field's otherwise, and puts in a line break. What
+    /// Silica does with the break the key would have put in is Silica's;
+    /// the text goes out trimmed either way.
+    function enterPressed() {
+        if (page.enterSends) {
+            page.sendCurrentText()
+        }
     }
 
     function sendCurrentText() {

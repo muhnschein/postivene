@@ -234,6 +234,36 @@
     </message>
 </context>
 <context>
+    <name>ChatMediaPage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>İndirilenler&apos;e kaydedildi</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>Başka bir uygulamada aç</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>Cihaza kaydet</translation>
+    </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>Siliniyor</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>Sohbette göster</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Sil</translation>
+    </message>
+</context>
+<context>
     <name>ChatPickerPage</name>
     <message>
         <source>Forward to</source>
@@ -534,6 +564,45 @@
         <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
         <extracomment>%1 is the group&apos;s name.</extracomment>
         <translation>%1 grubundan ayrılınsın mı? Mesajlarını artık almazsınız ve sizi yalnızca bir üye geri ekleyebilir.</translation>
+    </message>
+</context>
+<context>
+    <name>Media</name>
+    <message>
+        <source>Gallery</source>
+        <extracomment>The pictures and videos of a chat: a tile, and a page heading.</extracomment>
+        <translation>Galeri</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <extracomment>The voice messages and music of a chat.</extracomment>
+        <translation>Ses</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <extracomment>The documents and other files of a chat.</extracomment>
+        <translation>Dosyalar</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <extracomment>The webxdc apps of a chat.</extracomment>
+        <translation>Uygulamalar</translation>
+    </message>
+    <message>
+        <source>No pictures or videos yet</source>
+        <translation>Henüz resim veya video yok</translation>
+    </message>
+    <message>
+        <source>No voice messages or music yet</source>
+        <translation>Henüz sesli mesaj veya müzik yok</translation>
+    </message>
+    <message>
+        <source>No files yet</source>
+        <translation>Henüz dosya yok</translation>
+    </message>
+    <message>
+        <source>No apps yet</source>
+        <translation>Henüz uygulama yok</translation>
     </message>
 </context>
 <context>
@@ -1053,6 +1122,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>Sessize alınmış bir grupta, mesajlarınızdan birine verilen yanıt yine de sizi bilgilendirir.</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>Enter mesajı gönderir</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>Kapalıyken Enter tuşu yeni satıra geçer, mesaj alanı yazılanla büyür ve gönder düğmesi gönderir.</translation>
     </message>
 </context>
 <context>

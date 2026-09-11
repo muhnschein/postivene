@@ -291,6 +291,37 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   cache directory until the core has copied it, and is sent as any other
   file -- a voice message with the core's `Voice` view type, the one kind
   the core has to be told.
+- **What a chat holds besides words is listed by kind, off the core's own
+  index.** The contact's and the group's page carry a row of tiles --
+  Gallery, Audio, Files, and Apps where apps are on -- and each opens a
+  page of that kind (`ChatMediaPage.qml`), which is where the reference
+  clients keep theirs. The index is the core's `get_chat_media`: up to
+  three view types in one call, and that limit is what shapes the four
+  pages -- pictures, GIFs and videos; music and voice messages; files and
+  shared contacts; apps. It answers oldest first and says not to re-sort
+  it, so the model (`chat_media.rs`) turns the list round and does
+  nothing else to its order. The rows are messages in the conversation's
+  own shape, read in the conversation's own pages of fifty, but from the
+  top down without waiting to be asked: every row stands as a
+  placeholder from the moment the ids are in, and the first screen is
+  filled before the rest have been read. What has been read is kept
+  across a reload, so a picture arriving while the page is open is one
+  row fetched and nothing moved. The gallery's tiles are the platform
+  thumbnailer's -- what the gallery app scrolls through, drawn once to
+  the cell's size and kept -- rather than a decode of every picture; the
+  other three pages draw the conversation's own attachment rows, so a
+  voice message plays where it sits and an app runs on a tap, and a
+  long press offers a file what the chat's row menu offers it. The same
+  press offers, on every kind, Show in chat and Delete. Deleting is the
+  conversation's own arrangement -- the wait lives beside the views in
+  a `PendingRemoval`, the platform's `RemorseItem` draws it, and the
+  model's `delete_message` is the row menu's call -- so a run of
+  deletes survives the rows it destroys. Show in chat walks the page
+  stack down to the conversation this page was opened over
+  (`previousPage` until a page has `showMessage`), tells it the
+  message, and pops to it; the conversation keeps the ask until it is
+  the page on screen and lands the message the way a search result
+  lands, over the place it puts back on the way in.
 
 ## Platform baseline
 
@@ -314,8 +345,8 @@ In order of what matters:
    validator runs against each built RPM. One blocker remains, and it is not
    fixable here: the bundled `deltachat-rpc-server` is a second ELF
    executable, which Harbour permits nowhere.
-2. **Blocking** outside a request; a media grid on the group and contact
-   pages; add-as-second-device and restore-from-backup.
+2. **Blocking** outside a request; add-as-second-device and
+   restore-from-backup.
 3. **Message polish**: avatars on bubbles, and a way to react with an
    emoji the quick row does not offer.
 4. **The rest of the webxdc API.** Apps are sent, shown and run

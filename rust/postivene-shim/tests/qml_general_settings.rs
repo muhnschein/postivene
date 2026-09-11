@@ -77,6 +77,27 @@ fn probe_qml() -> String {
         }}
         // The app's side of the same keys.
         function appReads(name) {{ return '' + Settings[name] }}
+        // What stands first under a section heading: the control after
+        // the header that says `heading`.
+        function firstUnder(heading) {{
+            var header = findText(loader.item, heading)
+            if (!header || !header.parent) {{ return 'missing:' + heading }}
+            var kids = header.parent.children
+            for (var i = 0; i + 1 < kids.length; i++) {{
+                if (kids[i] === header) {{ return kids[i + 1].objectName }}
+            }}
+            return 'missing:' + heading
+        }}
+        function findText(node, text) {{
+            if (!node) {{ return null }}
+            if (node.text === text && node.objectName === '') {{ return node }}
+            var kids = node.data !== undefined ? node.data : node.children
+            for (var i = 0; kids && i < kids.length; i++) {{
+                var hit = findText(kids[i], text)
+                if (hit) {{ return hit }}
+            }}
+            return null
+        }}
         function appWrites(name, value) {{ Settings[name] = value; return 'ok' }}
         function appKey(name) {{ return '' + Settings[name].key }}
     }}
@@ -132,6 +153,10 @@ fn the_settings_page_writes_what_the_app_reads() {
     single_shot(Duration::from_secs(1), move || unsafe {
         // The keys, under the app's own path.
         record!(
+            "app-enter-key",
+            call!("appKey", QString::from("enterSendsConfig"))
+        );
+        record!(
             "app-markdown-key",
             call!("appKey", QString::from("markdownConfig"))
         );
@@ -163,7 +188,18 @@ fn the_settings_page_writes_what_the_app_reads() {
             "load",
             call!("load", QString::from(common::page_url("SettingsPage.qml")))
         );
-        // What a fresh phone shows.
+        // What a fresh phone shows. The return key is the first thing
+        // under Messages, and puts in a line break until it is asked to
+        // send.
+        record!(
+            "first-under-messages",
+            call!("firstUnder", QString::from("Messages"))
+        );
+        record!(
+            "enter-default",
+            call!("appReads", QString::from("enterSends"))
+        );
+        record!("enter-switch", get!("enterSendsSwitch", "checked"));
         record!(
             "markdown-default",
             call!("appReads", QString::from("markdownMode"))
@@ -208,6 +244,17 @@ fn the_settings_page_writes_what_the_app_reads() {
         );
         record!("apps-switch", get!("webxdcSwitch", "checked"));
         // Each control writes its setting, and the choice shown follows it.
+        record!(
+            "flip-enter",
+            call!("click", QString::from("enterSendsSwitch"))
+        );
+        record!("enter-on", call!("appReads", QString::from("enterSends")));
+        record!("enter-switch-on", get!("enterSendsSwitch", "checked"));
+        record!(
+            "flip-enter-back",
+            call!("click", QString::from("enterSendsSwitch"))
+        );
+        record!("enter-off", call!("appReads", QString::from("enterSends")));
         record!(
             "pick-markdown",
             call!("click", QString::from("markdownOption1"))
@@ -340,6 +387,15 @@ fn the_settings_page_writes_what_the_app_reads() {
         "the settings page did not load. {context}"
     );
     for (label, expected) in [
+        ("first-under-messages", "enterSendsSwitch"),
+        ("app-enter-key", "/apps/harbour-postivene/enter_sends"),
+        ("enter-default", "false"),
+        ("enter-switch", "false"),
+        ("flip-enter", "ok"),
+        ("enter-on", "true"),
+        ("enter-switch-on", "true"),
+        ("flip-enter-back", "ok"),
+        ("enter-off", "false"),
         ("markdown-default", "0"),
         ("markdown-index", "0"),
         ("markdown-third", "missing:markdownOption2"),

@@ -235,6 +235,36 @@
     </message>
 </context>
 <context>
+    <name>ChatMediaPage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>In Downloads gespeichert</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>In anderer App öffnen</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>Auf dem Gerät speichern</translation>
+    </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>Wird gelöscht</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>Im Chat anzeigen</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Löschen</translation>
+    </message>
+</context>
+<context>
     <name>ChatPickerPage</name>
     <message>
         <source>Forward to</source>
@@ -537,6 +567,45 @@
         <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
         <extracomment>%1 is the group&apos;s name.</extracomment>
         <translation>%1 verlassen? Du erhältst keine Nachrichten mehr daraus, und nur ein Mitglied kann dich wieder hinzufügen.</translation>
+    </message>
+</context>
+<context>
+    <name>Media</name>
+    <message>
+        <source>Gallery</source>
+        <extracomment>The pictures and videos of a chat: a tile, and a page heading.</extracomment>
+        <translation>Galerie</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <extracomment>The voice messages and music of a chat.</extracomment>
+        <translation>Audio</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <extracomment>The documents and other files of a chat.</extracomment>
+        <translation>Dateien</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <extracomment>The webxdc apps of a chat.</extracomment>
+        <translation>Apps</translation>
+    </message>
+    <message>
+        <source>No pictures or videos yet</source>
+        <translation>Noch keine Bilder oder Videos</translation>
+    </message>
+    <message>
+        <source>No voice messages or music yet</source>
+        <translation>Noch keine Sprachnachrichten oder Musik</translation>
+    </message>
+    <message>
+        <source>No files yet</source>
+        <translation>Noch keine Dateien</translation>
+    </message>
+    <message>
+        <source>No apps yet</source>
+        <translation>Noch keine Apps</translation>
     </message>
 </context>
 <context>
@@ -1058,6 +1127,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>In einer stummgeschalteten Gruppe benachrichtigt eine Antwort auf eine Ihrer Nachrichten Sie trotzdem.</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>Enter sendet die Nachricht</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>Aus: Die Eingabetaste beginnt eine neue Zeile, das Nachrichtenfeld wächst mit dem Geschriebenen, und der Senden-Knopf sendet.</translation>
     </message>
 </context>
 <context>

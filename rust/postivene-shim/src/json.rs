@@ -62,6 +62,18 @@ pub(crate) fn i64_at(value: &Value, path: &str) -> i64 {
     field(value, path).and_then(Value::as_i64).unwrap_or(0)
 }
 
+/// The payload of a core event, when the event is about one chat: an
+/// event names its chat in `chatId`, except that `MsgsChanged` carries 0
+/// for "several chats" and an overflow carries none at all, and both of
+/// those are every chat's. `None` for another chat's event, so a model
+/// that holds one chat can drop it in a line. Every model that listens to
+/// a chat asks this rather than each reading the field for itself.
+pub(crate) fn chat_event(payload_json: &str, chat_id: u32) -> Option<Value> {
+    let payload: Value = serde_json::from_str(payload_json).unwrap_or_default();
+    let event_chat = u32_at(&payload, "chatId");
+    (event_chat == 0 || event_chat == chat_id).then_some(payload)
+}
+
 /// A flag, false when absent.
 pub(crate) fn flag(value: &Value, path: &str) -> bool {
     field(value, path).and_then(Value::as_bool).unwrap_or(false)
@@ -69,7 +81,7 @@ pub(crate) fn flag(value: &Value, path: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{flag, i32_at, i64_at, str_at, text, u32_at, u32_opt};
+    use super::{chat_event, flag, i32_at, i64_at, str_at, text, u32_at, u32_opt};
     use serde_json::json;
 
     #[test]
@@ -106,5 +118,21 @@ mod tests {
         assert_eq!(i32_at(&message, "neg"), -5);
         assert_eq!(i64_at(&message, "missing"), 0);
         assert!(!flag(&message, "missing"));
+    }
+
+    #[test]
+    fn an_event_is_the_chats_own_when_it_names_it_or_names_none() {
+        assert!(chat_event(r#"{"chatId":7,"msgId":3}"#, 7).is_some());
+        assert!(chat_event(r#"{"chatId":8,"msgId":3}"#, 7).is_none());
+        // MsgsChanged for several chats, and an overflow with no chat.
+        assert!(chat_event(r#"{"chatId":0}"#, 7).is_some());
+        assert!(chat_event("{}", 7).is_some());
+        // Not JSON at all reads as an empty object: every chat's, and
+        // every field of it absent.
+        let payload = chat_event("nonsense", 7);
+        assert_eq!(
+            payload.as_ref().map(|value| u32_at(value, "msgId")),
+            Some(0)
+        );
     }
 }

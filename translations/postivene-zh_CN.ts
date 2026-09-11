@@ -234,6 +234,36 @@
     </message>
 </context>
 <context>
+    <name>ChatMediaPage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>已保存到下载</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>用其他应用打开</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>保存到设备</translation>
+    </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>正在删除</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>在聊天中显示</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>删除</translation>
+    </message>
+</context>
+<context>
     <name>ChatPickerPage</name>
     <message>
         <source>Forward to</source>
@@ -534,6 +564,45 @@
         <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
         <extracomment>%1 is the group&apos;s name.</extracomment>
         <translation>退出 %1？你将不再收到它的消息，并且只有成员才能把你重新加回来。</translation>
+    </message>
+</context>
+<context>
+    <name>Media</name>
+    <message>
+        <source>Gallery</source>
+        <extracomment>The pictures and videos of a chat: a tile, and a page heading.</extracomment>
+        <translation>图库</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <extracomment>The voice messages and music of a chat.</extracomment>
+        <translation>音频</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <extracomment>The documents and other files of a chat.</extracomment>
+        <translation>文件</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <extracomment>The webxdc apps of a chat.</extracomment>
+        <translation>应用</translation>
+    </message>
+    <message>
+        <source>No pictures or videos yet</source>
+        <translation>暂无图片或视频</translation>
+    </message>
+    <message>
+        <source>No voice messages or music yet</source>
+        <translation>暂无语音消息或音乐</translation>
+    </message>
+    <message>
+        <source>No files yet</source>
+        <translation>暂无文件</translation>
+    </message>
+    <message>
+        <source>No apps yet</source>
+        <translation>暂无应用</translation>
     </message>
 </context>
 <context>
@@ -1053,6 +1122,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>在已静音的群组中，对你消息的回复仍会通知你。</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>回车键发送消息</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>关闭时，回车键换行，消息输入框随内容增高，由发送按钮发送。</translation>
     </message>
 </context>
 <context>

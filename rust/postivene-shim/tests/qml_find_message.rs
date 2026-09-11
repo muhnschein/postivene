@@ -5,6 +5,11 @@
 //! searched for a word from last March and landed at the bottom of a
 //! thousand-message thread with no idea which row matched.
 //!
+//! The other way a message is asked for is from a page over this one: a
+//! media page's Show in chat tells the conversation which message, then
+//! pops back to it. The ask has to survive the page being away, and land
+//! over the place the page puts back on its way in rather than under it.
+//!
 //! The page is loaded from a copy of the QML tree with `EnterKey` taken
 //! out; see `common::qml_tree_without_enter_key` for why the shipped file
 //! cannot be loaded headlessly as it stands.
@@ -42,6 +47,11 @@ const PROBE_QML: &str = r"
             return loader.status === Loader.Ready ? 'ok' : 'load-failed'
         }
         function settle() { loader.item.status = PageStatus.Active; return 'ok' }
+        // A page pushed over this one, and this one asked for a message
+        // from it while away: what a media page's Show in chat does.
+        function leave() { loader.item.status = PageStatus.Deactivating; return 'ok' }
+        function ask(messageId) { loader.item.showMessage(messageId); return 'ok' }
+        function forgetFound() { everFound = '0'; return 'ok' }
         function findIn(node, name) {
             if (!node) { return null }
             if (node.objectName === name) { return node }
@@ -106,6 +116,8 @@ const PROBE_QML: &str = r"
 /// Chat 1 in the fake holds messages 1 and 2; message 1 is the older one,
 /// so a jump to it is a jump away from the newest.
 const OLDER_MESSAGE: i32 = 1;
+/// The other one, asked for from a page over the chat.
+const NEWER_MESSAGE: i32 = 2;
 
 #[test]
 #[allow(clippy::too_many_lines)]
@@ -190,6 +202,18 @@ fn a_message_a_search_found_is_where_the_chat_opens() {
                 QString::from("stickToBottom")
             )
         );
+        // Away under another page, asked for the other message from
+        // there, and back: the ask is kept and acted on over the place
+        // the page puts back.
+        record!("forget", call!("forgetFound"));
+        record!("leave", call!("leave"));
+        record!("ask", call!("ask", NEWER_MESSAGE));
+        record!("asked-while-away", call!("everFoundValue"));
+        record!("return", call!("settle"));
+    });
+
+    single_shot(Duration::from_secs(9), move || unsafe {
+        record!("found-on-return", call!("everFoundValue"));
         (*engine_ptr).quit();
     });
 
@@ -243,4 +267,24 @@ fn a_message_a_search_found_is_where_the_chat_opens() {
         "the view is still stuck to the newest message, so the jump would \
          be undone by the next thing to arrive. {context}"
     );
+    // Asked for from a page over the chat: nothing happens while the page
+    // is away, and the message is lit once it is back on screen.
+    for (label, expected, complaint) in [
+        ("leave", "ok", "the page could not be left"),
+        ("ask", "ok", "the page has no showMessage to ask"),
+        (
+            "asked-while-away",
+            "0",
+            "a message asked for while the page was away was gone to at \
+             once, under the place the page puts back on its way in",
+        ),
+        (
+            "found-on-return",
+            &NEWER_MESSAGE.to_string(),
+            "a message asked for from a page over the chat was not shown \
+             once the chat was back on screen",
+        ),
+    ] {
+        assert_eq!(value(label), expected, "{complaint}. {context}");
+    }
 }

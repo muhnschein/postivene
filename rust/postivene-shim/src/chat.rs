@@ -778,14 +778,9 @@ impl ChatMessages {
             return;
         }
         let kind = kind.to_string();
-        let payload: serde_json::Value =
-            serde_json::from_str(&payload_json.to_string()).unwrap_or_default();
-        let event_chat = json::u32_at(&payload, "chatId");
-        // MsgsChanged carries chatId 0 for "several chats", and an
-        // overflow carries none at all.
-        if event_chat != 0 && event_chat != self.chat_id {
+        let Some(payload) = json::chat_event(&payload_json.to_string(), self.chat_id) else {
             return;
-        }
+        };
 
         match kind.as_str() {
             // New or changed content: take in what we do not have yet.
@@ -1337,11 +1332,7 @@ impl ChatMessages {
         });
 
         runtime.spawn(async move {
-            let result = rpc
-                .call::<_, ()>(method, (account_id, vec![message_id]))
-                .await
-                .map_err(|err| err.to_string());
-            done(result);
+            done(act_on_message(&rpc, method, account_id, message_id).await);
         });
     }
 
@@ -1741,6 +1732,21 @@ pub(crate) async fn message_entries(
         }
     }
     Ok(entries)
+}
+
+/// Call `method` with `(account, [message])`: the shape every action on
+/// one message takes -- deleting it, sending it again. The conversation's
+/// rows and a media page's share it, and each decides for itself what to
+/// do once the core has answered.
+pub(crate) async fn act_on_message(
+    rpc: &RpcClient,
+    method: &'static str,
+    account_id: u32,
+    message_id: u32,
+) -> Result<(), String> {
+    rpc.call::<_, ()>(method, (account_id, vec![message_id]))
+        .await
+        .map_err(|err| err.to_string())
 }
 
 /// Fetch several messages in one call. The old code asked for them one at a

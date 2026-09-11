@@ -147,6 +147,12 @@ impl State {
                 long.map_or_else(|| vec![1, 2], |count| (1..=count).collect()),
             );
             self.chats.insert(2, vec![10]);
+            // The rest of what a chat can hold, in the group, when a test
+            // asks for it: a file, a voice message, an app and a video
+            // beside the picture, one of each kind the media pages list.
+            if std::env::var_os("POSTIVENE_FAKE_MEDIA").is_some() {
+                self.chats.insert(2, vec![10, 12, 13, 14, 15]);
+            }
             self.chat_order = vec![1, 2];
             // Chat 3 is archived, and appears in no ordinary listing.
             // Without it, a model asking for the archived list and a model
@@ -569,6 +575,41 @@ fn message_object(msg: u64) -> Value {
         message["fileName"] = json!("photo.jpg");
         message["dimensionsWidth"] = json!(640);
         message["dimensionsHeight"] = json!(480);
+    }
+    // One of each other kind the media pages list, and a second picture
+    // that is a video: in the group under POSTIVENE_FAKE_MEDIA, and by
+    // id always. The sizes and types are what the real core reports for
+    // a file it has copied.
+    match msg {
+        12 => {
+            message["viewType"] = json!("File");
+            message["file"] = json!("/tmp/postivene-fake/notes.pdf");
+            message["fileName"] = json!("notes.pdf");
+            message["fileMime"] = json!("application/pdf");
+            message["fileBytes"] = json!(20_480);
+        }
+        13 => {
+            message["viewType"] = json!("Voice");
+            message["file"] = json!("/tmp/postivene-fake/voice.aac");
+            message["fileName"] = json!("voice.aac");
+            message["fileMime"] = json!("audio/aac");
+            message["fileBytes"] = json!(4_096);
+        }
+        14 => {
+            message["viewType"] = json!("Webxdc");
+            message["file"] = json!("/tmp/postivene-fake/checkers.xdc");
+            message["fileName"] = json!("checkers.xdc");
+            message["fileMime"] = json!("application/webxdc+zip");
+            message["fileBytes"] = json!(8_192);
+        }
+        15 => {
+            message["viewType"] = json!("Video");
+            message["file"] = json!("/tmp/postivene-fake/clip.mp4");
+            message["fileName"] = json!("clip.mp4");
+            message["fileMime"] = json!("video/mp4");
+            message["fileBytes"] = json!(1_048_576);
+        }
+        _ => {}
     }
     // A message the sending core had to cut: what is here ends in the
     // core's own marker, and the whole of it is only behind
@@ -1604,6 +1645,36 @@ async fn serve() {
                         items.push(json!({"kind": "message", "msg_id": msg}));
                     }
                     ok(&id, &Value::Array(items))
+                }
+                // The ids of every message of up to three kinds in one
+                // chat -- or, for a null chat, in every chat -- oldest
+                // first, as the real core answers and asks not to have
+                // re-sorted. What the media pages are built on.
+                "get_chat_media" => {
+                    let chat = positional(1)
+                        .as_u64()
+                        .and_then(|value| u32::try_from(value).ok());
+                    let wanted: Vec<String> = (2..=4)
+                        .filter_map(|index| positional(index).as_str().map(str::to_string))
+                        .collect();
+                    let mut state = state.lock().await;
+                    state.seed_chats();
+                    let mut ids: Vec<u32> = state
+                        .chats
+                        .iter()
+                        .filter(|(id, _)| chat.map_or(true, |chat| **id == chat))
+                        .flat_map(|(_, messages)| messages.iter().copied())
+                        .filter(|msg| {
+                            let message = state.full_message(u64::from(*msg));
+                            let kind = message
+                                .get("viewType")
+                                .and_then(Value::as_str)
+                                .unwrap_or_default();
+                            wanted.iter().any(|wanted| wanted == kind)
+                        })
+                        .collect();
+                    ids.sort_unstable();
+                    ok(&id, &json!(ids))
                 }
                 "get_messages" => {
                     tokio::time::sleep(delay("POSTIVENE_FAKE_FETCH_DELAY_MS")).await;

@@ -122,6 +122,16 @@ Page {
         }
     }
 
+    // Every kind of thing the chat holds, on a page of its own: pushed
+    // by name, as every page is, and the tile says which kind.
+    function openMedia(kind) {
+        pageStack.push(Qt.resolvedUrl("ChatMediaPage.qml"), {
+            accountId: page.accountId,
+            chatId: page.chatId,
+            kind: kind
+        })
+    }
+
     // One row, the contact, read into the page: a Repeater is how a model
     // row is read from QML, and the one here has exactly one. Nothing is
     // drawn in here, so the reload behind every save rebuilds nothing on
@@ -225,12 +235,16 @@ Page {
                         : qsTr("Not encrypted: a plain email contact")
             }
 
-            // A gap between who they are and what the chat does: two
-            // different kinds of thing, and the column's own spacing does
-            // not say so.
-            Item {
-                width: 1
-                height: Theme.paddingLarge
+            // What the chat holds besides words, a tile per kind, each a
+            // way into the page that lists it. The row keeps its own room
+            // above and below, between who they are and what the chat
+            // does.
+            MediaKinds {
+                objectName: "mediaKinds"
+                // `=== true` because dconf hands back `undefined` before it
+                // has read the key.
+                appsAvailable: Settings.webxdcEnabled === true
+                onKindRequested: page.openMedia(kind)
             }
 
             DisappearingMessages {

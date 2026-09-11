@@ -236,6 +236,36 @@
     </message>
 </context>
 <context>
+    <name>ChatMediaPage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>Uložené do Stiahnutých</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>Otvoriť v inej aplikácii</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>Uložiť do zariadenia</translation>
+    </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>Odstraňuje sa</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>Zobraziť v chate</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Odstrániť</translation>
+    </message>
+</context>
+<context>
     <name>ChatPickerPage</name>
     <message>
         <source>Forward to</source>
@@ -540,6 +570,45 @@
         <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
         <extracomment>%1 is the group&apos;s name.</extracomment>
         <translation>Opustiť %1? Prestanú vám chodiť jej správy a späť vás môže pridať len člen.</translation>
+    </message>
+</context>
+<context>
+    <name>Media</name>
+    <message>
+        <source>Gallery</source>
+        <extracomment>The pictures and videos of a chat: a tile, and a page heading.</extracomment>
+        <translation>Galéria</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <extracomment>The voice messages and music of a chat.</extracomment>
+        <translation>Zvuk</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <extracomment>The documents and other files of a chat.</extracomment>
+        <translation>Súbory</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <extracomment>The webxdc apps of a chat.</extracomment>
+        <translation>Aplikácie</translation>
+    </message>
+    <message>
+        <source>No pictures or videos yet</source>
+        <translation>Zatiaľ žiadne obrázky ani videá</translation>
+    </message>
+    <message>
+        <source>No voice messages or music yet</source>
+        <translation>Zatiaľ žiadne hlasové správy ani hudba</translation>
+    </message>
+    <message>
+        <source>No files yet</source>
+        <translation>Zatiaľ žiadne súbory</translation>
+    </message>
+    <message>
+        <source>No apps yet</source>
+        <translation>Zatiaľ žiadne aplikácie</translation>
     </message>
 </context>
 <context>
@@ -1063,6 +1132,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>V stlmenej skupine vás odpoveď na vašu správu aj tak upozorní.</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>Enter odošle správu</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>Ak je vypnuté, kláves Enter začne nový riadok, pole správy rastie s napísaným a odosiela tlačidlo Odoslať.</translation>
     </message>
 </context>
 <context>

@@ -3,11 +3,12 @@ import Sailfish.Silica 1.0
 import "../components"
 
 /*
- * The settings that belong to no profile: how a message is drawn, what
- * goes out with a link, how much of an attachment arrives unasked, how
- * long a message is kept, how much a notification gives away and whether
- * a muted group can still raise one, and whether webxdc apps are offered
- * at all. Reached from the chat list's pull-down. A profile's own
+ * The settings that belong to no profile: whether the return key sends,
+ * how a message is drawn, what goes out with a link, how much of an
+ * attachment arrives unasked, how long a message is kept, how much a
+ * notification gives away and whether a muted group can still raise one,
+ * and whether webxdc apps are offered at all. Reached from the chat
+ * list's pull-down. A profile's own
  * settings -- picture, name, address, read receipts, what the relay says
  * -- are on the profile's page, reached from its row on the profiles page.
  *
@@ -180,6 +181,21 @@ Page {
 
             SectionHeader {
                 text: qsTr("Messages")
+            }
+
+            // First, because it is the one setting the reader meets on
+            // every message: what the biggest key on the keyboard does.
+            // Off, the field is the multi-line one -- it grows with the
+            // message and the button sends -- and the description says
+            // so, since turning this on takes that away without saying.
+            TextSwitch {
+                objectName: "enterSendsSwitch"
+                //: The return key on the keyboard.
+                text: qsTr("Enter sends the message")
+                description: qsTr("Off, the return key starts a new line, the message field grows with what is written, and the send button sends.")
+                automaticCheck: false
+                checked: Settings.enterSends === true
+                onClicked: Settings.enterSends = !checked
             }
 
             ComboBox {

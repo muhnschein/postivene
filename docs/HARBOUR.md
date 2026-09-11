@@ -118,7 +118,8 @@ through the real validator.
   needed `Pictures` *and* `MediaIndexing`.
 - Whether the `Sailfish.Pickers`, `QtMultimedia`, `QtSensors`,
   `Nemo.Thumbnailer` and `Sailfish.WebView` types the conversation uses
-  exist and behave on the target release.
+  -- and the thumbnailer the gallery page fills its tiles from -- exist
+  and behave on the target release.
   Harbour's own `allowed_qmlimports.conf` permits all five, which settles
   whether they may be used and says nothing about whether they work. The
   pickers are one page each so that a missing type costs one button
@@ -315,6 +316,12 @@ removed from the store even after approval. Not an option.
    hold it and stops at a third of the screen rather than eating the
    chat, that the return key puts in a line break instead of sending,
    and that the notice appears once the draft passes about forty lines.
+   Then turn on Settings > Messages > "Enter sends the message" and
+   check the other half: the keyboard draws the key as the accept key,
+   greyed while the field is empty, a press sends, and nothing of the
+   line break the key used to put in is left behind in the field or in
+   the message -- what Silica does with that break is Silica's, and the
+   headless tests load the page with the `EnterKey` lines taken out.
    Send it, and check at the other end that its line breaks are line
    breaks, that the bubble folds it, and that View full message shows
    the whole of it -- including for a message another client sent long enough that
@@ -393,6 +400,13 @@ removed from the store even after approval. Not an option.
    three where the platform's own folders are -- Pictures, Videos,
    Downloads -- and then open the document from the file manager, which
    is what the copy is for.
+   The media pages behind a contact's or a group's tiles are the same
+   two paths once more, on a grid: long-press a picture in the gallery
+   and check that the menu opens under its row of cells (Silica's
+   `GridItem`, which no other page uses), that Delete counts down over
+   the cell and the picture goes when the count ends, and that Show in
+   chat lands on the message in the conversation, lit, rather than at
+   the newest one or wherever the chat was left.
 5. Delete the cache directory while the app runs; confirm nothing breaks.
 6. Kill `deltachat-rpc-server` from a terminal while the app is open. The
    banner should say it is reconnecting and then clear itself, and messages

@@ -234,6 +234,36 @@
     </message>
 </context>
 <context>
+    <name>ChatMediaPage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>Mentve a Letöltésekbe</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>Megnyitás másik alkalmazásban</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>Mentés az eszközre</translation>
+    </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>Törlés folyamatban</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>Megjelenítés a csevegésben</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Törlés</translation>
+    </message>
+</context>
+<context>
     <name>ChatPickerPage</name>
     <message>
         <source>Forward to</source>
@@ -534,6 +564,45 @@
         <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
         <extracomment>%1 is the group&apos;s name.</extracomment>
         <translation>Kilép innen: %1? Nem kapja többé az üzeneteit, és csak egy tag veheti vissza.</translation>
+    </message>
+</context>
+<context>
+    <name>Media</name>
+    <message>
+        <source>Gallery</source>
+        <extracomment>The pictures and videos of a chat: a tile, and a page heading.</extracomment>
+        <translation>Galéria</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <extracomment>The voice messages and music of a chat.</extracomment>
+        <translation>Hang</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <extracomment>The documents and other files of a chat.</extracomment>
+        <translation>Fájlok</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <extracomment>The webxdc apps of a chat.</extracomment>
+        <translation>Alkalmazások</translation>
+    </message>
+    <message>
+        <source>No pictures or videos yet</source>
+        <translation>Még nincsenek képek vagy videók</translation>
+    </message>
+    <message>
+        <source>No voice messages or music yet</source>
+        <translation>Még nincsenek hangüzenetek vagy zenék</translation>
+    </message>
+    <message>
+        <source>No files yet</source>
+        <translation>Még nincsenek fájlok</translation>
+    </message>
+    <message>
+        <source>No apps yet</source>
+        <translation>Még nincsenek alkalmazások</translation>
     </message>
 </context>
 <context>
@@ -1053,6 +1122,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>Némított csoportban az egyik üzenetedre adott válasz így is értesít.</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>Az Enter elküldi az üzenetet</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>Kikapcsolva az Enter új sort kezd, az üzenetmező a beírt szöveggel nő, és a küldés gomb küld.</translation>
     </message>
 </context>
 <context>

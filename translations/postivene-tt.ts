@@ -234,6 +234,36 @@
     </message>
 </context>
 <context>
+    <name>ChatMediaPage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>Йөкләүләргә сакланды</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>Башка кушымтада ачарга</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>Җайланмага сакларга</translation>
+    </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>Бетерелә</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>Чатта күрсәтергә</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Бетерергә</translation>
+    </message>
+</context>
+<context>
     <name>ChatPickerPage</name>
     <message>
         <source>Forward to</source>
@@ -534,6 +564,45 @@
         <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
         <extracomment>%1 is the group&apos;s name.</extracomment>
         <translation>%1 төркеменнән чыгаргамы? Аның хәбәрләрен башка алмаячаксыз, һәм сезне кире бары тик әгъза гына өсти ала.</translation>
+    </message>
+</context>
+<context>
+    <name>Media</name>
+    <message>
+        <source>Gallery</source>
+        <extracomment>The pictures and videos of a chat: a tile, and a page heading.</extracomment>
+        <translation>Галерея</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <extracomment>The voice messages and music of a chat.</extracomment>
+        <translation>Аудио</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <extracomment>The documents and other files of a chat.</extracomment>
+        <translation>Файллар</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <extracomment>The webxdc apps of a chat.</extracomment>
+        <translation>Кушымталар</translation>
+    </message>
+    <message>
+        <source>No pictures or videos yet</source>
+        <translation>Әлегә рәсемнәр яки видеолар юк</translation>
+    </message>
+    <message>
+        <source>No voice messages or music yet</source>
+        <translation>Әлегә тавышлы хәбәрләр яки музыка юк</translation>
+    </message>
+    <message>
+        <source>No files yet</source>
+        <translation>Әлегә файллар юк</translation>
+    </message>
+    <message>
+        <source>No apps yet</source>
+        <translation>Әлегә кушымталар юк</translation>
     </message>
 </context>
 <context>
@@ -1053,6 +1122,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>Тавышсыз ителгән төркемдә сезнең хәбәргә җавап барыбер сезгә белдерә.</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>Enter хәбәрне җибәрә</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>Сүндерелгәндә Enter төймәсе яңа юл башлый, хәбәр кыры язылган белән үсә, ә җибәрү төймәсе җибәрә.</translation>
     </message>
 </context>
 <context>

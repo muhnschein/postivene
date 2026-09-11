@@ -1009,6 +1009,46 @@ async fn offline_round_trip_against_real_core() {
          which is why nothing renders this field: {sent_tone:?}"
     );
 
+    // The chat's own index of what it holds, which the media pages are
+    // built on (postivene-shim/src/chat_media.rs): up to three view types
+    // in one call, the chat optional, and the ids come back oldest first
+    // -- the voice message went before the tone, so it stands before it.
+    let tone_id = sent_tone
+        .get("id")
+        .and_then(Value::as_u64)
+        .and_then(|id| u32::try_from(id).ok())
+        .expect("the tone's message id");
+    let sounds: Vec<u32> = client
+        .call(
+            "get_chat_media",
+            (
+                sender_id,
+                Some(saved),
+                "Audio",
+                Some("Voice"),
+                Option::<&str>::None,
+            ),
+        )
+        .await
+        .expect("get_chat_media for the sounds in a chat");
+    assert_eq!(
+        sounds,
+        vec![voice_id, tone_id],
+        "the chat's audio index does not hold the voice message and the tone, \
+         oldest first"
+    );
+    let pictures: Vec<u32> = client
+        .call(
+            "get_chat_media",
+            (sender_id, Some(saved), "Image", Some("Gif"), Some("Video")),
+        )
+        .await
+        .expect("get_chat_media for the pictures in a chat");
+    assert!(
+        !pictures.contains(&tone_id) && !pictures.contains(&voice_id),
+        "a sound is listed among the chat's pictures: {pictures:?}"
+    );
+
     // A shared contact. The core parses the card and hands back the pieces
     // a contact row is built from, so nothing here reads vCard syntax.
     let ada: u32 = client

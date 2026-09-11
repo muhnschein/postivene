@@ -13,12 +13,20 @@ import "../components"
  * on screen, so that it can be peeked at, and the dialog fills the name
  * and relay in on accept. So nothing happens here on creation: the work
  * starts when the page is the one on screen, which is after both.
+ *
+ * A relay is somebody's spare-time server, and one that is down holds
+ * the core for minutes. So the page says as much once the wait has gone
+ * past four seconds, under the Cancel button that has been there all
+ * along; and the shim gives up on the relay for the reader at thirty
+ * (signup.rs), which lands here as a time-out with the way back.
  */
 Page {
     id: page
 
     property string displayName
     property string providerQr
+    /// The relay's name, for the page to say.
+    readonly property string relay: page.providerQr.replace("dcaccount:", "")
 
     // True while the core is working.
     property bool busy: false
@@ -27,6 +35,19 @@ Page {
     property bool started: false
     property int permille: 0
     property string errorMessage: ""
+    // Set once the relay has taken longer than four seconds, and kept:
+    // the reason to try another relay does not go away with the error
+    // that may follow.
+    property bool slowRelay: false
+
+    // The four seconds. Counted only while the core is working, and
+    // from the start of it: the page is made before it is on screen.
+    Timer {
+        id: patience
+        interval: 4000
+        running: page.busy
+        onTriggered: page.slowRelay = true
+    }
 
     // Cancel is the way back while the core is working: a swipe back
     // would drop this page, and with it the handler that opens the chat
@@ -40,6 +61,7 @@ Page {
         page.started = true
         page.busy = true
         page.permille = 0
+        page.slowRelay = false
         core.create_profile(displayName, providerQr)
     }
 
@@ -79,6 +101,18 @@ Page {
             page.errorMessage = message
         }
 
+        // The shim gave up on the relay. Worded here rather than in the
+        // shim: it is the one failure the app decides on itself, so it
+        // is the one the app can say in the reader's language.
+        onProfile_timed_out: {
+            if (!page.busy) {
+                return
+            }
+            page.busy = false
+            page.errorMessage = qsTr("%1 did not answer within %2 seconds.")
+                                .arg(page.relay).arg(seconds)
+        }
+
         // Not gated on `busy`: the core's last progress events can arrive
         // after the call that started them has already been answered.
         onConfigure_progress: page.permille = permille
@@ -101,7 +135,7 @@ Page {
             minimumValue: 0
             maximumValue: 1000
             value: page.permille
-            label: qsTr("Contacting %1...").arg(page.providerQr.replace("dcaccount:", ""))
+            label: qsTr("Contacting %1...").arg(page.relay)
         }
 
         Button {
@@ -114,6 +148,22 @@ Page {
                 core.cancel_ongoing()
                 pageStack.pop()
             }
+        }
+
+        // Under the Cancel button, once the relay has kept the reader
+        // waiting: what a relay is, and what to do about one that does
+        // not answer. Stays through the error that may follow, since
+        // the Back button under it is the way it points.
+        Label {
+            objectName: "slowHint"
+            x: Theme.horizontalPageMargin
+            width: parent.width - 2 * Theme.horizontalPageMargin
+            visible: page.slowRelay
+            wrapMode: Text.Wrap
+            horizontalAlignment: Text.AlignHCenter
+            font.pixelSize: Theme.fontSizeSmall
+            color: Theme.secondaryHighlightColor
+            text: qsTr("Chatmail relays are run by volunteers in their spare time. If this one does not seem to work, go back and try another one.")
         }
 
         Banner {

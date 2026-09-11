@@ -863,6 +863,14 @@
         <source>Back</source>
         <translation>Zpět</translation>
     </message>
+    <message>
+        <source>%1 did not answer within %2 seconds.</source>
+        <translation>%1 neodpověděl do %2 sekund.</translation>
+    </message>
+    <message>
+        <source>Chatmail relays are run by volunteers in their spare time. If this one does not seem to work, go back and try another one.</source>
+        <translation>Chatmail relé provozují dobrovolníci ve svém volném čase. Pokud se zdá, že toto nefunguje, vraťte se a zkuste jiné.</translation>
+    </message>
 </context>
 <context>
     <name>ProfilesPage</name>
@@ -1212,10 +1220,6 @@
 </context>
 <context>
     <name>WelcomePage</name>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
     <message>
         <source>Secure decentralized chat</source>
         <translation>Bezpečný decentralizovaný chat</translation>

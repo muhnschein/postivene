@@ -853,6 +853,14 @@
         <source>Back</source>
         <translation>Артка</translation>
     </message>
+    <message>
+        <source>%1 did not answer within %2 seconds.</source>
+        <translation>%1 %2 секунд эчендә җавап бирмәде.</translation>
+    </message>
+    <message>
+        <source>Chatmail relays are run by volunteers in their spare time. If this one does not seem to work, go back and try another one.</source>
+        <translation>Chatmail релеларын ирекле ярдәмчеләр буш вакытларында тоталар. Әгәр бусы эшләми кебек тоелса, кире кайтып башкасын сынап карагыз.</translation>
+    </message>
 </context>
 <context>
     <name>ProfilesPage</name>
@@ -1202,10 +1210,6 @@
 </context>
 <context>
     <name>WelcomePage</name>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
     <message>
         <source>Secure decentralized chat</source>
         <translation>Куркынычсыз үзәкләштерелмәгән чат</translation>

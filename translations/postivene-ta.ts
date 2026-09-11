@@ -858,6 +858,14 @@
         <source>Back</source>
         <translation>பின்செல்</translation>
     </message>
+    <message>
+        <source>%1 did not answer within %2 seconds.</source>
+        <translation>%1 %2 வினாடிகளுக்குள் பதிலளிக்கவில்லை.</translation>
+    </message>
+    <message>
+        <source>Chatmail relays are run by volunteers in their spare time. If this one does not seem to work, go back and try another one.</source>
+        <translation>Chatmail ரிலேக்களை தன்னார்வலர்கள் தங்கள் ஓய்வு நேரத்தில் இயக்குகிறார்கள். இது வேலை செய்யவில்லை எனத் தோன்றினால், பின்னால் சென்று வேறொன்றை முயற்சிக்கவும்.</translation>
+    </message>
 </context>
 <context>
     <name>ProfilesPage</name>
@@ -1207,10 +1215,6 @@
 </context>
 <context>
     <name>WelcomePage</name>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
     <message>
         <source>Secure decentralized chat</source>
         <translation>பாதுகாப்பான பரவலாக்கப்பட்ட அரட்டை</translation>

@@ -1,5 +1,6 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
+import "../components"
 
 /*
  * The first screen: no address, no password -- a new Delta Chat user has
@@ -7,9 +8,20 @@ import Sailfish.Silica 1.0
  * profile. Also the resume path: with a configured account it hands
  * straight over to the chat list, on the profile the app was last
  * closed on.
+ *
+ * What it looks like is what the cover looks like once there are
+ * people: a field of faces in the ambience's colours, a few of them lit,
+ * filling the screen either way up -- and in the middle, where the
+ * field clears for them, the app's name, what it is, and the button.
+ * There is no second chance at a first impression, so the field is a
+ * picture (components/FaceField.qml): one texture, one pass, drawn the
+ * frame the page is.
  */
 Page {
     id: page
+
+    // Both ways up: the field has a master for each.
+    allowedOrientations: Orientation.All
 
     // Hides the buttons until we know whether an account exists.
     property bool probing: true
@@ -53,27 +65,77 @@ Page {
         onAccount_error: page.probing = false
     }
 
+    // The field, under everything, cleared around the words by as much
+    // as they take up: the box follows the column, so a language in
+    // which the line about relays runs long clears more.
+    FaceField {
+        id: field
+        objectName: "faceField"
+        anchors.fill: parent
+        source: page.width > page.height ? "../art/faces-landscape.png"
+                                         : "../art/faces-portrait.png"
+        clearX: words.x + words.width / 2
+        clearY: words.y + words.height / 2
+        clearWidth: words.width
+        clearHeight: words.height
+        clearRadius: Theme.paddingLarge
+        clearFeather: Theme.itemSizeLarge
+    }
+
     Column {
-        anchors.centerIn: parent
-        width: parent.width
-        spacing: Theme.paddingLarge
+        id: words
+        anchors {
+            horizontalCenter: parent.horizontalCenter
+            verticalCenter: parent.verticalCenter
+            // A little above the middle, where a title sits.
+            verticalCenterOffset: -page.height * 0.04
+        }
+        // Narrower than the page: the field is what fills it, and the
+        // words are what is read.
+        width: Math.min(parent.width - 2 * Theme.horizontalPageMargin,
+                        Screen.width - 2 * Theme.horizontalPageMargin)
+        spacing: Theme.paddingMedium
         visible: !page.probing
 
-        PageHeader {
-            title: qsTr("Postivene")
-            description: qsTr("Secure decentralized chat")
+        // The app's own name, and never a translated one (see the
+        // cover): large, in the heading face, in the ambience's colour.
+        Label {
+            objectName: "title"
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+            textFormat: Text.PlainText
+            text: "Postivene"
+            font.family: Theme.fontFamilyHeading
+            font.pixelSize: Theme.fontSizeHuge
+            color: Theme.highlightColor
         }
 
         Label {
-            x: Theme.horizontalPageMargin
-            width: parent.width - 2 * Theme.horizontalPageMargin
+            objectName: "tagline"
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
-            color: Theme.secondaryColor
+            textFormat: Text.PlainText
+            text: qsTr("Secure decentralized chat")
+            font.pixelSize: Theme.fontSizeLarge
+            color: Theme.primaryColor
+        }
+
+        Item { width: 1; height: Theme.paddingMedium }
+
+        Label {
+            objectName: "intro"
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.Wrap
+            color: Theme.secondaryHighlightColor
             font.pixelSize: Theme.fontSizeSmall
             text: core.status.indexOf("error") === 0
                   ? core.status
                   : qsTr("No phone number, no account with us: your profile lives on a mail server of your choosing.")
         }
+
+        Item { width: 1; height: Theme.paddingLarge }
 
         Button {
             objectName: "createProfileButton"

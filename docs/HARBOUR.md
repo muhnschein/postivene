@@ -407,6 +407,31 @@ removed from the store even after approval. Not an option.
    the cell and the picture goes when the count ends, and that Show in
    chat lands on the message in the conversation, lit, rather than at
    the newest one or wherever the chat was left.
+   The first screen is a device path because the phone's own colours
+   are: on a fresh install, before a profile, it is a field of faces
+   filling the screen with the words in a cleared box in the middle,
+   and the faces must be in the ambience's own colours -- grey in its
+   primary, a few lit in its highlight, the way the cover draws whoever
+   has written. Change the ambience with the app open and check the
+   field follows it; try a light ambience, where the faces have to be
+   dark on light rather than vanish. Turn the phone and check it fills
+   the screen on its side too, with the middle still clear, and that
+   nothing stutters on the way in: the field is one picture and one
+   shader (`components/FaceField.qml`), and the headless tests can load
+   it but cannot see it drawn.
+   Adding a profile is the other half of that screen, and a relay that
+   does not answer is the case worth trying, since a public relay is
+   somebody's spare-time server. Type a custom server that does not
+   exist and tap Create: the progress bar names it; after four seconds
+   the line about volunteers' relays appears under Cancel; and after
+   thirty the page gives up on its own, saying which relay did not
+   answer and in how long, with the hint still there and Back under it.
+   Then go back, pick a relay from the list, and check that the profile
+   is made -- that retry used to fail with "There is already another
+   ongoing process running", the core still being on the first relay,
+   and now takes a fresh account (`signup.rs`). Cancel during a wait
+   should go back at once, and a profile the first relay makes after
+   all must not appear in the profiles list.
 5. Delete the cache directory while the app runs; confirm nothing breaks.
 6. Kill `deltachat-rpc-server` from a terminal while the app is open. The
    banner should say it is reconnecting and then clear itself, and messages

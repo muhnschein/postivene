@@ -331,14 +331,9 @@ impl ChatMedia {
             return;
         }
         let kind = kind.to_string();
-        let payload: serde_json::Value =
-            serde_json::from_str(&payload_json.to_string()).unwrap_or_default();
-        // MsgsChanged carries chatId 0 for "several chats", and an
-        // overflow carries none at all.
-        let event_chat = json::u32_at(&payload, "chatId");
-        if event_chat != 0 && event_chat != self.chat_id {
+        let Some(payload) = json::chat_event(&payload_json.to_string(), self.chat_id) else {
             return;
-        }
+        };
         match kind.as_str() {
             // Something arrived or went: the list is read again, and
             // only what is new in it is fetched.

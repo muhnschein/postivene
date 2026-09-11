@@ -103,7 +103,12 @@ jobs:
             echo "using $SDK_IMAGE"
           else
             echo "::notice::no $SDK_IMAGE published yet; deriving one, which makes this run slower"
-            sudo rm -rf /usr/local/lib/android "$AGENT_TOOLSDIRECTORY" /usr/share/dotnet
+            # Room for the upstream image and the flattened one at once.
+            # Defaulted rather than bare: `rm -rf ""` is an error, and it
+            # would fail this step for the sake of a variable the runner
+            # happens to set.
+            sudo rm -rf /usr/local/lib/android /usr/share/dotnet \
+                        "${AGENT_TOOLSDIRECTORY:-/opt/hostedtoolcache}"
             ./ci/build-sdk-image.sh "$SFOS" "$ARCH" "$SDK_IMAGE"
             docker push "$SDK_IMAGE" ||
               echo "::warning::could not publish $SDK_IMAGE; the next run will derive it again"

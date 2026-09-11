@@ -120,13 +120,13 @@ docker exec --user root -e TARGET="$target" "$cid" bash -euxo pipefail -c '
     # /usr/lib/rustlib, and the SDK ships it under /srv/mer. Put it where
     # the linker looks, once, here.
     #
-    # Named in preference order rather than globbed: after build-requires
-    # the same rustlib exists in the target as well, and a glob hands back
-    # whichever sorts first -- which was the copy inside the pristine
-    # snapshot, three lines from being deleted.
+    # Named in preference order rather than globbed: build-requires puts a
+    # copy in the snapshot too, and a glob hands back whichever sorts
+    # first, which is the snapshot.
     host=i686-unknown-linux-gnu
     src=""
     for candidate in /srv/mer/toolings/*/usr/lib/rustlib/$host \
+                     "/srv/mer/targets/$TARGET.default/usr/lib/rustlib/$host" \
                      "/srv/mer/targets/$TARGET/usr/lib/rustlib/$host"; do
         if [ -d "$candidate" ]; then src=$candidate; break; fi
     done
@@ -134,12 +134,15 @@ docker exec --user root -e TARGET="$target" "$cid" bash -euxo pipefail -c '
     mkdir -p /usr/lib/rustlib
     cp -a "$src" /usr/lib/rustlib/
 
-    # Every other architecture, and the pristine snapshot of this one:
-    # nothing but its own sb2 config refers to that snapshot, and
-    # build-init does not reset the live target from it.
+    # Every other architecture, and only those. Each target here comes in
+    # two rootfs: the pristine one, and the "<target>.default" snapshot
+    # that mb2 actually builds in -- which is where build-requires put
+    # everything above, and which build-init does not reset (a file
+    # planted in it survives one). Deleting it threw the whole install
+    # away and left a target with no rust in it.
     for dir in /srv/mer/targets/*/; do
         name=$(basename "$dir")
-        [ "$name" = "$TARGET" ] && continue
+        [[ "$name" = "$TARGET" || "$name" = "$TARGET.default" ]] && continue
         rm -rf "$dir" "/home/mersdk/.scratchbox2/$name"
     done
 
@@ -186,17 +189,34 @@ docker export "$cid" |
 # minutes into a build instead, with an error about something else.
 echo ">> checking what came out"
 docker run --rm --privileged -e TARGET="$target" "$output" bash -euo pipefail -c '
-    sb2-config -l
-    [ "$(sb2-config -l | grep -c .)" = 1 ] ||
-        { echo "more than one target survived" >&2; exit 1; }
-    sb2 -t "$TARGET" rpm -q rust cargo gcc-c++ git desktop-file-utils qt5-qttools-linguist
+    # Read once into a variable and matched from there, rather than piped
+    # into `grep -q`: grep stops at its first match, sb2-config dies of
+    # SIGPIPE writing the rest, and under `pipefail` that reads as a
+    # failed check. The snapshot is the first line listed, so only the
+    # check for it ever tripped.
+    targets=$(sb2-config -l)
+    printf "%s\n" "$targets"
+
+    # This architecture, as its pristine target and its snapshot, and
+    # nothing else.
+    [ "$(printf "%s\n" "$targets" | grep -c .)" = 2 ] ||
+        { echo "the wrong number of targets survived" >&2; exit 1; }
+    grep -qx "$TARGET" <<< "$targets"
+    grep -qx "$TARGET.default" <<< "$targets"
+
+    # Against the snapshot, which is the rootfs mb2 builds in and the one
+    # build-requires installed into: the pristine target beside it has
+    # none of this, and asking it was how a broken image first looked
+    # fine.
+    sb2 -t "$TARGET.default" rpm -q rust cargo gcc-c++ git \
+        desktop-file-utils qt5-qttools-linguist
     # The cross std, whose absence is the "can not find crate for std"
     # that arrives a long way into a build. Asked for by package name
     # rather than by the virtual provide the spec names, so the check does
     # not depend on which package carries that provide.
-    sb2 -t "$TARGET" rpm -qa | grep "^rust-std-static-" ||
-        { echo "no cross std in the target" >&2; exit 1; }
-    sb2 -t "$TARGET" cargo --version
+    sb2 -t "$TARGET.default" rpm -qa | grep "^rust-std-static-" ||
+        { echo "no cross std in the snapshot" >&2; exit 1; }
+    sb2 -t "$TARGET.default" cargo --version
     ls -d /usr/lib/rustlib/i686-unknown-linux-gnu
     grep "^DEFAULT_TARGET=$TARGET$" "$HOME/.scratchbox2/config"
 

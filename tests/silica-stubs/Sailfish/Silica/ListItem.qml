@@ -7,6 +7,16 @@ Item {
     property bool highlighted: down
     property bool menuOpen: false
     property var menu
+    // Silica takes a Component here as well as a menu, and builds the
+    // Component the first time the menu is opened. The tests look inside
+    // a row's menu the moment the row exists, so a Component is built
+    // here as soon as it is set, in the scope it was declared in -- which
+    // is what Silica's own build gives it.
+    onMenuChanged: {
+        if (menu && typeof menu.createObject === "function") {
+            menu = menu.createObject(root)
+        }
+    }
     signal clicked()
     // Silica opens the row's context menu on a long press, and offers
     // this for anything that took the press itself and wants the same.

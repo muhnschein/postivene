@@ -50,6 +50,13 @@ const PROBE_QML: &str = r"
             if (!item) { return 'missing:' + name }
             return '' + item[property]
         }
+        /// Whether something is on the screen. A part the row has not
+        /// built at all -- the attachment preview of a message with no
+        /// file -- is not shown, the same as one built and hidden.
+        function shown(name) {
+            var item = findIn(loader.item, name)
+            return item ? '' + item.visible : 'false'
+        }
         function height() { return '' + loader.item.height }
     }
 ";
@@ -129,7 +136,10 @@ fn a_message_shows_its_sender_time_quote_and_attachment() {
         record!("sender-name", get!("senderLabel", "text"));
         record!("footer", get!("footerLabel", "text"));
         record!("quote-hidden", get!("quoteRow", "visible"));
-        record!("file-hidden", get!("attachmentLabel", "visible"));
+        record!(
+            "file-hidden",
+            call!("shown", QString::from("attachmentLabel"))
+        );
         record!("short-height", call!("height"));
 
         // A one-to-one chat says nothing about the sender: there is one.

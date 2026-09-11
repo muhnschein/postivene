@@ -499,129 +499,138 @@ SilicaListView {
         id: messageRow
         objectName: "messageRow"
 
-        menu: ContextMenu {
-            id: rowMenu
+        // A Component rather than a menu built with the row. Silica builds
+        // a Component the first time the menu is opened; a ContextMenu
+        // declared here outright was built with every row, and it is the
+        // biggest thing on one -- six reactions and eight items, thirty
+        // objects, for a long press most rows never get. What a row costs
+        // to build is what a flick costs per frame, and what coming back
+        // to a conversation costs while the page is still sliding in.
+        menu: Component {
+            ContextMenu {
+                id: rowMenu
 
-            // The quick reactions, above the actions: one tap on an emoji
-            // and the menu is done. Not a MenuItem, which is one line of
-            // text; the menu takes any item, and lays this one out like
-            // the rest.
-            Item {
-                id: reactionPicker
-                objectName: "reactionPicker"
-                // A core notice is nobody's message to react to.
-                visible: !model.is_info
-                width: parent ? parent.width : 0
-                height: visible ? Theme.itemSizeSmall : 0
-                /// Taken while the row is here, like Delete's id: the
-                /// menu can outlive the row it was opened on.
-                readonly property int messageId: model.message_id
+                // The quick reactions, above the actions: one tap on an emoji
+                // and the menu is done. Not a MenuItem, which is one line of
+                // text; the menu takes any item, and lays this one out like
+                // the rest.
+                Item {
+                    id: reactionPicker
+                    objectName: "reactionPicker"
+                    // A core notice is nobody's message to react to.
+                    visible: !model.is_info
+                    width: parent ? parent.width : 0
+                    height: visible ? Theme.itemSizeSmall : 0
+                    /// Taken while the row is here, like Delete's id: the
+                    /// menu can outlive the row it was opened on.
+                    readonly property int messageId: model.message_id
 
-                Row {
-                    anchors.centerIn: parent
-                    spacing: Theme.paddingMedium
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: Theme.paddingMedium
 
-                    Repeater {
-                        model: root.quickReactions
+                        Repeater {
+                            model: root.quickReactions
 
-                        MouseArea {
-                            objectName: "reactionOption"
-                            width: Theme.itemSizeSmall
-                            height: Theme.itemSizeSmall
-                            readonly property string emoji: modelData
-                            function choose() {
-                                root.reactionRequested(reactionPicker.messageId, emoji)
-                                rowMenu.close()
-                            }
-                            onClicked: choose()
+                            MouseArea {
+                                objectName: "reactionOption"
+                                width: Theme.itemSizeSmall
+                                height: Theme.itemSizeSmall
+                                readonly property string emoji: modelData
+                                function choose() {
+                                    root.reactionRequested(reactionPicker.messageId, emoji)
+                                    rowMenu.close()
+                                }
+                                onClicked: choose()
 
-                            Label {
-                                anchors.centerIn: parent
-                                font.pixelSize: Theme.fontSizeLarge
-                                textFormat: Text.PlainText
-                                text: modelData
+                                Label {
+                                    anchors.centerIn: parent
+                                    font.pixelSize: Theme.fontSizeLarge
+                                    textFormat: Text.PlainText
+                                    text: modelData
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            MenuItem {
-                objectName: "replyItem"
-                // A core notice is nobody's message to answer.
-                visible: !model.is_info
-                text: qsTr("Reply")
-                onClicked: root.replyRequested(model.message_id, model.text,
-                                               model.sender_name)
-            }
-            MenuItem {
-                objectName: "copyItem"
-                // An image or a voice message with no caption has no text:
-                // copying one emptied the clipboard and said it had worked.
-                visible: model.text.length > 0
-                text: qsTr("Copy")
-                onClicked: root.copyRequested(model.text)
-            }
-            MenuItem {
-                objectName: "openItem"
-                // Only a message that carries one; a webxdc app is run
-                // rather than opened, and has its own tap. With apps off
-                // there is nothing to run, and the .xdc is a file like
-                // any other -- which is what the row already draws.
-                visible: model.file_path.length > 0
-                         && !(root.appsEnabled
-                              && model.view_type === "Webxdc")
-                text: qsTr("Open")
-                onClicked: root.openRequested(
-                               "file://" + model.file_path, model.file_name,
-                               model.view_type, 0)
-            }
-            MenuItem {
-                objectName: "saveItem"
-                // The reader's own copy, outside the app: what makes a
-                // file somebody sent theirs rather than the chat's.
-                visible: model.file_path.length > 0
-                text: qsTr("Save")
-                onClicked: root.saveRequested("file://" + model.file_path,
-                                              model.view_type)
-            }
-            MenuItem {
-                objectName: "forwardItem"
-                // A core notice is not the reader's to pass on.
-                visible: !model.is_info
-                text: qsTr("Forward")
-                // Taken now rather than in the callback: picking a chat
-                // takes a page push, and this row may be gone by the time
-                // the answer comes back -- the same reason Delete hoists
-                // its id.
-                onClicked: root.forwardRequested(model.message_id)
-            }
-            MenuItem {
-                objectName: "resendItem"
-                // DC_STATE_OUT_FAILED: the only state worth retrying.
-                visible: model.state === 24
-                text: qsTr("Send again")
-                onClicked: root.resendRequested(model.message_id)
-            }
-            MenuItem {
-                objectName: "downloadItem"
-                // The two states the rest of a message can be asked
-                // for in; the row offers the same tap.
-                visible: model.download_state === "Available"
-                         || model.download_state === "Failure"
-                text: qsTr("Download")
-                onClicked: root.downloadRequested(model.message_id)
-            }
-            MenuItem {
-                objectName: "deleteItem"
-                text: qsTr("Delete")
-                // The list is told, not this row: the wait before a
-                // message goes has to outlive the row it was asked for
-                // on, and deleting one is what destroys rows. See
-                // PendingRemoval.
-                onClicked: {
-                    doomedMessages.ask(model.message_id)
-                    messageRow.raiseRemorse()
+                MenuItem {
+                    objectName: "replyItem"
+                    // A core notice is nobody's message to answer.
+                    visible: !model.is_info
+                    text: qsTr("Reply")
+                    onClicked: root.replyRequested(model.message_id, model.text,
+                                                   model.sender_name)
+                }
+                MenuItem {
+                    objectName: "copyItem"
+                    // An image or a voice message with no caption has no text:
+                    // copying one emptied the clipboard and said it had worked.
+                    visible: model.text.length > 0
+                    text: qsTr("Copy")
+                    onClicked: root.copyRequested(model.text)
+                }
+                MenuItem {
+                    objectName: "openItem"
+                    // Only a message that carries one; a webxdc app is run
+                    // rather than opened, and has its own tap. With apps off
+                    // there is nothing to run, and the .xdc is a file like
+                    // any other -- which is what the row already draws.
+                    visible: model.file_path.length > 0
+                             && !(root.appsEnabled
+                                  && model.view_type === "Webxdc")
+                    text: qsTr("Open")
+                    onClicked: root.openRequested(
+                                   "file://" + model.file_path, model.file_name,
+                                   model.view_type, 0)
+                }
+                MenuItem {
+                    objectName: "saveItem"
+                    // The reader's own copy, outside the app: what makes a
+                    // file somebody sent theirs rather than the chat's.
+                    visible: model.file_path.length > 0
+                    text: qsTr("Save")
+                    onClicked: root.saveRequested("file://" + model.file_path,
+                                                  model.view_type)
+                }
+                MenuItem {
+                    objectName: "forwardItem"
+                    // A core notice is not the reader's to pass on.
+                    visible: !model.is_info
+                    text: qsTr("Forward")
+                    // Taken now rather than in the callback: picking a chat
+                    // takes a page push, and this row may be gone by the time
+                    // the answer comes back -- the same reason Delete hoists
+                    // its id.
+                    onClicked: root.forwardRequested(model.message_id)
+                }
+                MenuItem {
+                    objectName: "resendItem"
+                    // DC_STATE_OUT_FAILED: the only state worth retrying.
+                    visible: model.state === 24
+                    text: qsTr("Send again")
+                    onClicked: root.resendRequested(model.message_id)
+                }
+                MenuItem {
+                    objectName: "downloadItem"
+                    // The two states the rest of a message can be asked
+                    // for in; the row offers the same tap.
+                    visible: model.download_state === "Available"
+                             || model.download_state === "Failure"
+                    text: qsTr("Download")
+                    onClicked: root.downloadRequested(model.message_id)
+                }
+                MenuItem {
+                    objectName: "deleteItem"
+                    text: qsTr("Delete")
+                    // The list is told, not this row: the wait before a
+                    // message goes has to outlive the row it was asked for
+                    // on, and deleting one is what destroys rows. See
+                    // PendingRemoval.
+                    onClicked: {
+                        doomedMessages.ask(model.message_id)
+                        messageRow.raiseRemorse()
+                    }
                 }
             }
         }
@@ -647,17 +656,24 @@ SilicaListView {
         /// callback that does nothing and asked only to draw and to
         /// report the tap.
         function raiseRemorse() {
+            remorse.active = true
             //: What Silica's countdown says it is doing, over a
             //: message the reader has asked to delete.
-            remorse.execute(
+            remorse.item.execute(
                 body, qsTr("Deleting"), function() {},
                 doomedMessages.countdownFor(model.message_id))
         }
 
-        RemorseItem {
+        // Built the first time a delete is asked for, not with the row: the
+        // platform's countdown is a dozen items of its own, and every row
+        // carried one for a tap that almost never comes.
+        Loader {
             id: remorse
-            objectName: "messageRemorse"
-            onCanceled: doomedMessages.spare(model.message_id)
+            active: false
+            sourceComponent: RemorseItem {
+                objectName: "messageRemorse"
+                onCanceled: doomedMessages.spare(model.message_id)
+            }
         }
 
         // A row is rebuilt every time it scrolls back into view, so one

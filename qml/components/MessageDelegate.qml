@@ -53,13 +53,15 @@ Item {
     /// surface now -- a tap opens what there is to open, a long press
     /// opens the menu -- and the two cannot fight over a pixel.
     function tapped() {
-        if (attachment.isApp) {
+        // Null for a message with no file, which has nothing to open.
+        var preview = attachment.item
+        if (preview && preview.isApp) {
             // An app is run here rather than handed to whatever the
             // system thinks opens a .xdc, which is nothing.
             root.appRequested()
-        } else if (attachment.openable) {
-            root.openRequested(attachment.fileUrl, root.fileName, root.viewType,
-                               attachment.contentWidth)
+        } else if (preview && preview.openable) {
+            root.openRequested(preview.fileUrl, root.fileName, root.viewType,
+                               preview.contentWidth)
         } else if (root.canDownload) {
             root.downloadRequested()
         }
@@ -203,7 +205,8 @@ Item {
                  attachmentMetric.implicitWidth,
                  reactionRow.wantedWidth,
                  root.actionsWidth,
-                 attachment.wantsFullWidth && root.hasFile ? root.maxWidth : 0,
+                 attachment.item && attachment.item.wantsFullWidth
+                     ? root.maxWidth : 0,
                  Theme.itemSizeSmall))
 
     // The chips hang below the bubble, and what hangs is the row's to
@@ -241,7 +244,7 @@ Item {
         // Asked of the preview rather than read off its label: what the
         // fallback row says is the preview's business, and the bubble only
         // needs to know how wide it comes out.
-        text: attachment.genericText
+        text: attachment.item ? attachment.item.genericText : ""
     }
 
     // The offer, measured where nothing constrains it: reading a width
@@ -398,30 +401,41 @@ Item {
         // Whatever kind of attachment this is, drawn by the one component
         // that knows the difference. Reports rather than acts, so opening
         // stays the page's decision.
-        AttachmentPreview {
+        //
+        // Built only for a message that has a file. The preview holds a
+        // renderer for every kind there is -- a picture and its animation,
+        // the thumbnailer's poster, a sound player -- and a text message
+        // carried all of them, unseen, for the height of one line. A
+        // conversation is mostly text, and what a row costs to build is
+        // what a flick costs per frame. The loader takes the preview's
+        // size, so the rows below it sit where they did.
+        Loader {
             id: attachment
-            objectName: "attachment"
             x: Theme.paddingMedium
             y: root.below(quoteRow, height > 0)
-            contentWidth: root.contentWidth
-            filePath: root.filePath
-            fileName: root.fileName
-            fileMime: root.fileMime
-            fileBytes: root.fileBytes
-            viewType: root.viewType
-            imageWidth: root.imageWidth
-            imageHeight: root.imageHeight
-            isNew: root.isNew
-            vcardName: root.vcardName
-            vcardAddr: root.vcardAddr
-            vcardColor: root.vcardColor
-            webxdcName: root.webxdcName
-            webxdcDocument: root.webxdcDocument
-            webxdcSummary: root.webxdcSummary
-            webxdcIcon: root.webxdcIcon
-            appsEnabled: root.appsEnabled
-            // A long press on one of its own controls is the row's menu.
-            onMenuRequested: root.menuRequested()
+            active: root.hasFile
+            sourceComponent: AttachmentPreview {
+                objectName: "attachment"
+                contentWidth: root.contentWidth
+                filePath: root.filePath
+                fileName: root.fileName
+                fileMime: root.fileMime
+                fileBytes: root.fileBytes
+                viewType: root.viewType
+                imageWidth: root.imageWidth
+                imageHeight: root.imageHeight
+                isNew: root.isNew
+                vcardName: root.vcardName
+                vcardAddr: root.vcardAddr
+                vcardColor: root.vcardColor
+                webxdcName: root.webxdcName
+                webxdcDocument: root.webxdcDocument
+                webxdcSummary: root.webxdcSummary
+                webxdcIcon: root.webxdcIcon
+                appsEnabled: root.appsEnabled
+                // A long press on one of its own controls is the row's menu.
+                onMenuRequested: root.menuRequested()
+            }
         }
 
         Label {

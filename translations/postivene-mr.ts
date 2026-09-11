@@ -235,6 +235,22 @@
     </message>
 </context>
 <context>
+    <name>ChatMediaPage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>डाउनलोडमध्ये जतन केले</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>दुसऱ्या अ‍ॅपमध्ये उघडा</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>डिव्हाइसवर जतन करा</translation>
+    </message>
+</context>
+<context>
     <name>ChatPickerPage</name>
     <message>
         <source>Forward to</source>
@@ -537,6 +553,45 @@
         <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
         <extracomment>%1 is the group&apos;s name.</extracomment>
         <translation>%1 सोडायचा? तुम्हाला त्याचे संदेश मिळणे थांबेल, आणि फक्त एखादा सदस्यच तुम्हाला परत जोडू शकेल.</translation>
+    </message>
+</context>
+<context>
+    <name>Media</name>
+    <message>
+        <source>Gallery</source>
+        <extracomment>The pictures and videos of a chat: a tile, and a page heading.</extracomment>
+        <translation>गॅलरी</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <extracomment>The voice messages and music of a chat.</extracomment>
+        <translation>ऑडिओ</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <extracomment>The documents and other files of a chat.</extracomment>
+        <translation>फाइल्स</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <extracomment>The webxdc apps of a chat.</extracomment>
+        <translation>अ‍ॅप्स</translation>
+    </message>
+    <message>
+        <source>No pictures or videos yet</source>
+        <translation>अद्याप कोणतीही चित्रे किंवा व्हिडिओ नाहीत</translation>
+    </message>
+    <message>
+        <source>No voice messages or music yet</source>
+        <translation>अद्याप कोणतेही व्हॉइस संदेश किंवा संगीत नाही</translation>
+    </message>
+    <message>
+        <source>No files yet</source>
+        <translation>अद्याप कोणत्याही फाइल्स नाहीत</translation>
+    </message>
+    <message>
+        <source>No apps yet</source>
+        <translation>अद्याप कोणतेही अ‍ॅप्स नाहीत</translation>
     </message>
 </context>
 <context>

@@ -125,9 +125,15 @@ fn delegates_bind_only_roles_their_models_have() {
     }
 
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let cases: [(&str, Vec<String>); 11] = [
+    let cases: [(&str, Vec<String>); 12] = [
         (
             "qml/components/ConversationList.qml",
+            names_of::<postivene_shim::MessageListItem>(),
+        ),
+        // The media pages' rows are messages, in the conversation's own
+        // shape.
+        (
+            "qml/pages/ChatMediaPage.qml",
             names_of::<postivene_shim::MessageListItem>(),
         ),
         (

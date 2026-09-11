@@ -234,6 +234,22 @@
     </message>
 </context>
 <context>
+    <name>ChatMediaPage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>Đã lưu vào Tải xuống</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>Mở bằng ứng dụng khác</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>Lưu vào thiết bị</translation>
+    </message>
+</context>
+<context>
     <name>ChatPickerPage</name>
     <message>
         <source>Forward to</source>
@@ -534,6 +550,45 @@
         <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
         <extracomment>%1 is the group&apos;s name.</extracomment>
         <translation>Rời %1? Bạn sẽ không nhận tin nhắn của nhóm nữa, và chỉ một thành viên mới có thể thêm bạn lại.</translation>
+    </message>
+</context>
+<context>
+    <name>Media</name>
+    <message>
+        <source>Gallery</source>
+        <extracomment>The pictures and videos of a chat: a tile, and a page heading.</extracomment>
+        <translation>Thư viện</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <extracomment>The voice messages and music of a chat.</extracomment>
+        <translation>Âm thanh</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <extracomment>The documents and other files of a chat.</extracomment>
+        <translation>Tệp</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <extracomment>The webxdc apps of a chat.</extracomment>
+        <translation>Ứng dụng</translation>
+    </message>
+    <message>
+        <source>No pictures or videos yet</source>
+        <translation>Chưa có ảnh hoặc video nào</translation>
+    </message>
+    <message>
+        <source>No voice messages or music yet</source>
+        <translation>Chưa có tin nhắn thoại hoặc nhạc nào</translation>
+    </message>
+    <message>
+        <source>No files yet</source>
+        <translation>Chưa có tệp nào</translation>
+    </message>
+    <message>
+        <source>No apps yet</source>
+        <translation>Chưa có ứng dụng nào</translation>
     </message>
 </context>
 <context>

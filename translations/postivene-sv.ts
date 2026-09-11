@@ -235,6 +235,22 @@
     </message>
 </context>
 <context>
+    <name>ChatMediaPage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>Sparat i Hämtningar</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>Öppna i en annan app</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>Spara på enheten</translation>
+    </message>
+</context>
+<context>
     <name>ChatPickerPage</name>
     <message>
         <source>Forward to</source>
@@ -537,6 +553,45 @@
         <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
         <extracomment>%1 is the group&apos;s name.</extracomment>
         <translation>Lämna %1? Du slutar få dess meddelanden, och bara en medlem kan lägga till dig igen.</translation>
+    </message>
+</context>
+<context>
+    <name>Media</name>
+    <message>
+        <source>Gallery</source>
+        <extracomment>The pictures and videos of a chat: a tile, and a page heading.</extracomment>
+        <translation>Galleri</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <extracomment>The voice messages and music of a chat.</extracomment>
+        <translation>Ljud</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <extracomment>The documents and other files of a chat.</extracomment>
+        <translation>Filer</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <extracomment>The webxdc apps of a chat.</extracomment>
+        <translation>Appar</translation>
+    </message>
+    <message>
+        <source>No pictures or videos yet</source>
+        <translation>Inga bilder eller videor ännu</translation>
+    </message>
+    <message>
+        <source>No voice messages or music yet</source>
+        <translation>Inga röstmeddelanden eller musik ännu</translation>
+    </message>
+    <message>
+        <source>No files yet</source>
+        <translation>Inga filer ännu</translation>
+    </message>
+    <message>
+        <source>No apps yet</source>
+        <translation>Inga appar ännu</translation>
     </message>
 </context>
 <context>

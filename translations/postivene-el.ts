@@ -235,6 +235,22 @@
     </message>
 </context>
 <context>
+    <name>ChatMediaPage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>Αποθηκεύτηκε στις Λήψεις</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>Άνοιγμα σε άλλη εφαρμογή</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>Αποθήκευση στη συσκευή</translation>
+    </message>
+</context>
+<context>
     <name>ChatPickerPage</name>
     <message>
         <source>Forward to</source>
@@ -537,6 +553,45 @@
         <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
         <extracomment>%1 is the group&apos;s name.</extracomment>
         <translation>Αποχώρηση από %1; Θα πάψετε να λαμβάνετε τα μηνύματά της, και μόνο ένα μέλος μπορεί να σας προσθέσει ξανά.</translation>
+    </message>
+</context>
+<context>
+    <name>Media</name>
+    <message>
+        <source>Gallery</source>
+        <extracomment>The pictures and videos of a chat: a tile, and a page heading.</extracomment>
+        <translation>Συλλογή</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <extracomment>The voice messages and music of a chat.</extracomment>
+        <translation>Ήχος</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <extracomment>The documents and other files of a chat.</extracomment>
+        <translation>Αρχεία</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <extracomment>The webxdc apps of a chat.</extracomment>
+        <translation>Εφαρμογές</translation>
+    </message>
+    <message>
+        <source>No pictures or videos yet</source>
+        <translation>Δεν υπάρχουν ακόμη εικόνες ή βίντεο</translation>
+    </message>
+    <message>
+        <source>No voice messages or music yet</source>
+        <translation>Δεν υπάρχουν ακόμη φωνητικά μηνύματα ή μουσική</translation>
+    </message>
+    <message>
+        <source>No files yet</source>
+        <translation>Δεν υπάρχουν ακόμη αρχεία</translation>
+    </message>
+    <message>
+        <source>No apps yet</source>
+        <translation>Δεν υπάρχουν ακόμη εφαρμογές</translation>
     </message>
 </context>
 <context>

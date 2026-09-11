@@ -159,6 +159,16 @@ Page {
         }
     }
 
+    // Every kind of thing the chat holds, on a page of its own: pushed
+    // by name, as every page is, and the tile says which kind.
+    function openMedia(kind) {
+        pageStack.push(Qt.resolvedUrl("ChatMediaPage.qml"), {
+            accountId: page.accountId,
+            chatId: page.chatId,
+            kind: kind
+        })
+    }
+
     function addMembers() {
         pageStack.push(Qt.resolvedUrl("AddMembersPage.qml"), {
             accountId: page.accountId,
@@ -264,6 +274,16 @@ Page {
                 hint: qsTr("Everyone in the group sees the name")
                 canEdit: chat.can_edit
                 onTextChanged: page.noteEdit()
+            }
+
+            // What the group holds besides words, a tile per kind, each a
+            // way into the page that lists it.
+            MediaKinds {
+                objectName: "mediaKinds"
+                // `=== true` because dconf hands back `undefined` before it
+                // has read the key.
+                appsAvailable: Settings.webxdcEnabled === true
+                onKindRequested: page.openMedia(kind)
             }
 
             // A gap between who they are and what the chat does: two

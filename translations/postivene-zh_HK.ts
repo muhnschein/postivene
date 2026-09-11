@@ -234,6 +234,22 @@
     </message>
 </context>
 <context>
+    <name>ChatMediaPage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>已儲存至下載</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>用其他應用程式開啟</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>儲存到裝置</translation>
+    </message>
+</context>
+<context>
     <name>ChatPickerPage</name>
     <message>
         <source>Forward to</source>
@@ -534,6 +550,45 @@
         <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
         <extracomment>%1 is the group&apos;s name.</extracomment>
         <translation>離開 %1？你將不再收到它的訊息，而且只有成員才能把你重新加回來。</translation>
+    </message>
+</context>
+<context>
+    <name>Media</name>
+    <message>
+        <source>Gallery</source>
+        <extracomment>The pictures and videos of a chat: a tile, and a page heading.</extracomment>
+        <translation>圖庫</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <extracomment>The voice messages and music of a chat.</extracomment>
+        <translation>音訊</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <extracomment>The documents and other files of a chat.</extracomment>
+        <translation>檔案</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <extracomment>The webxdc apps of a chat.</extracomment>
+        <translation>應用程式</translation>
+    </message>
+    <message>
+        <source>No pictures or videos yet</source>
+        <translation>尚無圖片或影片</translation>
+    </message>
+    <message>
+        <source>No voice messages or music yet</source>
+        <translation>尚無語音訊息或音樂</translation>
+    </message>
+    <message>
+        <source>No files yet</source>
+        <translation>尚無檔案</translation>
+    </message>
+    <message>
+        <source>No apps yet</source>
+        <translation>尚無應用程式</translation>
     </message>
 </context>
 <context>

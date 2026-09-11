@@ -235,6 +235,22 @@
     </message>
 </context>
 <context>
+    <name>ChatMediaPage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>Enregistré dans Téléchargements</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>Ouvrir dans une autre application</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>Enregistrer sur l&apos;appareil</translation>
+    </message>
+</context>
+<context>
     <name>ChatPickerPage</name>
     <message>
         <source>Forward to</source>
@@ -537,6 +553,45 @@
         <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
         <extracomment>%1 is the group&apos;s name.</extracomment>
         <translation>Quitter %1 ? Vous ne recevrez plus ses messages, et seul un membre pourra vous réintégrer.</translation>
+    </message>
+</context>
+<context>
+    <name>Media</name>
+    <message>
+        <source>Gallery</source>
+        <extracomment>The pictures and videos of a chat: a tile, and a page heading.</extracomment>
+        <translation>Galerie</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <extracomment>The voice messages and music of a chat.</extracomment>
+        <translation>Audio</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <extracomment>The documents and other files of a chat.</extracomment>
+        <translation>Fichiers</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <extracomment>The webxdc apps of a chat.</extracomment>
+        <translation>Applications</translation>
+    </message>
+    <message>
+        <source>No pictures or videos yet</source>
+        <translation>Pas encore de photos ni de vidéos</translation>
+    </message>
+    <message>
+        <source>No voice messages or music yet</source>
+        <translation>Pas encore de messages vocaux ni de musique</translation>
+    </message>
+    <message>
+        <source>No files yet</source>
+        <translation>Pas encore de fichiers</translation>
+    </message>
+    <message>
+        <source>No apps yet</source>
+        <translation>Pas encore d’applications</translation>
     </message>
 </context>
 <context>

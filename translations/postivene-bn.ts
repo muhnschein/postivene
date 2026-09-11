@@ -235,6 +235,22 @@
     </message>
 </context>
 <context>
+    <name>ChatMediaPage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>ডাউনলোডে সংরক্ষিত</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>অন্য অ্যাপে খুলুন</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>ডিভাইসে সংরক্ষণ করুন</translation>
+    </message>
+</context>
+<context>
     <name>ChatPickerPage</name>
     <message>
         <source>Forward to</source>
@@ -537,6 +553,45 @@
         <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
         <extracomment>%1 is the group&apos;s name.</extracomment>
         <translation>%1 ছাড়বেন? আপনি আর এর বার্তা পাবেন না, আর শুধু একজন সদস্যই আপনাকে আবার যোগ করতে পারবে।</translation>
+    </message>
+</context>
+<context>
+    <name>Media</name>
+    <message>
+        <source>Gallery</source>
+        <extracomment>The pictures and videos of a chat: a tile, and a page heading.</extracomment>
+        <translation>গ্যালারি</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <extracomment>The voice messages and music of a chat.</extracomment>
+        <translation>অডিও</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <extracomment>The documents and other files of a chat.</extracomment>
+        <translation>ফাইল</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <extracomment>The webxdc apps of a chat.</extracomment>
+        <translation>অ্যাপ</translation>
+    </message>
+    <message>
+        <source>No pictures or videos yet</source>
+        <translation>এখনও কোনো ছবি বা ভিডিও নেই</translation>
+    </message>
+    <message>
+        <source>No voice messages or music yet</source>
+        <translation>এখনও কোনো ভয়েস বার্তা বা গান নেই</translation>
+    </message>
+    <message>
+        <source>No files yet</source>
+        <translation>এখনও কোনো ফাইল নেই</translation>
+    </message>
+    <message>
+        <source>No apps yet</source>
+        <translation>এখনও কোনো অ্যাপ নেই</translation>
     </message>
 </context>
 <context>

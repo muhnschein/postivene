@@ -237,6 +237,22 @@
     </message>
 </context>
 <context>
+    <name>ChatMediaPage</name>
+    <message>
+        <source>Saved to Downloads</source>
+        <translation>Shranjeno v Prenose</translation>
+    </message>
+    <message>
+        <source>Open in another app</source>
+        <extracomment>Hands the attachment to whatever else on the phone handles files of its kind.</extracomment>
+        <translation>Odpri v drugi aplikaciji</translation>
+    </message>
+    <message>
+        <source>Save to device</source>
+        <translation>Shrani na napravo</translation>
+    </message>
+</context>
+<context>
     <name>ChatPickerPage</name>
     <message>
         <source>Forward to</source>
@@ -543,6 +559,45 @@
         <source>Leave %1? You will stop receiving its messages, and only a member can add you back.</source>
         <extracomment>%1 is the group&apos;s name.</extracomment>
         <translation>Zapustim %1? Njenih sporočil ne boste več prejemali, nazaj pa vas lahko doda le član.</translation>
+    </message>
+</context>
+<context>
+    <name>Media</name>
+    <message>
+        <source>Gallery</source>
+        <extracomment>The pictures and videos of a chat: a tile, and a page heading.</extracomment>
+        <translation>Galerija</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <extracomment>The voice messages and music of a chat.</extracomment>
+        <translation>Zvok</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <extracomment>The documents and other files of a chat.</extracomment>
+        <translation>Datoteke</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <extracomment>The webxdc apps of a chat.</extracomment>
+        <translation>Aplikacije</translation>
+    </message>
+    <message>
+        <source>No pictures or videos yet</source>
+        <translation>Ni še slik ali videoposnetkov</translation>
+    </message>
+    <message>
+        <source>No voice messages or music yet</source>
+        <translation>Ni še glasovnih sporočil ali glasbe</translation>
+    </message>
+    <message>
+        <source>No files yet</source>
+        <translation>Ni še datotek</translation>
+    </message>
+    <message>
+        <source>No apps yet</source>
+        <translation>Ni še aplikacij</translation>
     </message>
 </context>
 <context>

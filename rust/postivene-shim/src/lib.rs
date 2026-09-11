@@ -18,6 +18,7 @@
 mod capture;
 mod chat;
 mod chat_info;
+mod chat_media;
 mod chatlist;
 mod connectivity;
 mod contacts;
@@ -42,6 +43,7 @@ mod webxdc_host;
 pub use crate::capture::Captures;
 pub use crate::chat::{local_day_number, ChatMessages};
 pub use crate::chat_info::ChatInfo;
+pub use crate::chat_media::ChatMedia;
 pub use crate::chatlist::ChatList;
 pub use crate::contacts::ContactList;
 pub use crate::core::{server_path, server_pid, shutdown, DeltaChatCore, BUNDLED_SERVER};
@@ -74,8 +76,9 @@ pub fn register_qml_types() {
     ) else {
         return;
     };
-    let (Ok(info), Ok(full)) = (
+    let (Ok(info), Ok(media), Ok(full)) = (
         std::ffi::CStr::from_bytes_with_nul(b"ChatInfo\0"),
+        std::ffi::CStr::from_bytes_with_nul(b"ChatMedia\0"),
         std::ffi::CStr::from_bytes_with_nul(b"FullText\0"),
     ) else {
         return;
@@ -102,6 +105,7 @@ pub fn register_qml_types() {
     qmetaobject::qml_register_type::<Profile>(uri, 1, 0, profile);
     qmetaobject::qml_register_type::<ChatPrefetch>(uri, 1, 0, prefetch);
     qmetaobject::qml_register_type::<ChatInfo>(uri, 1, 0, info);
+    qmetaobject::qml_register_type::<ChatMedia>(uri, 1, 0, media);
     qmetaobject::qml_register_type::<FullText>(uri, 1, 0, full);
     qmetaobject::qml_register_type::<QrCode>(uri, 1, 0, qr_code);
     qmetaobject::qml_register_type::<QrScanner>(uri, 1, 0, qr_scanner);

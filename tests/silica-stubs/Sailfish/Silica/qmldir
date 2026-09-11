@@ -27,6 +27,7 @@ RemorsePopup 1.0 RemorsePopup.qml
 SearchField 1.0 SearchField.qml
 SectionHeader 1.0 SectionHeader.qml
 SilicaFlickable 1.0 SilicaFlickable.qml
+SilicaGridView 1.0 SilicaGridView.qml
 SilicaListView 1.0 SilicaListView.qml
 Slider 1.0 Slider.qml
 TextArea 1.0 TextArea.qml

@@ -248,6 +248,20 @@
         <source>Save to device</source>
         <translation>Mentés az eszközre</translation>
     </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>Törlés folyamatban</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>Megjelenítés a csevegésben</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Törlés</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -1108,6 +1122,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>Némított csoportban az egyik üzenetedre adott válasz így is értesít.</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>Az Enter elküldi az üzenetet</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>Kikapcsolva az Enter új sort kezd, az üzenetmező a beírt szöveggel nő, és a küldés gomb küld.</translation>
     </message>
 </context>
 <context>

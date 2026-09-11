@@ -249,6 +249,20 @@
         <source>Save to device</source>
         <translation>ডিভাইসে সংরক্ষণ করুন</translation>
     </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>মোছা হচ্ছে</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>চ্যাটে দেখান</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>মুছুন</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -1113,6 +1127,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>মিউট করা গ্রুপে আপনার কোনো বার্তার উত্তর এলে তবুও আপনাকে জানানো হয়।</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>Enter বার্তা পাঠায়</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>বন্ধ থাকলে Enter কী নতুন লাইন শুরু করে, বার্তার ঘর লেখার সাথে বড় হয়, আর পাঠান বোতাম পাঠায়।</translation>
     </message>
 </context>
 <context>

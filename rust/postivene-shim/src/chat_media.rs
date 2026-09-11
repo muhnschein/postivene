@@ -25,7 +25,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use deltachat_jsonrpc::RpcClient;
 use qmetaobject::*;
 
-use crate::chat::fetch_messages;
+use crate::chat::{act_on_message, fetch_messages};
 use crate::core::connection;
 use crate::json;
 use crate::models::{MessageListItem, MessageListModel};
@@ -108,6 +108,9 @@ pub struct ChatMedia {
 
     /// Read the chat's list again, keeping the rows already read.
     pub reload: qt_method!(fn(&mut self)),
+    /// Delete a message, here and on the mail server: what the
+    /// conversation's row menu does, offered on a media page's row too.
+    pub delete_message: qt_method!(fn(&mut self, message_id: u32)),
     /// Apply one core event. Only what changes this chat is acted on.
     pub handle_event:
         qt_method!(fn(&mut self, context_id: u32, kind: QString, payload_json: QString)),
@@ -322,6 +325,36 @@ impl ChatMedia {
         });
         runtime.spawn(async move {
             done(fetch_messages(&rpc, account_id, &[message_id]).await);
+        });
+    }
+
+    /// Delete a message, here and on the mail server.
+    ///
+    /// The core announces the deletion and the list is read again on
+    /// that; the read here is so the row goes the moment the core has
+    /// agreed rather than a turn later, and a refusal is reported like
+    /// any other failure. Both reads land on the same list, and the
+    /// second moves nothing. No core is nothing to delete from: every
+    /// row here came out of one.
+    pub fn delete_message(&mut self, message_id: u32) {
+        let account_id = self.account_id;
+        if account_id == 0 || message_id == 0 {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            return;
+        };
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<(), String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            if let Err(err) = result {
+                this.borrow().error(err.into());
+                return;
+            }
+            this.borrow_mut().reload();
+        });
+        runtime.spawn(async move {
+            done(act_on_message(&rpc, "delete_messages", account_id, message_id).await);
         });
     }
 

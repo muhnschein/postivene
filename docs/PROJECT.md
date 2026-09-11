@@ -311,10 +311,17 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   the cell's size and kept -- rather than a decode of every picture; the
   other three pages draw the conversation's own attachment rows, so a
   voice message plays where it sits and an app runs on a tap, and a
-  long press offers a file what the chat's row menu offers it. Nothing
-  is deleted from these pages, and nothing jumps back to the message:
-  neither was asked for, and the second is a page-stack walk this
-  repository cannot yet test.
+  long press offers a file what the chat's row menu offers it. The same
+  press offers, on every kind, Show in chat and Delete. Deleting is the
+  conversation's own arrangement -- the wait lives beside the views in
+  a `PendingRemoval`, the platform's `RemorseItem` draws it, and the
+  model's `delete_message` is the row menu's call -- so a run of
+  deletes survives the rows it destroys. Show in chat walks the page
+  stack down to the conversation this page was opened over
+  (`previousPage` until a page has `showMessage`), tells it the
+  message, and pops to it; the conversation keeps the ask until it is
+  the page on screen and lands the message the way a search result
+  lands, over the place it puts back on the way in.
 
 ## Platform baseline
 
@@ -339,8 +346,7 @@ In order of what matters:
    fixable here: the bundled `deltachat-rpc-server` is a second ELF
    executable, which Harbour permits nowhere.
 2. **Blocking** outside a request; add-as-second-device and
-   restore-from-backup; jumping from a media page back to the message
-   in the chat.
+   restore-from-backup.
 3. **Message polish**: avatars on bubbles, and a way to react with an
    emoji the quick row does not offer.
 4. **The rest of the webxdc API.** Apps are sent, shown and run

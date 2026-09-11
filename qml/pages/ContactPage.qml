@@ -236,21 +236,15 @@ Page {
             }
 
             // What the chat holds besides words, a tile per kind, each a
-            // way into the page that lists it.
+            // way into the page that lists it. The row keeps its own room
+            // above and below, between who they are and what the chat
+            // does.
             MediaKinds {
                 objectName: "mediaKinds"
                 // `=== true` because dconf hands back `undefined` before it
                 // has read the key.
                 appsAvailable: Settings.webxdcEnabled === true
                 onKindRequested: page.openMedia(kind)
-            }
-
-            // A gap between who they are and what the chat does: two
-            // different kinds of thing, and the column's own spacing does
-            // not say so.
-            Item {
-                width: 1
-                height: Theme.paddingLarge
             }
 
             DisappearingMessages {

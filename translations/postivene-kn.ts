@@ -249,6 +249,20 @@
         <source>Save to device</source>
         <translation>ಸಾಧನದಲ್ಲಿ ಉಳಿಸಿ</translation>
     </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>ಅಳಿಸಲಾಗುತ್ತಿದೆ</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>ಚಾಟ್‌ನಲ್ಲಿ ತೋರಿಸಿ</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>ಅಳಿಸಿ</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -1113,6 +1127,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>ಮ್ಯೂಟ್ ಮಾಡಿದ ಗುಂಪಿನಲ್ಲಿ, ನಿಮ್ಮ ಸಂದೇಶಕ್ಕೆ ಬಂದ ಉತ್ತರ ನಿಮಗೆ ಆದರೂ ತಿಳಿಸುತ್ತದೆ.</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>Enter ಸಂದೇಶವನ್ನು ಕಳುಹಿಸುತ್ತದೆ</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>ಆಫ್ ಆಗಿದ್ದಾಗ Enter ಕೀ ಹೊಸ ಸಾಲನ್ನು ಪ್ರಾರಂಭಿಸುತ್ತದೆ, ಸಂದೇಶ ಕ್ಷೇತ್ರ ಬರೆದಂತೆ ಬೆಳೆಯುತ್ತದೆ ಮತ್ತು ಕಳುಹಿಸು ಬಟನ್ ಕಳುಹಿಸುತ್ತದೆ.</translation>
     </message>
 </context>
 <context>

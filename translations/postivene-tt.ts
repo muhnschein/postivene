@@ -248,6 +248,20 @@
         <source>Save to device</source>
         <translation>Җайланмага сакларга</translation>
     </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>Бетерелә</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>Чатта күрсәтергә</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Бетерергә</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -1108,6 +1122,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>Тавышсыз ителгән төркемдә сезнең хәбәргә җавап барыбер сезгә белдерә.</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>Enter хәбәрне җибәрә</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>Сүндерелгәндә Enter төймәсе яңа юл башлый, хәбәр кыры язылган белән үсә, ә җибәрү төймәсе җибәрә.</translation>
     </message>
 </context>
 <context>

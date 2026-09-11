@@ -22,6 +22,11 @@ import "../js/Media.js" as Media
  * is: a positioner sizes itself in a polish pass, which never runs
  * headlessly.
  *
+ * The row keeps its own room above and below the tiles. They are a third
+ * kind of thing between who the chat is with and what the chat does, and
+ * a column's own spacing does not say so; the page that puts them in a
+ * column gets the gap without having to know how wide one should be.
+ *
  * Nothing is opened here. The page that owns the pageStack pushes the
  * media page, which keeps this loadable, and testable, on its own.
  */
@@ -43,11 +48,20 @@ Item {
         ? (root.width - 2 * Theme.horizontalPageMargin) / root.kinds.length
         : 0
 
+    /// The room kept clear above and below the tiles, over and above the
+    /// padding a tile carries inside its own highlight. A little more
+    /// above than below: the combo under the tiles keeps a line's room of
+    /// its own above its label, and the caption over them keeps none, so
+    /// the two gaps come out about even on screen.
+    readonly property real gapAbove: Theme.paddingLarge + Theme.paddingMedium
+    readonly property real gapBelow: Theme.paddingLarge
+    /// How tall one tile is: an icon, a gap, one line of caption, and the
+    /// padding a row keeps above and below.
+    readonly property real tileHeight: Theme.iconSizeMedium + Theme.paddingSmall
+                                       + captionMetric.height + 2 * Theme.paddingMedium
+
     width: parent ? parent.width : 0
-    // An icon, a gap, one line of caption, and the padding a row keeps
-    // above and below.
-    height: Theme.iconSizeMedium + Theme.paddingSmall + captionMetric.height
-            + 2 * Theme.paddingMedium
+    height: root.gapAbove + root.tileHeight + root.gapBelow
 
     // One line of the caption's font, measured once: every tile's word
     // is one line of it.
@@ -65,9 +79,9 @@ Item {
             id: tile
             objectName: modelData + "Tile"
             x: Theme.horizontalPageMargin + index * root.tileWidth
-            y: 0
+            y: root.gapAbove
             width: root.tileWidth
-            height: root.height
+            height: root.tileHeight
 
             readonly property bool isApps: modelData === "apps"
             readonly property color tint: tile.highlighted ? Theme.highlightColor

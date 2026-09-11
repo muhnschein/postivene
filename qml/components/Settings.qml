@@ -3,11 +3,11 @@ import QtQuick 2.0
 import Nemo.Configuration 1.0
 
 /*
- * The settings that belong to no profile: how a message is drawn, what
- * goes out with a link, how much of an attachment arrives unasked, how
- * long a message is kept, how much a notification gives away and
- * whether a muted group can still raise one, and whether webxdc apps
- * are offered at all.
+ * The settings that belong to no profile: whether the return key sends,
+ * how a message is drawn, what goes out with a link, how much of an
+ * attachment arrives unasked, how long a message is kept, how much a
+ * notification gives away and whether a muted group can still raise one,
+ * and whether webxdc apps are offered at all.
  *
  * They live in dconf under the app's own path, and every page reads
  * them through this one object: the settings page (qml/pages/
@@ -21,6 +21,12 @@ import Nemo.Configuration 1.0
  * sends, and the row is loaded on its own in a test.
  */
 QtObject {
+    /// Whether the return key sends the message. Off, it puts in a line
+    /// break and the send button sends, which is what every other client
+    /// on the phone does with a message longer than a remark; on, the
+    /// key that would break a line sends instead, so a message written
+    /// here is one line by construction.
+    property alias enterSends: enterSendsValue.value
     /// 0 draws Markdown; anything else shows a message as written. A 1
     /// used to take the markers out and keep the words, and a phone that
     /// chose that reads as written now, which is the nearer of the two.
@@ -53,6 +59,15 @@ QtObject {
 
     // The keys, named here and nowhere else: tests/qml_syntax.rs holds
     // every other file to reading them through this object.
+    property ConfigurationValue enterSendsConfig: ConfigurationValue {
+        id: enterSendsValue
+        key: "/apps/harbour-postivene/enter_sends"
+        // A line break, until the reader says otherwise: the field took
+        // the return key for one before there was a choice, and a key
+        // that sends by surprise sends half a message.
+        defaultValue: false
+    }
+
     property ConfigurationValue markdownConfig: ConfigurationValue {
         id: markdownValue
         key: "/apps/harbour-postivene/markdown_mode"

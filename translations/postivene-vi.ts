@@ -248,6 +248,20 @@
         <source>Save to device</source>
         <translation>Lưu vào thiết bị</translation>
     </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>Đang xóa</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>Hiện trong cuộc trò chuyện</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Xóa</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -1108,6 +1122,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>Trong nhóm đã tắt thông báo, trả lời cho một tin nhắn của bạn vẫn thông báo cho bạn.</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>Enter gửi tin nhắn</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>Khi tắt, phím Enter xuống dòng, ô tin nhắn lớn dần theo nội dung, và nút gửi sẽ gửi.</translation>
     </message>
 </context>
 <context>

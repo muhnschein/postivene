@@ -323,6 +323,24 @@ fn the_conversation_page_uses_the_pieces_that_are_tested() {
         "leaving the chat does not send the deletes still waiting, so a \
          reader who asked for a message to go and then left keeps it"
     );
+    // The return key is the reader's to give back to sending, and no test
+    // can see it: every test loads the page with the `EnterKey.` lines
+    // taken out (common::qml_tree_without_enter_key), which is also why
+    // each has to be one line. So the shipped file is held to the shape
+    // here -- the key drawn as the accept key while it sends, greyed with
+    // nothing to send, and its click going to the function
+    // `qml_enter_sends.rs` drives.
+    for line in [
+        "EnterKey.iconSource: page.enterSends ? \"image://theme/icon-m-enter-accept\"",
+        "EnterKey.enabled: !page.enterSends || page.hasSomethingToSend",
+        "EnterKey.onClicked: page.enterPressed()",
+    ] {
+        assert!(
+            text.contains(line),
+            "the message field does not carry `{line}`, so the return key \
+             does not do what the settings page says it does"
+        );
+    }
 }
 
 /// Anything showing a string the other end chose has to say it is plain
@@ -611,7 +629,7 @@ fn the_drawn_countdown_is_asked_for_rather_than_chosen() {
 /// reaching controls that can no longer be seen.
 ///
 /// One line at a time, so a binding wrapped across two escapes it. The
-/// four files it applies to are counted by
+/// five files it applies to are counted by
 /// `every_pending_removal_is_emptied_on_the_way_out`.
 #[test]
 fn a_row_waiting_to_go_is_faded_rather_than_hidden() {
@@ -669,12 +687,12 @@ fn every_pending_removal_is_emptied_on_the_way_out() {
         }
     }
     // Otherwise this passes by finding nothing to check, which is what it
-    // would do if the four of them were quietly put back on their rows.
+    // would do if the five of them were quietly put back on their rows.
     assert!(
-        holders >= 4,
-        "only {holders} files hold a PendingRemoval; there should be four \
-         -- the conversation, the chat list, the profiles and a group's \
-         members"
+        holders >= 5,
+        "only {holders} files hold a PendingRemoval; there should be five \
+         -- the conversation, the chat list, the profiles, a group's \
+         members and a chat's media"
     );
     assert!(
         offenders.is_empty(),

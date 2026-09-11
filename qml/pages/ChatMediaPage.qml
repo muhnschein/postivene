@@ -19,8 +19,14 @@ import Postivene 1.0
  * the conversation's own attachment rows without the bubbles -- a voice
  * message plays where it sits, an app runs on a tap, a file is handed
  * to whatever opens it, the three answers a tap gets in the chat --
- * with who sent it and when above each. A long press offers what the
- * chat's row menu offers a file: a copy, and another app.
+ * with who sent it and when above each.
+ *
+ * A long press offers, on every kind, the message's place in the chat
+ * and its deletion, and on a file what the chat's row menu offers one:
+ * a copy, and another app. Deleting waits out the platform's countdown
+ * first, held beside the views rather than on the row (PendingRemoval,
+ * the conversation's arrangement); showing a message in the chat is a
+ * walk back down the stack to the conversation this was opened over.
  *
  * Nothing here is sorted. The core answers newest last, the model turns
  * that round, and the rows stand in that order (chat_media.rs).
@@ -35,6 +41,10 @@ Page {
     property string errorMessage: ""
 
     readonly property bool isGallery: page.kind === "gallery"
+
+    /// How long a message waits before it goes, in milliseconds. Nothing
+    /// sets it; a test turns it down rather than waiting.
+    property alias pendingDelay: doomedMessages.delay
 
     // A grid of pictures is worth turning the phone for.
     allowedOrientations: Orientation.All
@@ -59,6 +69,42 @@ Page {
                 media.reload()
             }
         }
+    }
+
+    /// The messages the reader has asked to delete, waiting out the
+    /// moment in which they can say they did not mean it.
+    ///
+    /// Beside the views rather than on a row, for the reason the
+    /// conversation keeps its own beside the list: deleting is what
+    /// destroys rows, and every event reloads them. See PendingRemoval.
+    PendingRemoval {
+        id: doomedMessages
+        onRemove: media.delete_message(id)
+    }
+
+    // Leaving inside the wait is still asking for the message to go:
+    // somebody who asked for a thing to go and then left asked for it to
+    // go. The conversation writes its draft at the same moment.
+    onStatusChanged: {
+        if (status === PageStatus.Deactivating) {
+            doomedMessages.flush()
+        }
+    }
+
+    /// Silica's own countdown, drawn over what is going: the bar, the
+    /// seconds, "Tap to cancel", all of it the platform's. Built the
+    /// first time a row asks, in the row's own `loader`, since every row
+    /// would otherwise carry a dozen items for a tap that almost never
+    /// comes. The deletion is not its business -- that belongs to
+    /// `doomedMessages`, which outlives the row -- so it is handed a
+    /// callback that does nothing and asked only to draw and to report
+    /// the tap.
+    function raiseRemorse(loader, over, messageId) {
+        loader.active = true
+        //: What Silica's countdown says it is doing, over a picture, a
+        //: sound, a file or an app the reader has asked to delete.
+        loader.item.execute(over, qsTr("Deleting"), function() {},
+                            doomedMessages.countdownFor(messageId))
     }
 
     /// A path the other end named, as a URL the views can load; empty
@@ -99,6 +145,25 @@ Page {
             accountId: page.accountId,
             messageId: messageId
         })
+    }
+
+    /// Back to the conversation, at this message: where a search result
+    /// lands, asked for from here. The conversation is under the
+    /// contact's or the group's page that opened this one, so the walk
+    /// down the stack stops at the first page that can be asked. Told
+    /// first and popped to second: the conversation keeps the ask until
+    /// it is the page on screen and acts on it then, over the place it
+    /// puts back on its way in (ConversationPage.showMessage).
+    function showInChat(messageId) {
+        var below = pageStack.previousPage(page)
+        while (below && typeof below.showMessage !== "function") {
+            below = pageStack.previousPage(below)
+        }
+        if (!below) {
+            return
+        }
+        below.showMessage(messageId)
+        pageStack.pop(below)
     }
 
     // A copy into Downloads, where the file manager looks: what the
@@ -156,11 +221,14 @@ Page {
                 title: Media.kindName(page.kind)
             }
 
-            delegate: BackgroundItem {
+            // Silica's grid cell with a menu on it, as its ListItem is
+            // the row with one: a long press opens the menu under the
+            // row of cells, the way the notes app's grid does.
+            delegate: GridItem {
                 id: tile
                 objectName: "mediaTile" + model.message_id
-                width: grid.cellWidth
-                height: grid.cellHeight
+                contentWidth: grid.cellWidth
+                contentHeight: grid.cellHeight
 
                 readonly property bool isVideo: model.view_type === "Video"
                 readonly property bool isAnimated: model.view_type === "Gif"
@@ -169,54 +237,108 @@ Page {
                     model.loaded ? page.fileUrlOf(model.file_path) : ""
                 /// Half the gap between two tiles.
                 readonly property real inset: Theme.paddingSmall / 2
+                /// This picture is on its way out.
+                readonly property bool doomed:
+                    doomedMessages.pending(model.message_id)
 
-                // What stands in the cell until the thumbnailer has drawn
-                // into it: a row not read yet, or a file it has not got
-                // to.
-                Rectangle {
-                    anchors.fill: parent
-                    anchors.margins: tile.inset
-                    color: Theme.rgba(Theme.highlightDimmerColor, 0.4)
+                Loader {
+                    id: remorse
+                    active: false
+                    sourceComponent: RemorseItem {
+                        objectName: "mediaRemorse"
+                        onCanceled: doomedMessages.spare(model.message_id)
+                    }
                 }
 
-                // The platform's thumbnailer, for pictures and videos
-                // alike: it draws to the cell's own size and keeps what it
-                // drew, which is what the gallery app scrolls through --
-                // not a decode of the whole picture per tile.
-                Thumbnail {
-                    objectName: "tileThumbnail"
-                    anchors.fill: parent
-                    anchors.margins: tile.inset
-                    sourceSize.width: width
-                    sourceSize.height: height
-                    // Told what the file is, since the thumbnailer picks
-                    // its reader by that; a message the core gave no type
-                    // for is read as the kind of thing the tile says it is.
-                    mimeType: model.file_mime.length > 0 ? model.file_mime
-                              : tile.isVideo ? "video/mp4" : "image/jpeg"
-                    source: tile.fileUrl
+                // A tile is rebuilt every time it scrolls back into view,
+                // so one scrolled past mid-wait comes back with no
+                // countdown on it. Put it up again with what is left.
+                Component.onCompleted: {
+                    if (tile.doomed) {
+                        page.raiseRemorse(remorse, body, model.message_id)
+                    }
                 }
 
-                // The marks the conversation draws on the same two kinds.
-                Rectangle {
-                    objectName: "playMark"
-                    visible: tile.isVideo || tile.isAnimated
-                    anchors.centerIn: parent
-                    width: Theme.itemSizeExtraSmall
-                    height: width
-                    radius: width / 2
-                    color: Theme.rgba("black", 0.5)
+                menu: ContextMenu {
+                    MenuItem {
+                        objectName: "showItem"
+                        //: Goes back to the conversation, at this message.
+                        text: qsTr("Show in chat")
+                        onClicked: page.showInChat(model.message_id)
+                    }
+                    MenuItem {
+                        objectName: "deleteItem"
+                        text: qsTr("Delete")
+                        // The page is told, not this tile: the wait
+                        // before a message goes has to outlive the tile
+                        // it was asked for on. See PendingRemoval.
+                        onClicked: {
+                            doomedMessages.ask(model.message_id)
+                            page.raiseRemorse(remorse, body, model.message_id)
+                        }
+                    }
+                }
 
-                    Label {
+                // Everything drawn in the cell, so the countdown can cover
+                // it: faded by the countdown while the picture waits to
+                // go, and out of a tap's reach meanwhile.
+                Item {
+                    id: body
+                    width: tile.contentWidth
+                    height: tile.contentHeight
+                    enabled: !tile.doomed
+
+                    // What stands in the cell until the thumbnailer has
+                    // drawn into it: a row not read yet, or a file it has
+                    // not got to.
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: tile.inset
+                        color: Theme.rgba(Theme.highlightDimmerColor, 0.4)
+                    }
+
+                    // The platform's thumbnailer, for pictures and videos
+                    // alike: it draws to the cell's own size and keeps
+                    // what it drew, which is what the gallery app scrolls
+                    // through -- not a decode of the whole picture per
+                    // tile.
+                    Thumbnail {
+                        objectName: "tileThumbnail"
+                        anchors.fill: parent
+                        anchors.margins: tile.inset
+                        sourceSize.width: width
+                        sourceSize.height: height
+                        // Told what the file is, since the thumbnailer
+                        // picks its reader by that; a message the core
+                        // gave no type for is read as the kind of thing
+                        // the tile says it is.
+                        mimeType: model.file_mime.length > 0 ? model.file_mime
+                                  : tile.isVideo ? "video/mp4" : "image/jpeg"
+                        source: tile.fileUrl
+                    }
+
+                    // The marks the conversation draws on the same two
+                    // kinds.
+                    Rectangle {
+                        objectName: "playMark"
+                        visible: tile.isVideo || tile.isAnimated
                         anchors.centerIn: parent
-                        color: "white"
-                        font.pixelSize: tile.isVideo ? Theme.fontSizeMedium
-                                                     : Theme.fontSizeExtraSmall
-                        font.bold: tile.isAnimated
-                        textFormat: Text.PlainText
-                        // The play mark and the format's name, neither of
-                        // them a word to translate.
-                        text: tile.isVideo ? "▶" : "GIF"
+                        width: Theme.itemSizeExtraSmall
+                        height: width
+                        radius: width / 2
+                        color: Theme.rgba("black", 0.5)
+
+                        Label {
+                            anchors.centerIn: parent
+                            color: "white"
+                            font.pixelSize: tile.isVideo ? Theme.fontSizeMedium
+                                                         : Theme.fontSizeExtraSmall
+                            font.bold: tile.isAnimated
+                            textFormat: Text.PlainText
+                            // The play mark and the format's name, neither
+                            // of them a word to translate.
+                            text: tile.isVideo ? "▶" : "GIF"
+                        }
                     }
                 }
 
@@ -251,15 +373,40 @@ Page {
                 id: row
                 objectName: "mediaRow" + model.message_id
                 width: list.width
-                contentHeight: body.y + body.height + Theme.paddingMedium
+                contentHeight: content.height
 
                 readonly property bool isFile: page.kind === "files"
                 readonly property bool isApp: page.kind === "apps"
                 /// The file, once the row has been read.
                 readonly property url fileUrl:
                     model.loaded ? page.fileUrlOf(model.file_path) : ""
+                /// This message is on its way out.
+                readonly property bool doomed:
+                    doomedMessages.pending(model.message_id)
+
+                Loader {
+                    id: remorse
+                    active: false
+                    sourceComponent: RemorseItem {
+                        objectName: "mediaRemorse"
+                        onCanceled: doomedMessages.spare(model.message_id)
+                    }
+                }
+
+                // A row rebuilt mid-wait comes back bare; see the tile.
+                Component.onCompleted: {
+                    if (row.doomed) {
+                        page.raiseRemorse(remorse, content, model.message_id)
+                    }
+                }
 
                 menu: ContextMenu {
+                    MenuItem {
+                        objectName: "showItem"
+                        //: Goes back to the conversation, at this message.
+                        text: qsTr("Show in chat")
+                        onClicked: page.showInChat(model.message_id)
+                    }
                     MenuItem {
                         objectName: "openItem"
                         //: Hands the attachment to whatever else on the phone
@@ -272,108 +419,130 @@ Page {
                         text: qsTr("Save to device")
                         onClicked: saver.save(row.fileUrl, StandardPaths.download)
                     }
-                }
-
-                // Who sent it and when. The name is theirs to choose.
-                Label {
-                    id: caption
-                    objectName: "rowCaption"
-                    x: Theme.horizontalPageMargin
-                    y: Theme.paddingMedium
-                    width: parent.width - 2 * Theme.horizontalPageMargin
-                    truncationMode: TruncationMode.Fade
-                    font.pixelSize: Theme.fontSizeExtraSmall
-                    color: Theme.secondaryHighlightColor
-                    textFormat: Text.PlainText
-                    text: model.loaded
-                          ? model.sender_name + " · "
-                            + Qt.formatDate(new Date(model.timestamp * 1000),
-                                            Qt.DefaultLocaleShortDate)
-                          : ""
-                }
-
-                // The two shapes a row takes, each zero-high when it is
-                // not the one showing, so the row's height is their sum.
-                Item {
-                    id: body
-                    x: Theme.horizontalPageMargin
-                    y: caption.y + caption.height + Theme.paddingSmall
-                    width: parent.width - 2 * Theme.horizontalPageMargin
-                    height: fileRow.height + preview.height
-
-                    // A file: the theme's icon for its kind, its name and
-                    // its size -- the platform's own file browser's row.
-                    Item {
-                        id: fileRow
-                        readonly property bool shown: row.isFile
-                        visible: fileRow.shown
-                        width: parent.width
-                        height: fileRow.shown
-                                ? Math.max(fileIcon.height,
-                                           fileName.height + fileDetail.height)
-                                : 0
-
-                        Image {
-                            id: fileIcon
-                            objectName: "fileIcon"
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: Theme.iconSizeMedium
-                            height: width
-                            source: fileRow.shown && model.loaded
-                                    ? "image://theme/" + Media.fileIcon(model.file_mime)
-                                      + "?" + (row.highlighted ? Theme.highlightColor
-                                                                : Theme.primaryColor)
-                                    : ""
-                        }
-
-                        Label {
-                            id: fileName
-                            objectName: "fileName"
-                            x: fileIcon.width + Theme.paddingMedium
-                            width: parent.width - x
-                            truncationMode: TruncationMode.Fade
-                            color: row.highlighted ? Theme.highlightColor
-                                                   : Theme.primaryColor
-                            textFormat: Text.PlainText
-                            text: model.file_name.length > 0 ? model.file_name
-                                                             : model.file_path
-                        }
-
-                        Label {
-                            id: fileDetail
-                            objectName: "fileDetail"
-                            x: fileName.x
-                            y: fileName.height
-                            width: fileName.width
-                            truncationMode: TruncationMode.Fade
-                            font.pixelSize: Theme.fontSizeExtraSmall
-                            color: Theme.secondaryColor
-                            textFormat: Text.PlainText
-                            text: Format.readableSize(model.file_bytes)
+                    MenuItem {
+                        objectName: "deleteItem"
+                        text: qsTr("Delete")
+                        // The page is told, not this row; see the tile.
+                        onClicked: {
+                            doomedMessages.ask(model.message_id)
+                            page.raiseRemorse(remorse, content, model.message_id)
                         }
                     }
+                }
 
-                    // A sound or an app: the conversation's own rendering
-                    // of it, player and all. Given no file for a file,
-                    // which the row above draws, so it measures nothing.
-                    AttachmentPreview {
-                        id: preview
-                        objectName: "attachment"
-                        y: fileRow.height
-                        contentWidth: parent.width
-                        filePath: row.isFile || !model.loaded ? "" : model.file_path
-                        fileName: model.file_name
-                        fileMime: model.file_mime
-                        fileBytes: model.file_bytes
-                        viewType: row.isFile ? "Text" : model.view_type
-                        webxdcName: model.webxdc_name
-                        webxdcDocument: model.webxdc_document
-                        webxdcSummary: model.webxdc_summary
-                        webxdcIcon: model.webxdc_icon
-                        // The apps page is offered only where apps are on,
-                        // so a row here draws as the app it is.
-                        appsEnabled: true
-                        onMenuRequested: row.openMenu()
+                // The caption and the row under it, together, so the
+                // countdown can cover both: faded by it while the message
+                // waits to go, and out of a tap's reach meanwhile.
+                Item {
+                    id: content
+                    width: parent.width
+                    height: body.y + body.height + Theme.paddingMedium
+                    enabled: !row.doomed
+
+                    // Who sent it and when. The name is theirs to choose.
+                    Label {
+                        id: caption
+                        objectName: "rowCaption"
+                        x: Theme.horizontalPageMargin
+                        y: Theme.paddingMedium
+                        width: parent.width - 2 * Theme.horizontalPageMargin
+                        truncationMode: TruncationMode.Fade
+                        font.pixelSize: Theme.fontSizeExtraSmall
+                        color: Theme.secondaryHighlightColor
+                        textFormat: Text.PlainText
+                        text: model.loaded
+                              ? model.sender_name + " · "
+                                + Qt.formatDate(new Date(model.timestamp * 1000),
+                                                Qt.DefaultLocaleShortDate)
+                              : ""
+                    }
+
+                    // The two shapes a row takes, each zero-high when it
+                    // is not the one showing, so the row's height is their
+                    // sum.
+                    Item {
+                        id: body
+                        x: Theme.horizontalPageMargin
+                        y: caption.y + caption.height + Theme.paddingSmall
+                        width: parent.width - 2 * Theme.horizontalPageMargin
+                        height: fileRow.height + preview.height
+
+                        // A file: the theme's icon for its kind, its name
+                        // and its size -- the platform's own file
+                        // browser's row.
+                        Item {
+                            id: fileRow
+                            readonly property bool shown: row.isFile
+                            visible: fileRow.shown
+                            width: parent.width
+                            height: fileRow.shown
+                                    ? Math.max(fileIcon.height,
+                                               fileName.height + fileDetail.height)
+                                    : 0
+
+                            Image {
+                                id: fileIcon
+                                objectName: "fileIcon"
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: Theme.iconSizeMedium
+                                height: width
+                                source: fileRow.shown && model.loaded
+                                        ? "image://theme/" + Media.fileIcon(model.file_mime)
+                                          + "?" + (row.highlighted ? Theme.highlightColor
+                                                                    : Theme.primaryColor)
+                                        : ""
+                            }
+
+                            Label {
+                                id: fileName
+                                objectName: "fileName"
+                                x: fileIcon.width + Theme.paddingMedium
+                                width: parent.width - x
+                                truncationMode: TruncationMode.Fade
+                                color: row.highlighted ? Theme.highlightColor
+                                                       : Theme.primaryColor
+                                textFormat: Text.PlainText
+                                text: model.file_name.length > 0 ? model.file_name
+                                                                 : model.file_path
+                            }
+
+                            Label {
+                                id: fileDetail
+                                objectName: "fileDetail"
+                                x: fileName.x
+                                y: fileName.height
+                                width: fileName.width
+                                truncationMode: TruncationMode.Fade
+                                font.pixelSize: Theme.fontSizeExtraSmall
+                                color: Theme.secondaryColor
+                                textFormat: Text.PlainText
+                                text: Format.readableSize(model.file_bytes)
+                            }
+                        }
+
+                        // A sound or an app: the conversation's own
+                        // rendering of it, player and all. Given no file
+                        // for a file, which the row above draws, so it
+                        // measures nothing.
+                        AttachmentPreview {
+                            id: preview
+                            objectName: "attachment"
+                            y: fileRow.height
+                            contentWidth: parent.width
+                            filePath: row.isFile || !model.loaded ? "" : model.file_path
+                            fileName: model.file_name
+                            fileMime: model.file_mime
+                            fileBytes: model.file_bytes
+                            viewType: row.isFile ? "Text" : model.view_type
+                            webxdcName: model.webxdc_name
+                            webxdcDocument: model.webxdc_document
+                            webxdcSummary: model.webxdc_summary
+                            webxdcIcon: model.webxdc_icon
+                            // The apps page is offered only where apps are
+                            // on, so a row here draws as the app it is.
+                            appsEnabled: true
+                            onMenuRequested: row.openMenu()
+                        }
                     }
                 }
 

@@ -249,6 +249,20 @@
         <source>Save to device</source>
         <translation>Tallenna laitteelle</translation>
     </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>Poistetaan</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>Näytä keskustelussa</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Poista</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -1113,6 +1127,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>Mykistetyssä ryhmässä vastaus viestiisi ilmoittaa silti sinulle.</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>Enter lähettää viestin</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>Pois päältä Enter aloittaa uuden rivin, viestikenttä kasvaa kirjoitetun mukana ja lähetyspainike lähettää.</translation>
     </message>
 </context>
 <context>

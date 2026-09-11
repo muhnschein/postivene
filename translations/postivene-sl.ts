@@ -251,6 +251,20 @@
         <source>Save to device</source>
         <translation>Shrani na napravo</translation>
     </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>Brisanje</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>Pokaži v klepetu</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Izbriši</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -1123,6 +1137,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>V utišani skupini vas odgovor na vaše sporočilo vseeno obvesti.</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>Enter pošlje sporočilo</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>Izklopljeno: tipka Enter začne novo vrstico, polje sporočila raste z napisanim, pošlje pa gumb za pošiljanje.</translation>
     </message>
 </context>
 <context>

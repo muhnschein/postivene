@@ -11,6 +11,13 @@
 //! has none of says so; and the tiles on both detail pages open the
 //! page for the kind that was tapped, with no Apps tile while apps are
 //! off.
+//!
+//! A long press on a tile or a row offers Show in chat and Delete. The
+//! first walks the page stack down to the conversation this page was
+//! opened over, tells it the message and pops to it; the stack here is a
+//! record that hands back a detail page that cannot be asked and then a
+//! conversation that can. The second waits out the platform's countdown
+//! and then asks the core, and the row is gone once the core has agreed.
 
 // Qt harness: see qml_chat_list.rs.
 #![allow(
@@ -34,27 +41,62 @@ mod common;
 
 /// Silica's `pageStack`, recorded rather than performed: which page a
 /// tap opened, and which kind of media it was asked for.
+///
+/// The pages under the media page are two objects the probe QML made
+/// and handed over -- a `QVariant` carries a QML object -- and
+/// `previousPage` answers with them in turn: first a detail page that
+/// cannot be asked to show a message, then the conversation, which can.
 #[derive(QObject, Default)]
+#[allow(non_snake_case)]
 struct PageStackProbe {
     base: qt_base_class!(trait QObject),
-    /// `push:ChatMediaPage.qml(gallery)|push:PicturePage.qml()|...`
+    /// `push:ChatMediaPage.qml(gallery)|push:PicturePage.qml()|pop|...`
     log: qt_property!(QString; NOTIFY log_changed),
     log_changed: qt_signal!(),
+    /// The contact's page under the media page, as the stack sees it.
+    detail: qt_property!(QVariant),
+    /// The conversation under that.
+    chat: qt_property!(QVariant),
+    /// How many steps down the current walk has taken.
+    hops: qt_property!(u32),
     push: qt_method!(fn(&mut self, page: QString, properties: QVariantMap) -> QVariant),
+    previousPage: qt_method!(fn(&mut self, page: QVariant) -> QVariant),
+    pop: qt_method!(fn(&mut self, page: QVariant)),
 }
 
+#[allow(non_snake_case)]
 impl PageStackProbe {
+    fn note(&mut self, entry: &str) {
+        let current = self.log.to_string();
+        self.log = format!("{current}{entry}|").into();
+        self.log_changed();
+    }
+
     fn push(&mut self, page: QString, properties: QVariantMap) -> QVariant {
         let page = page.to_string();
-        let name = page.rsplit('/').next().unwrap_or(&page);
+        let name = page.rsplit('/').next().unwrap_or(&page).to_string();
         let kind =
             QString::from_qvariant(properties.value(QString::from("kind"), QVariant::default()))
                 .map(|kind| kind.to_string())
                 .unwrap_or_default();
-        let current = self.log.to_string();
-        self.log = format!("{current}push:{name}({kind})|").into();
-        self.log_changed();
+        self.note(&format!("push:{name}({kind})"));
         QVariant::default()
+    }
+
+    /// The page below the one asked about: the detail page first, the
+    /// conversation under it, and nothing under that.
+    fn previousPage(&mut self, _page: QVariant) -> QVariant {
+        self.hops += 1;
+        match self.hops {
+            1 => self.detail.clone(),
+            2 => self.chat.clone(),
+            _ => QVariant::default(),
+        }
+    }
+
+    fn pop(&mut self, _page: QVariant) {
+        self.hops = 0;
+        self.note("pop");
     }
 }
 
@@ -77,6 +119,24 @@ const PROBE_QML: &str = r"
         function loadTiles(url) {
             return load(url, { width: 540, appsAvailable: true })
         }
+        // The pages under the media page, as the stack answers for them:
+        // the contact's page, which cannot show a message, and the
+        // conversation, which can and remembers which.
+        QtObject { id: detailBelow; objectName: 'detailBelow' }
+        QtObject {
+            id: chatBelow
+            objectName: 'chatBelow'
+            property int shown: 0
+            function showMessage(messageId) { shown = messageId }
+        }
+        function armStack() {
+            pageStack.detail = detailBelow
+            pageStack.chat = chatBelow
+            return 'ok'
+        }
+        function shownInChat() { return '' + chatBelow.shown }
+        // The wait before a deletion, turned down from four seconds.
+        function hurry(ms) { loader.item.pendingDelay = ms; return 'ok' }
         // Where the platform says downloads go, pointed at a directory of
         // this test's own.
         function setDownloads(folder) { StandardPaths.download = folder; return 'ok' }
@@ -108,6 +168,15 @@ const PROBE_QML: &str = r"
         function click(name) {
             var item = findIn(loader.item, name)
             if (!item) { return 'missing:' + name }
+            item.clicked()
+            return 'ok'
+        }
+        // A menu item of one particular row, since every row has one.
+        function clickIn(rowName, itemName) {
+            var row = findIn(loader.item, rowName)
+            if (!row) { return 'missing:' + rowName }
+            var item = findIn(row.menu, itemName)
+            if (!item) { return 'missing:' + itemName }
             item.clicked()
             return 'ok'
         }
@@ -199,7 +268,6 @@ fn a_chats_media_has_pages_of_its_own_behind_the_tiles() {
         );
     });
 
-    let page = media_page.clone();
     single_shot(Duration::from_secs(3), move || unsafe {
         record!("gallery-loaded", get!("media", "loaded"));
         record!("gallery-count", get!("media", "count"));
@@ -214,6 +282,37 @@ fn a_chats_media_has_pages_of_its_own_behind_the_tiles() {
         record!("picture-mark", get!("mediaTile10", "isVideo"));
         record!("open-picture", call!("click", QString::from("mediaTile10")));
         record!("open-video", call!("click", QString::from("mediaTile15")));
+        // Show in chat, from the video's tile: the conversation two
+        // pages down is told which message, and popped to.
+        record!("arm-stack", call!("armStack"));
+        record!(
+            "show-in-chat",
+            call!(
+                "clickIn",
+                QString::from("mediaTile15"),
+                QString::from("showItem")
+            )
+        );
+        record!("shown-in-chat", call!("shownInChat"));
+        // Delete, from the picture's tile: the platform's countdown goes
+        // up over it, the row stays while it runs, and goes after.
+        record!("hurry", call!("hurry", 200));
+        record!(
+            "delete-picture",
+            call!(
+                "clickIn",
+                QString::from("mediaTile10"),
+                QString::from("deleteItem")
+            )
+        );
+        record!("countdown-up", get!("mediaRemorse", "active"));
+        record!("count-while-waiting", get!("media", "count"));
+    });
+
+    let page = media_page.clone();
+    single_shot(Duration::from_secs(5), move || unsafe {
+        record!("count-after-delete", get!("media", "count"));
+        record!("video-still-there", get!("mediaTile15", "objectName"));
         // The files list: a document, named and sized.
         record!(
             "load-files",
@@ -228,7 +327,7 @@ fn a_chats_media_has_pages_of_its_own_behind_the_tiles() {
 
     let page = media_page.clone();
     let folder = downloads_for_probe.clone();
-    single_shot(Duration::from_secs(5), move || unsafe {
+    single_shot(Duration::from_secs(7), move || unsafe {
         record!("files-count", get!("media", "count"));
         record!("file-name", get!("fileName", "text"));
         record!("file-size", get!("fileDetail", "text"));
@@ -249,7 +348,7 @@ fn a_chats_media_has_pages_of_its_own_behind_the_tiles() {
     });
 
     let page = media_page.clone();
-    single_shot(Duration::from_secs(7), move || unsafe {
+    single_shot(Duration::from_secs(9), move || unsafe {
         record!("audio-count", get!("media", "count"));
         record!("audio-row", get!("mediaRow13", "objectName"));
         record!("audio-label", get!("audioLabel", "text"));
@@ -265,7 +364,7 @@ fn a_chats_media_has_pages_of_its_own_behind_the_tiles() {
     });
 
     let page = media_page.clone();
-    single_shot(Duration::from_secs(9), move || unsafe {
+    single_shot(Duration::from_secs(11), move || unsafe {
         record!("apps-count", get!("media", "count"));
         record!("app-name", get!("webxdcName", "text"));
         record!("open-app", call!("click", QString::from("mediaRow14")));
@@ -282,7 +381,7 @@ fn a_chats_media_has_pages_of_its_own_behind_the_tiles() {
     });
 
     let page = contact_page.clone();
-    single_shot(Duration::from_secs(11), move || unsafe {
+    single_shot(Duration::from_secs(13), move || unsafe {
         record!("empty-loaded", get!("media", "loaded"));
         record!("empty-count", get!("media", "count"));
         record!("empty-placeholder", get!("placeholder", "enabled"));
@@ -296,7 +395,7 @@ fn a_chats_media_has_pages_of_its_own_behind_the_tiles() {
 
     let tiles_url = tiles.clone();
     let page = group_page.clone();
-    single_shot(Duration::from_secs(13), move || unsafe {
+    single_shot(Duration::from_secs(15), move || unsafe {
         record!("contact-tiles", get!("mediaKinds", "visible"));
         record!("contact-apps", get!("appsTile", "objectName"));
         record!("contact-gallery", get!("galleryTile", "objectName"));
@@ -315,7 +414,7 @@ fn a_chats_media_has_pages_of_its_own_behind_the_tiles() {
         );
     });
 
-    single_shot(Duration::from_secs(15), move || unsafe {
+    single_shot(Duration::from_secs(17), move || unsafe {
         record!("group-tiles", get!("mediaKinds", "visible"));
         record!("open-files", call!("click", QString::from("filesTile")));
         (*engine_ptr).quit();
@@ -351,6 +450,10 @@ fn assert_pages(steps: &[(&str, String)], navigation: &str, calls: &[(String, Va
         "load-gallery",
         "open-picture",
         "open-video",
+        "arm-stack",
+        "show-in-chat",
+        "hurry",
+        "delete-picture",
         "load-files",
         "save",
         "load-audio",
@@ -403,6 +506,44 @@ fn assert_pages(steps: &[(&str, String)], navigation: &str, calls: &[(String, Va
     assert!(
         value("picture-thumb").ends_with("photo.jpg"),
         "the picture's tile does not show the picture. {context}"
+    );
+
+    // Show in chat told the conversation two pages down which message,
+    // and the stack was popped to it; Delete put the platform's
+    // countdown up, kept the row while it ran, and the row went once
+    // the core had agreed, leaving the other tile where it was.
+    for (label, expected, complaint) in [
+        (
+            "shown-in-chat",
+            "15",
+            "Show in chat did not tell the conversation which message",
+        ),
+        (
+            "countdown-up",
+            "true",
+            "Delete did not put the platform's countdown up over the tile",
+        ),
+        (
+            "count-while-waiting",
+            "2",
+            "the picture went before its countdown had run",
+        ),
+        (
+            "count-after-delete",
+            "1",
+            "the picture is still listed after the core deleted it",
+        ),
+        (
+            "video-still-there",
+            "mediaTile15",
+            "deleting the picture took the video with it",
+        ),
+    ] {
+        assert_eq!(value(label), expected, "{complaint}. {context}");
+    }
+    assert!(
+        calls.contains(&("delete_messages".to_string(), serde_json::json!([1, [10]]))),
+        "the core was not asked to delete the picture. {context}"
     );
 
     // The files list: the document, its size, its icon, who sent it, and
@@ -504,9 +645,10 @@ fn assert_pages(steps: &[(&str, String)], navigation: &str, calls: &[(String, Va
     // media page for its kind.
     assert_eq!(
         navigation,
-        "push:PicturePage.qml()|push:VideoPage.qml()|push:WebxdcPage.qml()|\
+        "push:PicturePage.qml()|push:VideoPage.qml()|pop|push:WebxdcPage.qml()|\
          push:ChatMediaPage.qml(gallery)|push:ChatMediaPage.qml(files)|",
-        "a tap did not open the right page. {context}"
+        "a tap did not open the right page, or Show in chat did not pop \
+         back to the conversation. {context}"
     );
 
     // Each page asked the core for its own kinds of the chat's messages.

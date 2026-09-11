@@ -249,6 +249,20 @@
         <source>Save to device</source>
         <translation>ഉപകരണത്തിൽ സംരക്ഷിക്കുക</translation>
     </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>ഇല്ലാതാക്കുന്നു</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>ചാറ്റിൽ കാണിക്കുക</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>ഇല്ലാതാക്കുക</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -1113,6 +1127,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>മ്യൂട്ട് ചെയ്ത ഗ്രൂപ്പിൽ, നിങ്ങളുടെ സന്ദേശത്തിനുള്ള മറുപടി എന്നാലും നിങ്ങളെ അറിയിക്കും.</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>Enter സന്ദേശം അയയ്ക്കുന്നു</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>ഓഫായിരിക്കുമ്പോൾ Enter കീ പുതിയ വരി തുടങ്ങുന്നു, സന്ദേശ ഫീൽഡ് എഴുതുന്നതിനൊപ്പം വളരുന്നു, അയയ്ക്കുന്നത് അയയ്ക്കുക ബട്ടണാണ്.</translation>
     </message>
 </context>
 <context>

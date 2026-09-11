@@ -249,6 +249,20 @@
         <source>Save to device</source>
         <translation>Αποθήκευση στη συσκευή</translation>
     </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>Διαγραφή σε εξέλιξη</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>Εμφάνιση στη συνομιλία</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Διαγραφή</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -1113,6 +1127,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>Σε μια ομάδα σε σίγαση, μια απάντηση σε δικό σας μήνυμα σας ειδοποιεί έτσι κι αλλιώς.</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>Το Enter στέλνει το μήνυμα</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>Απενεργοποιημένο: το πλήκτρο Enter ξεκινά νέα γραμμή, το πεδίο μηνύματος μεγαλώνει με όσα γράφετε και η αποστολή γίνεται από το κουμπί.</translation>
     </message>
 </context>
 <context>

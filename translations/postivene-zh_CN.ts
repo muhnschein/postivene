@@ -248,6 +248,20 @@
         <source>Save to device</source>
         <translation>保存到设备</translation>
     </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>正在删除</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>在聊天中显示</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>删除</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -1108,6 +1122,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>在已静音的群组中，对你消息的回复仍会通知你。</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>回车键发送消息</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>关闭时，回车键换行，消息输入框随内容增高，由发送按钮发送。</translation>
     </message>
 </context>
 <context>

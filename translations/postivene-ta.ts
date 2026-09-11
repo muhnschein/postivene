@@ -249,6 +249,20 @@
         <source>Save to device</source>
         <translation>சாதனத்தில் சேமி</translation>
     </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>நீக்கப்படுகிறது</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>அரட்டையில் காட்டு</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>நீக்கு</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -1113,6 +1127,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>ஒலியடக்கிய குழுவில், உங்கள் செய்திக்கான பதில் இருந்தாலும் உங்களுக்கு அறிவிக்கும்.</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>Enter செய்தியை அனுப்பும்</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>அணைக்கப்பட்டிருந்தால் Enter விசை புதிய வரியைத் தொடங்கும், செய்திப் புலம் எழுதியதற்கேற்ப வளரும், அனுப்பு பொத்தான் அனுப்பும்.</translation>
     </message>
 </context>
 <context>

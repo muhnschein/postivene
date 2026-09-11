@@ -249,6 +249,20 @@
         <source>Save to device</source>
         <translation>Enregistrer sur l&apos;appareil</translation>
     </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>Suppression</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>Afficher dans la discussion</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Supprimer</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -1113,6 +1127,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>Dans un groupe en sourdine, une réponse à l&apos;un de vos messages vous notifie quand même.</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>Entrée envoie le message</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>Désactivé, la touche Entrée passe à la ligne, le champ de message grandit avec ce qui est écrit, et c&apos;est le bouton d&apos;envoi qui envoie.</translation>
     </message>
 </context>
 <context>

@@ -250,6 +250,20 @@
         <source>Save to device</source>
         <translation>Išsaugoti įrenginyje</translation>
     </message>
+    <message>
+        <source>Deleting</source>
+        <extracomment>What Silica&apos;s countdown says it is doing, over a picture, a sound, a file or an app the reader has asked to delete.</extracomment>
+        <translation>Trinama</translation>
+    </message>
+    <message>
+        <source>Show in chat</source>
+        <extracomment>Goes back to the conversation, at this message.</extracomment>
+        <translation>Rodyti pokalbyje</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Ištrinti</translation>
+    </message>
 </context>
 <context>
     <name>ChatPickerPage</name>
@@ -1118,6 +1132,15 @@
     <message>
         <source>In a muted group, a reply to one of your messages still notifies you.</source>
         <translation>Nutildytoje grupėje atsakymas į jūsų žinutę vis tiek jus įspėja.</translation>
+    </message>
+    <message>
+        <source>Enter sends the message</source>
+        <extracomment>The return key on the keyboard.</extracomment>
+        <translation>„Enter“ siunčia žinutę</translation>
+    </message>
+    <message>
+        <source>Off, the return key starts a new line, the message field grows with what is written, and the send button sends.</source>
+        <translation>Išjungus „Enter“ pradeda naują eilutę, žinutės laukas auga su tuo, kas rašoma, o siunčia siuntimo mygtukas.</translation>
     </message>
 </context>
 <context>

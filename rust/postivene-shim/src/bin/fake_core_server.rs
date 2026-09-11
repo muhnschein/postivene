@@ -309,6 +309,26 @@ impl State {
         id
     }
 
+    /// Put a message into a chat one place before its end, and announce
+    /// it. The real core sorts a received message below the newest *seen*
+    /// message and no further, so one whose Date is earlier than the
+    /// unread messages already at the end lands among them rather than
+    /// after them -- a late message in a busy group, or an older one
+    /// synced from another device.
+    fn add_late_message(&mut self, account_id: u32, chat_id: u32) -> u32 {
+        self.seed_chats();
+        self.next_message_id += 1;
+        let id = self.next_message_id;
+        let messages = self.chats.entry(chat_id).or_default();
+        let at = messages.len().saturating_sub(1);
+        messages.insert(at, id);
+        self.events.push_back(json!({
+            "contextId": account_id,
+            "event": {"kind": "IncomingMsg", "chatId": chat_id, "msgId": id},
+        }));
+        id
+    }
+
     /// Configure an account and queue the progress events the core emits:
     /// permille steps, then 1000 for done.
     fn configure(&mut self, account_id: u32) {
@@ -326,6 +346,9 @@ impl State {
     }
 }
 
+/// When the server came up, for the journal's clock.
+static STARTED: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+
 fn journal(method: &str, params: &Value) {
     let Ok(path) = std::env::var("POSTIVENE_FAKE_JOURNAL") else {
         return;
@@ -334,7 +357,14 @@ fn journal(method: &str, params: &Value) {
     if method == "get_next_event_batch" {
         return;
     }
-    let line = json!({"method": method, "params": params}).to_string() + "\n";
+    // When it arrived, in milliseconds since the server came up: a test
+    // that asks whether two calls overlapped cannot read that off a Qt
+    // timer of its own, which is coarse enough to fire two probes at once.
+    let at = STARTED
+        .get_or_init(std::time::Instant::now)
+        .elapsed()
+        .as_millis();
+    let line = json!({"method": method, "params": params, "at": at}).to_string() + "\n";
     if let Ok(mut file) = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
@@ -557,6 +587,19 @@ async fn serve() {
             tokio::spawn(async move {
                 tokio::time::sleep(std::time::Duration::from_millis(millis)).await;
                 std::process::exit(0);
+            });
+        }
+    }
+    // A message that sorts into the middle of the first chat rather than
+    // at its end, this long after the server starts. What a test of the
+    // message model needs to see the core do, and cannot ask for over
+    // the wire: nothing the app calls puts a message anywhere but last.
+    if let Ok(after) = std::env::var("POSTIVENE_FAKE_LATE_ARRIVAL_MS") {
+        if let Ok(millis) = after.parse() {
+            let state = state.clone();
+            tokio::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_millis(millis)).await;
+                state.lock().await.add_late_message(1, 1);
             });
         }
     }

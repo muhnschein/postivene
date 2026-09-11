@@ -41,7 +41,21 @@ const PAGE: usize = 50;
 
 /// How far beyond what the reader can see to fill in, so that scrolling
 /// does not walk into blank rows before the next fetch answers.
-const MARGIN: usize = 25;
+///
+/// In rows, and a placeholder is one line tall, so a screen of them is
+/// thirty-odd rows: a margin smaller than a screen ran out in the middle
+/// of one on a fast scroll, and the rest of the screen waited for the next
+/// round trip.
+const MARGIN: usize = 40;
+
+/// How many fetches may be in the air at once.
+///
+/// One was not enough. A reader flinging up through the history moves
+/// faster than a round trip, and a fetch for rows they have already passed
+/// held up the fetch for the rows in front of them until it landed -- which
+/// was a screen of blanks for as long as that took. Bounded, so a long
+/// flick asks for what it passes over rather than for everything at once.
+const IN_FLIGHT: usize = 4;
 
 /// A message as the id list knows it: which message, and which day it is
 /// under.
@@ -165,7 +179,7 @@ pub struct ChatMessages {
     /// stay as placeholders; this is the only thing that fetches messages
     /// after the chat is opened.
     pub hydrate: qt_method!(fn(&mut self, first: i32, last: i32)),
-    /// True while rows are being filled in, for a quiet indicator.
+    /// True while any rows are being filled in, for a quiet indicator.
     pub hydrating: qt_property!(bool; NOTIFY hydrating_changed),
     /// Emitted when [`Self::hydrating`] changes.
     pub hydrating_changed: qt_signal!(),
@@ -300,6 +314,16 @@ pub struct ChatMessages {
     /// keeps the line where it was rather than asking again and being
     /// told, correctly, that there is nothing unread any more.
     unread_marked_chat: u32,
+
+    /// The rows asked for and not yet answered, so the next ask skips them
+    /// rather than asking twice.
+    pending: HashSet<u32>,
+    /// How many fetches are in the air; `hydrating` is whether any are.
+    fetches: usize,
+    /// Counts reloads, so a fill that was in flight when the rows were
+    /// replaced lands nowhere: the view asks again for whatever it is
+    /// looking at once the new rows are in.
+    generation: u64,
 }
 
 impl ChatMessages {
@@ -496,10 +520,13 @@ impl ChatMessages {
         if account_id == 0 || chat_id == 0 {
             return;
         }
-        // Anything in flight is filling rows this reload is replacing; the
-        // flag being down is what tells such a reply to drop.
-        self.hydrating = false;
-        self.hydrating_changed();
+        // Anything in flight is filling rows this reload is replacing: its
+        // reply is dropped by the generation, and the view asks again once
+        // the new rows are in.
+        self.generation = self.generation.wrapping_add(1);
+        self.pending.clear();
+        self.fetches = 0;
+        self.set_hydrating(false);
         // The name is its own small fetch, on both paths below: the
         // prefetch does not carry it, and the page opens with the name the
         // list handed it anyway.
@@ -593,10 +620,14 @@ impl ChatMessages {
     /// side.
     ///
     /// The view asks as it scrolls, and asks generously: rows already
-    /// filled in are skipped here rather than counted there.
+    /// filled in, or already asked for, are skipped here rather than
+    /// counted there. Fetches overlap, up to `IN_FLIGHT` of them, so the
+    /// rows in front of a moving reader are asked for while the ones
+    /// behind them are still on their way; past that the ask is dropped,
+    /// and the page asks again when a fetch lands.
     pub fn hydrate(&mut self, first: i32, last: i32) {
         let (account_id, chat_id) = (self.account_id, self.chat_id);
-        if account_id == 0 || chat_id == 0 || self.hydrating {
+        if account_id == 0 || chat_id == 0 || self.fetches >= IN_FLIGHT {
             return;
         }
         let wanted = self.unloaded_between(first, last);
@@ -607,13 +638,16 @@ impl ChatMessages {
             return;
         };
 
-        self.hydrating = true;
-        self.hydrating_changed();
+        self.pending.extend(wanted.iter().copied());
+        self.fetches += 1;
+        self.set_hydrating(true);
+        let generation = self.generation;
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
+        let asked = wanted.clone();
         let done = queued_callback(move |result: Result<Vec<MessageListItem>, String>| {
             if let Some(this) = ptr.as_pinned() {
-                this.borrow_mut().hydrated(chat_id, result);
+                this.borrow_mut().hydrated(generation, &asked, result);
             }
         });
 
@@ -622,49 +656,56 @@ impl ChatMessages {
         });
     }
 
+    /// Say whether rows are being filled in, when that changes.
+    fn set_hydrating(&mut self, hydrating: bool) {
+        if self.hydrating != hydrating {
+            self.hydrating = hydrating;
+            self.hydrating_changed();
+        }
+    }
+
     /// The ids of the rows between two view indices, plus a margin either
     /// side, that have not been fetched yet.
     ///
     /// Only what is not there yet, and never more than a page at a time: a
     /// reader who flings the view the length of a long chat would otherwise
-    /// ask for every row they passed.
+    /// ask for every row they passed. What is on screen goes in the page
+    /// first and the margin after it, nearest first. A placeholder is one
+    /// line tall, so a screen of them holds more rows than the margin
+    /// above it -- and a page that started at the margin filled that
+    /// before the bottom of the screen, which waited for the next fetch.
     fn unloaded_between(&self, first: i32, last: i32) -> Vec<u32> {
         let rows = self.rows.borrow();
-        let count = rows.iter().count();
-        if count == 0 {
-            return Vec::new();
-        }
-        let first = usize::try_from(first.max(0))
-            .unwrap_or(0)
-            .saturating_sub(MARGIN);
-        let last = usize::try_from(last.max(0))
-            .unwrap_or(0)
-            .saturating_add(MARGIN)
-            .min(count - 1);
-        if first > last {
-            return Vec::new();
-        }
-        let wanted: Vec<u32> = rows
-            .iter()
-            .skip(first)
-            .take(last - first + 1)
-            .filter(|item| !item.loaded)
+        let first = usize::try_from(first.max(0)).unwrap_or(0);
+        let last = usize::try_from(last.max(0)).unwrap_or(0);
+        fill_order(first, last, rows.iter().count())
+            .into_iter()
+            .map(|index| &rows[index])
+            .filter(|item| !item.loaded && !self.pending.contains(&item.message_id))
             .map(|item| item.message_id)
             .take(PAGE)
-            .collect();
-        wanted
+            .collect()
     }
 
     /// The rows a `hydrate` asked for came back: fill them in, in place.
-    fn hydrated(&mut self, chat_id: u32, result: Result<Vec<MessageListItem>, String>) {
-        // The flag is its own guard: `reload` puts it down, so a reply
-        // for rows that have since been replaced drops here.
-        if !self.hydrating || self.chat_id != chat_id {
+    fn hydrated(
+        &mut self,
+        generation: u64,
+        asked: &[u32],
+        result: Result<Vec<MessageListItem>, String>,
+    ) {
+        // From before a reload, which replaced the rows this was filling
+        // -- another chat's, or this one's read again. Dropped: the view
+        // has asked for what it is looking at now.
+        if generation != self.generation {
             return;
         }
-        let filled = result.map(|items| self.fill_rows(items));
-        self.hydrating = false;
-        self.hydrating_changed();
+        for id in asked {
+            self.pending.remove(id);
+        }
+        self.fetches = self.fetches.saturating_sub(1);
+        let filled = result.map(|items| self.fill_rows(items).len());
+        self.set_hydrating(self.fetches > 0);
         match filled {
             // Changed in place, so the view keeps its position and its
             // delegates: nothing here moves the reader.
@@ -674,31 +715,32 @@ impl ChatMessages {
         }
     }
 
-    /// Fill fetched rows in place, by id, and say how many were.
+    /// Fill fetched rows in place, by id, and hand back the ones that had
+    /// a row to land in.
     ///
     /// By id rather than by index: rows can have been added or taken out
     /// while the fetch ran, and writing to a remembered index would put a
     /// message where another one is. Looked up through a map rather than
     /// by scanning, because the rows are the whole chat -- a scan per
     /// fetched message is a scan of ten thousand rows fifty times over.
-    fn fill_rows(&mut self, items: Vec<MessageListItem>) -> usize {
+    fn fill_rows(&mut self, items: Vec<MessageListItem>) -> Vec<MessageListItem> {
         let mut rows = self.rows.borrow_mut();
         let index_of: BTreeMap<u32, usize> = rows
             .iter()
             .enumerate()
             .map(|(index, row)| (row.message_id, index))
             .collect();
-        let mut filled = 0_usize;
+        let mut landed = Vec::new();
         for item in items {
             let Some(index) = index_of.get(&item.message_id).copied() else {
                 continue;
             };
+            landed.push(item.clone());
             // Filling a row in place leaves the order and the count alone,
             // so the map stays true.
             rows.change_line(index, item);
-            filled += 1;
         }
-        filled
+        landed
     }
 
     /// Apply one core event.
@@ -808,7 +850,7 @@ impl ChatMessages {
                 return;
             }
             match result {
-                Ok(entries) => this.borrow_mut().synced(&ids_of(&entries)),
+                Ok(entries) => this.borrow_mut().synced(&entries),
                 Err(err) => this.borrow().error(err.into()),
             }
         });
@@ -818,20 +860,31 @@ impl ChatMessages {
         });
     }
 
-    /// The chat's id list came back: take out what has gone and fetch what
-    /// has arrived, both in place, so neither moves the reader.
-    fn synced(&mut self, ids: &[u32]) {
+    /// The chat's id list came back: take out what has gone and put in
+    /// what has arrived, each where the chat has it, so neither moves the
+    /// reader.
+    ///
+    /// What arrived stands as a placeholder, under its day, for the moment
+    /// it takes to fetch -- the same row any message not yet looked at
+    /// stands as. Not only at the end: the core sorts a received message
+    /// below the newest *seen* message and no further, so while the reader
+    /// is up in the history a late message in a busy group lands among the
+    /// unread ones. That used to count as a reorder and start the model
+    /// over, which emptied every row the reader had filled in and lost
+    /// them their place.
+    fn synced(&mut self, entries: &[Entry]) {
         let current: Vec<u32> = self
             .rows
             .borrow()
             .iter()
             .map(|item| item.message_id)
             .collect();
-        match RowDiff::between(&current, ids) {
+        match RowDiff::between(&current, &ids_of(entries)) {
             RowDiff::Same => {}
             RowDiff::Reordered => self.reload(),
             RowDiff::Changed { gone, arrived } => {
                 self.remove_rows(&gone);
+                place_arrivals(&mut self.rows.borrow_mut(), entries, &arrived);
                 self.rows_changed();
                 if !arrived.is_empty() {
                     self.absorb(arrived);
@@ -849,11 +902,11 @@ impl ChatMessages {
         }
     }
 
-    /// Fetch messages that have just arrived and put them at the end.
+    /// Fetch the messages that have just arrived and fill their rows in.
     ///
-    /// Fetched rather than left as placeholders: what arrived is what the
-    /// reader is told about, and a placeholder does not know whether it is
-    /// theirs or somebody else's.
+    /// Fetched now rather than left for the view to ask for: what arrived
+    /// is what the reader is told about, and a placeholder does not know
+    /// whether it is theirs or somebody else's.
     fn absorb(&mut self, ids: Vec<u32>) {
         let (account_id, chat_id) = (self.account_id, self.chat_id);
         let Some((rpc, runtime)) = connection() else {
@@ -867,34 +920,23 @@ impl ChatMessages {
                 return;
             }
             let Ok(items) = result else { return };
-            let mut appended = Vec::new();
-            {
-                let this_mut = this.borrow_mut();
-                let mut rows = this_mut.rows.borrow_mut();
-                for item in items {
-                    // A send in flight may have pushed a row this fetch
-                    // also carries: the id list was read before that reply
-                    // landed. Appending it again is the duplicate that
-                    // survives until reload.
-                    if rows.iter().any(|row| row.message_id == item.message_id) {
-                        continue;
-                    }
-                    appended.push(item.clone());
-                    rows.push(item);
-                }
-            }
-            if appended.is_empty() {
+            // By id, into whichever row holds it now: rows can have come
+            // and gone while the fetch ran, and a row a send's own reply
+            // has filled meanwhile is filled again with the same message
+            // rather than added beside it.
+            let landed = this.borrow_mut().fill_rows(items);
+            if landed.is_empty() {
                 return;
             }
             this.borrow().rows_changed();
-            // Asked after the push rather than before the fetch, so a
+            // Asked after the fill rather than before the fetch, so a
             // reader who scrolled away while it ran is not credited with
             // seeing what arrived.
             let looking = !this.borrow().reading_history;
-            let incoming = u32::try_from(appended.iter().filter(|item| !item.is_outgoing).count())
+            let incoming = u32::try_from(landed.iter().filter(|item| !item.is_outgoing).count())
                 .unwrap_or(u32::MAX);
             if looking {
-                this.borrow().mark_items_seen(appended);
+                this.borrow().mark_items_seen(&landed);
             }
             if incoming > 0 {
                 this.borrow().arrived(incoming);
@@ -966,28 +1008,53 @@ impl ChatMessages {
         if account_id == 0 {
             return;
         }
-        let items: Vec<MessageListItem> = self.rows.borrow().iter().cloned().collect();
-        let Some((rpc, runtime)) = connection() else {
-            return;
-        };
-        runtime.spawn(async move {
-            mark_seen(&rpc, account_id, &items).await;
-        });
-    }
-
-    /// Send read receipts for these rows, whichever of them are unread and
-    /// incoming. Takes what to mark rather than reading the model, so a
-    /// sync marks what it just added instead of the whole chat again.
-    fn mark_items_seen(&self, items: Vec<MessageListItem>) {
-        let account_id = self.account_id;
-        if account_id == 0 || items.is_empty() {
+        let unseen = self.unseen_ids();
+        if unseen.is_empty() {
             return;
         }
         let Some((rpc, runtime)) = connection() else {
             return;
         };
         runtime.spawn(async move {
-            mark_seen(&rpc, account_id, &items).await;
+            mark_seen(&rpc, account_id, unseen).await;
+        });
+    }
+
+    /// The incoming messages among the rows that the account has not read
+    /// yet: what a read receipt is owed for.
+    ///
+    /// Read off the rows where they stand rather than cloned out of them.
+    /// The rows are the whole chat, and copying ten thousand of them to
+    /// find the handful that are unread was done every time the page came
+    /// to the front and every time the reader reached the end -- on the
+    /// Qt thread, while the page was still sliding in.
+    fn unseen_ids(&self) -> Vec<u32> {
+        self.rows
+            .borrow()
+            .iter()
+            .filter(|item| is_unseen(item))
+            .map(|item| item.message_id)
+            .collect()
+    }
+
+    /// Send read receipts for these rows, whichever of them are unread and
+    /// incoming. Takes what to mark rather than reading the model, so a
+    /// sync marks what it just added instead of the whole chat again.
+    fn mark_items_seen(&self, items: &[MessageListItem]) {
+        let account_id = self.account_id;
+        let unseen: Vec<u32> = items
+            .iter()
+            .filter(|item| is_unseen(item))
+            .map(|item| item.message_id)
+            .collect();
+        if account_id == 0 || unseen.is_empty() {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            return;
+        };
+        runtime.spawn(async move {
+            mark_seen(&rpc, account_id, unseen).await;
         });
     }
 
@@ -1020,7 +1087,7 @@ impl ChatMessages {
         if account_id == 0 || chat_id == 0 {
             return;
         }
-        let items: Vec<MessageListItem> = self.rows.borrow().iter().cloned().collect();
+        let unseen = self.unseen_ids();
         let Some((rpc, runtime)) = connection() else {
             return;
         };
@@ -1028,7 +1095,7 @@ impl ChatMessages {
             let _ = rpc
                 .call::<_, ()>("marknoticed_chat", (account_id, chat_id))
                 .await;
-            mark_seen(&rpc, account_id, &items).await;
+            mark_seen(&rpc, account_id, unseen).await;
         });
     }
 
@@ -1433,37 +1500,123 @@ enum RowDiff {
     Same,
     /// Something moved, which only a reload can honour.
     Reordered,
-    /// Messages gone, by row index, and messages arrived, by id.
+    /// Messages gone, by row index, and messages arrived, by id in the
+    /// chat's order.
     Changed { gone: Vec<usize>, arrived: Vec<u32> },
 }
 
 impl RowDiff {
     /// Compare the rows' ids, in order, with the chat's.
     ///
-    /// Whatever the rows keep has to still be the front of the chat, or
-    /// this is a reorder rather than an arrival and a removal.
+    /// Whatever the rows keep has to still stand in the chat's order, or
+    /// this is a reorder rather than arrivals and departures. Where the
+    /// arrivals go is not decided here: anywhere in the chat, since the
+    /// core does not only append.
+    ///
+    /// A row the list lacks whose id is past every id in the list is not
+    /// gone from the chat but newer than the list: ids only count up, and
+    /// a send's reply puts its row here while a list read a moment
+    /// earlier is still on its way. Taking that row out on the strength
+    /// of the older list made a sent message vanish and come back.
     fn between(current: &[u32], ids: &[u32]) -> Self {
         if current == ids {
             return Self::Same;
         }
         let present: HashSet<u32> = ids.iter().copied().collect();
+        let newest = ids.iter().copied().max().unwrap_or(0);
         let kept: Vec<u32> = current
             .iter()
             .copied()
             .filter(|id| present.contains(id))
             .collect();
-        if !ids.starts_with(&kept) {
+        if !in_order(&kept, ids) {
             return Self::Reordered;
         }
-        let gone = current
+        let gone: Vec<usize> = current
             .iter()
             .enumerate()
-            .filter(|(_, id)| !present.contains(id))
+            .filter(|(_, id)| !present.contains(id) && **id <= newest)
             .map(|(index, _)| index)
             .collect();
-        let arrived = ids[kept.len()..].to_vec();
-        Self::Changed { gone, arrived }
+        // Through a set: the rows are the whole chat, and a scan of them
+        // per id in the list is a scan of ten thousand rows ten thousand
+        // times over on every event.
+        let held: HashSet<u32> = kept.iter().copied().collect();
+        let arrived: Vec<u32> = ids
+            .iter()
+            .copied()
+            .filter(|id| !held.contains(id))
+            .collect();
+        if gone.is_empty() && arrived.is_empty() {
+            Self::Same
+        } else {
+            Self::Changed { gone, arrived }
+        }
     }
+}
+
+/// Whether `kept` is `ids` with some left out: the same order, nothing
+/// moved.
+fn in_order(kept: &[u32], ids: &[u32]) -> bool {
+    let mut kept = kept.iter();
+    let mut next = kept.next();
+    for id in ids {
+        if next == Some(id) {
+            next = kept.next();
+        }
+    }
+    next.is_none()
+}
+
+/// Put a placeholder row in for each of `arrived`, where the chat's list
+/// has it.
+///
+/// Walked alongside the rows rather than pushed on the end, because the
+/// end is not where every arrival goes. The rows are the list less what
+/// has just arrived, in the list's order (`RowDiff` says so, or the model
+/// reloads), so each entry is either an arrival, which goes in right after
+/// the entry before it, or a row already held -- at the walk, or a little
+/// past it, beyond rows newer than the list itself, which keep the place
+/// they were given.
+fn place_arrivals(rows: &mut MessageListModel, entries: &[Entry], arrived: &[u32]) {
+    if arrived.is_empty() {
+        return;
+    }
+    let arrived: HashSet<u32> = arrived.iter().copied().collect();
+    let mut held = rows.iter().count();
+    let mut at = 0;
+    for entry in entries {
+        if arrived.contains(&entry.message_id) {
+            rows.insert(at, placeholder(*entry));
+            held += 1;
+            at += 1;
+        } else if let Some(offset) =
+            (at..held).position(|index| rows[index].message_id == entry.message_id)
+        {
+            at += offset + 1;
+        }
+    }
+}
+
+/// The rows to fill for a view showing `first..=last` of `count`, nearest
+/// the screen first: what is on it, then the margin below and the margin
+/// above turn and turn about, closest first.
+fn fill_order(first: usize, last: usize, count: usize) -> Vec<usize> {
+    if count == 0 || first > last {
+        return Vec::new();
+    }
+    let last = last.min(count - 1);
+    let first = first.min(last);
+    let mut order: Vec<usize> = (first..=last).collect();
+    for distance in 1..=MARGIN {
+        if last + distance < count {
+            order.push(last + distance);
+        }
+        if let Some(above) = first.checked_sub(distance) {
+            order.push(above);
+        }
+    }
+    order
 }
 
 /// The chat's messages, oldest first, each under the day it belongs to.
@@ -1561,15 +1714,15 @@ async fn with_webxdc(rpc: &RpcClient, account_id: u32, row: &mut MessageListItem
     row.webxdc_icon = extras.icon_path.into();
 }
 
-/// Mark the incoming messages among these read: clears their fresh state
-/// here and on the other devices, and sends the read receipt the sender
-/// asked for. `marknoticed_chat` alone does neither.
-async fn mark_seen(rpc: &RpcClient, account_id: u32, items: &[MessageListItem]) {
-    let unseen: Vec<u32> = items
-        .iter()
-        .filter(|item| !item.is_outgoing && UNSEEN_STATES.contains(&item.state))
-        .map(|item| item.message_id)
-        .collect();
+/// Whether a row is an incoming message the account has not read.
+fn is_unseen(item: &MessageListItem) -> bool {
+    !item.is_outgoing && UNSEEN_STATES.contains(&item.state)
+}
+
+/// Mark these messages read: clears their fresh state here and on the
+/// other devices, and sends the read receipt the sender asked for.
+/// `marknoticed_chat` alone does neither.
+async fn mark_seen(rpc: &RpcClient, account_id: u32, unseen: Vec<u32>) {
     if unseen.is_empty() {
         return;
     }
@@ -1976,9 +2129,10 @@ fn file_name_of(path: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        file_name_of, gif_dimensions, local_path, own_reaction, reactions_json, video_dimensions,
-        RowDiff,
+        file_name_of, fill_order, gif_dimensions, local_path, own_reaction, place_arrivals,
+        reactions_json, video_dimensions, Entry, RowDiff, MARGIN,
     };
+    use crate::models::MessageListModel;
     use serde_json::json;
 
     /// An ISO media box: its size and type, then its body.
@@ -2212,5 +2366,140 @@ mod tests {
             RowDiff::between(&[1, 2, 3], &[2, 1, 3]),
             RowDiff::Reordered
         ));
+    }
+
+    #[test]
+    fn a_message_sorted_into_the_middle_is_an_arrival_not_a_reorder() {
+        // A late message the core put before the last one: what the reader
+        // is holding is still in the chat's order, so it is an arrival.
+        match RowDiff::between(&[1, 2, 3], &[1, 2, 7, 3]) {
+            RowDiff::Changed { gone, arrived } => {
+                assert!(gone.is_empty());
+                assert_eq!(arrived, vec![7]);
+            }
+            _ => panic!("a message sorted into the middle should be an arrival"),
+        }
+        // Arrived in the chat's order, wherever they landed.
+        match RowDiff::between(&[2, 4], &[1, 2, 3, 4, 5]) {
+            RowDiff::Changed { gone, arrived } => {
+                assert!(gone.is_empty());
+                assert_eq!(arrived, vec![1, 3, 5]);
+            }
+            _ => panic!("arrivals around the held rows should be a change"),
+        }
+    }
+
+    #[test]
+    fn a_row_newer_than_the_list_is_not_gone() {
+        // The send's reply landed first; the list was read before it.
+        assert!(matches!(
+            RowDiff::between(&[1, 2, 3, 9], &[1, 2, 3]),
+            RowDiff::Same
+        ));
+        // And it stays while what the list does know is taken in.
+        match RowDiff::between(&[1, 2, 3, 9], &[2, 3, 7]) {
+            RowDiff::Changed { gone, arrived } => {
+                assert_eq!(gone, vec![0]);
+                assert_eq!(arrived, vec![7]);
+            }
+            _ => panic!("a departure beside a newer row should be a change"),
+        }
+        // Only past the whole list: once the list reaches beyond a row it
+        // lacks, that row is gone, however new it was.
+        match RowDiff::between(&[1, 2, 3, 9], &[1, 3, 10]) {
+            RowDiff::Changed { gone, arrived } => {
+                assert_eq!(gone, vec![1, 3]);
+                assert_eq!(arrived, vec![10]);
+            }
+            _ => panic!("a deletion under a newer list should be a change"),
+        }
+    }
+
+    fn entries(ids: &[u32]) -> Vec<Entry> {
+        ids.iter()
+            .map(|id| Entry {
+                message_id: *id,
+                day_number: 19_000 + i64::from(*id),
+            })
+            .collect()
+    }
+
+    fn rows_of(ids: &[u32]) -> MessageListModel {
+        entries(ids).into_iter().map(super::placeholder).collect()
+    }
+
+    fn ids_in(rows: &MessageListModel) -> Vec<u32> {
+        rows.iter().map(|row| row.message_id).collect()
+    }
+
+    #[test]
+    fn arrivals_are_placed_where_the_chat_has_them() {
+        // At the end, as most are.
+        let mut rows = rows_of(&[1, 2, 3]);
+        place_arrivals(&mut rows, &entries(&[1, 2, 3, 4, 5]), &[4, 5]);
+        assert_eq!(ids_in(&rows), vec![1, 2, 3, 4, 5]);
+
+        // In the middle, as a late one is; and under its day from the
+        // start, which is the placeholder's whole reason to know one.
+        let mut rows = rows_of(&[1, 2, 3]);
+        place_arrivals(&mut rows, &entries(&[1, 2, 7, 3]), &[7]);
+        assert_eq!(ids_in(&rows), vec![1, 2, 7, 3]);
+        assert_eq!(rows[2].day_number, 19_007);
+        assert!(!rows[2].loaded);
+
+        // At the front, around, and after what has just been taken out.
+        let mut rows = rows_of(&[2, 4]);
+        place_arrivals(&mut rows, &entries(&[1, 2, 3, 4, 5]), &[1, 3, 5]);
+        assert_eq!(ids_in(&rows), vec![1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn a_row_newer_than_the_list_keeps_its_place() {
+        // 9 is a send the list did not know about yet: an arrival goes in
+        // after the entry before it, which leaves the send at the end.
+        let mut rows = rows_of(&[1, 2, 3, 9]);
+        place_arrivals(&mut rows, &entries(&[1, 2, 3, 7, 8]), &[7, 8]);
+        assert_eq!(ids_in(&rows), vec![1, 2, 3, 7, 8, 9]);
+
+        // And one a later list put in the middle stays there when an
+        // older list, still in flight, lands after it.
+        let mut rows = rows_of(&[1, 2, 9, 3]);
+        place_arrivals(&mut rows, &entries(&[1, 2, 3, 4]), &[4]);
+        assert_eq!(ids_in(&rows), vec![1, 2, 9, 3, 4]);
+    }
+
+    #[test]
+    fn the_screen_is_filled_before_the_margin_and_the_margin_nearest_first() {
+        // A window with a whole margin's room on either side of it.
+        let (first, last, count) = (2 * MARGIN, 2 * MARGIN + 4, 5 * MARGIN);
+        let order = fill_order(first, last, count);
+        assert_eq!(&order[..5], &[first, first + 1, first + 2, first + 3, last]);
+        assert_eq!(&order[5..9], &[last + 1, first - 1, last + 2, first - 2]);
+        assert_eq!(order.len(), 5 + 2 * MARGIN);
+        assert_eq!(order.iter().max(), Some(&(last + MARGIN)));
+        assert_eq!(order.iter().min(), Some(&(first - MARGIN)));
+
+        // Against either end the margin is only what is there.
+        let top = fill_order(0, 4, count);
+        assert_eq!(&top[..6], &[0, 1, 2, 3, 4, 5]);
+        assert_eq!(top.len(), 5 + MARGIN);
+        let bottom = fill_order(count - 5, count - 1, count);
+        assert_eq!(
+            &bottom[..6],
+            &[
+                count - 5,
+                count - 4,
+                count - 3,
+                count - 2,
+                count - 1,
+                count - 6
+            ]
+        );
+        assert_eq!(bottom.len(), 5 + MARGIN);
+
+        // A view past the end, and no rows at all.
+        assert_eq!(fill_order(count + 20, count + 30, count)[0], count - 1);
+        assert!(fill_order(0, 0, 0).is_empty());
+        assert!(fill_order(5, 2, count).is_empty());
     }
 }

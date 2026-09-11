@@ -135,8 +135,11 @@ const PROBE_QML: &str = r"
             if (!row) { return 'missing:row:' + messageId }
             var remorse = findIn(row, 'messageRemorse')
             var body = findIn(row, 'messageDelegate')
-            if (!remorse || !body) { return 'missing:parts' }
-            return remorse.active + '/' + body.opacity + '/' + body.enabled
+            if (!body) { return 'missing:body' }
+            // A row nobody has asked to delete has no countdown built at
+            // all, which reads the same as one standing idle.
+            return (remorse ? remorse.active : false) + '/' + body.opacity
+                   + '/' + body.enabled
         }
         /// The row's own box: where it starts and how tall it is. A row
         /// waiting to go has to keep the height it had -- what replaces

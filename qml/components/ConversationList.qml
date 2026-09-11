@@ -71,6 +71,21 @@ SilicaListView {
         onTriggered: root.askForRows()
     }
 
+    /// Ask for rows a moment from now, unless an ask is already on its way.
+    ///
+    /// Started, never restarted. A flick changes `contentY` every frame,
+    /// and a timer restarted on each of them did not fire until the flick
+    /// had stopped -- so nothing was fetched for as long as the reader was
+    /// moving, and a fast scroll up into the history ended on a screen of
+    /// blanks that filled in a moment later. Left to run, the timer fires
+    /// every sixty milliseconds of a flick instead, and the rows in front
+    /// of the reader are asked for while they are still on their way there.
+    function askSoon() {
+        if (!fillRows.running) {
+            fillRows.start()
+        }
+    }
+
     // How many rows the model holds. Bound by the page rather than read off
     // the view: `count` there only changes when the view has laid out, and
     // an arrival has to be noticed whether or not it is on screen yet.
@@ -226,7 +241,7 @@ SilicaListView {
         // And whatever is on screen now wants filling in. Opening a chat
         // may never move contentY at all, so this is the ask that covers
         // the first screen.
-        fillRows.restart()
+        root.askSoon()
     }
 
     // Where the view was before this change, so a move can be told from
@@ -254,7 +269,7 @@ SilicaListView {
         // change `contentHeight` at all -- they are the same height as each
         // other -- so without this the reader can walk into a screenful of
         // blanks and nothing ever asks for them.
-        fillRows.restart()
+        root.askSoon()
         // Something has moved the view up, a long way from the newest
         // message, without touching it: the system's own scroll-to-top,
         // which is how one gets to the beginning of a chat. Following would
@@ -314,11 +329,30 @@ SilicaListView {
     /// the beginning of the chat lands on, and both were reported landing
     /// at the top of whatever had just loaded instead.
     function holdAt(index) {
+        root.hold(index, false, 0)
+    }
+
+    /// Keep a row where it is: its top `offset` below the top of the view,
+    /// rather than in the centre.
+    ///
+    /// What coming back to the page holds. A reader stops wherever their
+    /// thumb leaves the list, which is never a row's centre, so holding
+    /// the row they left on *at* the centre moved the view by however far
+    /// it was from there -- the small jump, up or down by the row, at the
+    /// end of every swipe back, once the rest of the return was smooth
+    /// enough for it to show.
+    function holdPlace(index, offset) {
+        root.hold(index, true, offset)
+    }
+
+    function hold(index, placed, offset) {
         if (index < 0) {
             return
         }
         root.stickToBottom = false
         root.pendingRow = index
+        root.pendingPlaced = placed
+        root.pendingOffset = offset
         root.putBack()
         holdDeadline.restart()
     }
@@ -333,6 +367,10 @@ SilicaListView {
 
     /// The row a jump is holding the view on, or -1.
     property int pendingRow: -1
+    /// Where it is held: its top `pendingOffset` below the top of the view
+    /// when `pendingPlaced`, in the centre of the view otherwise.
+    property bool pendingPlaced: false
+    property real pendingOffset: 0
     /// True while `putBack` is running, so the view moving because this
     /// moved it does not read as one more reason to move it.
     property bool restoring: false
@@ -342,13 +380,56 @@ SilicaListView {
             return
         }
         root.restoring = true
-        // The first row has nothing above it to be centred against, and
-        // asking for its centre relies on the view clamping. Beginning is
-        // what "the top" means.
-        root.positionViewAtIndex(
-            root.pendingRow,
-            root.pendingRow === 0 ? ListView.Beginning : ListView.Center)
+        if (root.pendingPlaced) {
+            root.placeRow(root.pendingRow, root.pendingOffset)
+        } else {
+            // The first row has nothing above it to be centred against,
+            // and asking for its centre relies on the view clamping.
+            // Beginning is what "the top" means.
+            root.positionViewAtIndex(
+                root.pendingRow,
+                root.pendingRow === 0 ? ListView.Beginning : ListView.Center)
+        }
         root.restoring = false
+    }
+
+    /// Put row `index` with its top `offset` below the top of the view.
+    ///
+    /// Nothing moves if that is where it already is. `positionViewAtIndex`
+    /// cannot promise that -- it knows the top, the centre and the end of
+    /// the view, none of which is where the reader stopped -- so the row
+    /// is looked for on screen first, brought on only if it is not there,
+    /// and the view then moved by exactly the difference, which is nothing
+    /// for a view nothing has moved.
+    function placeRow(index, offset) {
+        var item = root.itemOf(index)
+        if (!item) {
+            root.positionViewAtIndex(index, ListView.Beginning)
+            item = root.itemOf(index)
+        }
+        if (item) {
+            root.contentY = root.withinContent(item.y - offset)
+        }
+    }
+
+    /// The item drawing row `index`, if the row is on screen.
+    ///
+    /// Walked the way `askForRows` walks the view: `itemAt` answers only
+    /// for a point inside a row, and lands on nothing between two.
+    function itemOf(index) {
+        for (var y = 0; y < root.height; y += Theme.paddingLarge) {
+            if (root.indexAt(root.width / 2, root.contentY + y) === index) {
+                return root.itemAt(root.width / 2, root.contentY + y)
+            }
+        }
+        return undefined
+    }
+
+    /// `y`, kept between the ends of the content as a drag would keep it.
+    function withinContent(y) {
+        var top = root.originY
+        var bottom = Math.max(top, root.contentHeight + root.originY - root.height)
+        return Math.min(Math.max(y, top), bottom)
     }
 
     // A held row is let go of when the reader takes the view over, and
@@ -365,28 +446,19 @@ SilicaListView {
         onTriggered: root.releaseRow()
     }
 
-    /// The first row at or below `y` in the view.
-    ///
-    /// `indexAt` lands on nothing between rows or over a day separator, so
-    /// a single probe answers -1 about half the time.
-    function rowNear(y) {
-        for (var offset = 0; y + offset < root.height; offset += Theme.paddingLarge) {
-            var index = root.indexAt(root.width / 2, root.contentY + y + offset)
-            if (index >= 0) {
-                return index
-            }
-        }
-        return -1
-    }
-
     /// Where the reader is, before another page goes over this one.
     ///
-    /// A conversation with a picture opened over it came back with its view
-    /// at the top of the loaded messages: the list is torn down far enough
-    /// to forget where it was, and what it forgets it replaces with the
-    /// beginning. Remembered as a row rather than as a pixel offset, for
-    /// the same reason a step back through the history is.
+    /// A conversation with a picture opened over it once came back with
+    /// its view at the top of the loaded messages: every row collapsed
+    /// under the covering page and the list lost its place. The rows keep
+    /// their height under a page now, but a list that loses its place for
+    /// any other reason -- a reload, a row gone -- still comes back here.
+    /// Remembered as a row and where its top was, from the top of the
+    /// view: a row rather than a pixel, for the same reason a step back
+    /// through the history is, and the offset so that going back to it
+    /// is going back to the pixel.
     property int rememberedRow: -1
+    property real rememberedOffset: 0
     property bool rememberedFollowing: false
     /// True between the page going away and coming back, during which the
     /// row is held with no deadline: a reader can look at a picture for as
@@ -395,19 +467,33 @@ SilicaListView {
 
     function rememberPlace() {
         root.rememberedFollowing = root.stickToBottom
-        root.rememberedRow = root.rowNear(root.height / 2)
+        root.rememberedRow = -1
+        root.rememberedOffset = 0
+        // The first row at or below the middle of the view. `indexAt`
+        // lands on nothing between rows or over a day separator, so a
+        // single probe answers -1 about half the time.
+        for (var y = root.height / 2; y < root.height; y += Theme.paddingLarge) {
+            var index = root.indexAt(root.width / 2, root.contentY + y)
+            if (index >= 0) {
+                root.rememberedRow = index
+                root.rememberedOffset =
+                    root.itemAt(root.width / 2, root.contentY + y).y - root.contentY
+                break
+            }
+        }
         // Armed, not merely written down. Putting the view back when the
-        // page returns is too late: the list is reset while the page is
-        // away, and a frame showing the top of the chat is painted before
-        // anything gets round to correcting it -- which is the flash of
-        // the oldest messages, followed by being yanked back, that this
-        // had left behind. Armed, the reset is undone in the same turn it
-        // happens and no wrong frame is ever drawn. A view that was
-        // following is armed too, and goes back to the end rather than
-        // to a row.
+        // page returns is too late: a list that loses its place while the
+        // page is away paints a frame of the top of the chat before
+        // anything gets round to correcting it -- the flash of the oldest
+        // messages, followed by being yanked back. Armed, the loss is
+        // undone in the same turn it happens and no wrong frame is ever
+        // drawn. A view that was following is armed too, and goes back
+        // to the end rather than to a row; see `onContentYChanged`.
         root.away = true
         if (root.rememberedRow >= 0 && !root.rememberedFollowing) {
             root.pendingRow = root.rememberedRow
+            root.pendingPlaced = true
+            root.pendingOffset = root.rememberedOffset
             holdDeadline.stop()
         }
     }
@@ -418,11 +504,17 @@ SilicaListView {
         // the deadline applies again.
         root.away = false
         if (root.rememberedFollowing) {
-            root.jumpToNewest()
+            // Nothing to put back. A view following the newest message
+            // was kept at the end while away -- by the arming above for a
+            // list that lost its place, by `toEnd` for each arrival --
+            // and sending it to the end once more moved a reader who had
+            // stopped a line short of it, following but not at the very
+            // end, on every return.
+            root.releaseRow()
         } else if (root.rememberedRow >= 0) {
             // Held again rather than merely positioned: coming back is a
             // relayout like any other, and the rows settle after it.
-            root.holdAt(root.rememberedRow)
+            root.holdPlace(root.rememberedRow, root.rememberedOffset)
         } else {
             root.releaseRow()
         }
@@ -484,129 +576,139 @@ SilicaListView {
         id: messageRow
         objectName: "messageRow"
 
-        menu: ContextMenu {
-            id: rowMenu
+        // A Component rather than a menu built with the row. Silica builds
+        // a Component the first time the menu is opened; a ContextMenu
+        // declared here outright was built with every row, and it is the
+        // biggest thing on one -- six reactions and eight items, thirty
+        // objects, for a long press most rows never get. What a row costs
+        // to build is what a flick costs per frame, and what coming back
+        // to a conversation costs while the page is still sliding in.
+        menu: Component {
+            ContextMenu {
+                id: rowMenu
 
-            // The quick reactions, above the actions: one tap on an emoji
-            // and the menu is done. Not a MenuItem, which is one line of
-            // text; the menu takes any item, and lays this one out like
-            // the rest.
-            Item {
-                id: reactionPicker
-                objectName: "reactionPicker"
-                // A core notice is nobody's message to react to.
-                visible: !model.is_info
-                width: parent ? parent.width : 0
-                height: visible ? Theme.itemSizeSmall : 0
-                /// Taken while the row is here, like Delete's id: the
-                /// menu can outlive the row it was opened on.
-                readonly property int messageId: model.message_id
+                // The quick reactions, above the actions: one tap on an emoji
+                // and the menu is done. Not a MenuItem, which is one line of
+                // text; the menu takes any item, and lays this one out like
+                // the rest.
+                Item {
+                    id: reactionPicker
+                    objectName: "reactionPicker"
+                    // A core notice is nobody's message to react to.
+                    readonly property bool shown: !model.is_info
+                    visible: reactionPicker.shown
+                    width: parent ? parent.width : 0
+                    height: reactionPicker.shown ? Theme.itemSizeSmall : 0
+                    /// Taken while the row is here, like Delete's id: the
+                    /// menu can outlive the row it was opened on.
+                    readonly property int messageId: model.message_id
 
-                Row {
-                    anchors.centerIn: parent
-                    spacing: Theme.paddingMedium
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: Theme.paddingMedium
 
-                    Repeater {
-                        model: root.quickReactions
+                        Repeater {
+                            model: root.quickReactions
 
-                        MouseArea {
-                            objectName: "reactionOption"
-                            width: Theme.itemSizeSmall
-                            height: Theme.itemSizeSmall
-                            readonly property string emoji: modelData
-                            function choose() {
-                                root.reactionRequested(reactionPicker.messageId, emoji)
-                                rowMenu.close()
-                            }
-                            onClicked: choose()
+                            MouseArea {
+                                objectName: "reactionOption"
+                                width: Theme.itemSizeSmall
+                                height: Theme.itemSizeSmall
+                                readonly property string emoji: modelData
+                                function choose() {
+                                    root.reactionRequested(reactionPicker.messageId, emoji)
+                                    rowMenu.close()
+                                }
+                                onClicked: choose()
 
-                            Label {
-                                anchors.centerIn: parent
-                                font.pixelSize: Theme.fontSizeLarge
-                                textFormat: Text.PlainText
-                                text: modelData
+                                Label {
+                                    anchors.centerIn: parent
+                                    font.pixelSize: Theme.fontSizeLarge
+                                    textFormat: Text.PlainText
+                                    text: modelData
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            MenuItem {
-                objectName: "replyItem"
-                // A core notice is nobody's message to answer.
-                visible: !model.is_info
-                text: qsTr("Reply")
-                onClicked: root.replyRequested(model.message_id, model.text,
-                                               model.sender_name)
-            }
-            MenuItem {
-                objectName: "copyItem"
-                // An image or a voice message with no caption has no text:
-                // copying one emptied the clipboard and said it had worked.
-                visible: model.text.length > 0
-                text: qsTr("Copy")
-                onClicked: root.copyRequested(model.text)
-            }
-            MenuItem {
-                objectName: "openItem"
-                // Only a message that carries one; a webxdc app is run
-                // rather than opened, and has its own tap. With apps off
-                // there is nothing to run, and the .xdc is a file like
-                // any other -- which is what the row already draws.
-                visible: model.file_path.length > 0
-                         && !(root.appsEnabled
-                              && model.view_type === "Webxdc")
-                text: qsTr("Open")
-                onClicked: root.openRequested(
-                               "file://" + model.file_path, model.file_name,
-                               model.view_type, 0)
-            }
-            MenuItem {
-                objectName: "saveItem"
-                // The reader's own copy, outside the app: what makes a
-                // file somebody sent theirs rather than the chat's.
-                visible: model.file_path.length > 0
-                text: qsTr("Save")
-                onClicked: root.saveRequested("file://" + model.file_path,
-                                              model.view_type)
-            }
-            MenuItem {
-                objectName: "forwardItem"
-                // A core notice is not the reader's to pass on.
-                visible: !model.is_info
-                text: qsTr("Forward")
-                // Taken now rather than in the callback: picking a chat
-                // takes a page push, and this row may be gone by the time
-                // the answer comes back -- the same reason Delete hoists
-                // its id.
-                onClicked: root.forwardRequested(model.message_id)
-            }
-            MenuItem {
-                objectName: "resendItem"
-                // DC_STATE_OUT_FAILED: the only state worth retrying.
-                visible: model.state === 24
-                text: qsTr("Send again")
-                onClicked: root.resendRequested(model.message_id)
-            }
-            MenuItem {
-                objectName: "downloadItem"
-                // The two states the rest of a message can be asked
-                // for in; the row offers the same tap.
-                visible: model.download_state === "Available"
-                         || model.download_state === "Failure"
-                text: qsTr("Download")
-                onClicked: root.downloadRequested(model.message_id)
-            }
-            MenuItem {
-                objectName: "deleteItem"
-                text: qsTr("Delete")
-                // The list is told, not this row: the wait before a
-                // message goes has to outlive the row it was asked for
-                // on, and deleting one is what destroys rows. See
-                // PendingRemoval.
-                onClicked: {
-                    doomedMessages.ask(model.message_id)
-                    messageRow.raiseRemorse()
+                MenuItem {
+                    objectName: "replyItem"
+                    // A core notice is nobody's message to answer.
+                    visible: !model.is_info
+                    text: qsTr("Reply")
+                    onClicked: root.replyRequested(model.message_id, model.text,
+                                                   model.sender_name)
+                }
+                MenuItem {
+                    objectName: "copyItem"
+                    // An image or a voice message with no caption has no text:
+                    // copying one emptied the clipboard and said it had worked.
+                    visible: model.text.length > 0
+                    text: qsTr("Copy")
+                    onClicked: root.copyRequested(model.text)
+                }
+                MenuItem {
+                    objectName: "openItem"
+                    // Only a message that carries one; a webxdc app is run
+                    // rather than opened, and has its own tap. With apps off
+                    // there is nothing to run, and the .xdc is a file like
+                    // any other -- which is what the row already draws.
+                    visible: model.file_path.length > 0
+                             && !(root.appsEnabled
+                                  && model.view_type === "Webxdc")
+                    text: qsTr("Open")
+                    onClicked: root.openRequested(
+                                   "file://" + model.file_path, model.file_name,
+                                   model.view_type, 0)
+                }
+                MenuItem {
+                    objectName: "saveItem"
+                    // The reader's own copy, outside the app: what makes a
+                    // file somebody sent theirs rather than the chat's.
+                    visible: model.file_path.length > 0
+                    text: qsTr("Save")
+                    onClicked: root.saveRequested("file://" + model.file_path,
+                                                  model.view_type)
+                }
+                MenuItem {
+                    objectName: "forwardItem"
+                    // A core notice is not the reader's to pass on.
+                    visible: !model.is_info
+                    text: qsTr("Forward")
+                    // Taken now rather than in the callback: picking a chat
+                    // takes a page push, and this row may be gone by the time
+                    // the answer comes back -- the same reason Delete hoists
+                    // its id.
+                    onClicked: root.forwardRequested(model.message_id)
+                }
+                MenuItem {
+                    objectName: "resendItem"
+                    // DC_STATE_OUT_FAILED: the only state worth retrying.
+                    visible: model.state === 24
+                    text: qsTr("Send again")
+                    onClicked: root.resendRequested(model.message_id)
+                }
+                MenuItem {
+                    objectName: "downloadItem"
+                    // The two states the rest of a message can be asked
+                    // for in; the row offers the same tap.
+                    visible: model.download_state === "Available"
+                             || model.download_state === "Failure"
+                    text: qsTr("Download")
+                    onClicked: root.downloadRequested(model.message_id)
+                }
+                MenuItem {
+                    objectName: "deleteItem"
+                    text: qsTr("Delete")
+                    // The list is told, not this row: the wait before a
+                    // message goes has to outlive the row it was asked for
+                    // on, and deleting one is what destroys rows. See
+                    // PendingRemoval.
+                    onClicked: {
+                        doomedMessages.ask(model.message_id)
+                        messageRow.raiseRemorse()
+                    }
                 }
             }
         }
@@ -632,17 +734,24 @@ SilicaListView {
         /// callback that does nothing and asked only to draw and to
         /// report the tap.
         function raiseRemorse() {
+            remorse.active = true
             //: What Silica's countdown says it is doing, over a
             //: message the reader has asked to delete.
-            remorse.execute(
+            remorse.item.execute(
                 body, qsTr("Deleting"), function() {},
                 doomedMessages.countdownFor(model.message_id))
         }
 
-        RemorseItem {
+        // Built the first time a delete is asked for, not with the row: the
+        // platform's countdown is a dozen items of its own, and every row
+        // carried one for a tap that almost never comes.
+        Loader {
             id: remorse
-            objectName: "messageRemorse"
-            onCanceled: doomedMessages.spare(model.message_id)
+            active: false
+            sourceComponent: RemorseItem {
+                objectName: "messageRemorse"
+                onCanceled: doomedMessages.spare(model.message_id)
+            }
         }
 
         // A row is rebuilt every time it scrolls back into view, so one
@@ -684,10 +793,15 @@ SilicaListView {
             // attaches to the item the view created. Outside a view both
             // read undefined, which is not "0" and does equal itself, so
             // this comes out false rather than erroring.
-            visible: messageRow.ListView.section !== "0"
-                     && messageRow.ListView.section
-                        !== messageRow.ListView.previousSection
-            height: visible ? implicitHeight + Theme.paddingMedium : 0
+            //
+            // Sized by that reason and not by `visible`, which is the
+            // effective one and goes false for the whole page while
+            // another is over it: see MessageDelegate.
+            readonly property bool shown: messageRow.ListView.section !== "0"
+                                          && messageRow.ListView.section
+                                             !== messageRow.ListView.previousSection
+            visible: dayHeading.shown
+            height: dayHeading.shown ? implicitHeight + Theme.paddingMedium : 0
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             font.pixelSize: Theme.fontSizeExtraSmall
@@ -721,8 +835,10 @@ SilicaListView {
             objectName: "unreadLine"
             width: parent.width
             y: dayHeading.height
-            visible: root.unreadFrom > 0 && model.message_id === root.unreadFrom
-            height: visible ? unreadLabel.implicitHeight + 2 * Theme.paddingMedium : 0
+            readonly property bool shown: root.unreadFrom > 0
+                                          && model.message_id === root.unreadFrom
+            visible: unreadLine.shown
+            height: unreadLine.shown ? unreadLabel.implicitHeight + 2 * Theme.paddingMedium : 0
 
             Rectangle {
                 anchors {

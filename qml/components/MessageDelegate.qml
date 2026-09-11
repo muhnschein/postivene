@@ -53,13 +53,15 @@ Item {
     /// surface now -- a tap opens what there is to open, a long press
     /// opens the menu -- and the two cannot fight over a pixel.
     function tapped() {
-        if (attachment.isApp) {
+        // Null for a message with no file, which has nothing to open.
+        var preview = attachment.item
+        if (preview && preview.isApp) {
             // An app is run here rather than handed to whatever the
             // system thinks opens a .xdc, which is nothing.
             root.appRequested()
-        } else if (attachment.openable) {
-            root.openRequested(attachment.fileUrl, root.fileName, root.viewType,
-                               attachment.contentWidth)
+        } else if (preview && preview.openable) {
+            root.openRequested(preview.fileUrl, root.fileName, root.viewType,
+                               preview.contentWidth)
         } else if (root.canDownload) {
             root.downloadRequested()
         }
@@ -203,13 +205,14 @@ Item {
                  attachmentMetric.implicitWidth,
                  reactionRow.wantedWidth,
                  root.actionsWidth,
-                 attachment.wantsFullWidth && root.hasFile ? root.maxWidth : 0,
+                 attachment.item && attachment.item.wantsFullWidth
+                     ? root.maxWidth : 0,
                  Theme.itemSizeSmall))
 
     // The chips hang below the bubble, and what hangs is the row's to
     // make room for: without it they draw over the next message.
     height: (root.isInfo ? infoLabel.height : bubble.height)
-            + (reactionRow.visible ? reactionRow.height - root.chipOverlap : 0)
+            + (reactionRow.shown ? reactionRow.height - root.chipOverlap : 0)
             + 2 * Theme.paddingSmall
 
     /// How far the chips reach up over the bubble's bottom edge: enough
@@ -241,7 +244,7 @@ Item {
         // Asked of the preview rather than read off its label: what the
         // fallback row says is the preview's business, and the bubble only
         // needs to know how wide it comes out.
-        text: attachment.genericText
+        text: attachment.item ? attachment.item.genericText : ""
     }
 
     // The offer, measured where nothing constrains it: reading a width
@@ -284,8 +287,18 @@ Item {
     Label {
         id: infoLabel
         objectName: "infoLabel"
-        visible: root.isInfo
-        height: visible ? implicitHeight : 0
+        // Every part of a message that may or may not be there sizes
+        // itself by its own reason to be, never by `visible`. That reads
+        // the *effective* visibility, which goes false for everything on
+        // a page the moment the platform hides the page under another --
+        // and a row whose parts all measured `visible ? implicitHeight
+        // : 0` collapsed to nothing while the page was away, so the list
+        // rebuilt itself twice on every return: once to fill the void it
+        // suddenly had, and again, on the way back, to undo that. See
+        // qml_hidden_rows.rs.
+        readonly property bool shown: root.isInfo
+        visible: infoLabel.shown
+        height: infoLabel.shown ? implicitHeight : 0
         anchors.centerIn: parent
         width: parent.width - 2 * Theme.horizontalPageMargin
         horizontalAlignment: Text.AlignHCenter
@@ -299,12 +312,13 @@ Item {
     Rectangle {
         id: bubble
         objectName: "bubble"
-        visible: !root.isInfo
+        readonly property bool shown: !root.isInfo
+        visible: bubble.shown
         x: root.isOutgoing
            ? root.width - width - Theme.horizontalPageMargin
            : Theme.horizontalPageMargin
         width: root.contentWidth + 2 * Theme.paddingMedium
-        height: visible ? footerLabel.y + footerLabel.height + Theme.paddingMedium : 0
+        height: bubble.shown ? footerLabel.y + footerLabel.height + Theme.paddingMedium : 0
         radius: Theme.paddingMedium
         // A found message is lit rather than outlined: a border would
         // change the bubble's size, and every row below it would move.
@@ -320,8 +334,10 @@ Item {
         Label {
             id: senderLabel
             objectName: "senderLabel"
-            visible: root.showSender && !root.isOutgoing && root.senderName.length > 0
-            height: visible ? implicitHeight : 0
+            readonly property bool shown: root.showSender && !root.isOutgoing
+                                          && root.senderName.length > 0
+            visible: senderLabel.shown
+            height: senderLabel.shown ? implicitHeight : 0
             x: Theme.paddingMedium
             y: Theme.paddingMedium
             width: root.contentWidth
@@ -339,10 +355,11 @@ Item {
         Label {
             id: forwardedLabel
             objectName: "forwardedLabel"
-            visible: root.isForwarded
-            height: visible ? implicitHeight : 0
+            readonly property bool shown: root.isForwarded
+            visible: forwardedLabel.shown
+            height: forwardedLabel.shown ? implicitHeight : 0
             x: Theme.paddingMedium
-            y: root.below(senderLabel, visible)
+            y: root.below(senderLabel, forwardedLabel.shown)
             width: root.contentWidth
             wrapMode: Text.Wrap
             font.pixelSize: Theme.fontSizeExtraSmall
@@ -356,11 +373,12 @@ Item {
         Item {
             id: quoteRow
             objectName: "quoteRow"
-            visible: root.quoteText.length > 0
+            readonly property bool shown: root.quoteText.length > 0
+            visible: quoteRow.shown
             x: Theme.paddingMedium
-            y: root.below(forwardedLabel, visible)
+            y: root.below(forwardedLabel, quoteRow.shown)
             width: root.contentWidth
-            height: visible ? quoteLabel.y + quoteLabel.height : 0
+            height: quoteRow.shown ? quoteLabel.y + quoteLabel.height : 0
 
             Rectangle {
                 width: 2
@@ -398,39 +416,51 @@ Item {
         // Whatever kind of attachment this is, drawn by the one component
         // that knows the difference. Reports rather than acts, so opening
         // stays the page's decision.
-        AttachmentPreview {
+        //
+        // Built only for a message that has a file. The preview holds a
+        // renderer for every kind there is -- a picture and its animation,
+        // the thumbnailer's poster, a sound player -- and a text message
+        // carried all of them, unseen, for the height of one line. A
+        // conversation is mostly text, and what a row costs to build is
+        // what a flick costs per frame. The loader takes the preview's
+        // size, so the rows below it sit where they did.
+        Loader {
             id: attachment
-            objectName: "attachment"
             x: Theme.paddingMedium
             y: root.below(quoteRow, height > 0)
-            contentWidth: root.contentWidth
-            filePath: root.filePath
-            fileName: root.fileName
-            fileMime: root.fileMime
-            fileBytes: root.fileBytes
-            viewType: root.viewType
-            imageWidth: root.imageWidth
-            imageHeight: root.imageHeight
-            isNew: root.isNew
-            vcardName: root.vcardName
-            vcardAddr: root.vcardAddr
-            vcardColor: root.vcardColor
-            webxdcName: root.webxdcName
-            webxdcDocument: root.webxdcDocument
-            webxdcSummary: root.webxdcSummary
-            webxdcIcon: root.webxdcIcon
-            appsEnabled: root.appsEnabled
-            // A long press on one of its own controls is the row's menu.
-            onMenuRequested: root.menuRequested()
+            active: root.hasFile
+            sourceComponent: AttachmentPreview {
+                objectName: "attachment"
+                contentWidth: root.contentWidth
+                filePath: root.filePath
+                fileName: root.fileName
+                fileMime: root.fileMime
+                fileBytes: root.fileBytes
+                viewType: root.viewType
+                imageWidth: root.imageWidth
+                imageHeight: root.imageHeight
+                isNew: root.isNew
+                vcardName: root.vcardName
+                vcardAddr: root.vcardAddr
+                vcardColor: root.vcardColor
+                webxdcName: root.webxdcName
+                webxdcDocument: root.webxdcDocument
+                webxdcSummary: root.webxdcSummary
+                webxdcIcon: root.webxdcIcon
+                appsEnabled: root.appsEnabled
+                // A long press on one of its own controls is the row's menu.
+                onMenuRequested: root.menuRequested()
+            }
         }
 
         Label {
             id: messageLabel
             objectName: "messageLabel"
-            visible: root.messageText.length > 0
-            height: visible ? implicitHeight : 0
+            readonly property bool shown: root.messageText.length > 0
+            visible: messageLabel.shown
+            height: messageLabel.shown ? implicitHeight : 0
             x: Theme.paddingMedium
-            y: root.below(attachment, visible)
+            y: root.below(attachment, messageLabel.shown)
             width: root.contentWidth
             wrapMode: Text.Wrap
             // A bubble is a shape for a remark, not for a document. A
@@ -459,11 +489,12 @@ Item {
         Item {
             id: bodyActions
             objectName: "bodyActions"
-            visible: root.showsFull
+            readonly property bool shown: root.showsFull
+            visible: bodyActions.shown
             x: Theme.paddingMedium
-            y: root.below(messageLabel, visible)
+            y: root.below(messageLabel, bodyActions.shown)
             width: root.contentWidth
-            height: visible ? fullLabel.implicitHeight + Theme.paddingSmall : 0
+            height: bodyActions.shown ? fullLabel.implicitHeight + Theme.paddingSmall : 0
 
             Label {
                 id: fullLabel
@@ -491,10 +522,11 @@ Item {
         Label {
             id: downloadLabel
             objectName: "downloadButton"
-            visible: root.heldBack
-            height: visible ? implicitHeight + Theme.paddingSmall : 0
+            readonly property bool shown: root.heldBack
+            visible: downloadLabel.shown
+            height: downloadLabel.shown ? implicitHeight + Theme.paddingSmall : 0
             x: Theme.paddingMedium
-            y: root.below(bodyActions, visible)
+            y: root.below(bodyActions, downloadLabel.shown)
             width: root.contentWidth
             wrapMode: Text.Wrap
             font.pixelSize: Theme.fontSizeSmall
@@ -550,7 +582,8 @@ Item {
     Item {
         id: reactionRow
         objectName: "reactionRow"
-        visible: !root.isInfo && root.reactionList.length > 0
+        readonly property bool shown: !root.isInfo && root.reactionList.length > 0
+        visible: reactionRow.shown
         // Inside the bubble's own padding, at the corner nearest the
         // middle of the screen.
         x: root.isOutgoing ? bubble.x + Theme.paddingMedium
@@ -560,7 +593,7 @@ Item {
         // chips where it can.
         width: Math.min(wantedWidth, root.contentWidth)
         // A line of the chip font plus the chip's own padding.
-        height: visible ? reactionMetric.height + 2 * Theme.paddingSmall : 0
+        height: reactionRow.shown ? reactionMetric.height + 2 * Theme.paddingSmall : 0
         clip: true
 
         /// The room the chips take in a row: their text, each one's

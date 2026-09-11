@@ -15,11 +15,15 @@ Item {
     property int maximumLines: 3
     signal cancelled()
 
-    visible: root.body.length > 0 || root.author.length > 0
+    // By its own reason to be here, not by `visible`, which reads the
+    // effective visibility and goes false for the whole page while
+    // another is over it: see MessageDelegate.
+    readonly property bool shown: root.body.length > 0 || root.author.length > 0
+    visible: root.shown
     // Both, not just the label: the cancel button is an icon's worth tall,
     // which for a one-line quote is more, and measuring only the label let
     // it hang out over the message field below.
-    height: visible ? Math.max(quoted.height, cancel.height) + 2 * Theme.paddingSmall : 0
+    height: root.shown ? Math.max(quoted.height, cancel.height) + 2 * Theme.paddingSmall : 0
 
     Label {
         id: quoted

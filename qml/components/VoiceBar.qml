@@ -82,8 +82,11 @@ Item {
         onTriggered: recorder.poll()
     }
 
-    visible: recorder.recording
-    height: visible ? Math.max(timeLabel.height, cancelButton.height) : 0
+    // Sized by its own reason to be here rather than by `visible`: see
+    // ReplyBar.
+    readonly property bool shown: recorder.recording
+    visible: root.shown
+    height: root.shown ? Math.max(timeLabel.height, cancelButton.height) : 0
 
     // The red dot: recording is under way.
     Rectangle {

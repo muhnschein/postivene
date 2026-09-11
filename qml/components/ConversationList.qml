@@ -518,9 +518,10 @@ SilicaListView {
                     id: reactionPicker
                     objectName: "reactionPicker"
                     // A core notice is nobody's message to react to.
-                    visible: !model.is_info
+                    readonly property bool shown: !model.is_info
+                    visible: reactionPicker.shown
                     width: parent ? parent.width : 0
-                    height: visible ? Theme.itemSizeSmall : 0
+                    height: reactionPicker.shown ? Theme.itemSizeSmall : 0
                     /// Taken while the row is here, like Delete's id: the
                     /// menu can outlive the row it was opened on.
                     readonly property int messageId: model.message_id
@@ -715,10 +716,15 @@ SilicaListView {
             // attaches to the item the view created. Outside a view both
             // read undefined, which is not "0" and does equal itself, so
             // this comes out false rather than erroring.
-            visible: messageRow.ListView.section !== "0"
-                     && messageRow.ListView.section
-                        !== messageRow.ListView.previousSection
-            height: visible ? implicitHeight + Theme.paddingMedium : 0
+            //
+            // Sized by that reason and not by `visible`, which is the
+            // effective one and goes false for the whole page while
+            // another is over it: see MessageDelegate.
+            readonly property bool shown: messageRow.ListView.section !== "0"
+                                          && messageRow.ListView.section
+                                             !== messageRow.ListView.previousSection
+            visible: dayHeading.shown
+            height: dayHeading.shown ? implicitHeight + Theme.paddingMedium : 0
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             font.pixelSize: Theme.fontSizeExtraSmall
@@ -752,8 +758,10 @@ SilicaListView {
             objectName: "unreadLine"
             width: parent.width
             y: dayHeading.height
-            visible: root.unreadFrom > 0 && model.message_id === root.unreadFrom
-            height: visible ? unreadLabel.implicitHeight + 2 * Theme.paddingMedium : 0
+            readonly property bool shown: root.unreadFrom > 0
+                                          && model.message_id === root.unreadFrom
+            visible: unreadLine.shown
+            height: unreadLine.shown ? unreadLabel.implicitHeight + 2 * Theme.paddingMedium : 0
 
             Rectangle {
                 anchors {

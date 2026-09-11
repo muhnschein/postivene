@@ -107,7 +107,7 @@ Item {
     /// its own text, which is what the bubble sizes itself by otherwise.
     readonly property bool wantsFullWidth: root.isPicture || root.isVideo
                                            || root.isSound || root.isCard
-                                           || app.visible
+                                           || app.shown
     /// The text the fallback row shows, so the bubble can measure it
     /// without reaching inside here for the label.
     readonly property string genericText: generic.text
@@ -117,7 +117,7 @@ Item {
     /// nothing here takes a press, so a long press anywhere on the
     /// message -- the picture included -- reaches the row's menu.
     readonly property bool openable: root.hasFile
-                                     && (root.isPicture || root.isVideo || generic.visible)
+                                     && (root.isPicture || root.isVideo || generic.shown)
 
     /// `Audio.PlayingState`, written as its value.
     ///
@@ -216,9 +216,17 @@ Item {
     Image {
         id: still
         objectName: "attachmentImage"
-        visible: root.isPicture && root.hasFile
-        width: visible ? root.contentWidth : 0
-        height: visible ? root.pictureHeight(width, still) : 0
+        // Each renderer sizes itself, and loads its file, by its own
+        // reason to be here rather than by `visible`: that reads the
+        // effective visibility, which the platform takes away from the
+        // whole page while another is over it -- and a picture, a poster
+        // or a sound player that unloaded on every such hiding was loaded
+        // again on every return, while the page was still sliding in.
+        // See MessageDelegate, and qml_hidden_rows.rs.
+        readonly property bool shown: root.isPicture && root.hasFile
+        visible: still.shown
+        width: still.shown ? root.contentWidth : 0
+        height: still.shown ? root.pictureHeight(width, still) : 0
         fillMode: Image.PreserveAspectFit
         asynchronous: true
         // Decoded no wider than it is drawn. A picture is kept as a
@@ -236,7 +244,7 @@ Item {
         // arrived upright for whoever received it and lay on its side in
         // our own message view.
         autoTransform: true
-        source: visible ? root.fileUrl : ""
+        source: still.shown ? root.fileUrl : ""
 
         // The movie, while there are runs left to play, and nothing at
         // all otherwise: a stopped movie still holds every frame it
@@ -247,10 +255,15 @@ Item {
             id: animated
             objectName: "attachmentAnimation"
             anchors.fill: parent
-            visible: root.animatable && root.runsLeft > 0
+            readonly property bool shown: root.animatable && root.runsLeft > 0
+            visible: animated.shown
             fillMode: Image.PreserveAspectFit
-            playing: visible
-            source: visible ? root.fileUrl : ""
+            // Runs only while actually on screen -- `visible` is the
+            // effective one, and a page hidden under another has no
+            // business decoding frames -- but keeps its file by its own
+            // reason to be here, so coming back is not a reload.
+            playing: animated.visible
+            source: animated.shown ? root.fileUrl : ""
 
             // The frame before this one: a smaller number now is the movie
             // having gone round. Counted here rather than from a clock,
@@ -290,7 +303,7 @@ Item {
         Rectangle {
             id: gifMark
             objectName: "gifMark"
-            visible: root.animatable && !animated.visible
+            visible: root.animatable && !animated.shown
             anchors.centerIn: parent
             width: Theme.itemSizeSmall
             height: width
@@ -321,14 +334,15 @@ Item {
     Item {
         id: video
         objectName: "attachmentVideo"
-        visible: root.isVideo && root.hasFile
+        readonly property bool shown: root.isVideo && root.hasFile
+        visible: video.shown
         y: 0
-        width: visible ? root.contentWidth : 0
+        width: video.shown ? root.contentWidth : 0
         // The video's own shape where it is known -- what the sender
         // wrote in, or the file's track header read by the model -- so a
         // video taken upright stands upright; 16:9 where it is not. The
         // thumbnailer crops to whatever it is given.
-        height: visible ? Math.round(width * root.videoAspect) : 0
+        height: video.shown ? Math.round(width * root.videoAspect) : 0
 
         Rectangle {
             anchors.fill: parent
@@ -346,7 +360,7 @@ Item {
             // to the size asked for. Naming a value would mean naming an
             // enum on the type, which the headless stub cannot carry.
             mimeType: root.fileMime
-            source: video.visible ? root.fileUrl : ""
+            source: video.shown ? root.fileUrl : ""
         }
 
         // Over the frame rather than beside it: the frame is the control.
@@ -373,12 +387,13 @@ Item {
     Item {
         id: sound
         objectName: "attachmentAudio"
-        visible: root.isSound && root.hasFile
+        readonly property bool shown: root.isSound && root.hasFile
+        visible: sound.shown
         y: 0
-        width: visible ? root.contentWidth : 0
+        width: sound.shown ? root.contentWidth : 0
         // Measured rather than fixed: the two labels and the track have to
         // fit beside a button whose size is the theme's, not ours.
-        height: visible
+        height: sound.shown
                 ? Math.max(playButton.height,
                            soundName.height + soundTime.height
                            + track.height + 2 * Theme.paddingSmall)
@@ -386,7 +401,7 @@ Item {
 
         Audio {
             id: player
-            source: sound.visible ? root.fileUrl : ""
+            source: sound.shown ? root.fileUrl : ""
             // Nothing autoplays. A conversation that starts talking when
             // it is scrolled past is the worst possible behaviour on a
             // phone that may be in a pocket.
@@ -476,10 +491,11 @@ Item {
     Item {
         id: card
         objectName: "attachmentVcard"
-        visible: root.isCard
+        readonly property bool shown: root.isCard
+        visible: card.shown
         y: 0
-        width: visible ? root.contentWidth : 0
-        height: visible
+        width: card.shown ? root.contentWidth : 0
+        height: card.shown
                 ? Math.max(cardAvatar.height,
                            cardName.height + cardAddress.height
                            + 2 * Theme.paddingSmall)
@@ -535,10 +551,11 @@ Item {
     Item {
         id: app
         objectName: "attachmentApp"
-        visible: root.isApp && root.webxdcName.length > 0
+        readonly property bool shown: root.isApp && root.webxdcName.length > 0
+        visible: app.shown
         y: 0
-        width: visible ? root.contentWidth : 0
-        height: visible
+        width: app.shown ? root.contentWidth : 0
+        height: app.shown
                 ? Math.max(appIcon.height,
                            appName.height + appState.height
                            + 2 * Theme.paddingSmall)
@@ -604,8 +621,9 @@ Item {
             }
             // An app that has said nothing about itself takes no line for
             // saying so.
-            visible: text.length > 0
-            height: visible ? implicitHeight : 0
+            readonly property bool shown: text.length > 0
+            visible: appState.shown
+            height: appState.shown ? implicitHeight : 0
             truncationMode: TruncationMode.Fade
             font.pixelSize: Theme.fontSizeExtraSmall
             color: Theme.secondaryColor
@@ -630,11 +648,13 @@ Item {
     Label {
         id: generic
         objectName: "attachmentLabel"
-        visible: root.hasFile && !root.isStill && !root.isAnimated
-                 && !root.isVideo && !root.isSound && !root.isCard
-                 && !app.visible
+        readonly property bool shown: root.hasFile && !root.isStill
+                                      && !root.isAnimated && !root.isVideo
+                                      && !root.isSound && !root.isCard
+                                      && !app.shown
+        visible: generic.shown
         y: 0
-        height: visible ? implicitHeight : 0
+        height: generic.shown ? implicitHeight : 0
         width: root.contentWidth
         truncationMode: TruncationMode.Fade
         color: Theme.highlightColor

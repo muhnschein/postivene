@@ -212,7 +212,7 @@ Item {
     // The chips hang below the bubble, and what hangs is the row's to
     // make room for: without it they draw over the next message.
     height: (root.isInfo ? infoLabel.height : bubble.height)
-            + (reactionRow.visible ? reactionRow.height - root.chipOverlap : 0)
+            + (reactionRow.shown ? reactionRow.height - root.chipOverlap : 0)
             + 2 * Theme.paddingSmall
 
     /// How far the chips reach up over the bubble's bottom edge: enough
@@ -287,8 +287,18 @@ Item {
     Label {
         id: infoLabel
         objectName: "infoLabel"
-        visible: root.isInfo
-        height: visible ? implicitHeight : 0
+        // Every part of a message that may or may not be there sizes
+        // itself by its own reason to be, never by `visible`. That reads
+        // the *effective* visibility, which goes false for everything on
+        // a page the moment the platform hides the page under another --
+        // and a row whose parts all measured `visible ? implicitHeight
+        // : 0` collapsed to nothing while the page was away, so the list
+        // rebuilt itself twice on every return: once to fill the void it
+        // suddenly had, and again, on the way back, to undo that. See
+        // qml_hidden_rows.rs.
+        readonly property bool shown: root.isInfo
+        visible: infoLabel.shown
+        height: infoLabel.shown ? implicitHeight : 0
         anchors.centerIn: parent
         width: parent.width - 2 * Theme.horizontalPageMargin
         horizontalAlignment: Text.AlignHCenter
@@ -302,12 +312,13 @@ Item {
     Rectangle {
         id: bubble
         objectName: "bubble"
-        visible: !root.isInfo
+        readonly property bool shown: !root.isInfo
+        visible: bubble.shown
         x: root.isOutgoing
            ? root.width - width - Theme.horizontalPageMargin
            : Theme.horizontalPageMargin
         width: root.contentWidth + 2 * Theme.paddingMedium
-        height: visible ? footerLabel.y + footerLabel.height + Theme.paddingMedium : 0
+        height: bubble.shown ? footerLabel.y + footerLabel.height + Theme.paddingMedium : 0
         radius: Theme.paddingMedium
         // A found message is lit rather than outlined: a border would
         // change the bubble's size, and every row below it would move.
@@ -323,8 +334,10 @@ Item {
         Label {
             id: senderLabel
             objectName: "senderLabel"
-            visible: root.showSender && !root.isOutgoing && root.senderName.length > 0
-            height: visible ? implicitHeight : 0
+            readonly property bool shown: root.showSender && !root.isOutgoing
+                                          && root.senderName.length > 0
+            visible: senderLabel.shown
+            height: senderLabel.shown ? implicitHeight : 0
             x: Theme.paddingMedium
             y: Theme.paddingMedium
             width: root.contentWidth
@@ -342,10 +355,11 @@ Item {
         Label {
             id: forwardedLabel
             objectName: "forwardedLabel"
-            visible: root.isForwarded
-            height: visible ? implicitHeight : 0
+            readonly property bool shown: root.isForwarded
+            visible: forwardedLabel.shown
+            height: forwardedLabel.shown ? implicitHeight : 0
             x: Theme.paddingMedium
-            y: root.below(senderLabel, visible)
+            y: root.below(senderLabel, forwardedLabel.shown)
             width: root.contentWidth
             wrapMode: Text.Wrap
             font.pixelSize: Theme.fontSizeExtraSmall
@@ -359,11 +373,12 @@ Item {
         Item {
             id: quoteRow
             objectName: "quoteRow"
-            visible: root.quoteText.length > 0
+            readonly property bool shown: root.quoteText.length > 0
+            visible: quoteRow.shown
             x: Theme.paddingMedium
-            y: root.below(forwardedLabel, visible)
+            y: root.below(forwardedLabel, quoteRow.shown)
             width: root.contentWidth
-            height: visible ? quoteLabel.y + quoteLabel.height : 0
+            height: quoteRow.shown ? quoteLabel.y + quoteLabel.height : 0
 
             Rectangle {
                 width: 2
@@ -441,10 +456,11 @@ Item {
         Label {
             id: messageLabel
             objectName: "messageLabel"
-            visible: root.messageText.length > 0
-            height: visible ? implicitHeight : 0
+            readonly property bool shown: root.messageText.length > 0
+            visible: messageLabel.shown
+            height: messageLabel.shown ? implicitHeight : 0
             x: Theme.paddingMedium
-            y: root.below(attachment, visible)
+            y: root.below(attachment, messageLabel.shown)
             width: root.contentWidth
             wrapMode: Text.Wrap
             // A bubble is a shape for a remark, not for a document. A
@@ -473,11 +489,12 @@ Item {
         Item {
             id: bodyActions
             objectName: "bodyActions"
-            visible: root.showsFull
+            readonly property bool shown: root.showsFull
+            visible: bodyActions.shown
             x: Theme.paddingMedium
-            y: root.below(messageLabel, visible)
+            y: root.below(messageLabel, bodyActions.shown)
             width: root.contentWidth
-            height: visible ? fullLabel.implicitHeight + Theme.paddingSmall : 0
+            height: bodyActions.shown ? fullLabel.implicitHeight + Theme.paddingSmall : 0
 
             Label {
                 id: fullLabel
@@ -505,10 +522,11 @@ Item {
         Label {
             id: downloadLabel
             objectName: "downloadButton"
-            visible: root.heldBack
-            height: visible ? implicitHeight + Theme.paddingSmall : 0
+            readonly property bool shown: root.heldBack
+            visible: downloadLabel.shown
+            height: downloadLabel.shown ? implicitHeight + Theme.paddingSmall : 0
             x: Theme.paddingMedium
-            y: root.below(bodyActions, visible)
+            y: root.below(bodyActions, downloadLabel.shown)
             width: root.contentWidth
             wrapMode: Text.Wrap
             font.pixelSize: Theme.fontSizeSmall
@@ -564,7 +582,8 @@ Item {
     Item {
         id: reactionRow
         objectName: "reactionRow"
-        visible: !root.isInfo && root.reactionList.length > 0
+        readonly property bool shown: !root.isInfo && root.reactionList.length > 0
+        visible: reactionRow.shown
         // Inside the bubble's own padding, at the corner nearest the
         // middle of the screen.
         x: root.isOutgoing ? bubble.x + Theme.paddingMedium
@@ -574,7 +593,7 @@ Item {
         // chips where it can.
         width: Math.min(wantedWidth, root.contentWidth)
         // A line of the chip font plus the chip's own padding.
-        height: visible ? reactionMetric.height + 2 * Theme.paddingSmall : 0
+        height: reactionRow.shown ? reactionMetric.height + 2 * Theme.paddingSmall : 0
         clip: true
 
         /// The room the chips take in a row: their text, each one's

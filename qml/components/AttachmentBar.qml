@@ -19,11 +19,14 @@ Item {
     property string fileName
     signal cancelled()
 
-    visible: root.filePath.length > 0
+    // Sized by its own reason to be here rather than by `visible`: see
+    // ReplyBar.
+    readonly property bool shown: root.filePath.length > 0
+    visible: root.shown
     // Both, not just the label: the cancel button is an icon's worth tall.
     // Same reasoning as ReplyBar, where a one-line quote measured short and
     // the bar overlapped the field below it.
-    height: visible ? Math.max(attached.height, cancel.height) + 2 * Theme.paddingSmall : 0
+    height: root.shown ? Math.max(attached.height, cancel.height) + 2 * Theme.paddingSmall : 0
 
     Label {
         id: attached

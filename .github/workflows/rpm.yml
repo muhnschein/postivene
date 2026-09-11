@@ -250,10 +250,15 @@ jobs:
         run: ls -la .mb2 2>/dev/null || true; tail -60 .mb2/*.log 2>/dev/null || true
 
       # Back to the runner, or neither the upload nor the cache save can
-      # read what was built.
+      # read what was built. `mkdir` first because this runs even when the
+      # step that creates that directory did not: `chown` on a path that is
+      # not there fails, and failing here would bury the error that
+      # actually stopped the build.
       - name: Take the tree back
         if: always()
-        run: sudo chown -R "$(id -u):$(id -g)" "$PWD" ~/.cache/postivene-cargo
+        run: |
+          mkdir -p ~/.cache/postivene-cargo
+          sudo chown -R "$(id -u):$(id -g)" "$PWD" ~/.cache/postivene-cargo
 
       - name: Show what was built
         run: |

@@ -76,8 +76,14 @@ trap cleanup EXIT
 # the bake reads.
 docker cp "$root/rpm/harbour-postivene.spec" "$cid:/tmp/harbour-postivene.spec"
 
-# The bake. Everything here is what rpm.yml would otherwise do on every
-# build, or carry the weight of.
+# The bake, in two halves, because the two need different users and this
+# image grants no passwordless sudo -- inside it `sudo` answers "PAM
+# account management error: Authentication service cannot retrieve
+# authentication info". mb2 has to run as the image's own mersdk, since
+# sdk-manage refuses root saying it cannot determine the Mer SDK user; and
+# everything that writes outside that user's home has to be root, which
+# `docker exec --user root` grants without asking the image for anything.
+echo ">> installing what the spec needs, as the build user"
 docker exec -e TARGET="$target" "$cid" bash -euxo pipefail -c '
     # A build directory named for the package: mb2 derives the package it
     # is building from the directory it runs in, and then looks for
@@ -92,21 +98,41 @@ docker exec -e TARGET="$target" "$cid" bash -euxo pipefail -c '
     mb2 -t "$TARGET" -X build-init
     mb2 -t "$TARGET" -X build-requires
 
-    # Build scripts and proc-macros are compiled for the tooling'"'"'s own
-    # i686 and linked in sb2'"'"'s host mode, where /usr is the SDK
-    # filesystem rather than the target -- so ld looks for the i686 rustlib
-    # under /usr/lib/rustlib, and the SDK ships it under /srv/mer. Put it
-    # where the linker looks, once, here.
+    # The image ships with i486 as sb2 s default target, which is one of
+    # the ones the root half removes -- and a default naming a target that
+    # is not there fails every bare `sb2` call for a reason that has
+    # nothing to do with the build. Rewritten in place rather than through
+    # `sb2-config -d`, which without a target of its own resolves its log
+    # path to / and dies on the way; and rewritten here rather than as
+    # root, because sed -i renames a new file into place and root would
+    # leave it owned by root.
+    sed -i "s|^DEFAULT_TARGET=.*|DEFAULT_TARGET=$TARGET|" "$HOME/.scratchbox2/config"
+    grep "^DEFAULT_TARGET=$TARGET$" "$HOME/.scratchbox2/config"
+
+    rm -rf ~/harbour-postivene
+'
+
+echo ">> putting the rustlib where the linker looks, and dropping the rest"
+docker exec --user root -e TARGET="$target" "$cid" bash -euxo pipefail -c '
+    # Build scripts and proc-macros are compiled for the tooling s own
+    # i686 and linked in sb2 s host mode, where /usr is the SDK filesystem
+    # rather than the target -- so ld looks for the i686 rustlib under
+    # /usr/lib/rustlib, and the SDK ships it under /srv/mer. Put it where
+    # the linker looks, once, here.
+    #
+    # Named in preference order rather than globbed: after build-requires
+    # the same rustlib exists in the target as well, and a glob hands back
+    # whichever sorts first -- which was the copy inside the pristine
+    # snapshot, three lines from being deleted.
     host=i686-unknown-linux-gnu
-    # `|| true` because one of the two globs will not match, and under
-    # `set -e` with `pipefail` that failing `ls` would end the bake on the
-    # line that is looking for the file rather than on the one that needs
-    # it.
-    src=$(ls -d /srv/mer/toolings/*/usr/lib/rustlib/$host \
-                /srv/mer/targets/*/usr/lib/rustlib/$host 2>/dev/null | head -1) || true
+    src=""
+    for candidate in /srv/mer/toolings/*/usr/lib/rustlib/$host \
+                     "/srv/mer/targets/$TARGET/usr/lib/rustlib/$host"; do
+        if [ -d "$candidate" ]; then src=$candidate; break; fi
+    done
     [ -n "$src" ] || { echo "no host rustlib in this image" >&2; exit 1; }
-    sudo mkdir -p /usr/lib/rustlib
-    sudo cp -a "$src" /usr/lib/rustlib/
+    mkdir -p /usr/lib/rustlib
+    cp -a "$src" /usr/lib/rustlib/
 
     # Every other architecture, and the pristine snapshot of this one:
     # nothing but its own sb2 config refers to that snapshot, and
@@ -114,22 +140,12 @@ docker exec -e TARGET="$target" "$cid" bash -euxo pipefail -c '
     for dir in /srv/mer/targets/*/; do
         name=$(basename "$dir")
         [ "$name" = "$TARGET" ] && continue
-        sudo rm -rf "$dir" "$HOME/.scratchbox2/$name"
+        rm -rf "$dir" "/home/mersdk/.scratchbox2/$name"
     done
 
-    # The image ships with i486 as sb2 s default target, which is one of
-    # the ones just removed -- and a default naming a target that is not
-    # there fails every bare `sb2` call for a reason that has nothing to do
-    # with the build. Rewritten in place rather than through `sb2-config
-    # -d`, which without a target of its own resolves its log path to /
-    # and dies on the way.
-    sed -i "s|^DEFAULT_TARGET=.*|DEFAULT_TARGET=$TARGET|" "$HOME/.scratchbox2/config"
-    grep "^DEFAULT_TARGET=$TARGET$" "$HOME/.scratchbox2/config"
-
     # The bake s own leavings, and the package cache it filled.
-    rm -rf ~/harbour-postivene
-    sudo rm -f /tmp/harbour-postivene.spec
-    sudo rm -rf "/srv/mer/targets/$TARGET/var/cache/zypp"/*
+    rm -f /tmp/harbour-postivene.spec
+    rm -rf "/srv/mer/targets/$TARGET/var/cache/zypp"/*
 '
 
 # `docker export` writes the container's filesystem as it stands, so the
@@ -174,10 +190,12 @@ docker run --rm --privileged -e TARGET="$target" "$output" bash -euo pipefail -c
     [ "$(sb2-config -l | grep -c .)" = 1 ] ||
         { echo "more than one target survived" >&2; exit 1; }
     sb2 -t "$TARGET" rpm -q rust cargo gcc-c++ git desktop-file-utils qt5-qttools-linguist
-    # The cross std, by the virtual provide the spec asks for: its absence
-    # is the "can not find crate for std" that arrives a long way into a
-    # build.
-    sb2 -t "$TARGET" rpm -q --whatprovides rust-std-static
+    # The cross std, whose absence is the "can not find crate for std"
+    # that arrives a long way into a build. Asked for by package name
+    # rather than by the virtual provide the spec names, so the check does
+    # not depend on which package carries that provide.
+    sb2 -t "$TARGET" rpm -qa | grep "^rust-std-static-" ||
+        { echo "no cross std in the target" >&2; exit 1; }
     sb2 -t "$TARGET" cargo --version
     ls -d /usr/lib/rustlib/i686-unknown-linux-gnu
     grep "^DEFAULT_TARGET=$TARGET$" "$HOME/.scratchbox2/config"

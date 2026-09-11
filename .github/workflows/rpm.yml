@@ -1,22 +1,27 @@
 # Builds a device RPM inside the Sailfish SDK.
 #
-# Not part of `ci.yml`: it pulls a multi-gigabyte SDK image and cross-compiles
-# the whole workspace, which is minutes of runner time nobody wants on every
-# push. Run it from the Actions tab when a package is wanted, or on a tag.
+# Not part of `ci.yml`: it cross-compiles the whole workspace inside a
+# multi-gigabyte SDK image, which is minutes of runner time nobody wants on
+# every push. Run it from the Actions tab when a package is wanted, or on a
+# tag.
 #
-# The SDK is what makes the result runnable on a phone: the app links against
-# the target's Qt 5.6 and glibc, and a host-built binary has neither. See
-# docs/BUILDING.md.
+# The SDK is what makes the result runnable on a phone: the app links
+# against the target's Qt 5.6 and glibc, and a host-built binary has
+# neither. See docs/BUILDING.md.
+#
+# aarch64 only, which is what this project targets (see the README): the
+# SDK image below carries that architecture and no other, and nothing here
+# has ever built a second one.
+#
+# Two things keep it short, each explained where it happens: the SDK image
+# is one this repository derives and publishes rather than upstream's
+# three-architecture one (`sdk-image.yml`), and `rust/target` and the
+# crates are carried between runs.
 name: rpm
 
 on:
   workflow_dispatch:
     inputs:
-      arch:
-        description: Device architecture
-        type: choice
-        options: [aarch64, armv7hl]
-        default: aarch64
       sfos_version:
         description: >
           Sailfish SDK version to build against. 5.2 is the Jolla Phone's
@@ -26,6 +31,15 @@ on:
           that runs on older phones and that Harbour rejects.
         type: string
         default: "5.2.0.15"
+      cargo_jobs:
+        description: >
+          How many cargo jobs inside scratchbox2. Four is the spec's
+          default and what these builds run; drop to one if a build ever
+          hangs there, which is what the setting is for. See
+          docs/BUILDING.md.
+        type: choice
+        options: ["4", "2", "1"]
+        default: "4"
   push:
     # `v*` for a release. `build-*` is a throwaway handle for running this
     # before it reaches the default branch, since workflow_dispatch only
@@ -34,14 +48,18 @@ on:
 
 permissions:
   contents: read
+  # The derived SDK image lives in this repository's registry, and a run
+  # that finds none there publishes the one it had to build.
+  packages: write
 
 jobs:
   rpm:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
-      ARCH: ${{ inputs.arch || 'aarch64' }}
+      ARCH: aarch64
       SFOS: ${{ inputs.sfos_version || '5.2.0.15' }}
+      CARGO_JOBS: ${{ inputs.cargo_jobs || '4' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -49,47 +67,61 @@ jobs:
       - name: Fetch deltachat-rpc-server
         run: ./scripts/fetch-rpc-server.sh
 
-      # By digest, not tag. The SDK image is a third party's, it is run
-      # privileged below with the checkout mounted read-write, and a tag
-      # can be repointed at any content by whoever owns it. To add an SDK
-      # version: pull the tag once, read the digest with
-      # `docker inspect --format '{{index .RepoDigests 0}}'`, add a line.
-      #
-      # The version is also checked for shape first: it is free text from
-      # the dispatch form and is spliced into the artifact name below.
-      - name: Resolve the SDK image
+      # Both inputs are free text from the dispatch form, and both are
+      # spliced into a command below -- the version into an image tag, the
+      # job count into the build's own shell.
+      - name: Name the SDK image this build wants
         run: |
           [[ $SFOS =~ ^[0-9]+(\.[0-9]+){3}$ ]] || {
             echo "::error::sfos_version '$SFOS' is not a dotted version"; exit 1; }
-          case "$SFOS" in
-            5.2.0.15) digest=sha256:e7c4379393b17ee63d7f7443ce9930c315a61fdb2e732016346ccbe8c934435e ;;
-            *) echo "::error::no pinned digest for coderus/sailfishos-platform-sdk:$SFOS; add one to rpm.yml"
-               exit 1 ;;
-          esac
-          echo "IMAGE=coderus/sailfishos-platform-sdk@$digest" >> "$GITHUB_ENV"
+          [[ $CARGO_JOBS =~ ^[1-9][0-9]?$ ]] || {
+            echo "::error::cargo_jobs '$CARGO_JOBS' is not a small number"; exit 1; }
+          owner=$(echo "${{ github.repository_owner }}" | tr 'A-Z' 'a-z')
+          echo "SDK_IMAGE=ghcr.io/$owner/postivene-sdk:$SFOS-$ARCH" >> "$GITHUB_ENV"
 
-      - name: Pull the Sailfish SDK
-        run: docker pull "$IMAGE"
+      - name: Sign in to the registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" |
+            docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-      # The image ships one target per architecture, named by the SDK's own
-      # convention. Asked for rather than assumed, so a version whose naming
-      # differs fails here with the list rather than deep inside rpmbuild.
+      # ci/build-sdk-image.sh says what this image is and why it is not
+      # upstream's. Deriving one takes about as long as this whole workflow,
+      # so it is done once and published; a run that finds none does it
+      # rather than failing, and publishes it for the next.
+      - name: Get the SDK image
+        run: |
+          if docker pull -q "$SDK_IMAGE"; then
+            echo "using $SDK_IMAGE"
+          else
+            echo "::notice::no $SDK_IMAGE published yet; deriving one, which makes this run slower"
+            # Room for the upstream image and the flattened one at once.
+            # Defaulted rather than bare: `rm -rf ""` is an error, and it
+            # would fail this step for the sake of a variable the runner
+            # happens to set.
+            sudo rm -rf /usr/local/lib/android /usr/share/dotnet \
+                        "${AGENT_TOOLSDIRECTORY:-/opt/hostedtoolcache}"
+            ./ci/build-sdk-image.sh "$SFOS" "$ARCH" "$SDK_IMAGE"
+            docker push "$SDK_IMAGE" ||
+              echo "::warning::could not publish $SDK_IMAGE; the next run will derive it again"
+          fi
+          id=$(docker image inspect --format '{{.Id}}' "$SDK_IMAGE")
+          echo "SDK_IMAGE_ID=${id#sha256:}" >> "$GITHUB_ENV"
+
+      # The image ships one target, named by the SDK's own convention.
+      # Asked for rather than assumed, so an image whose naming differs
+      # fails here with the list rather than deep inside rpmbuild.
       - name: Resolve the build target
         run: |
-          targets=$(docker run --rm "$IMAGE" \
-              sb2-config -l 2>/dev/null || true)
+          targets=$(docker run --rm "$SDK_IMAGE" sb2-config -l 2>/dev/null || true)
           echo "available targets:"; echo "$targets"
           target=$(echo "$targets" | grep -- "-$ARCH\$" | tail -1)
           if [ -z "$target" ]; then
-            echo "::error::no $ARCH target in the $SFOS SDK image; see the list above"
+            echo "::error::no $ARCH target in $SDK_IMAGE; see the list above"
             exit 1
           fi
           echo "Building against $target"
           echo "TARGET=$target" >> "$GITHUB_ENV"
 
-      # Running as root is explicitly wrong -- sdk-manage refuses, saying
-      # it cannot determine the Mer SDK user -- so the build stays as the
-      # image's own mersdk, and the tree has to belong to it.
       # Every build used to produce harbour-postivene-0.1.0-1.aarch64.rpm,
       # because the spec pins both fields and mb2 runs with -X so nothing derives
       # them from git. Same name, same NEVRA, every time -- so `rpm -U`
@@ -113,14 +145,46 @@ jobs:
           echo "SHORT_SHA=$short" >> "$GITHUB_ENV"
           echo "RPM_RELEASE=$release" >> "$GITHUB_ENV"
 
+      # What the build spends its time on, after the pull: compiling 56
+      # crates, of which this project wrote four. The rest depend on the
+      # lockfile and the toolchain in the image and on nothing else, so
+      # they are worth carrying between runs -- with a cold cache the
+      # compile is about four minutes, with a warm one about one.
+      #
+      # Keyed on the image as well as the lockfile: these are artifacts for
+      # one target triple, built by the rust that image ships.
+      - name: Restore the cross-compiled dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: rust/target
+          key: rpm-target-${{ env.ARCH }}-${{ env.SDK_IMAGE_ID }}-${{ hashFiles('rust/Cargo.lock') }}
+          restore-keys: |
+            rpm-target-${{ env.ARCH }}-${{ env.SDK_IMAGE_ID }}-
+            rpm-target-${{ env.ARCH }}-
+
+      # The crate sources themselves, which the build would otherwise
+      # download from crates.io inside the container every time. Worth
+      # little in seconds and a great deal in not depending on crates.io
+      # being up while a release is being cut.
+      - name: Restore the crates
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/postivene-cargo
+          key: rpm-cargo-${{ hashFiles('rust/Cargo.lock') }}
+          restore-keys: rpm-cargo-
+
+      # Running as root is explicitly wrong -- sdk-manage refuses, saying
+      # it cannot determine the Mer SDK user -- so the build stays as the
+      # image's own mersdk, and everything it writes has to belong to it.
       - name: Hand the checkout to the SDK's build user
         run: |
-          uid=$(docker run --rm "$IMAGE" id -u)
-          gid=$(docker run --rm "$IMAGE" id -g)
-          home=$(docker run --rm "$IMAGE" sh -c 'echo $HOME')
+          uid=$(docker run --rm "$SDK_IMAGE" id -u)
+          gid=$(docker run --rm "$SDK_IMAGE" id -g)
+          home=$(docker run --rm "$SDK_IMAGE" sh -c 'echo $HOME')
           echo "SDK builds as uid=$uid gid=$gid, HOME=$home"
           echo "BUILDDIR=$home/harbour-postivene" >> "$GITHUB_ENV"
-          sudo chown -R "$uid:$gid" "$PWD"
+          mkdir -p ~/.cache/postivene-cargo
+          sudo chown -R "$uid:$gid" "$PWD" ~/.cache/postivene-cargo
 
       # Mounted inside the SDK user's home, and that placement is the
       # whole fix. rpm runs under scratchbox2, which redirects absolute
@@ -142,55 +206,33 @@ jobs:
       # finds no tags here, and stops before writing the spec at all.
       # `--no-check` matches that document too; the spec has no %check.
       #
-      # Deliberately *not* passing its `-n` / `--nodeps`: those are its
-      # offline workaround. A runner reaches the Jolla repositories, so
-      # mb2 can zypper-install rust, cargo and rust-std-static into the
-      # target the way it is meant to.
-      # Build scripts and proc-macros are compiled for the SDK's own i686
-      # and linked in sb2's *host* mode, where /usr is the SDK filesystem
-      # rather than the target -- so ld looks for the i686 rustlib under
-      # /usr/lib/rustlib, and the SDK ships it under /srv/mer instead.
-      # docs/BUILDING.md names the failure it causes.
+      # `build-requires` has nothing to install against the derived image,
+      # which already carries them -- it stays because a BuildRequires
+      # added to the spec before the image is rebuilt would otherwise fail
+      # much later and less clearly.
       #
-      # The image has no passwordless sudo, so it cannot be copied across
-      # from inside the build. Lifted out as root here and bind-mounted
-      # into place below, which needs no privilege inside the build at all.
-      - name: Put the host rustlib where the linker looks
-        run: |
-          mkdir -p /tmp/rustlib
-          docker run --rm --user root -v /tmp/rustlib:/out \
-            "$IMAGE" \
-            bash -c '
-              host=i686-unknown-linux-gnu
-              src=$(ls -d /srv/mer/toolings/*/usr/lib/rustlib/$host \
-                          /srv/mer/targets/*/usr/lib/rustlib/$host \
-                          2>/dev/null | head -1)
-              [ -n "$src" ] || { echo "no host rustlib in this image" >&2; exit 1; }
-              echo "lifting $src"
-              cp -a "$src" /out/'
-          ls -d /tmp/rustlib/i686-unknown-linux-gnu
-
       # `--privileged` is what the SDK image's own instructions run it
-      # with; whether sb2 needs all of it has not been tried. TARGET goes
-      # in as an environment variable and the script is single-quoted, so
-      # nothing the image printed above is spliced into shell text.
+      # with; whether sb2 needs all of it has not been tried. The script is
+      # single-quoted, so nothing the image printed above is spliced into
+      # shell text; TARGET and CARGO_JOBS go in as environment variables.
       - name: Build the RPM
         run: |
           docker run --rm --privileged \
-            -e TARGET \
+            -e TARGET -e CARGO_JOBS \
             -v "$PWD:$BUILDDIR" -w "$BUILDDIR" \
-            -v /tmp/rustlib/i686-unknown-linux-gnu:/usr/lib/rustlib/i686-unknown-linux-gnu:ro \
-            "$IMAGE" \
+            -v "$HOME/.cache/postivene-cargo:/home/mersdk/.cargo" \
+            "$SDK_IMAGE" \
             /bin/bash -c 'set -e
+              since=$(date +%s)
+              took() { echo "::notice::$1 took $(( $(date +%s) - since ))s"; since=$(date +%s); }
+
               mb2 -t "$TARGET" -X build-init
+              took build-init
               mb2 -t "$TARGET" -X build-requires ||
-                echo "::warning::mb2 build-requires failed; the build may stop on a missing BuildRequires"
-
-              echo "--- rustlib available ---"
-              ls -d /usr/lib/rustlib/* /srv/mer/toolings/*/usr/lib/rustlib/* \
-                    /srv/mer/targets/*/usr/lib/rustlib/* 2>/dev/null || true
-
-              mb2 -t "$TARGET" -X build --no-check'
+                echo "::warning::mb2 build-requires failed; the SDK image may be behind the spec"
+              took build-requires
+              mb2 -t "$TARGET" -X build --no-check --define "jobs $CARGO_JOBS"
+              took "the build at -j$CARGO_JOBS"'
 
       # `|| true` on both: the step runs under `bash -e`, and a missing
       # .mb2 would end it before the logs were shown.
@@ -198,10 +240,16 @@ jobs:
         if: failure()
         run: ls -la .mb2 2>/dev/null || true; tail -60 .mb2/*.log 2>/dev/null || true
 
-      # Back to the runner, or the upload cannot read what was built.
+      # Back to the runner, or neither the upload nor the cache save can
+      # read what was built. `mkdir` first because this runs even when the
+      # step that creates that directory did not: `chown` on a path that is
+      # not there fails, and failing here would bury the error that
+      # actually stopped the build.
       - name: Take the tree back
         if: always()
-        run: sudo chown -R "$(id -u):$(id -g)" "$PWD"
+        run: |
+          mkdir -p ~/.cache/postivene-cargo
+          sudo chown -R "$(id -u):$(id -g)" "$PWD" ~/.cache/postivene-cargo
 
       - name: Show what was built
         run: |

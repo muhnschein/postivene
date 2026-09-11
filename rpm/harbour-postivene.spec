@@ -141,6 +141,17 @@ BuildRequires:  qt5-qttools-linguist
 %define rusttarget x86_64-unknown-linux-gnu
 %endif
 
+# How many cargo jobs to run inside scratchbox2, and only there: outside
+# sb2 -- a native OBS worker -- cargo picks its own. Four, which device
+# builds run green on the 5.2 SDK and which takes the build from 142 s to
+# 82 s. It was one for a long time, because cargo was once seen to
+# futex-wait forever on an unreaped child at four while qmetaobject's C++
+# glue compiled; that is why the number is a define rather than a
+# constant, so a build that ever hangs again drops back with
+# --define "jobs 1" instead of a patch. .github/workflows/rpm.yml passes
+# its cargo_jobs input this way, and docs/BUILDING.md has the numbers.
+%{!?jobs: %global jobs 4}
+
 # Where cargo leaves the binary. Under sb2, SB2_RUST_TARGET_TRIPLE (see
 # %%build) makes it write to target/<triple>/release; a native build -- an
 # OBS worker that is not cross-compiling -- gets plain target/release.
@@ -188,12 +199,9 @@ export SB2_RUST_TARGET_TRIPLE=%{rusttarget}
 export QT_INCLUDE_PATH=%{_includedir}/qt5
 export QT_LIBRARY_PATH=%{_libdir}
 
-# Under scratchbox2, parallel cargo deadlocks (observed reproducibly at the
-# default -j4: cargo futex-waits forever on an unreaped child while
-# compiling qmetaobject's C++ glue). sb2 rust builds are effectively
-# single-threaded anyway (docs/BUILDING.md), so force -j1 there; outside
-# sb2 (e.g. a native OBS worker) let cargo pick its own parallelism.
-# SBOX_SESSION_DIR is set by sb2 itself inside build sessions.
+# SBOX_SESSION_DIR is set by sb2 itself inside build sessions, and is what
+# tells a cross build here from a native one. It gates the job count the
+# preamble defines, and the linker override below.
 # Build scripts and proc-macros are compiled for the tooling's own
 # architecture, and rustc links them by calling plain `cc` -- which sb2
 # rewrites to the *cross* compiler, producing "unrecognized command-line
@@ -205,6 +213,13 @@ if [ -n "${SBOX_SESSION_DIR:-}" ]; then
     host_triple=$(rustc -vV | sed -n 's/^host: //p')
     export "CARGO_TARGET_$(echo "$host_triple" | tr 'a-z-' 'A-Z_')_LINKER"=host-gcc
 fi
+
+# A parallel link under sb2 can lose an object file it has just written
+# ("symbols.o: No such file or directory") when its temporaries go through
+# the shared /tmp. Whisperfish's spec keeps them in the build directory for
+# the same reason.
+export TMPDIR=${TMPDIR:-"$PWD/.tmp"}
+mkdir -p "$TMPDIR"
 
 # Deliberately *no* `--target`: under sb2 that would make cargo treat this
 # as a cross build and look for a target std it cannot find. Instead
@@ -222,7 +237,7 @@ fi
 (
 cd rust
 cargo build \
-    ${SBOX_SESSION_DIR:+-j1} \
+    ${SBOX_SESSION_DIR:+-j%{jobs}} \
     --release \
     --locked \
 %if %{with vendor}

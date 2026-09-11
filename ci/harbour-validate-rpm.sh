@@ -54,6 +54,8 @@ os.execvp(sys.argv[1], sys.argv[1:])' "$@"
              "the validator's log may carry broken-pipe noise" >&2
         "$@"
     fi
+    # Whatever the command exited with, which is what the caller judges.
+    return
 }
 
 log=""

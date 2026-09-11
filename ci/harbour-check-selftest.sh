@@ -235,7 +235,7 @@ validate_rpm fail "a validation log that was cut off before the verdict" \
 validate_rpm pass "a log buried in broken-pipe noise" \
 "!BEGIN!x
 $(for _ in $(seq 1 50); do
-    echo '/tmp/harbour-validator/rpmvalidation.sh: line 773: echo: write error: Broken pipe'
+    printf '%s\n' '/tmp/harbour-validator/rpmvalidation.sh: line 773: echo: write error: Broken pipe'
 done)
 WARNING|/usr/bin/harbour-postivene|file is not stripped!
 !END!PASS!x

@@ -22,7 +22,7 @@ usage() {
     exit 2
 }
 
-[ $# -eq 3 ] || usage
+[[ $# -eq 3 ]] || usage
 sfos=$1
 arch=$2
 output=$3
@@ -162,7 +162,7 @@ docker stop "$cid" >/dev/null
 # package it has not linked is one that repository's own token is not
 # granted to pull back -- which would be found out one workflow run later.
 source_url=""
-if [ -n "${GITHUB_REPOSITORY:-}" ]; then
+if [[ -n "${GITHUB_REPOSITORY:-}" ]]; then
     source_url="${GITHUB_SERVER_URL:-https://github.com}/$GITHUB_REPOSITORY"
 elif origin=$(git -C "$root" remote get-url origin 2>/dev/null); then
     source_url=${origin%.git}
@@ -173,7 +173,7 @@ changes=(
     --change 'USER mersdk'
     --change 'WORKDIR /home/mersdk'
 )
-if [ -n "$source_url" ]; then
+if [[ -n "$source_url" ]]; then
     changes+=(--change "LABEL org.opencontainers.image.source=$source_url")
 fi
 

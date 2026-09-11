@@ -36,8 +36,9 @@ one of nine kinds or none, shoulders in a shirt, and now and then
 glasses, a beard, earrings, or a headscarf. One in five is the other
 kind of avatar the app has, an initial on a disc, in a rounded stroke
 that needs no font. Everything is a few grey levels apart from the disc,
-so it reads in one tint. Which face goes where is fixed by a seed, so
-regenerating the masks changes nothing unless this file does.
+so it reads in one tint. Which face goes where is fixed by a seed and a
+generator of this file's own (`Dice`), so regenerating the masks changes
+nothing unless this file does -- whichever Python does the painting.
 
 # How it is drawn
 
@@ -51,7 +52,6 @@ installed first is a reason not to regenerate the art.
 """
 import math
 import pathlib
-import random
 import struct
 import sys
 import zlib
@@ -77,6 +77,48 @@ SUBROWS = 4
 # levels only ever show at their edges, and thirty-two of them compress
 # to well under half of what the full range does.
 LEVELS = 32
+
+
+# ----------------------------------------------------------------- dice
+
+class Dice:
+    """A pseudorandom sequence of its own, fixed by a seed.
+
+    Not `random.Random`: the standard library promises the same
+    `random()` for a seed across versions, but not the same `choice`,
+    `shuffle` or `uniform`, and a mask is meant to come out the same to
+    the byte from whichever Python paints it. This is splitmix64, a
+    dozen lines that never change. Nothing about it is secret: the seed
+    picks which face goes where.
+    """
+    MASK = (1 << 64) - 1
+
+    def __init__(self, seed):
+        self.state = seed & self.MASK
+
+    def roll(self):
+        """The next 64 bits."""
+        self.state = (self.state + 0x9E3779B97F4A7C15) & self.MASK
+        z = self.state
+        z = ((z ^ (z >> 30)) * 0xBF58476D1CE4E5B9) & self.MASK
+        z = ((z ^ (z >> 27)) * 0x94D049BB133111EB) & self.MASK
+        return z ^ (z >> 31)
+
+    def random(self):
+        """A float in [0, 1)."""
+        return (self.roll() >> 11) / float(1 << 53)
+
+    def uniform(self, low, high):
+        return low + (high - low) * self.random()
+
+    def choice(self, options):
+        return options[self.roll() % len(options)]
+
+    def shuffle(self, items):
+        """In place, as Fisher and Yates have it."""
+        for i in range(len(items) - 1, 0, -1):
+            j = self.roll() % (i + 1)
+            items[i], items[j] = items[j], items[i]
 
 
 # --------------------------------------------------------------- shapes
@@ -248,29 +290,26 @@ class Tile:
 
     def fill(self, shape, ink):
         shape = Scaled(shape, self.scale) & self.clip
+        for py in range(self.size):
+            diff, partial, lo, hi = self.coverage(shape, py)
+            if lo <= hi:
+                self.blend(py, lo, hi, diff, partial, ink)
+
+    def coverage(self, shape, py):
+        """One pixel row's coverage of a shape: the pixels wholly inside
+        a span as a difference array, the part pixels at each span's
+        ends apart, and the range of pixels touched."""
         size = self.size
-        for py in range(size):
-            diff = [0.0] * (size + 1)
-            partial = {}
-            lo, hi = size, 0
-            for k in range(SUBROWS):
-                for x0, x1 in shape.spans(py + (k + 0.5) / SUBROWS):
-                    x0, x1 = max(0.0, x0), min(float(size), x1)
-                    if x1 <= x0:
-                        continue
-                    xa, xb = int(x0), int(x1)
-                    lo, hi = min(lo, xa), max(hi, min(xb, size - 1))
-                    if xa == xb:
-                        partial[xa] = partial.get(xa, 0.0) + (x1 - x0) / SUBROWS
-                        continue
-                    partial[xa] = partial.get(xa, 0.0) + (xa + 1 - x0) / SUBROWS
-                    if xb < size:
-                        partial[xb] = partial.get(xb, 0.0) + (x1 - xb) / SUBROWS
-                    diff[xa + 1] += 1.0 / SUBROWS
-                    diff[xb] -= 1.0 / SUBROWS
-            if lo > hi:
-                continue
-            self.blend(py, lo, hi, diff, partial, ink)
+        diff = [0.0] * (size + 1)
+        partial = {}
+        lo, hi = size, 0
+        for k in range(SUBROWS):
+            for x0, x1 in shape.spans(py + (k + 0.5) / SUBROWS):
+                x0, x1 = max(0.0, x0), min(float(size), x1)
+                if x1 > x0:
+                    lo, hi = min(lo, int(x0)), max(hi, min(int(x1), size - 1))
+                    add_span(diff, partial, x0, x1, size)
+        return diff, partial, lo, hi
 
     def blend(self, py, lo, hi, diff, partial, ink):
         row = self.rows[py]
@@ -280,6 +319,21 @@ class Tile:
             coverage = min(1.0, run + partial.get(x, 0.0))
             if coverage > 0.0:
                 row[x] += (ink - row[x]) * coverage
+
+
+def add_span(diff, partial, x0, x1, size):
+    """One sub-row's span, a fraction of a pixel high: the pixels wholly
+    inside it into `diff`, the two at its ends into `partial`."""
+    weight = 1.0 / SUBROWS
+    xa, xb = int(x0), int(x1)
+    if xa == xb:
+        partial[xa] = partial.get(xa, 0.0) + (x1 - x0) * weight
+        return
+    partial[xa] = partial.get(xa, 0.0) + (xa + 1 - x0) * weight
+    if xb < size:
+        partial[xb] = partial.get(xb, 0.0) + (x1 - xb) * weight
+    diff[xa + 1] += weight
+    diff[xb] -= weight
 
 
 class Scaled(Shape):
@@ -423,7 +477,7 @@ def draw_initial(tile, rng):
 
 def draw_avatar(size, seed):
     """A tile with one avatar on it, fixed by its seed."""
-    rng = random.Random(seed)
+    rng = Dice(seed)
     tile = Tile(size)
     if rng.random() < .2:
         draw_initial(tile, rng)
@@ -478,7 +532,7 @@ def paint(master):
     red = bytearray(width * height)
     green = bytearray(width * height)
     grid = list(cells(width, height, master["columns"]))
-    rng = random.Random(master["seed"])
+    rng = Dice(master["seed"])
     lit = choose_lit(grid, master, rng)
     gap = max(2, round(grid[0][2] * 0.025))
     for index, (x, y, size, _) in enumerate(grid):

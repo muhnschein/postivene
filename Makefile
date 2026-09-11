@@ -135,10 +135,32 @@ sonar-report-test:
 apt-install-test:
 	./ci/apt-install-selftest.sh
 
+# What `sonar-reports` measures, whichever runner it goes through: the
+# workspace, minus third_party/ and vendor/ for the reason given in
+# sonar-project.properties -- upstream's code, not ours to cover.
+SONAR_COV_ARGS = --workspace \
+	--ignore-filename-regex '(^|/)(third_party|vendor)/' \
+	--lcov --output-path target/sonar/lcov.info
+
 ## sonar-reports: the coverage report SonarQube Cloud imports, written to
 ## rust/target/sonar/lcov.info. The scanner does not measure coverage; it
 ## only imports what someone else measured, which is why the reading was
 ## 0.0% for as long as nothing wrote this.
+##
+## Through cargo-nextest when it is installed, for the reason `test` is.
+## cargo-llvm-cov's own runner is `cargo test`, one binary at a time, and
+## this suite is over a hundred binaries that mostly sit waiting on Qt
+## timers: instrumented, that was ten and a half minutes of the scan job,
+## most of them tests finishing one after another, while ci.yml's `test`
+## job runs the same tests under nextest in about two, and the whole of
+## ci.yml in under five. `cargo llvm-cov nextest` is the same
+## instrumented build under nextest's scheduler, and
+## rust/.config/nextest.toml applies to it as it does to `test`. Without
+## nextest the report is still written, the slow way.
+##
+## No `cargo test --doc` beside it, unlike `test`: cargo-llvm-cov leaves
+## doctests out on either runner (instrumenting them needs nightly), and
+## this target measures rather than gates. `test` is what runs them.
 ##
 ## Clippy findings are deliberately NOT handed over. `make lint` runs clippy
 ## with `-D warnings`, so a warning in this project's own code fails the gate
@@ -150,6 +172,7 @@ apt-install-test:
 ## Needs cargo-llvm-cov, so it is opt-in rather than part of `check`:
 ##   rustup component add llvm-tools-preview
 ##   cargo install --locked cargo-llvm-cov
+##   cargo install --locked cargo-nextest    (optional; serial without it)
 sonar-reports:
 	@echo "== coverage for SonarQube Cloud =="
 	@command -v cargo-llvm-cov >/dev/null 2>&1 || { \
@@ -158,12 +181,15 @@ sonar-reports:
 		echo "    cargo install --locked cargo-llvm-cov" >&2; \
 		exit 1; \
 	}
+	@command -v cargo-nextest >/dev/null 2>&1 || \
+		echo "sonar-reports: cargo-nextest is not installed; running the slow way \
+(cargo install --locked cargo-nextest)"
 	@mkdir -p rust/target/sonar
-	# third_party/ and vendor/ are excluded for the reason given in
-	# sonar-project.properties: upstream's code, not ours to cover.
-	cd rust && $(CARGO) llvm-cov --workspace \
-		--ignore-filename-regex '(^|/)(third_party|vendor)/' \
-		--lcov --output-path target/sonar/lcov.info
+	@if command -v cargo-nextest >/dev/null 2>&1; then \
+		cd rust && $(CARGO) llvm-cov nextest $(SONAR_COV_ARGS); \
+	else \
+		cd rust && $(CARGO) llvm-cov $(SONAR_COV_ARGS); \
+	fi
 	@echo "== wrote rust/target/sonar/lcov.info =="
 
 ## The tests that drive the real core, offline. Needs `make fetch-server`.

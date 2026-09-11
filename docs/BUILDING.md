@@ -136,11 +136,15 @@ sonar-reports` writes `rust/target/sonar/lcov.info` with `cargo llvm-cov`
 over the whole workspace, and the workflow runs it before the scan. Without
 it the reading is a confident 0.0% rather than "no data", which is what it
 read for as long as nothing wrote a report. The target needs
-`cargo-llvm-cov`, so it is opt-in rather than part of `make check`:
+`cargo-llvm-cov`, so it is opt-in rather than part of `make check`. It runs
+the suite under `cargo-nextest` when that is installed too, for the reason
+`make test` does: cargo-llvm-cov's own runner is `cargo test`, one binary
+at a time, and instrumented that was ten minutes of the scan job. Without
+nextest the report is still written, the slow way.
 
 ```
 rustup component add llvm-tools-preview
-cargo install --locked cargo-llvm-cov
+cargo install --locked cargo-llvm-cov cargo-nextest
 make sonar-reports
 ```
 

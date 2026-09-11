@@ -82,14 +82,19 @@ jobs:
         with:
           workspaces: rust
 
-      - name: Install cargo-llvm-cov
+      # nextest beside it, for the reason ci.yml's `test` job has it: the
+      # Makefile runs the coverage suite under nextest when it finds one
+      # and falls back to `cargo test` -- one binary at a time, over a
+      # hundred of them, each waiting on Qt timers -- when it does not.
+      # That fallback is what the step below took ten minutes on.
+      - name: Install cargo-llvm-cov and cargo-nextest
         uses: taiki-e/install-action@fa23953489c080190314742a9b907f8e97c6767c # v2.87.10
         with:
-          tool: cargo-llvm-cov
+          tool: cargo-llvm-cov,cargo-nextest
 
-      # The scanner imports coverage and clippy findings; it measures
-      # neither. Without this step there is no report to import and the
-      # coverage reading is a confident 0.0%.
+      # The scanner imports coverage; it does not measure it. Without this
+      # step there is no report to import and the coverage reading is a
+      # confident 0.0%.
       - name: make sonar-reports
         run: make sonar-reports
 

@@ -287,11 +287,9 @@ history of its own subject.
 ## Packaging: the supported path
 
 `.github/workflows/rpm.yml` builds a device RPM unattended on an
-`ubuntu-latest` runner, from a `docker run` of
-`coderus/sailfishos-platform-sdk`. Dispatch it from the Actions tab (arch
-and SDK version are inputs) or push a `v*` tag. A runner reaches the Jolla
-repositories, so `mb2` zypper-installs `rust`, `cargo` and `rust-std-static`
-into the target itself.
+`ubuntu-latest` runner, from a `docker run` of the Sailfish SDK. Dispatch
+it from the Actions tab (architecture, SDK version and cargo's job count
+are inputs) or push a `v*` tag, which builds both architectures at once.
 
 ```sh
 ./scripts/fetch-rpc-server.sh                        # bundled server binaries
@@ -318,6 +316,8 @@ Environment requirements, each of which cost an attempt:
 - **The i686 rustlib at the SDK's own `/usr/lib/rustlib`.** `mb2` installs
   rust into the *target*, but build-script links run in sb2's host mode
   where `/usr` maps to the SDK filesystem. Copy it from the tooling.
+  `ci/build-sdk-image.sh` does this once, into the image, so a build no
+  longer carries it; a build against upstream's image still has to.
 - **Not root.** `sdk-manage` refuses ("Cannot determine Mer SDK user") and
   the target snapshot never initialises. Chown the checkout to the
   container's `mersdk` uid — read it from the image, don't assume it — and
@@ -325,13 +325,68 @@ Environment requirements, each of which cost an attempt:
 
 `scripts/build-rpm.sh` wraps the ordinary developer path, `sfdk build`.
 
+## What a device build costs
+
+Seven and a half minutes, once, measured across eighty-nine runs of
+`rpm.yml` and the one job log that could still be read in full. Where it
+went, and what each part is now:
+
+| Phase | Was | Now |
+|---|---|---|
+| Pull the SDK image | 2.5-3.1 min | about 1.2 min |
+| `build-init`, and zypper installing 17 packages | about 0.5 min | seconds |
+| cargo, cross-compiling 56 crates | about 3.8 min | about 1 min warm |
+| install, rpmbuild, upload, validate | about 0.7 min | unchanged |
+
+Three changes, in the order they pay:
+
+**The SDK image is derived, not upstream's.** `ci/build-sdk-image.sh` takes
+`coderus/sailfishos-platform-sdk` by digest and produces an image with one
+architecture instead of three, this package's `BuildRequires` already
+installed in the target, and the i686 rustlib already at
+`/usr/lib/rustlib`. 5.04 GB of pull becomes about 2.3 GB, and `zypper`
+leaves the build's critical path. `sdk-image.yml` publishes it to the
+repository's registry; `rpm.yml` derives and publishes one itself when it
+finds none, so nothing has to be done by hand when an SDK version is added.
+Adding one is a pinned digest in `ci/build-sdk-image.sh` and a dispatch.
+
+**`rust/target` and the crates are carried between runs.** Keyed on the
+lockfile and the image, because they are artifacts for one target triple
+built by the rust that image ships. Of the 56 crates, 52 come from the
+lockfile and change only when it does; the four this project writes are
+rebuilt every time and are most of what a warm build spends. A fresh
+`actions/checkout` gives every file a new mtime and does *not* defeat this:
+cargo fingerprints registry crates by their content, and only the path
+crates -- the three workspace members and the vendored qmetaobject --
+rebuild.
+
+**Both architectures build at once**, as a matrix, so a release is one run
+rather than two dispatches.
+
+`cargo_jobs` is the fourth, and the one with a history: see the job count
+under "Spec constraints" below.
+
 ## Spec constraints
 
 Landmines encoded in `rpm/harbour-postivene.spec`, each found the hard way:
 
-- **`-j1` for cargo under sb2.** At `-j4` cargo reproducibly futex-waits
-  forever on an unreaped child while qmetaobject's C++ glue compiles. The
-  spec forces `-j1` whenever `SBOX_SESSION_DIR` is set.
+- **The cargo job count under sb2 is a define, defaulting to 1.** At `-j4`
+  cargo was seen to futex-wait forever on an unreaped child while
+  qmetaobject's C++ glue compiled, and `%{jobs}` exists so that is a
+  setting rather than a rediscovery: `mb2 build --define "jobs N"`, which
+  is what `rpm.yml`'s `cargo_jobs` input passes. It applies only inside
+  sb2; a native OBS worker lets cargo pick. The same spec also keeps the
+  build's temporaries in the build directory, because a parallel link
+  through the shared `/tmp` under sb2 can lose an object file it has just
+  written -- Whisperfish's spec does the same.
+
+  What it is worth, measured on four cores against the same crate graph
+  and the same rustc 1.75 the SDK ships: a cold build takes 144 s at `-j1`
+  and 39 s at `-j4`; the everyday case, one file changed in the shim,
+  takes 72 s at `-j1`, 41 s at `-j2` and 27 s at `-j4`. CPU time is equal
+  to wall time at `-j1`, which is the point: cargo hands rustc its
+  codegen threads from the same jobserver, so one job is one thread
+  through the whole build.
 - **No `--target` for cargo.** Jolla's cargo pins build scripts to the
   tooling's host triple; `--target` on top makes cargo treat the whole build
   as a cross build. `SB2_RUST_TARGET_TRIPLE` already tells the accelerated

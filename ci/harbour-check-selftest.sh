@@ -227,6 +227,35 @@ validate_rpm fail "a validation log that was cut off before the verdict" \
 'ERROR|/usr/bin/harbour-postivene|something
 '
 
+# The runner's Node parent ignores SIGPIPE and every child inherits it, so
+# a validator pipeline whose reader stops early reports each write instead
+# of dying: 4945 such lines buried one real run's verdict. The wrapper
+# resets the disposition before running the validator, and hides whatever
+# still gets through -- so a log full of it is still judged on its markers.
+validate_rpm pass "a log buried in broken-pipe noise" \
+"!BEGIN!x
+$(for _ in $(seq 1 50); do
+    echo '/tmp/harbour-validator/rpmvalidation.sh: line 773: echo: write error: Broken pipe'
+done)
+WARNING|/usr/bin/harbour-postivene|file is not stripped!
+!END!PASS!x
+"
+
+# And the noise does not reach the reader, whichever way it got into the
+# log: the whole point is a verdict someone can find.
+cases=$((cases + 1))
+noise_log="$work/noisy.log"
+printf '%s\n' \
+    'sh: line 773: echo: write error: Broken pipe' \
+    '!BEGIN!x' '!END!PASS!x' > "$noise_log"
+noise_out=$("$pristine/ci/harbour-validate-rpm.sh" --log "$noise_log" 2>&1)
+if grep -q 'Broken pipe' <<< "$noise_out"; then
+    echo "selftest: FAIL the wrapper echoed the validator's broken-pipe noise" >&2
+    status=1
+else
+    echo "selftest: ok   broken-pipe noise -> not echoed"
+fi
+
 # The waiver file has to stay honest in both directions: an entry that
 # stops matching is as much a defect as a missing check.
 cases=$((cases + 1))

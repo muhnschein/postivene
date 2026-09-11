@@ -30,6 +30,32 @@ usage() {
     exit 2
 }
 
+# Run a command with SIGPIPE handled the way a terminal would handle it.
+#
+# GitHub starts a job step from a Node process, which ignores SIGPIPE, and
+# an ignored disposition survives exec -- so inside the validator every
+# write into a pipe whose reader has already gone returns EPIPE instead of
+# killing the writer, and bash reports it. One `readelf | c++filt | while
+# read` feeding a reader that stops early printed 4945 lines of "echo:
+# write error: Broken pipe" into the last run's log, which is most of what
+# the job recorded and enough to push the verdict past what the logs API
+# will return. bash cannot undo an inherited ignore -- `trap - PIPE` does
+# not, POSIX keeps SIG_IGN across exec -- so the reset has to happen in a
+# process that execs the validator afterwards.
+sigpipe_default() {
+    if command -v python3 >/dev/null 2>&1; then
+        python3 -c 'import os, signal, sys
+signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+os.execvp(sys.argv[1], sys.argv[1:])' "$@"
+    elif command -v perl >/dev/null 2>&1; then
+        perl -e '$SIG{PIPE} = "DEFAULT"; exec { $ARGV[0] } @ARGV or die "$!\n"' "$@"
+    else
+        echo "harbour-rpm: note: no python3 or perl to reset SIGPIPE with;" \
+             "the validator's log may carry broken-pipe noise" >&2
+        "$@"
+    fi
+}
+
 log=""
 rpm=""
 case "${1:-}" in
@@ -79,12 +105,21 @@ if [[ -n "$rpm" ]]; then
     # BATCHERBATCHERBATCHER makes it emit `KIND|subject|message` without
     # colour. It exits non-zero for warnings too, so the markers decide,
     # not the status.
-    BATCHERBATCHERBATCHER=1 "$validator/rpmvalidation.sh" \
+    BATCHERBATCHERBATCHER=1 sigpipe_default "$validator/rpmvalidation.sh" \
         -g "$validator" "$rpm" > "$log" 2>&1 || true
-    cat "$log"
 fi
 
 [[ -f "$log" ]] || { echo "harbour-rpm: FAIL no validation log: $log" >&2; exit 1; }
+
+# Shown without any broken-pipe noise the reset did not catch, and counted
+# rather than dropped silently, so a reset that stops working says so
+# instead of quietly costing the log again.
+noise=$(grep -c 'write error: Broken pipe' "$log" || true)
+if [[ "$noise" -gt 0 ]]; then
+    echo "harbour-rpm: note: hid $noise broken-pipe line(s) from the" \
+         "validator; SIGPIPE was ignored by whatever started this"
+fi
+grep -v 'write error: Broken pipe' "$log" || true
 
 if ! grep -q '^!END!' "$log"; then
     echo "harbour-rpm: FAIL the validator produced no verdict" >&2

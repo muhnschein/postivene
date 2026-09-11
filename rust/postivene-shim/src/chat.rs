@@ -936,7 +936,7 @@ impl ChatMessages {
             let incoming = u32::try_from(landed.iter().filter(|item| !item.is_outgoing).count())
                 .unwrap_or(u32::MAX);
             if looking {
-                this.borrow().mark_items_seen(landed);
+                this.borrow().mark_items_seen(&landed);
             }
             if incoming > 0 {
                 this.borrow().arrived(incoming);
@@ -1008,28 +1008,53 @@ impl ChatMessages {
         if account_id == 0 {
             return;
         }
-        let items: Vec<MessageListItem> = self.rows.borrow().iter().cloned().collect();
-        let Some((rpc, runtime)) = connection() else {
-            return;
-        };
-        runtime.spawn(async move {
-            mark_seen(&rpc, account_id, &items).await;
-        });
-    }
-
-    /// Send read receipts for these rows, whichever of them are unread and
-    /// incoming. Takes what to mark rather than reading the model, so a
-    /// sync marks what it just added instead of the whole chat again.
-    fn mark_items_seen(&self, items: Vec<MessageListItem>) {
-        let account_id = self.account_id;
-        if account_id == 0 || items.is_empty() {
+        let unseen = self.unseen_ids();
+        if unseen.is_empty() {
             return;
         }
         let Some((rpc, runtime)) = connection() else {
             return;
         };
         runtime.spawn(async move {
-            mark_seen(&rpc, account_id, &items).await;
+            mark_seen(&rpc, account_id, unseen).await;
+        });
+    }
+
+    /// The incoming messages among the rows that the account has not read
+    /// yet: what a read receipt is owed for.
+    ///
+    /// Read off the rows where they stand rather than cloned out of them.
+    /// The rows are the whole chat, and copying ten thousand of them to
+    /// find the handful that are unread was done every time the page came
+    /// to the front and every time the reader reached the end -- on the
+    /// Qt thread, while the page was still sliding in.
+    fn unseen_ids(&self) -> Vec<u32> {
+        self.rows
+            .borrow()
+            .iter()
+            .filter(|item| is_unseen(item))
+            .map(|item| item.message_id)
+            .collect()
+    }
+
+    /// Send read receipts for these rows, whichever of them are unread and
+    /// incoming. Takes what to mark rather than reading the model, so a
+    /// sync marks what it just added instead of the whole chat again.
+    fn mark_items_seen(&self, items: &[MessageListItem]) {
+        let account_id = self.account_id;
+        let unseen: Vec<u32> = items
+            .iter()
+            .filter(|item| is_unseen(item))
+            .map(|item| item.message_id)
+            .collect();
+        if account_id == 0 || unseen.is_empty() {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            return;
+        };
+        runtime.spawn(async move {
+            mark_seen(&rpc, account_id, unseen).await;
         });
     }
 
@@ -1062,7 +1087,7 @@ impl ChatMessages {
         if account_id == 0 || chat_id == 0 {
             return;
         }
-        let items: Vec<MessageListItem> = self.rows.borrow().iter().cloned().collect();
+        let unseen = self.unseen_ids();
         let Some((rpc, runtime)) = connection() else {
             return;
         };
@@ -1070,7 +1095,7 @@ impl ChatMessages {
             let _ = rpc
                 .call::<_, ()>("marknoticed_chat", (account_id, chat_id))
                 .await;
-            mark_seen(&rpc, account_id, &items).await;
+            mark_seen(&rpc, account_id, unseen).await;
         });
     }
 
@@ -1689,15 +1714,15 @@ async fn with_webxdc(rpc: &RpcClient, account_id: u32, row: &mut MessageListItem
     row.webxdc_icon = extras.icon_path.into();
 }
 
-/// Mark the incoming messages among these read: clears their fresh state
-/// here and on the other devices, and sends the read receipt the sender
-/// asked for. `marknoticed_chat` alone does neither.
-async fn mark_seen(rpc: &RpcClient, account_id: u32, items: &[MessageListItem]) {
-    let unseen: Vec<u32> = items
-        .iter()
-        .filter(|item| !item.is_outgoing && UNSEEN_STATES.contains(&item.state))
-        .map(|item| item.message_id)
-        .collect();
+/// Whether a row is an incoming message the account has not read.
+fn is_unseen(item: &MessageListItem) -> bool {
+    !item.is_outgoing && UNSEEN_STATES.contains(&item.state)
+}
+
+/// Mark these messages read: clears their fresh state here and on the
+/// other devices, and sends the read receipt the sender asked for.
+/// `marknoticed_chat` alone does neither.
+async fn mark_seen(rpc: &RpcClient, account_id: u32, unseen: Vec<u32>) {
     if unseen.is_empty() {
         return;
     }

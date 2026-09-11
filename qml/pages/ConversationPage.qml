@@ -104,10 +104,11 @@ Page {
         }
     }
 
-    // A page pushed over this one takes the list's place in it with them:
-    // it is torn down far enough to forget where it was, and comes back at
-    // the top of whatever is loaded. Opening a picture full screen and
-    // coming back is the way most readers meet that.
+    // The list's place is remembered as a page goes over this one, held
+    // while it is away, and put back -- to the pixel, so that a view
+    // nothing has moved does not move -- when this one is active again.
+    // Opening a picture full screen and coming back is the way most
+    // readers meet that.
     onStatusChanged: {
         if (page.status === PageStatus.Deactivating) {
             listView.rememberPlace()

@@ -329,11 +329,30 @@ SilicaListView {
     /// the beginning of the chat lands on, and both were reported landing
     /// at the top of whatever had just loaded instead.
     function holdAt(index) {
+        root.hold(index, false, 0)
+    }
+
+    /// Keep a row where it is: its top `offset` below the top of the view,
+    /// rather than in the centre.
+    ///
+    /// What coming back to the page holds. A reader stops wherever their
+    /// thumb leaves the list, which is never a row's centre, so holding
+    /// the row they left on *at* the centre moved the view by however far
+    /// it was from there -- the small jump, up or down by the row, at the
+    /// end of every swipe back, once the rest of the return was smooth
+    /// enough for it to show.
+    function holdPlace(index, offset) {
+        root.hold(index, true, offset)
+    }
+
+    function hold(index, placed, offset) {
         if (index < 0) {
             return
         }
         root.stickToBottom = false
         root.pendingRow = index
+        root.pendingPlaced = placed
+        root.pendingOffset = offset
         root.putBack()
         holdDeadline.restart()
     }
@@ -348,6 +367,10 @@ SilicaListView {
 
     /// The row a jump is holding the view on, or -1.
     property int pendingRow: -1
+    /// Where it is held: its top `pendingOffset` below the top of the view
+    /// when `pendingPlaced`, in the centre of the view otherwise.
+    property bool pendingPlaced: false
+    property real pendingOffset: 0
     /// True while `putBack` is running, so the view moving because this
     /// moved it does not read as one more reason to move it.
     property bool restoring: false
@@ -357,13 +380,56 @@ SilicaListView {
             return
         }
         root.restoring = true
-        // The first row has nothing above it to be centred against, and
-        // asking for its centre relies on the view clamping. Beginning is
-        // what "the top" means.
-        root.positionViewAtIndex(
-            root.pendingRow,
-            root.pendingRow === 0 ? ListView.Beginning : ListView.Center)
+        if (root.pendingPlaced) {
+            root.placeRow(root.pendingRow, root.pendingOffset)
+        } else {
+            // The first row has nothing above it to be centred against,
+            // and asking for its centre relies on the view clamping.
+            // Beginning is what "the top" means.
+            root.positionViewAtIndex(
+                root.pendingRow,
+                root.pendingRow === 0 ? ListView.Beginning : ListView.Center)
+        }
         root.restoring = false
+    }
+
+    /// Put row `index` with its top `offset` below the top of the view.
+    ///
+    /// Nothing moves if that is where it already is. `positionViewAtIndex`
+    /// cannot promise that -- it knows the top, the centre and the end of
+    /// the view, none of which is where the reader stopped -- so the row
+    /// is looked for on screen first, brought on only if it is not there,
+    /// and the view then moved by exactly the difference, which is nothing
+    /// for a view nothing has moved.
+    function placeRow(index, offset) {
+        var item = root.itemOf(index)
+        if (!item) {
+            root.positionViewAtIndex(index, ListView.Beginning)
+            item = root.itemOf(index)
+        }
+        if (item) {
+            root.contentY = root.withinContent(item.y - offset)
+        }
+    }
+
+    /// The item drawing row `index`, if the row is on screen.
+    ///
+    /// Walked the way `askForRows` walks the view: `itemAt` answers only
+    /// for a point inside a row, and lands on nothing between two.
+    function itemOf(index) {
+        for (var y = 0; y < root.height; y += Theme.paddingLarge) {
+            if (root.indexAt(root.width / 2, root.contentY + y) === index) {
+                return root.itemAt(root.width / 2, root.contentY + y)
+            }
+        }
+        return undefined
+    }
+
+    /// `y`, kept between the ends of the content as a drag would keep it.
+    function withinContent(y) {
+        var top = root.originY
+        var bottom = Math.max(top, root.contentHeight + root.originY - root.height)
+        return Math.min(Math.max(y, top), bottom)
     }
 
     // A held row is let go of when the reader takes the view over, and
@@ -380,28 +446,19 @@ SilicaListView {
         onTriggered: root.releaseRow()
     }
 
-    /// The first row at or below `y` in the view.
-    ///
-    /// `indexAt` lands on nothing between rows or over a day separator, so
-    /// a single probe answers -1 about half the time.
-    function rowNear(y) {
-        for (var offset = 0; y + offset < root.height; offset += Theme.paddingLarge) {
-            var index = root.indexAt(root.width / 2, root.contentY + y + offset)
-            if (index >= 0) {
-                return index
-            }
-        }
-        return -1
-    }
-
     /// Where the reader is, before another page goes over this one.
     ///
-    /// A conversation with a picture opened over it came back with its view
-    /// at the top of the loaded messages: the list is torn down far enough
-    /// to forget where it was, and what it forgets it replaces with the
-    /// beginning. Remembered as a row rather than as a pixel offset, for
-    /// the same reason a step back through the history is.
+    /// A conversation with a picture opened over it once came back with
+    /// its view at the top of the loaded messages: every row collapsed
+    /// under the covering page and the list lost its place. The rows keep
+    /// their height under a page now, but a list that loses its place for
+    /// any other reason -- a reload, a row gone -- still comes back here.
+    /// Remembered as a row and where its top was, from the top of the
+    /// view: a row rather than a pixel, for the same reason a step back
+    /// through the history is, and the offset so that going back to it
+    /// is going back to the pixel.
     property int rememberedRow: -1
+    property real rememberedOffset: 0
     property bool rememberedFollowing: false
     /// True between the page going away and coming back, during which the
     /// row is held with no deadline: a reader can look at a picture for as
@@ -410,19 +467,33 @@ SilicaListView {
 
     function rememberPlace() {
         root.rememberedFollowing = root.stickToBottom
-        root.rememberedRow = root.rowNear(root.height / 2)
+        root.rememberedRow = -1
+        root.rememberedOffset = 0
+        // The first row at or below the middle of the view. `indexAt`
+        // lands on nothing between rows or over a day separator, so a
+        // single probe answers -1 about half the time.
+        for (var y = root.height / 2; y < root.height; y += Theme.paddingLarge) {
+            var index = root.indexAt(root.width / 2, root.contentY + y)
+            if (index >= 0) {
+                root.rememberedRow = index
+                root.rememberedOffset =
+                    root.itemAt(root.width / 2, root.contentY + y).y - root.contentY
+                break
+            }
+        }
         // Armed, not merely written down. Putting the view back when the
-        // page returns is too late: the list is reset while the page is
-        // away, and a frame showing the top of the chat is painted before
-        // anything gets round to correcting it -- which is the flash of
-        // the oldest messages, followed by being yanked back, that this
-        // had left behind. Armed, the reset is undone in the same turn it
-        // happens and no wrong frame is ever drawn. A view that was
-        // following is armed too, and goes back to the end rather than
-        // to a row.
+        // page returns is too late: a list that loses its place while the
+        // page is away paints a frame of the top of the chat before
+        // anything gets round to correcting it -- the flash of the oldest
+        // messages, followed by being yanked back. Armed, the loss is
+        // undone in the same turn it happens and no wrong frame is ever
+        // drawn. A view that was following is armed too, and goes back
+        // to the end rather than to a row; see `onContentYChanged`.
         root.away = true
         if (root.rememberedRow >= 0 && !root.rememberedFollowing) {
             root.pendingRow = root.rememberedRow
+            root.pendingPlaced = true
+            root.pendingOffset = root.rememberedOffset
             holdDeadline.stop()
         }
     }
@@ -433,11 +504,17 @@ SilicaListView {
         // the deadline applies again.
         root.away = false
         if (root.rememberedFollowing) {
-            root.jumpToNewest()
+            // Nothing to put back. A view following the newest message
+            // was kept at the end while away -- by the arming above for a
+            // list that lost its place, by `toEnd` for each arrival --
+            // and sending it to the end once more moved a reader who had
+            // stopped a line short of it, following but not at the very
+            // end, on every return.
+            root.releaseRow()
         } else if (root.rememberedRow >= 0) {
             // Held again rather than merely positioned: coming back is a
             // relayout like any other, and the rows settle after it.
-            root.holdAt(root.rememberedRow)
+            root.holdPlace(root.rememberedRow, root.rememberedOffset)
         } else {
             root.releaseRow()
         }

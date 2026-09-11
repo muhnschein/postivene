@@ -288,8 +288,9 @@ history of its own subject.
 
 `.github/workflows/rpm.yml` builds a device RPM unattended on an
 `ubuntu-latest` runner, from a `docker run` of the Sailfish SDK. Dispatch
-it from the Actions tab (architecture, SDK version and cargo's job count
-are inputs) or push a `v*` tag, which builds both architectures at once.
+it from the Actions tab (the SDK version and cargo's job count are inputs)
+or push a `v*` tag. It builds **aarch64**, which is the only architecture
+this project targets and the only one it has ever built.
 
 ```sh
 ./scripts/fetch-rpc-server.sh                        # bundled server binaries
@@ -338,7 +339,7 @@ are runs 98 and 99, both against a published SDK image and a warm cache.
 | Validate against Harbour | 12 s | 10 s | 10 s |
 | **The whole run** | **437 s** | **284 s** | **190 s** |
 
-Four changes, in the order they pay:
+Three changes, in the order they pay:
 
 **The SDK image is derived, not upstream's.** `ci/build-sdk-image.sh` takes
 `coderus/sailfishos-platform-sdk` by digest and produces an image with one
@@ -373,14 +374,11 @@ and 12 MB.
 See the job count under "Spec constraints" below for what that setting is
 and why it was one for so long.
 
-**Both architectures build at once**, as a matrix, so a release is one run
-rather than two dispatches.
-
 ## Spec constraints
 
 Landmines encoded in `rpm/harbour-postivene.spec`, each found the hard way:
 
-- **The cargo job count under sb2 is a define, defaulting to 1.** At `-j4`
+- **The cargo job count under sb2 is a define.** At `-j4`
   cargo was seen to futex-wait forever on an unreaped child while
   qmetaobject's C++ glue compiled, and `%{jobs}` exists so that is a
   setting rather than a rediscovery: `mb2 build --define "jobs N"`, which
@@ -390,13 +388,17 @@ Landmines encoded in `rpm/harbour-postivene.spec`, each found the hard way:
   through the shared `/tmp` under sb2 can lose an object file it has just
   written -- Whisperfish's spec does the same.
 
-  What it is worth, measured on four cores against the same crate graph
-  and the same rustc 1.75 the SDK ships: a cold build takes 144 s at `-j1`
-  and 39 s at `-j4`; the everyday case, one file changed in the shim,
-  takes 72 s at `-j1`, 41 s at `-j2` and 27 s at `-j4`. CPU time is equal
-  to wall time at `-j1`, which is the point: cargo hands rustc its
-  codegen threads from the same jobserver, so one job is one thread
-  through the whole build.
+  It defaults to **4**, which device builds have run green on the 5.2 SDK
+  (runs 99 and 100) and which takes the `Build the RPM` step from 142 s to
+  82 s. If one ever hangs there again, `--define "jobs 1"` is the way
+  back, and that is the whole reason the number is a setting.
+
+  Why it is worth so much: CPU time equals wall time at `-j1`, because
+  cargo hands rustc its codegen threads from the same jobserver, so one
+  job is one thread through the entire build. On a host, against the same
+  crate graph and the same rustc 1.75 the SDK ships, a cold build takes
+  144 s at `-j1` and 39 s at `-j4`; one file changed in the shim takes
+  72 s at `-j1`, 41 s at `-j2` and 27 s at `-j4`.
 - **No `--target` for cargo.** Jolla's cargo pins build scripts to the
   tooling's host triple; `--target` on top makes cargo treat the whole build
   as a cross build. `SB2_RUST_TARGET_TRIPLE` already tells the accelerated

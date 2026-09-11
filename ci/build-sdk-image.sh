@@ -31,9 +31,12 @@ root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 
 [[ $sfos =~ ^[0-9]+(\.[0-9]+){3}$ ]] ||
     { echo "build-sdk-image: '$sfos' is not a dotted SDK version" >&2; exit 1; }
+# aarch64 and nothing else: this project targets the Jolla Phone 2026 and
+# no other device (see the README), and the workflows have never built a
+# second architecture. Adding one is this list and a dispatch.
 case "$arch" in
-    aarch64 | armv7hl) ;;
-    *) echo "build-sdk-image: unknown arch '$arch'" >&2; exit 1 ;;
+    aarch64) ;;
+    *) echo "build-sdk-image: this project builds aarch64, not '$arch'" >&2; exit 1 ;;
 esac
 
 # By digest, not tag. The SDK image is a third party's, it is run

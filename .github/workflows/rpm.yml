@@ -9,20 +9,19 @@
 # against the target's Qt 5.6 and glibc, and a host-built binary has
 # neither. See docs/BUILDING.md.
 #
-# Three things keep it short, each explained where it happens: the SDK
-# image is one this repository derives and publishes rather than upstream's
-# three-architecture one (`sdk-image.yml`), `rust/target` and the crates
-# are carried between runs, and the two architectures build at once.
+# aarch64 only, which is what this project targets (see the README): the
+# SDK image below carries that architecture and no other, and nothing here
+# has ever built a second one.
+#
+# Two things keep it short, each explained where it happens: the SDK image
+# is one this repository derives and publishes rather than upstream's
+# three-architecture one (`sdk-image.yml`), and `rust/target` and the
+# crates are carried between runs.
 name: rpm
 
 on:
   workflow_dispatch:
     inputs:
-      arch:
-        description: Device architecture, or both
-        type: choice
-        options: [aarch64, armv7hl, both]
-        default: aarch64
       sfos_version:
         description: >
           Sailfish SDK version to build against. 5.2 is the Jolla Phone's
@@ -34,12 +33,13 @@ on:
         default: "5.2.0.15"
       cargo_jobs:
         description: >
-          How many cargo jobs inside scratchbox2. The spec defaults to one,
-          because a parallel cargo was once seen to deadlock there;
-          docs/BUILDING.md records what each setting has measured since.
+          How many cargo jobs inside scratchbox2. Four is the spec's
+          default and what these builds run; drop to one if a build ever
+          hangs there, which is what the setting is for. See
+          docs/BUILDING.md.
         type: choice
-        options: ["1", "2", "4"]
-        default: "1"
+        options: ["4", "2", "1"]
+        default: "4"
   push:
     # `v*` for a release. `build-*` is a throwaway handle for running this
     # before it reaches the default branch, since workflow_dispatch only
@@ -56,19 +56,10 @@ jobs:
   rpm:
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    strategy:
-      # One architecture failing is no reason to abandon the other's
-      # package.
-      fail-fast: false
-      matrix:
-        # A tag builds both; a dispatch builds what it asked for.
-        # `cond && value || other` is the only conditional an expression
-        # has, so this reads as a chain: aarch64, else armv7hl, else both.
-        arch: ${{ fromJSON(inputs.arch == 'aarch64' && '["aarch64"]' || (inputs.arch == 'armv7hl' && '["armv7hl"]' || '["aarch64","armv7hl"]')) }}
     env:
-      ARCH: ${{ matrix.arch }}
+      ARCH: aarch64
       SFOS: ${{ inputs.sfos_version || '5.2.0.15' }}
-      CARGO_JOBS: ${{ inputs.cargo_jobs || '1' }}
+      CARGO_JOBS: ${{ inputs.cargo_jobs || '4' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 

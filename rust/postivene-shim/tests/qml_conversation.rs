@@ -208,19 +208,27 @@ fn a_message_shows_its_sender_time_quote_and_attachment() {
     single_shot(Duration::from_secs(8), move || unsafe {
         record!("plain-not-forwarded", get!("forwardedLabel", "visible"));
         // Markdown, as the setting wants it: the shim's rendering drawn
-        // as StyledText, its words alone, or the message as written.
+        // as StyledText, or the message as written. Anything but 0 is
+        // as written -- the 2 an older build stored included.
         set!("messageText", QString::from("**bold** words"));
         set!("styledText", QString::from("<b>bold</b> words"));
-        set!("plainText", QString::from("bold words"));
         set!("markdownMode", 0);
         record!("drawn-text", get!("messageLabel", "text"));
         record!("drawn-format", get!("messageLabel", "textFormat"));
         set!("markdownMode", 1);
-        record!("stripped-text", get!("messageLabel", "text"));
-        record!("stripped-format", get!("messageLabel", "textFormat"));
-        set!("markdownMode", 2);
         record!("written-text", get!("messageLabel", "text"));
         record!("written-format", get!("messageLabel", "textFormat"));
+        set!("markdownMode", 2);
+        record!("stale-text", get!("messageLabel", "text"));
+        record!("stale-format", get!("messageLabel", "textFormat"));
+        // A message whose text the sender changed afterwards says so in
+        // its footer, and the bubble widens to hold the word.
+        record!("footer-plain", get!("footerLabel", "text"));
+        set!("isEdited", true);
+        record!("footer-edited", get!("footerLabel", "text"));
+        record!("footer-width", get!("footerLabel", "width"));
+        record!("footer-wanted", get!("footerLabel", "implicitWidth"));
+        set!("isEdited", false);
         // Drawn, but with nothing rendered to draw: never the raw text as
         // StyledText, which is the case the plain-text pinning exists for.
         set!("markdownMode", 0);
@@ -263,19 +271,33 @@ fn assert_markdown_and_download(steps: &[(&str, String)]) {
     );
     assert_eq!(
         (
-            value("stripped-text").as_str(),
-            value("stripped-format").as_str()
-        ),
-        ("bold words", "0"),
-        "with Markdown taken out, the body is not the words as plain text. {context}"
-    );
-    assert_eq!(
-        (
             value("written-text").as_str(),
             value("written-format").as_str()
         ),
         ("**bold** words", "0"),
         "with Markdown off, the body is not the message as written. {context}"
+    );
+    assert_eq!(
+        (value("stale-text").as_str(), value("stale-format").as_str()),
+        ("**bold** words", "0"),
+        "the value an older build stored for 'as written' no longer reads as \
+         written. {context}"
+    );
+    assert!(
+        !value("footer-plain").contains("Edited"),
+        "a message nobody changed says it was edited. {context}"
+    );
+    assert!(
+        value("footer-edited").starts_with("Edited"),
+        "an edited message does not say so in its footer, got {:?}. {context}",
+        value("footer-edited")
+    );
+    let footer_width: f64 = value("footer-width").parse().unwrap_or(0.0);
+    let footer_wanted: f64 = value("footer-wanted").parse().unwrap_or(f64::MAX);
+    assert!(
+        footer_width >= footer_wanted,
+        "the bubble did not widen for the footer, which now hangs out of it: \
+         {footer_width} wide for {footer_wanted}. {context}"
     );
     assert_eq!(
         (

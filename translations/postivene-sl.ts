@@ -72,6 +72,48 @@
     </message>
 </context>
 <context>
+    <name>AutoDeleteDialog</name>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Briši sporočila z naprave</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Izbriši</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Prekliči</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n message(s) will be deleted now, and from then on every message will be once it is that old.</source>
+        <extracomment>%n is how many messages would be deleted straight away.</extracomment>
+        <translation>
+            <numerusform>%n sporočilo bo izbrisano zdaj, od takrat naprej pa vsako sporočilo, takoj ko bo tako staro.</numerusform>
+            <numerusform>%n sporočili bosta izbrisani zdaj, od takrat naprej pa vsako sporočilo, takoj ko bo tako staro.</numerusform>
+            <numerusform>%n sporočila bodo izbrisana zdaj, od takrat naprej pa vsako sporočilo, takoj ko bo tako staro.</numerusform>
+            <numerusform>%n sporočil bo izbrisanih zdaj, od takrat naprej pa vsako sporočilo, takoj ko bo tako staro.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>This includes pictures, videos and files.</source>
+        <translation>To vključuje slike, videoposnetke in datoteke.</translation>
+    </message>
+    <message>
+        <source>Messages are deleted whether they were read or not.</source>
+        <translation>Sporočila se izbrišejo, ne glede na to, ali so bila prebrana.</translation>
+    </message>
+    <message>
+        <source>&quot;Saved messages&quot; are kept.</source>
+        <extracomment>&quot;Saved messages&quot; is the name of the chat with oneself.</extracomment>
+        <translation>»Shranjena sporočila« ostanejo.</translation>
+    </message>
+    <message>
+        <source>I understand, delete all these messages</source>
+        <translation>Razumem, izbriši vsa ta sporočila</translation>
+    </message>
+</context>
+<context>
     <name>CapturePage</name>
     <message>
         <source>The video could not be saved</source>
@@ -283,6 +325,10 @@
     <message>
         <source>Save</source>
         <translation>Shrani</translation>
+    </message>
+    <message>
+        <source>Edit</source>
+        <translation>Uredi</translation>
     </message>
 </context>
 <context>
@@ -526,6 +572,10 @@
         <source>View full message</source>
         <extracomment>Opens the whole message on a page of its own.</extracomment>
         <translation>Prikaži celotno sporočilo</translation>
+    </message>
+    <message>
+        <source>Edited</source>
+        <translation>Urejeno</translation>
     </message>
 </context>
 <context>
@@ -819,6 +869,11 @@
         <source>Replying to %1</source>
         <translation>Odgovor za %1</translation>
     </message>
+    <message>
+        <source>Editing message</source>
+        <extracomment>Above the message field while a sent message&apos;s text is being changed; the message&apos;s text follows.</extracomment>
+        <translation>Urejanje sporočila</translation>
+    </message>
 </context>
 <context>
     <name>ScanView</name>
@@ -917,10 +972,6 @@
         <translation>Izrisano: krepko, ležeče, povezave</translation>
     </message>
     <message>
-        <source>Taken out: the words only</source>
-        <translation>Odstranjeno: samo besede</translation>
-    </message>
-    <message>
         <source>As written</source>
         <translation>Kot je napisano</translation>
     </message>
@@ -947,10 +998,6 @@
     <message>
         <source>Notifications</source>
         <translation>Obvestila</translation>
-    </message>
-    <message>
-        <source>A new message shows</source>
-        <translation>Novo sporočilo pokaže</translation>
     </message>
     <message>
         <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
@@ -980,6 +1027,47 @@
     <message>
         <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
         <translation>Aplikacije, ki jih kdo pošlje, tečejo znotraj pogovora, pladenj prilog pa ponuja trgovino za nove. Aplikacija je koda nekoga drugega in ta del še ni tako preizkušen kot ostalo.</translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation>Po 1 uri</translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation>Po 1 dnevu</translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation>Po 1 tednu</translation>
+    </message>
+    <message>
+        <source>After 5 weeks</source>
+        <translation>Po 5 tednih</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>Po 1 letu</translation>
+    </message>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Briši sporočila z naprave</translation>
+    </message>
+    <message>
+        <source>Older messages go from this phone, in every chat of every profile, whatever a chat&apos;s own disappearing messages setting says. &quot;Saved messages&quot; are kept.</source>
+        <translation>Starejša sporočila izginejo s tega telefona, v vsakem klepetu vsakega profila, ne glede na nastavitev izginjajočih sporočil samega klepeta. »Shranjena sporočila« ostanejo.</translation>
+    </message>
+    <message>
+        <source>A new notification shows</source>
+        <translation>Novo obvestilo pokaže</translation>
+    </message>
+    <message>
+        <source>Mentions</source>
+        <extracomment>A reply to one of the reader&apos;s own messages, arriving in a group they have muted.</extracomment>
+        <translation>Omembe</translation>
+    </message>
+    <message>
+        <source>In a muted group, a reply to one of your messages still notifies you.</source>
+        <translation>V utišani skupini vas odgovor na vaše sporočilo vseeno obvesti.</translation>
     </message>
 </context>
 <context>

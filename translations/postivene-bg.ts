@@ -72,6 +72,46 @@
     </message>
 </context>
 <context>
+    <name>AutoDeleteDialog</name>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Изтриване на съобщения от устройството</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Изтриване</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Отказ</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n message(s) will be deleted now, and from then on every message will be once it is that old.</source>
+        <extracomment>%n is how many messages would be deleted straight away.</extracomment>
+        <translation>
+            <numerusform>%n съобщение ще бъде изтрито сега, а оттук нататък всяко съобщение ще бъде изтривано, щом стане толкова старо.</numerusform>
+            <numerusform>%n съобщения ще бъдат изтрити сега, а оттук нататък всяко съобщение ще бъде изтривано, щом стане толкова старо.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>This includes pictures, videos and files.</source>
+        <translation>Това включва снимки, видеа и файлове.</translation>
+    </message>
+    <message>
+        <source>Messages are deleted whether they were read or not.</source>
+        <translation>Съобщенията се изтриват независимо дали са прочетени.</translation>
+    </message>
+    <message>
+        <source>&quot;Saved messages&quot; are kept.</source>
+        <extracomment>&quot;Saved messages&quot; is the name of the chat with oneself.</extracomment>
+        <translation>„Запазени съобщения“ се запазват.</translation>
+    </message>
+    <message>
+        <source>I understand, delete all these messages</source>
+        <translation>Разбирам, изтрий всички тези съобщения</translation>
+    </message>
+</context>
+<context>
     <name>CapturePage</name>
     <message>
         <source>The video could not be saved</source>
@@ -283,6 +323,10 @@
     <message>
         <source>Save</source>
         <translation>Запази</translation>
+    </message>
+    <message>
+        <source>Edit</source>
+        <translation>Редактиране</translation>
     </message>
 </context>
 <context>
@@ -522,6 +566,10 @@
         <source>View full message</source>
         <extracomment>Opens the whole message on a page of its own.</extracomment>
         <translation>Виж цялото съобщение</translation>
+    </message>
+    <message>
+        <source>Edited</source>
+        <translation>Редактирано</translation>
     </message>
 </context>
 <context>
@@ -811,6 +859,11 @@
         <source>Replying to %1</source>
         <translation>Отговор до %1</translation>
     </message>
+    <message>
+        <source>Editing message</source>
+        <extracomment>Above the message field while a sent message&apos;s text is being changed; the message&apos;s text follows.</extracomment>
+        <translation>Редактиране на съобщение</translation>
+    </message>
 </context>
 <context>
     <name>ScanView</name>
@@ -909,10 +962,6 @@
         <translation>Оформено: удебелен, курсив, връзки</translation>
     </message>
     <message>
-        <source>Taken out: the words only</source>
-        <translation>Премахнато: само думите</translation>
-    </message>
-    <message>
         <source>As written</source>
         <translation>Както е написано</translation>
     </message>
@@ -939,10 +988,6 @@
     <message>
         <source>Notifications</source>
         <translation>Известия</translation>
-    </message>
-    <message>
-        <source>A new message shows</source>
-        <translation>Ново съобщение показва</translation>
     </message>
     <message>
         <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
@@ -972,6 +1017,47 @@
     <message>
         <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
         <translation>Приложенията, които някой изпраща, се изпълняват в разговора, а таблото за прикачване предлага магазин, от който да вземете нови. Приложението е чужд код и тази част още не е толкова изпитана, колкото останалите.</translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation>След 1 час</translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation>След 1 ден</translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation>След 1 седмица</translation>
+    </message>
+    <message>
+        <source>After 5 weeks</source>
+        <translation>След 5 седмици</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>След 1 година</translation>
+    </message>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Изтриване на съобщения от устройството</translation>
+    </message>
+    <message>
+        <source>Older messages go from this phone, in every chat of every profile, whatever a chat&apos;s own disappearing messages setting says. &quot;Saved messages&quot; are kept.</source>
+        <translation>По-старите съобщения се изтриват от този телефон, във всеки чат на всеки профил, независимо от настройката за изчезващи съобщения на самия чат. „Запазени съобщения“ се запазват.</translation>
+    </message>
+    <message>
+        <source>A new notification shows</source>
+        <translation>Ново известие показва</translation>
+    </message>
+    <message>
+        <source>Mentions</source>
+        <extracomment>A reply to one of the reader&apos;s own messages, arriving in a group they have muted.</extracomment>
+        <translation>Споменавания</translation>
+    </message>
+    <message>
+        <source>In a muted group, a reply to one of your messages still notifies you.</source>
+        <translation>В заглушена група отговор на ваше съобщение все пак ви известява.</translation>
     </message>
 </context>
 <context>

@@ -1,4 +1,4 @@
-//! Markdown in a message, rendered or taken out.
+//! Markdown in a message, rendered.
 //!
 //! Delta Chat messages are plain text by convention and Markdown by
 //! habit: the other clients render `**bold**` and `` `code` `` and turn
@@ -16,37 +16,27 @@
 //! and it stays a string of angle brackets here. Links are the one thing
 //! that can reach the network, and only on a tap.
 //!
-//! Three modes, as parla offers them (github.com/trufae/parla): render,
-//! strip -- the markers taken out and the words kept -- and off.
+//! Rendered or off, and nothing between: a third mode that took the
+//! markers out and kept the words was offered once and was a second way
+//! to not see the formatting, so the setting is the two the reader can
+//! tell apart.
 
 use crate::links::url_spans;
 
 /// The message rendered as `Text.StyledText`: every character escaped,
 /// and the Markdown the reader wrote turned into the few tags Qt draws.
-pub(crate) fn render(text: &str) -> String {
-    convert(text, true)
-}
-
-/// The message with its Markdown markers taken out and the words kept,
-/// for a reader who wants neither asterisks nor formatting.
-pub(crate) fn strip(text: &str) -> String {
-    convert(text, false)
-}
-
-/// Both modes are one walk: `styled` decides whether a marker becomes a
-/// tag or nothing.
 ///
 /// Line by line, because fences and headings are lines. A fence line is
 /// a marker and nothing else -- it opens or closes a block and is never
 /// shown, its language word included -- so it leaves no line behind: the
 /// block's tag goes on the line after it, or the line before.
-fn convert(text: &str, styled: bool) -> String {
+pub(crate) fn render(text: &str) -> String {
     let mut lines: Vec<String> = Vec::new();
     let mut fence = Fence::default();
     for line in text.split('\n') {
         let trimmed = line.trim_start();
         if is_fence(trimmed) {
-            fence.cross(styled, &mut lines);
+            fence.cross(&mut lines);
             continue;
         }
         let mut out = String::with_capacity(line.len() + 8);
@@ -55,18 +45,14 @@ fn convert(text: &str, styled: bool) -> String {
             fence.opening = false;
         }
         if fence.inside {
-            push_escaped(&mut out, line, styled);
+            push_escaped(&mut out, line);
         } else {
-            block(line, trimmed, styled, &mut out);
+            block(line, trimmed, &mut out);
         }
         lines.push(out);
     }
-    if styled {
-        fence.finish(&mut lines);
-        join_styled(&lines)
-    } else {
-        lines.join("\n")
-    }
+    fence.finish(&mut lines);
+    join_styled(&lines)
 }
 
 /// A line that is a fence marker: three backticks or tildes, with or
@@ -87,20 +73,17 @@ struct Fence {
 impl Fence {
     /// A fence line was read: a block opens or closes here.
     ///
-    /// Only the styled output carries tags. The closing one goes on the
-    /// line before, since the marker leaves no line of its own -- unless
-    /// nothing was drawn since the block opened, in which case there is
-    /// no block.
-    fn cross(&mut self, styled: bool, lines: &mut [String]) {
-        if styled {
-            if !self.inside {
-                self.opening = true;
-            } else if self.opening {
-                // A block with nothing in it is no block at all.
-                self.opening = false;
-            } else {
-                close_block(lines);
-            }
+    /// The closing tag goes on the line before, since the marker leaves
+    /// no line of its own -- unless nothing was drawn since the block
+    /// opened, in which case there is no block.
+    fn cross(&mut self, lines: &mut [String]) {
+        if !self.inside {
+            self.opening = true;
+        } else if self.opening {
+            // A block with nothing in it is no block at all.
+            self.opening = false;
+        } else {
+            close_block(lines);
         }
         self.inside = !self.inside;
     }
@@ -162,30 +145,22 @@ fn join_styled(lines: &[String]) -> String {
 }
 
 /// One line outside a code block: a heading, or ordinary text.
-fn block(line: &str, trimmed: &str, styled: bool, out: &mut String) {
+fn block(line: &str, trimmed: &str, out: &mut String) {
     // A heading: one to six hashes, a space, the text.
     let hashes = trimmed.bytes().take_while(|byte| *byte == b'#').count();
     if (1..=6).contains(&hashes) && trimmed.as_bytes().get(hashes) == Some(&b' ') {
         let heading = trimmed[hashes + 1..].trim();
-        if styled {
-            out.push_str("<b>");
-        }
-        inline(heading, styled, out);
-        if styled {
-            out.push_str("</b>");
-        }
+        out.push_str("<b>");
+        inline(heading, out);
+        out.push_str("</b>");
         return;
     }
-    inline(line, styled, out);
+    inline(line, out);
 }
 
 /// The characters `StyledText` reads as markup, escaped; everything else as
-/// it is. In plain mode nothing is escaped.
-fn push_escaped(out: &mut String, text: &str, styled: bool) {
-    if !styled {
-        out.push_str(text);
-        return;
-    }
+/// it is.
+fn push_escaped(out: &mut String, text: &str) {
     for c in text.chars() {
         match c {
             '&' => out.push_str("&amp;"),
@@ -199,7 +174,7 @@ fn push_escaped(out: &mut String, text: &str, styled: bool) {
 
 /// One line of ordinary text: emphasis, code, links, and everything else
 /// escaped.
-fn inline(line: &str, styled: bool, out: &mut String) {
+fn inline(line: &str, out: &mut String) {
     let links = url_spans(line);
     let bytes = line.as_bytes();
     let mut at = 0;
@@ -208,7 +183,7 @@ fn inline(line: &str, styled: bool, out: &mut String) {
         // so a `_` in a path is a `_` and not an italic.
         if let Some((start, end)) = links.iter().find(|(start, _)| *start == at) {
             let url = &line[*start..*end];
-            push_link(out, url, url, styled);
+            push_link(out, url, url);
             at = *end;
             continue;
         }
@@ -217,44 +192,40 @@ fn inline(line: &str, styled: bool, out: &mut String) {
         if bytes[at] == b'\\' {
             if let Some(next) = rest[1..].chars().next() {
                 if "\\`*_~[]()#".contains(next) {
-                    push_escaped(out, &rest[1..=next.len_utf8()], styled);
+                    push_escaped(out, &rest[1..=next.len_utf8()]);
                     at += 1 + next.len_utf8();
                     continue;
                 }
             }
         }
-        if let Some(consumed) = code_span(rest, styled, out)
-            .or_else(|| link_span(rest, styled, out))
-            .or_else(|| emphasis_span(line, at, styled, out))
+        if let Some(consumed) = code_span(rest, out)
+            .or_else(|| link_span(rest, out))
+            .or_else(|| emphasis_span(line, at, out))
         {
             at += consumed;
             continue;
         }
         // Whatever it is, one character of it, escaped.
         let c = rest.chars().next().unwrap_or(' ');
-        push_escaped(out, &rest[..c.len_utf8()], styled);
+        push_escaped(out, &rest[..c.len_utf8()]);
         at += c.len_utf8();
     }
 }
 
 /// `` `code` ``: the contents are shown as typed, markers and all.
-fn code_span(rest: &str, styled: bool, out: &mut String) -> Option<usize> {
+fn code_span(rest: &str, out: &mut String) -> Option<usize> {
     let inner = rest.strip_prefix('`')?;
     let close = inner.find('`').filter(|close| *close > 0)?;
-    if styled {
-        out.push_str("<tt>");
-    }
-    push_escaped(out, &inner[..close], styled);
-    if styled {
-        out.push_str("</tt>");
-    }
+    out.push_str("<tt>");
+    push_escaped(out, &inner[..close]);
+    out.push_str("</tt>");
     Some(close + 2)
 }
 
 /// `[text](https://...)`: the text is shown, the link is followed on a
 /// tap. Only web and mail links: a `file:` or `javascript:` one is not
 /// something a message gets to open.
-fn link_span(rest: &str, styled: bool, out: &mut String) -> Option<usize> {
+fn link_span(rest: &str, out: &mut String) -> Option<usize> {
     let inner = rest.strip_prefix('[')?;
     let close = inner.find(']')?;
     let text = &inner[..close];
@@ -268,26 +239,22 @@ fn link_span(rest: &str, styled: bool, out: &mut String) -> Option<usize> {
     if !(url.starts_with("https://") || url.starts_with("http://") || url.starts_with("mailto:")) {
         return None;
     }
-    push_link(out, url, text, styled);
+    push_link(out, url, text);
     Some(1 + close + 1 + 1 + url_end + 1)
 }
 
-fn push_link(out: &mut String, url: &str, text: &str, styled: bool) {
-    if styled {
-        out.push_str("<a href=\"");
-        push_escaped(out, url, true);
-        out.push_str("\">");
-        push_escaped(out, text, true);
-        out.push_str("</a>");
-    } else {
-        out.push_str(text);
-    }
+fn push_link(out: &mut String, url: &str, text: &str) {
+    out.push_str("<a href=\"");
+    push_escaped(out, url);
+    out.push_str("\">");
+    push_escaped(out, text);
+    out.push_str("</a>");
 }
 
 /// `**bold**`, `__bold__`, `*italic*`, `_italic_`, `~~struck~~`. The
 /// underscore forms only at word boundaries, so `snake_case_names` stay
 /// as written; the others whenever the marker hugs its text.
-fn emphasis_span(line: &str, at: usize, styled: bool, out: &mut String) -> Option<usize> {
+fn emphasis_span(line: &str, at: usize, out: &mut String) -> Option<usize> {
     let rest = &line[at..];
     let (marker, tag): (&str, &str) = if rest.starts_with("**") {
         ("**", "b")
@@ -321,17 +288,13 @@ fn emphasis_span(line: &str, at: usize, styled: bool, out: &mut String) -> Optio
     if underscore && is_word(line[end..].chars().next()) {
         return None;
     }
-    if styled {
-        out.push('<');
-        out.push_str(tag);
-        out.push('>');
-    }
-    inline(text, styled, out);
-    if styled {
-        out.push_str("</");
-        out.push_str(tag);
-        out.push('>');
-    }
+    out.push('<');
+    out.push_str(tag);
+    out.push('>');
+    inline(text, out);
+    out.push_str("</");
+    out.push_str(tag);
+    out.push('>');
     Some(end - at)
 }
 
@@ -365,7 +328,7 @@ fn is_word(c: Option<char>) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{render, strip};
+    use super::render;
 
     #[test]
     fn emphasis_code_and_headings_become_tags() {
@@ -404,8 +367,6 @@ mod tests {
         assert_eq!(render("a\n```\nx\ny\n```\nb"), "a<pre>x\ny</pre>b");
         // Trailing and leading breaks are breaks too.
         assert_eq!(render("\nx\n"), "<br>x<br>");
-        // Stripping is plain text, where a newline is a newline.
-        assert_eq!(strip("one\ntwo"), "one\ntwo");
     }
 
     #[test]
@@ -462,21 +423,5 @@ mod tests {
             render("[<i>](https://example.org/?a=1&b=2)"),
             "<a href=\"https://example.org/?a=1&amp;b=2\">&lt;i&gt;</a>"
         );
-    }
-
-    #[test]
-    fn stripping_keeps_the_words_and_drops_the_markers() {
-        assert_eq!(
-            strip("**bold** and *it* `code` ~~gone~~"),
-            "bold and it code gone"
-        );
-        assert_eq!(
-            strip("## Heading\n[text](https://example.org)"),
-            "Heading\ntext"
-        );
-        assert_eq!(strip("```\nx < 1\n```"), "x < 1");
-        // Nothing escaped in plain text.
-        assert_eq!(strip("a < b & c"), "a < b & c");
-        assert_eq!(strip("2 * 3 * 4"), "2 * 3 * 4");
     }
 }

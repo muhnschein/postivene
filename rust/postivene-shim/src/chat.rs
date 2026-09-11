@@ -119,11 +119,12 @@ fn rows_for(entries: &[Entry], items: Vec<MessageListItem>) -> Vec<MessageListIt
 /// SilicaListView { model: messages.rows }
 /// ```
 #[derive(QObject, Default)]
-// `loaded`, `is_group`, `reading_history` and `sending` are four bools, and
-// clippy would rather they were a state enum. They are not states of one
-// thing: each is an independent fact QML binds to on its own, and any
-// combination of them is legitimate. Collapsing them would mean inventing a
-// state machine that does not exist and hiding four bindings behind it.
+// `loaded`, `is_group`, `can_send`, `is_encrypted`, `reading_history` and
+// `sending` are six bools, and clippy would rather they were a state enum.
+// They are not states of one thing: each is an independent fact QML binds
+// to on its own, and any combination of them is legitimate. Collapsing them
+// would mean inventing a state machine that does not exist and hiding six
+// bindings behind it.
 #[allow(clippy::struct_excessive_bools)]
 pub struct ChatMessages {
     base: qt_base_class!(trait QObject),
@@ -149,6 +150,20 @@ pub struct ChatMessages {
     pub is_group: qt_property!(bool; NOTIFY is_group_changed),
     /// Emitted once the chat's kind is known.
     pub is_group_changed: qt_signal!(),
+    /// Whether the account can write into this chat: false for a group it
+    /// has left and for a contact request not yet accepted. What decides
+    /// whether a message of its own is offered for editing -- the core
+    /// would refuse the edit, and the reference client asks first.
+    pub can_send: qt_property!(bool; NOTIFY can_send_changed),
+    /// Emitted once it is known whether the chat takes messages.
+    pub can_send_changed: qt_signal!(),
+    /// Whether the chat is end-to-end encrypted. An edit is a Delta Chat
+    /// message to Delta Chat clients; an unencrypted chat is a plain-email
+    /// one, where the other end may be a mail program that would show the
+    /// edit as one more mail. The reference client offers no edit there.
+    pub is_encrypted: qt_property!(bool; NOTIFY is_encrypted_changed),
+    /// Emitted once the chat's encryption is known.
+    pub is_encrypted_changed: qt_signal!(),
     /// The chat's name as the core shows it: the group's, or the contact's
     /// display name. Empty until read. Re-read on every event that could
     /// have changed it, so the header over the messages follows a rename
@@ -271,6 +286,11 @@ pub struct ChatMessages {
     pub delete_message: qt_method!(fn(&mut self, message_id: u32)),
     /// Try a failed message again.
     pub resend_message: qt_method!(fn(&mut self, message_id: u32)),
+    /// Replace the text of a message of ours, here and at every other end:
+    /// the core's `send_edit_request`. Answers on `edited`, or on `error`.
+    pub edit_message: qt_method!(fn(&mut self, message_id: u32, text: QString)),
+    /// An edit reached the core; the row shows the new text.
+    pub edited: qt_signal!(message_id: u32),
     /// Send a copy of one message into another chat; QML calls this.
     pub forward_to: qt_method!(fn(&mut self, message_id: u32, chat_id: u32)),
     /// Put `emoji` on a message as this account's reaction -- or take it
@@ -537,11 +557,10 @@ impl ChatMessages {
         // Already loaded, by whoever opened this page: take it and skip
         // the round trip entirely. This is what lets the transition start
         // with the rows in place rather than fill in behind it.
-        if let Some((is_group, entries, items)) = crate::prefetch::take(account_id, chat_id) {
-            self.is_group = is_group;
+        if let Some((shape, entries, items)) = crate::prefetch::take(account_id, chat_id) {
+            self.take_shape(shape);
             self.rows.borrow_mut().reset_data(rows_for(&entries, items));
             self.loaded = true;
-            self.is_group_changed();
             self.loaded_changed();
             self.rows_changed();
             if !self.reading_history {
@@ -556,20 +575,19 @@ impl ChatMessages {
 
         let ptr: QPointer<Self> = QPointer::from(&*self);
         let done = queued_callback(
-            move |result: Result<(bool, Vec<Entry>, Vec<MessageListItem>), String>| {
+            move |result: Result<(ChatShape, Vec<Entry>, Vec<MessageListItem>), String>| {
                 let Some(this) = ptr.as_pinned() else { return };
                 match result {
-                    Ok((is_group, entries, items)) => {
+                    Ok((shape, entries, items)) => {
                         {
                             let mut this_mut = this.borrow_mut();
-                            this_mut.is_group = is_group;
+                            this_mut.take_shape(shape);
                             this_mut
                                 .rows
                                 .borrow_mut()
                                 .reset_data(rows_for(&entries, items));
                             this_mut.loaded = true;
                         }
-                        this.borrow().is_group_changed();
                         this.borrow().loaded_changed();
                         this.borrow().rows_changed();
                         // Asked now, not before the fetch: the reader can
@@ -593,7 +611,7 @@ impl ChatMessages {
 
         runtime.spawn(async move {
             let result = async {
-                let is_group = chat_is_group(&rpc, account_id, chat_id).await;
+                let shape = chat_shape(&rpc, account_id, chat_id).await;
                 let entries = message_entries(&rpc, account_id, chat_id).await?;
                 // A row for every message, but the content of only one
                 // page. Ten thousand rows is a vector of ids; ten thousand
@@ -603,11 +621,22 @@ impl ChatMessages {
                     fetch_messages(&rpc, account_id, &ids_of(opening_page(&entries, 0))).await?;
                 // Marking read is the callback's job, not this one's: what
                 // the reader can see is only knowable once the rows land.
-                Ok::<_, String>((is_group, entries, items))
+                Ok::<_, String>((shape, entries, items))
             }
             .await;
             done(result);
         });
+    }
+
+    /// Take in what kind of chat this is. Each fact is announced on its
+    /// own, since each has a binding of its own.
+    fn take_shape(&mut self, shape: ChatShape) {
+        self.is_group = shape.is_group;
+        self.can_send = shape.can_send;
+        self.is_encrypted = shape.is_encrypted;
+        self.is_group_changed();
+        self.can_send_changed();
+        self.is_encrypted_changed();
     }
 
     /// Say where `message_id` is, so the view can go there.
@@ -1107,6 +1136,54 @@ impl ChatMessages {
     /// Try a failed message again.
     pub fn resend_message(&mut self, message_id: u32) {
         self.act("resend_messages", message_id);
+    }
+
+    /// Replace the text of a message of ours.
+    ///
+    /// Its own call rather than `act`: the method takes the new text
+    /// beside the id, and the page wants to hear that it landed, so it
+    /// can put the field back to whatever the reader was writing before.
+    /// The text goes out the way a new message does, with its links
+    /// cleaned when the reader asked for that. The core refuses an edit
+    /// of anyone else's message, of a notice, and of one with no text;
+    /// the menu offers none of those, and a refusal is reported like a
+    /// failed send. A text that is what the message already says is a
+    /// success the core does nothing for, which is the right answer.
+    pub fn edit_message(&mut self, message_id: u32, text: QString) {
+        let account_id = self.account_id;
+        if account_id == 0 || message_id == 0 {
+            return;
+        }
+        let Some((rpc, runtime)) = connection() else {
+            self.error(QString::from("not started"));
+            return;
+        };
+        let text = self.outgoing_text(text.to_string().trim());
+
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<(), String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            match result {
+                Ok(()) => {
+                    // The core announces the change as a `MsgsChanged`
+                    // too, but that is a race with the page clearing its
+                    // field: the row is re-read here so it shows the new
+                    // text by the time `edited` is heard.
+                    this.borrow_mut().refresh_one(message_id);
+                    this.borrow().edited(message_id);
+                }
+                Err(err) => this.borrow().error(err.into()),
+            }
+        });
+
+        runtime.spawn(async move {
+            // send_edit_request params: account, message, new text.
+            let result = rpc
+                .call::<_, ()>("send_edit_request", (account_id, message_id, text))
+                .await
+                .map_err(|err| err.to_string());
+            done(result);
+        });
     }
 
     /// Fetch the rest of a message held back by the download limit.
@@ -1733,12 +1810,59 @@ async fn mark_seen(rpc: &RpcClient, account_id: u32, unseen: Vec<u32>) {
 
 /// True for a chat where a message has to say who sent it.
 pub(crate) async fn chat_is_group(rpc: &RpcClient, account_id: u32, chat_id: u32) -> bool {
-    let info: serde_json::Value = match rpc.call("get_basic_chat_info", (account_id, chat_id)).await
-    {
-        Ok(info) => info,
-        Err(_) => return false,
+    basic_chat_info(rpc, account_id, chat_id)
+        .await
+        .is_some_and(|info| is_group_info(&info))
+}
+
+/// The core's `get_basic_chat_info`, or nothing for a chat it cannot
+/// describe.
+async fn basic_chat_info(
+    rpc: &RpcClient,
+    account_id: u32,
+    chat_id: u32,
+) -> Option<serde_json::Value> {
+    rpc.call("get_basic_chat_info", (account_id, chat_id))
+        .await
+        .ok()
+}
+
+/// Whether the basic info describes a group, mailing list or broadcast.
+fn is_group_info(info: &serde_json::Value) -> bool {
+    !matches!(json::str_at(info, "chatType"), "Single" | "")
+}
+
+/// What a conversation needs to know about its chat besides the messages:
+/// whether a message has to say who sent it, whether the account can
+/// write into it, and whether it is encrypted.
+#[derive(Clone, Copy, Default)]
+pub(crate) struct ChatShape {
+    /// A group, mailing list or broadcast.
+    pub is_group: bool,
+    /// The account can send here. False for a group it has left and for a
+    /// contact request not yet accepted.
+    pub can_send: bool,
+    /// End-to-end encrypted, which every chatmail chat is.
+    pub is_encrypted: bool,
+}
+
+/// Read the chat's shape off the core: `get_basic_chat_info` for the kind
+/// and the encryption, and `can_send` for whether it takes messages. A
+/// chat the core cannot describe reads as a one-to-one chat that takes
+/// nothing, which is the answer that offers the least.
+pub(crate) async fn chat_shape(rpc: &RpcClient, account_id: u32, chat_id: u32) -> ChatShape {
+    let Some(info) = basic_chat_info(rpc, account_id, chat_id).await else {
+        return ChatShape::default();
     };
-    !matches!(json::str_at(&info, "chatType"), "Single" | "")
+    let can_send = rpc
+        .call::<_, bool>("can_send", (account_id, chat_id))
+        .await
+        .unwrap_or(false);
+    ChatShape {
+        is_group: is_group_info(&info),
+        can_send,
+        is_encrypted: json::flag(&info, "isEncrypted"),
+    }
 }
 
 /// Days since the Unix epoch on which this instant fell, in the viewer's
@@ -1812,10 +1936,11 @@ fn row_from(message_id: u32, message: &serde_json::Value) -> MessageListItem {
         message_id,
         loaded: true,
         text: text.into(),
-        // Both renderings made here, once per fetch, so a row can switch
-        // between them on the reader's setting without a round trip.
+        // Rendered here, once per fetch, so a row can switch between the
+        // rendering and the text as written on the reader's setting
+        // without a round trip.
         styled_text: markdown::render(text).into(),
-        plain_text: markdown::strip(text).into(),
+        is_edited: json::flag(message, "isEdited"),
         // Absent from the abbreviated object a send answers with; a
         // message composed here is never one held back.
         download_state: json::text(message, "/downloadState"),

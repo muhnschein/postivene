@@ -72,6 +72,45 @@
     </message>
 </context>
 <context>
+    <name>AutoDeleteDialog</name>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Mesajları cihazdan sil</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Sil</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>İptal</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n message(s) will be deleted now, and from then on every message will be once it is that old.</source>
+        <extracomment>%n is how many messages would be deleted straight away.</extracomment>
+        <translation>
+            <numerusform>%n mesaj şimdi silinecek, bundan sonra da her mesaj o kadar eskiyince silinecek.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>This includes pictures, videos and files.</source>
+        <translation>Buna resimler, videolar ve dosyalar dahildir.</translation>
+    </message>
+    <message>
+        <source>Messages are deleted whether they were read or not.</source>
+        <translation>Mesajlar okunmuş olsun ya da olmasın silinir.</translation>
+    </message>
+    <message>
+        <source>&quot;Saved messages&quot; are kept.</source>
+        <extracomment>&quot;Saved messages&quot; is the name of the chat with oneself.</extracomment>
+        <translation>&quot;Kaydedilen mesajlar&quot; tutulur.</translation>
+    </message>
+    <message>
+        <source>I understand, delete all these messages</source>
+        <translation>Anlıyorum, tüm bu mesajları sil</translation>
+    </message>
+</context>
+<context>
     <name>CapturePage</name>
     <message>
         <source>The video could not be saved</source>
@@ -283,6 +322,10 @@
     <message>
         <source>Save</source>
         <translation>Kaydet</translation>
+    </message>
+    <message>
+        <source>Edit</source>
+        <translation>Düzenle</translation>
     </message>
 </context>
 <context>
@@ -520,6 +563,10 @@
         <source>View full message</source>
         <extracomment>Opens the whole message on a page of its own.</extracomment>
         <translation>İletinin tamamını gör</translation>
+    </message>
+    <message>
+        <source>Edited</source>
+        <translation>Düzenlendi</translation>
     </message>
 </context>
 <context>
@@ -807,6 +854,11 @@
         <source>Replying to %1</source>
         <translation>%1 yanıtlanıyor</translation>
     </message>
+    <message>
+        <source>Editing message</source>
+        <extracomment>Above the message field while a sent message&apos;s text is being changed; the message&apos;s text follows.</extracomment>
+        <translation>Mesaj düzenleniyor</translation>
+    </message>
 </context>
 <context>
     <name>ScanView</name>
@@ -905,10 +957,6 @@
         <translation>Biçimli: kalın, italik, bağlantılar</translation>
     </message>
     <message>
-        <source>Taken out: the words only</source>
-        <translation>Ayıklanmış: yalnızca sözcükler</translation>
-    </message>
-    <message>
         <source>As written</source>
         <translation>Yazıldığı gibi</translation>
     </message>
@@ -935,10 +983,6 @@
     <message>
         <source>Notifications</source>
         <translation>Bildirimler</translation>
-    </message>
-    <message>
-        <source>A new message shows</source>
-        <translation>Yeni bir mesaj şunu gösterir</translation>
     </message>
     <message>
         <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
@@ -968,6 +1012,47 @@
     <message>
         <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
         <translation>Birinin gönderdiği uygulamalar sohbetin içinde çalışır ve ek tepsisi yenilerini almak için bir mağaza sunar. Uygulama başkasının kodudur ve bu bölüm henüz geri kalanı kadar test edilmedi.</translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation>1 saat sonra</translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation>1 gün sonra</translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation>1 hafta sonra</translation>
+    </message>
+    <message>
+        <source>After 5 weeks</source>
+        <translation>5 hafta sonra</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>1 yıl sonra</translation>
+    </message>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Mesajları cihazdan sil</translation>
+    </message>
+    <message>
+        <source>Older messages go from this phone, in every chat of every profile, whatever a chat&apos;s own disappearing messages setting says. &quot;Saved messages&quot; are kept.</source>
+        <translation>Daha eski mesajlar bu telefondan silinir; her profilin her sohbetinde, sohbetin kendi kaybolan mesaj ayarı ne derse desin. &quot;Kaydedilen mesajlar&quot; tutulur.</translation>
+    </message>
+    <message>
+        <source>A new notification shows</source>
+        <translation>Yeni bir bildirim şunu gösterir</translation>
+    </message>
+    <message>
+        <source>Mentions</source>
+        <extracomment>A reply to one of the reader&apos;s own messages, arriving in a group they have muted.</extracomment>
+        <translation>Bahsetmeler</translation>
+    </message>
+    <message>
+        <source>In a muted group, a reply to one of your messages still notifies you.</source>
+        <translation>Sessize alınmış bir grupta, mesajlarınızdan birine verilen yanıt yine de sizi bilgilendirir.</translation>
     </message>
 </context>
 <context>

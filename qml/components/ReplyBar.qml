@@ -2,14 +2,20 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 
 /*
- * What the next message answers, above the field. Its own component so the
- * wrapping can be measured: ConversationPage cannot be loaded headlessly.
+ * What the next message answers, above the field -- or, while a message
+ * of the reader's own is being edited, which one. Its own component so
+ * the wrapping can be measured: ConversationPage cannot be loaded
+ * headlessly.
  */
 Item {
     id: root
 
     property string author
     property string body
+    /// The field holds a message already sent, for the reader to change:
+    /// the bar names that rather than a message being answered, and the
+    /// cancel puts the field back.
+    property bool editing: false
     // Long enough to recognise the message, short enough not to take the
     // screen; what does not fit ends in an ellipsis.
     property int maximumLines: 3
@@ -41,7 +47,11 @@ Item {
         // One `arg`, then joined on: QML's takes a single argument, and
         // a second call would rescan what the first produced -- so a
         // contact named "%2" would get the body put where they belong.
-        text: qsTr("Replying to %1").arg(root.author) + ": " + root.body
+        text: root.editing
+              //: Above the message field while a sent message's text is
+              //: being changed; the message's text follows.
+              ? qsTr("Editing message") + ": " + root.body
+              : qsTr("Replying to %1").arg(root.author) + ": " + root.body
     }
 
     IconButton {

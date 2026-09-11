@@ -5,8 +5,9 @@ import Nemo.Configuration 1.0
 /*
  * The settings that belong to no profile: how a message is drawn, what
  * goes out with a link, how much of an attachment arrives unasked, how
- * much a notification gives away, and whether webxdc apps are offered
- * at all.
+ * long a message is kept, how much a notification gives away and
+ * whether a muted group can still raise one, and whether webxdc apps
+ * are offered at all.
  *
  * They live in dconf under the app's own path, and every page reads
  * them through this one object: the settings page (qml/pages/
@@ -20,7 +21,9 @@ import Nemo.Configuration 1.0
  * sends, and the row is loaded on its own in a test.
  */
 QtObject {
-    /// 0 draws Markdown, 1 takes its markers out, 2 shows it as written.
+    /// 0 draws Markdown; anything else shows a message as written. A 1
+    /// used to take the markers out and keep the words, and a phone that
+    /// chose that reads as written now, which is the nearer of the two.
     property alias markdownMode: markdownValue.value
     /// Take known tracking parameters out of links before sending.
     property alias cleanLinks: cleanLinksValue.value
@@ -28,10 +31,20 @@ QtObject {
     /// fetches everything. The core's own `download_limit`, applied to
     /// every profile.
     property alias downloadLimit: downloadLimitValue.value
+    /// Messages older than this many seconds are deleted from the phone,
+    /// in every chat of every profile, whatever a chat's own disappearing
+    /// messages timer says; 0 keeps them. The core's own
+    /// `delete_device_after`, applied to every profile the way the
+    /// download limit is.
+    property alias deleteDeviceAfter: deleteDeviceAfterValue.value
     /// How much a notification says: 0 who wrote and what, 1 who wrote,
     /// 2 only that something arrived. What the lock screen shows to
     /// whoever is looking at it.
     property alias notificationDetail: notificationDetailValue.value
+    /// Whether a reply to one of the reader's own messages is announced
+    /// even from a muted group. What the reference clients call mention
+    /// notifications, and on by default as they have it.
+    property alias mentionNotifications: mentionNotificationsValue.value
     /// Whether webxdc apps are offered: the tray's app entry, the store
     /// behind it, and running one somebody sent. Off until it is asked
     /// for, and every one of those three reads this rather than deciding
@@ -60,10 +73,24 @@ QtObject {
         defaultValue: 1048576
     }
 
+    property ConfigurationValue deleteDeviceAfterConfig: ConfigurationValue {
+        id: deleteDeviceAfterValue
+        key: "/apps/harbour-postivene/delete_device_after"
+        // Kept for good until the reader says otherwise, which is the
+        // core's own default and the only one that loses nothing.
+        defaultValue: 0
+    }
+
     property ConfigurationValue notificationDetailConfig: ConfigurationValue {
         id: notificationDetailValue
         key: "/apps/harbour-postivene/notification_detail"
         defaultValue: 0
+    }
+
+    property ConfigurationValue mentionNotificationsConfig: ConfigurationValue {
+        id: mentionNotificationsValue
+        key: "/apps/harbour-postivene/mention_notifications"
+        defaultValue: true
     }
 
     property ConfigurationValue webxdcEnabledConfig: ConfigurationValue {

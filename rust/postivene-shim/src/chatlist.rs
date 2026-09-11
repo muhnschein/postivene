@@ -12,6 +12,7 @@ use deltachat_jsonrpc::RpcClient;
 use qmetaobject::*;
 use serde_json::json;
 
+use crate::chat::chat_is_group;
 use crate::core::connection;
 use crate::json;
 use crate::models::{ChatListItem, ChatListModel};
@@ -52,6 +53,16 @@ pub struct ChatList {
     pub for_forwarding: qt_property!(bool; WRITE set_for_forwarding NOTIFY for_forwarding_changed),
     /// Emitted when the forwarding flag changes.
     pub for_forwarding_changed: qt_signal!(),
+
+    /// Whether a message in a muted group that answers one of the
+    /// account's own is announced all the same. The reader's setting:
+    /// what the reference clients call mention notifications, where a
+    /// mention is a reply to something the reader wrote. Only a group --
+    /// a one-to-one chat the reader muted was muted with that person in
+    /// mind, and everything in it is addressed to the reader anyway.
+    pub notify_mentions: qt_property!(bool; NOTIFY notify_mentions_changed),
+    /// Emitted when the setting changes.
+    pub notify_mentions_changed: qt_signal!(),
 
     /// The rows, for a `SilicaListView`'s `model`.
     pub rows: qt_property!(RefCell<ChatListModel>; CONST),
@@ -135,6 +146,10 @@ pub struct ChatList {
     /// making the older answer stale (see `generation`). Whichever answer
     /// is current announces what is waiting.
     pending_announcements: HashSet<u32>,
+
+    /// Muted chats whose latest arrival was for the reader, waiting to be
+    /// announced past the mute: see `check_mention`.
+    mentioned: HashSet<u32>,
 
     /// Counts refreshes, so a slow answer to an older question cannot land
     /// on top of a newer one.
@@ -241,7 +256,53 @@ impl ChatList {
         // message: MsgsChanged and friends fire for messages we sent, for
         // read receipts, and for a chat being pinned.
         let announce = if kind == "IncomingMsg" { chat_id } else { None };
+        // A muted chat is refreshed like any other and announced only if
+        // the message was for the reader, which takes asking the core.
+        if let Some(chat_id) = announce {
+            if self.notify_mentions && self.is_muted(chat_id) {
+                if let Some(message_id) = json::u32_opt(&payload, "msgId").filter(|id| *id != 0) {
+                    self.check_mention(chat_id, message_id);
+                }
+            }
+        }
         self.refresh_announcing(scope, announce);
+    }
+
+    /// Whether the row for this chat is muted. A chat not in the list is
+    /// a new one, which nobody has had the chance to mute.
+    fn is_muted(&self, chat_id: u32) -> bool {
+        self.rows
+            .borrow()
+            .iter()
+            .any(|row| row.chat_id == chat_id && row.is_muted)
+    }
+
+    /// Find out whether a message that landed in a muted chat answers one
+    /// of the reader's own, and announce it if so.
+    ///
+    /// The answer arrives after the refresh the event started has
+    /// usually landed and left the chat unannounced for being muted, so
+    /// a mention starts a refresh of its own, with the chat marked to be
+    /// let through the mute once: the announcement then carries the
+    /// row's preview like every other, rather than one read here.
+    fn check_mention(&mut self, chat_id: u32, message_id: u32) {
+        let account_id = self.account_id;
+        let Some((rpc, runtime)) = connection() else {
+            return;
+        };
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |mentioned: bool| {
+            let Some(this) = ptr.as_pinned() else { return };
+            if !mentioned {
+                return;
+            }
+            this.borrow_mut().mentioned.insert(chat_id);
+            this.borrow_mut()
+                .refresh_announcing(Refresh::One(chat_id), Some(chat_id));
+        });
+        runtime.spawn(async move {
+            done(is_mention(&rpc, account_id, chat_id, message_id).await);
+        });
     }
 
     /// Set the query and reload if it changed.
@@ -356,6 +417,33 @@ impl ChatList {
         });
     }
 
+    /// What is waiting to be announced now that the rows are current:
+    /// each chat's name and preview, for the chats a mute does not
+    /// silence. Everything waiting, not only what the refresh that just
+    /// landed was started for: see `pending_announcements`. A chat's
+    /// leave to pass a mute is spent here whether or not its row is
+    /// still muted.
+    fn settled_announcements(&mut self) -> Vec<(u32, QString, QString, QString)> {
+        let waiting: Vec<u32> = self.pending_announcements.drain().collect();
+        let rows = self.rows.borrow();
+        let mut announcements = Vec::new();
+        for chat_id in waiting {
+            let mentioned = self.mentioned.remove(&chat_id);
+            let row = rows
+                .iter()
+                .find(|row| row.chat_id == chat_id && (!row.is_muted || mentioned));
+            if let Some(row) = row {
+                announcements.push((
+                    chat_id,
+                    row.name.clone(),
+                    row.preview_sender.clone(),
+                    row.preview.clone(),
+                ));
+            }
+        }
+        announcements
+    }
+
     /// Bring the model in line with the core.
     ///
     /// [`Refresh::One`] refetches the chat it names along with any chat not
@@ -417,29 +505,7 @@ impl ChatList {
                         reconcile(&mut rows, target);
                     }
                     this.borrow().rows_changed();
-                    // Everything waiting to be announced, not only what
-                    // this refresh was started for: see the field.
-                    let waiting: Vec<u32> =
-                        this.borrow_mut().pending_announcements.drain().collect();
-                    let announcements: Vec<(u32, QString, QString, QString)> = {
-                        let this_ref = this.borrow();
-                        let rows = this_ref.rows.borrow();
-                        waiting
-                            .iter()
-                            .filter_map(|chat_id| {
-                                rows.iter()
-                                    .find(|row| row.chat_id == *chat_id && !row.is_muted)
-                                    .map(|row| {
-                                        (
-                                            *chat_id,
-                                            row.name.clone(),
-                                            row.preview_sender.clone(),
-                                            row.preview.clone(),
-                                        )
-                                    })
-                            })
-                            .collect()
-                    };
+                    let announcements = this.borrow_mut().settled_announcements();
                     for (chat_id, name, sender, preview) in announcements {
                         this.borrow()
                             .message_arrived(chat_id, name, sender, preview);
@@ -483,6 +549,34 @@ impl ChatList {
             done(result);
         });
     }
+}
+
+/// Whether a message that landed in a chat answers one of the account's
+/// own messages there, in a group: the shape deltachat-android counts as
+/// a mention. Two reads of the core after the kind of chat, since the
+/// quote names its message and says nothing else about it; a quote that
+/// carries text alone could be quoting anyone, and is not one.
+async fn is_mention(rpc: &RpcClient, account_id: u32, chat_id: u32, message_id: u32) -> bool {
+    if !chat_is_group(rpc, account_id, chat_id).await {
+        return false;
+    }
+    let Ok(message) = rpc
+        .call::<_, serde_json::Value>("get_message", (account_id, message_id))
+        .await
+    else {
+        return false;
+    };
+    let Some(quoted) = json::u32_opt(&message, "/quote/messageId").filter(|id| *id != 0) else {
+        return false;
+    };
+    let Ok(original) = rpc
+        .call::<_, serde_json::Value>("get_message", (account_id, quoted))
+        .await
+    else {
+        return false;
+    };
+    // Contact id 1 is the well-known DC_CONTACT_ID_SELF.
+    json::u32_opt(&original, "fromId") == Some(1)
 }
 
 /// How much of the list a refresh has to re-read from the core.

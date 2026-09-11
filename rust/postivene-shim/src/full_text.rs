@@ -12,7 +12,7 @@
 //! page. A file is opened elsewhere or kept; reading belongs to
 //! messages.
 //!
-//! The Markdown renderings are made here as the message list makes its
+//! The Markdown rendering is made here as the message list makes its
 //! own, so the page draws what the reader's setting asks for without
 //! going back to the shim for it.
 
@@ -57,8 +57,6 @@ pub struct FullText {
     /// drawn. Made here so the page renders it once rather than on every
     /// scroll.
     pub styled_text: qt_property!(QString; NOTIFY loaded_changed),
-    /// The same with its Markdown markers taken out.
-    pub plain_text: qt_property!(QString; NOTIFY loaded_changed),
     /// A load is under way. What the page shows a spinner for.
     pub loading: qt_property!(bool; NOTIFY loaded_changed),
     /// True once a load has finished, however it went.
@@ -132,7 +130,6 @@ impl FullText {
             Ok(found) => {
                 self.text = found.text.as_str().into();
                 self.styled_text = markdown::render(&found.text).into();
-                self.plain_text = markdown::strip(&found.text).into();
                 self.loading = false;
                 self.loaded = true;
                 self.loaded_changed();
@@ -145,7 +142,6 @@ impl FullText {
     fn fail(&mut self, message: String) {
         self.text = QString::default();
         self.styled_text = QString::default();
-        self.plain_text = QString::default();
         self.loading = false;
         // Loaded in the sense that matters: the wait is over.
         self.loaded = true;

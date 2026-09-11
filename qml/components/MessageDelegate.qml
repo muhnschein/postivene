@@ -74,13 +74,15 @@ Item {
     /// The same, parsed once per change rather than once per chip.
     readonly property var reactionList: root.reactions.length > 0
                                         ? JSON.parse(root.reactions) : []
-    /// The same text rendered as StyledText by the shim, and with its
-    /// Markdown taken out. Empty for a row that has neither, which is
-    /// shown as written.
+    /// The same text rendered as StyledText by the shim. Empty for a row
+    /// that has no rendering, which is shown as written.
     property string styledText: ""
-    property string plainText: ""
-    /// 0 draws Markdown, 1 takes its markers out, 2 shows it as written.
-    property int markdownMode: 2
+    /// 0 draws Markdown; anything else shows the message as written.
+    property int markdownMode: 1
+    /// The sender changed the text after sending it. Said in the footer,
+    /// as the reference clients say it, so a reader who remembers the
+    /// first wording knows why it is not there.
+    property bool isEdited: false
     /// `downloadState` upstream: Done, Available, InProgress, Failure or
     /// Undecipherable. Anything but Done and empty is a message the core
     /// has only the header of.
@@ -146,9 +148,7 @@ Item {
     /// The body as the setting wants it shown.
     readonly property string shownText: root.drawsStyled
                                         ? root.styledText
-                                        : root.markdownMode === 1 && root.plainText.length > 0
-                                          ? root.plainText
-                                          : root.messageText
+                                        : root.messageText
     /// A message the core has only the header of, or is fetching, or
     /// could not fetch: something to say, and mostly something to tap.
     readonly property bool heldBack: root.downloadState.length > 0
@@ -166,6 +166,15 @@ Item {
     /// How wide the offer wants to be.
     readonly property real actionsWidth: root.showsFull
                                          ? fullMetric.implicitWidth : 0
+
+    /// The footer's line: that the text was edited, whether it went
+    /// unencrypted, the time, and for our own messages how far it got.
+    /// Built once here, for the label and for the copy that measures it.
+    readonly property string footerText: (root.isEdited ? qsTr("Edited") + " · " : "")
+                                         + (root.showPadlock ? "" : "✉ ")
+                                         + Qt.formatTime(new Date(root.sentAt * 1000), "hh:mm")
+                                         + (root.isOutgoing
+                                            ? " " + Format.stateMark(root.deliveryState) : "")
 
     /// How many lines of a body the bubble shows before sending the
     /// reader to the page. Enough for a paragraph, which is what most
@@ -205,6 +214,7 @@ Item {
                  attachmentMetric.implicitWidth,
                  reactionRow.wantedWidth,
                  root.actionsWidth,
+                 footerMetric.implicitWidth,
                  attachment.item && attachment.item.wantsFullWidth
                      ? root.maxWidth : 0,
                  Theme.itemSizeSmall))
@@ -256,6 +266,16 @@ Item {
         font.pixelSize: Theme.fontSizeSmall
         textFormat: Text.PlainText
         text: root.fullText
+    }
+
+    // The footer, measured the same way: a one-word message with
+    // "Edited" in its footer is a bubble the footer has to widen.
+    Text {
+        id: footerMetric
+        visible: false
+        font.pixelSize: Theme.fontSizeExtraSmall
+        textFormat: Text.PlainText
+        text: root.footerText
     }
 
     // The chips' text end to end, for how wide the strip wants to be and
@@ -551,7 +571,8 @@ Item {
         }
 
         // Time, and for our own messages how far it got. A mail icon marks
-        // anything that was not encrypted and signed.
+        // anything that was not encrypted and signed, and "Edited" a text
+        // the sender changed afterwards.
         Label {
             id: footerLabel
             objectName: "footerLabel"
@@ -561,9 +582,8 @@ Item {
             horizontalAlignment: Text.AlignRight
             font.pixelSize: Theme.fontSizeExtraSmall
             color: Theme.secondaryColor
-            text: (root.showPadlock ? "" : "✉ ")
-                  + Qt.formatTime(new Date(root.sentAt * 1000), "hh:mm")
-                  + (root.isOutgoing ? " " + Format.stateMark(root.deliveryState) : "")
+            textFormat: Text.PlainText
+            text: root.footerText
         }
     }
 

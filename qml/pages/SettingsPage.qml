@@ -5,10 +5,11 @@ import "../components"
 /*
  * The settings that belong to no profile: how a message is drawn, what
  * goes out with a link, how much of an attachment arrives unasked, how
- * much a notification gives away, and whether webxdc apps are offered at
- * all. Reached from the chat list's pull-down. A profile's own settings
- * -- picture, name, address, read receipts, what the relay says -- are on
- * the profile's page, reached from its row on the profiles page.
+ * long a message is kept, how much a notification gives away and whether
+ * a muted group can still raise one, and whether webxdc apps are offered
+ * at all. Reached from the chat list's pull-down. A profile's own
+ * settings -- picture, name, address, read receipts, what the relay says
+ * -- are on the profile's page, reached from its row on the profiles page.
  *
  * The values live in dconf, behind the `Settings` singleton every page
  * reads (qml/components/Settings.qml); this page writes the same object,
@@ -19,6 +20,9 @@ import "../components"
  * that entry to appear at all.
  *
  * Nothing here needs saving: each control writes its setting on the tap.
+ * The one exception is the deletion period, which deletes messages the
+ * moment it is set, so that one asks first -- on a page of its own, with
+ * the count of what would go.
  */
 Page {
     id: page
@@ -49,8 +53,36 @@ Page {
         return 3
     }
 
+    /// 0 draws Markdown; anything else -- including the 1 that once took
+    /// the markers out and kept the words -- shows a message as written.
     function markdownIndex(mode) {
-        return mode >= 0 && mode <= 2 ? mode : 0
+        return mode === 0 ? 0 : 1
+    }
+
+    /// The deletion periods offered, in seconds, as deltachat-android
+    /// offers them: never, an hour, a day, a week, five weeks, a year.
+    readonly property var periods: [0, 3600, 86400, 604800, 3024000, 31536000]
+
+    function periodLabel(index) {
+        switch (index) {
+        case 0: return qsTr("Never")
+        case 1: return qsTr("After 1 hour")
+        case 2: return qsTr("After 1 day")
+        case 3: return qsTr("After 1 week")
+        case 4: return qsTr("After 5 weeks")
+        default: return qsTr("After 1 year")
+        }
+    }
+
+    /// Which choice a period is, or -1 for one that is not on the list:
+    /// a blank rather than "Never" over messages that are going.
+    function periodIndex(seconds) {
+        for (var i = 0; i < periods.length; i++) {
+            if (periods[i] === seconds) {
+                return i
+            }
+        }
+        return -1
     }
 
     function notificationIndex(detail) {
@@ -64,6 +96,7 @@ Page {
     function refresh() {
         markdownCombo.currentIndex = page.markdownIndex(Settings.markdownMode)
         downloadCombo.currentIndex = page.limitIndex(Settings.downloadLimit)
+        deletionCombo.currentIndex = page.periodIndex(Settings.deleteDeviceAfter)
         notificationCombo.currentIndex =
             page.notificationIndex(Settings.notificationDetail)
     }
@@ -72,10 +105,65 @@ Page {
         target: Settings
         onMarkdownModeChanged: page.refresh()
         onDownloadLimitChanged: page.refresh()
+        onDeleteDeviceAfterChanged: page.refresh()
         onNotificationDetailChanged: page.refresh()
     }
 
     Component.onCompleted: page.refresh()
+
+    /// The reader picked a deletion period.
+    ///
+    /// Off is set outright: it deletes nothing. Anything else deletes
+    /// every message older than it the moment the core hears of it, in
+    /// every chat, so the core is asked how many that is first, and the
+    /// answer is put to the reader on a page of their own before the
+    /// setting is written. Until they agree the choice shown goes back
+    /// to what the setting holds; it follows the setting once they do,
+    /// and a dialog cancelled leaves it where it was.
+    function choosePeriod(seconds) {
+        if (seconds === 0) {
+            Settings.deleteDeviceAfter = 0
+            return
+        }
+        // Silica has already moved the choice to what was tapped.
+        page.refresh()
+        if (seconds === Settings.deleteDeviceAfter) {
+            return
+        }
+        page.pendingPeriod = seconds
+        core.estimate_auto_deletion(seconds)
+    }
+
+    /// The period waiting on the reader's answer, 0 for none. The
+    /// estimate comes back by signal, and an answer to an earlier
+    /// question is not the one to act on.
+    property int pendingPeriod: 0
+
+    property string errorMessage: ""
+
+    Connections {
+        target: core
+        onAuto_deletion_estimated: {
+            if (seconds !== page.pendingPeriod) {
+                return
+            }
+            page.pendingPeriod = 0
+            var chosen = seconds
+            var dialog = pageStack.push(Qt.resolvedUrl("AutoDeleteDialog.qml"), {
+                seconds: chosen,
+                periodLabel: page.periodLabel(page.periodIndex(chosen)),
+                count: count
+            })
+            if (dialog) {
+                dialog.accepted.connect(function() {
+                    Settings.deleteDeviceAfter = chosen
+                })
+            }
+        }
+        // A setting the core would not take, or a count it could not
+        // give: said here, where the reader asked.
+        onCore_error: page.errorMessage = message
+    }
 
     SilicaFlickable {
         anchors.fill: parent
@@ -109,13 +197,8 @@ Page {
                     }
                     MenuItem {
                         objectName: "markdownOption1"
-                        text: qsTr("Taken out: the words only")
-                        onClicked: Settings.markdownMode = 1
-                    }
-                    MenuItem {
-                        objectName: "markdownOption2"
                         text: qsTr("As written")
-                        onClicked: Settings.markdownMode = 2
+                        onClicked: Settings.markdownMode = 1
                     }
                 }
             }
@@ -140,6 +223,32 @@ Page {
                 }
             }
 
+            // The core's own `delete_device_after`, which it applies to
+            // every chat whatever that chat's disappearing messages timer
+            // says -- that timer is the chat's, agreed between its
+            // members; this is the phone's, and only the phone's. Under
+            // Messages with the rest of what happens to one, rather than
+            // under a heading of its own.
+            ComboBox {
+                id: deletionCombo
+                objectName: "deletionCombo"
+                width: parent.width
+                label: qsTr("Delete messages from device")
+                description: qsTr("Older messages go from this phone, in every chat of every profile, whatever a chat's own disappearing messages setting says. \"Saved messages\" are kept.")
+
+                menu: ContextMenu {
+                    Repeater {
+                        model: page.periods
+
+                        MenuItem {
+                            objectName: "deletionOption" + modelData
+                            text: page.periodLabel(index)
+                            onClicked: page.choosePeriod(modelData)
+                        }
+                    }
+                }
+            }
+
             SectionHeader {
                 text: qsTr("Notifications")
             }
@@ -150,7 +259,7 @@ Page {
                 id: notificationCombo
                 objectName: "notificationCombo"
                 width: parent.width
-                label: qsTr("A new message shows")
+                label: qsTr("A new notification shows")
                 description: qsTr("On the lock screen and in the notification area. The chat it is from opens on a tap either way.")
 
                 menu: ContextMenu {
@@ -170,6 +279,20 @@ Page {
                         onClicked: Settings.notificationDetail = 2
                     }
                 }
+            }
+
+            // Muting a group silences it; this is the one thing that
+            // still gets through, when the reader wants it to. The
+            // reference clients' name for it, and their default.
+            TextSwitch {
+                objectName: "mentionsSwitch"
+                //: A reply to one of the reader's own messages, arriving
+                //: in a group they have muted.
+                text: qsTr("Mentions")
+                description: qsTr("In a muted group, a reply to one of your messages still notifies you.")
+                automaticCheck: false
+                checked: Settings.mentionNotifications === true
+                onClicked: Settings.mentionNotifications = !checked
             }
 
             SectionHeader {
@@ -209,5 +332,19 @@ Page {
                 onClicked: Settings.webxdcEnabled = !checked
             }
         }
+    }
+
+    // What went wrong, when something did: the core refusing a setting,
+    // or unable to count what a deletion period would take.
+    Banner {
+        objectName: "errorBanner"
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+        text: page.errorMessage
+        timeout: 8
+        onDismissed: page.errorMessage = ""
     }
 }

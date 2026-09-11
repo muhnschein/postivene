@@ -72,6 +72,45 @@
     </message>
 </context>
 <context>
+    <name>AutoDeleteDialog</name>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Хәбәрләрне җайланмадан бетерергә</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Бетерергә</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Баш тартырга</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n message(s) will be deleted now, and from then on every message will be once it is that old.</source>
+        <extracomment>%n is how many messages would be deleted straight away.</extracomment>
+        <translation>
+            <numerusform>%n хәбәр хәзер бетереләчәк, аннары һәр хәбәр шулкадәр искергәч бетереләчәк.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>This includes pictures, videos and files.</source>
+        <translation>Моңа рәсемнәр, видеолар һәм файллар да керә.</translation>
+    </message>
+    <message>
+        <source>Messages are deleted whether they were read or not.</source>
+        <translation>Хәбәрләр укылганмы-юкмы, барыбер бетерелә.</translation>
+    </message>
+    <message>
+        <source>&quot;Saved messages&quot; are kept.</source>
+        <extracomment>&quot;Saved messages&quot; is the name of the chat with oneself.</extracomment>
+        <translation>«Сакланган хәбәрләр» кала.</translation>
+    </message>
+    <message>
+        <source>I understand, delete all these messages</source>
+        <translation>Аңлыйм, бу хәбәрләрнең барысын да бетерергә</translation>
+    </message>
+</context>
+<context>
     <name>CapturePage</name>
     <message>
         <source>The video could not be saved</source>
@@ -283,6 +322,10 @@
     <message>
         <source>Save</source>
         <translation>Саклау</translation>
+    </message>
+    <message>
+        <source>Edit</source>
+        <translation>Үзгәртергә</translation>
     </message>
 </context>
 <context>
@@ -520,6 +563,10 @@
         <source>View full message</source>
         <extracomment>Opens the whole message on a page of its own.</extracomment>
         <translation>Хатны тулысынча күрсәтү</translation>
+    </message>
+    <message>
+        <source>Edited</source>
+        <translation>Үзгәртелгән</translation>
     </message>
 </context>
 <context>
@@ -807,6 +854,11 @@
         <source>Replying to %1</source>
         <translation>%1 өчен җавап</translation>
     </message>
+    <message>
+        <source>Editing message</source>
+        <extracomment>Above the message field while a sent message&apos;s text is being changed; the message&apos;s text follows.</extracomment>
+        <translation>Хәбәрне үзгәртү</translation>
+    </message>
 </context>
 <context>
     <name>ScanView</name>
@@ -905,10 +957,6 @@
         <translation>Бизәлгән: калын, курсив, сылтамалар</translation>
     </message>
     <message>
-        <source>Taken out: the words only</source>
-        <translation>Алынган: сүзләр генә</translation>
-    </message>
-    <message>
         <source>As written</source>
         <translation>Язылганча</translation>
     </message>
@@ -935,10 +983,6 @@
     <message>
         <source>Notifications</source>
         <translation>Белдерүләр</translation>
-    </message>
-    <message>
-        <source>A new message shows</source>
-        <translation>Яңа хәбәр күрсәтә</translation>
     </message>
     <message>
         <source>On the lock screen and in the notification area. The chat it is from opens on a tap either way.</source>
@@ -968,6 +1012,47 @@
     <message>
         <source>Apps somebody sends run inside the chat, and the attach tray offers a store to take new ones from. An app is somebody else&apos;s code, and this part is not yet as tested as the rest.</source>
         <translation>Кемдер җибәргән кушымталар сөйләшү эчендә эшли, ә беркетмә тартмасы яңаларын алу өчен кибет тәкъдим итә. Кушымта — бүтән кешенең коды, һәм бу өлеш калганнары кебек әле сынап бетерелмәгән.</translation>
+    </message>
+    <message>
+        <source>After 1 hour</source>
+        <translation>1 сәгатьтән соң</translation>
+    </message>
+    <message>
+        <source>After 1 day</source>
+        <translation>1 көннән соң</translation>
+    </message>
+    <message>
+        <source>After 1 week</source>
+        <translation>1 атнадан соң</translation>
+    </message>
+    <message>
+        <source>After 5 weeks</source>
+        <translation>5 атнадан соң</translation>
+    </message>
+    <message>
+        <source>After 1 year</source>
+        <translation>1 елдан соң</translation>
+    </message>
+    <message>
+        <source>Delete messages from device</source>
+        <translation>Хәбәрләрне җайланмадан бетерергә</translation>
+    </message>
+    <message>
+        <source>Older messages go from this phone, in every chat of every profile, whatever a chat&apos;s own disappearing messages setting says. &quot;Saved messages&quot; are kept.</source>
+        <translation>Искерәк хәбәрләр бу телефоннан бетерелә, һәр профильнең һәр чатында, чатның үз юкка чыга торган хәбәрләр көйләве нәрсә дисә дә. «Сакланган хәбәрләр» кала.</translation>
+    </message>
+    <message>
+        <source>A new notification shows</source>
+        <translation>Яңа белдерү күрсәтә</translation>
+    </message>
+    <message>
+        <source>Mentions</source>
+        <extracomment>A reply to one of the reader&apos;s own messages, arriving in a group they have muted.</extracomment>
+        <translation>Искә алулар</translation>
+    </message>
+    <message>
+        <source>In a muted group, a reply to one of your messages still notifies you.</source>
+        <translation>Тавышсыз ителгән төркемдә сезнең хәбәргә җавап барыбер сезгә белдерә.</translation>
     </message>
 </context>
 <context>

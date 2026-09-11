@@ -13,6 +13,11 @@
 //! note. Save is offered either way -- an app somebody sent is still a
 //! file the reader can keep. What a tap does with one is
 //! `qml_row_tap.rs`.
+//!
+//! A picture and a video are the other exception, and to both offers: a
+//! tap opens each on a page of the app's own, whose pull-down carries
+//! Open and Save already, so the menu offering them again was two ways
+//! to the same two things.
 
 // Qt harness: see qml_reactions.rs.
 #![allow(
@@ -42,7 +47,7 @@ const PROBE_QML: &str = r"
         function load(url) {
             // A note, and a message with nothing attached to it.
             rows.append({
-                message_id: 7, text: '', styled_text: '', plain_text: '',
+                message_id: 7, text: '', styled_text: '',
                 is_outgoing: false, is_info: false, show_padlock: true,
                 state: 16, timestamp: 1700000000, day_number: 19675,
                 sender_name: 'Ada', sender_color: '#00875a',
@@ -51,7 +56,7 @@ const PROBE_QML: &str = r"
                 file_name: 'TODO.md',
                 file_mime: 'application/octet-stream', file_bytes: 34,
                 view_type: 'File', image_width: 0, image_height: 0,
-                is_new: false, has_html: false,
+                is_new: false, has_html: false, is_edited: false,
                 download_state: 'Done', vcard_name: '', vcard_addr: '',
                 vcard_color: '', webxdc_name: '', webxdc_document: '',
                 webxdc_summary: '', webxdc_icon: '', reactions: '',
@@ -59,14 +64,14 @@ const PROBE_QML: &str = r"
             })
             rows.append({
                 message_id: 8, text: 'just words', styled_text: '',
-                plain_text: '', is_outgoing: false, is_info: false,
+                is_outgoing: false, is_info: false,
                 show_padlock: true, state: 16, timestamp: 1700000100,
                 day_number: 19675, sender_name: 'Ada',
                 sender_color: '#00875a', is_forwarded: false,
                 quote_text: '', quote_author: '', file_path: '',
                 file_name: '', file_mime: '', file_bytes: 0,
                 view_type: 'Text', image_width: 0, image_height: 0,
-                is_new: false, has_html: false,
+                is_new: false, has_html: false, is_edited: false,
                 download_state: 'Done', vcard_name: '', vcard_addr: '',
                 vcard_color: '', webxdc_name: '', webxdc_document: '',
                 webxdc_summary: '', webxdc_icon: '', reactions: '',
@@ -75,7 +80,7 @@ const PROBE_QML: &str = r"
             // A webxdc app: a file, and something to run, depending on
             // whether the reader asked for apps at all.
             rows.append({
-                message_id: 9, text: '', styled_text: '', plain_text: '',
+                message_id: 9, text: '', styled_text: '',
                 is_outgoing: false, is_info: false, show_padlock: true,
                 state: 16, timestamp: 1700000200, day_number: 19675,
                 sender_name: 'Ada', sender_color: '#00875a',
@@ -84,11 +89,44 @@ const PROBE_QML: &str = r"
                 file_name: 'checkers.xdc',
                 file_mime: 'application/octet-stream', file_bytes: 2400,
                 view_type: 'Webxdc', image_width: 0, image_height: 0,
-                is_new: false, has_html: false,
+                is_new: false, has_html: false, is_edited: false,
                 download_state: 'Done', vcard_name: '', vcard_addr: '',
                 vcard_color: '', webxdc_name: 'Checkers',
                 webxdc_document: '', webxdc_summary: '', webxdc_icon: '',
                 reactions: '', my_reaction: '', loaded: true
+            })
+            // A picture and a video: each opens on a page of its own.
+            rows.append({
+                message_id: 10, text: '', styled_text: '',
+                is_outgoing: false, is_info: false, show_padlock: true,
+                state: 16, timestamp: 1700000300, day_number: 19675,
+                sender_name: 'Ada', sender_color: '#00875a',
+                is_forwarded: false, quote_text: '', quote_author: '',
+                file_path: '/tmp/postivene-menu/photo.jpg',
+                file_name: 'photo.jpg',
+                file_mime: 'image/jpeg', file_bytes: 51200,
+                view_type: 'Image', image_width: 640, image_height: 480,
+                is_new: false, has_html: false, is_edited: false,
+                download_state: 'Done', vcard_name: '', vcard_addr: '',
+                vcard_color: '', webxdc_name: '', webxdc_document: '',
+                webxdc_summary: '', webxdc_icon: '', reactions: '',
+                my_reaction: '', loaded: true
+            })
+            rows.append({
+                message_id: 11, text: '', styled_text: '',
+                is_outgoing: false, is_info: false, show_padlock: true,
+                state: 16, timestamp: 1700000400, day_number: 19675,
+                sender_name: 'Ada', sender_color: '#00875a',
+                is_forwarded: false, quote_text: '', quote_author: '',
+                file_path: '/tmp/postivene-menu/clip.mp4',
+                file_name: 'clip.mp4',
+                file_mime: 'video/mp4', file_bytes: 204800,
+                view_type: 'Video', image_width: 0, image_height: 0,
+                is_new: false, has_html: false, is_edited: false,
+                download_state: 'Done', vcard_name: '', vcard_addr: '',
+                vcard_color: '', webxdc_name: '', webxdc_document: '',
+                webxdc_summary: '', webxdc_icon: '', reactions: '',
+                my_reaction: '', loaded: true
             })
             list.setSource(url, { model: rows })
             if (list.status !== Loader.Ready) { return 'load-failed' }
@@ -237,6 +275,18 @@ fn a_message_carrying_a_file_offers_to_open_it_and_to_keep_it() {
             "xdc-save-on",
             call!("offered", 2, QString::from("saveItem"))
         );
+        // A picture and a video: neither offer, since the page a tap
+        // opens has both on its pull-down.
+        record!(
+            "picture-open",
+            call!("offered", 3, QString::from("openItem"))
+        );
+        record!(
+            "picture-save",
+            call!("offered", 3, QString::from("saveItem"))
+        );
+        record!("video-open", call!("offered", 4, QString::from("openItem")));
+        record!("video-save", call!("offered", 4, QString::from("saveItem")));
         record!("raised", call!("raisedSignal"));
         (*engine_ptr).quit();
     });
@@ -301,6 +351,19 @@ fn a_message_carrying_a_file_offers_to_open_it_and_to_keep_it() {
         "true",
         "an app somebody sent cannot be kept, which every other file can. \
          {context}"
+    );
+
+    assert_eq!(
+        (value("picture-open"), value("picture-save")),
+        ("false".to_string(), "false".to_string()),
+        "a picture's menu offers Open or Save, which the page a tap opens \
+         already carries on its pull-down. {context}"
+    );
+    assert_eq!(
+        (value("video-open"), value("video-save")),
+        ("false".to_string(), "false".to_string()),
+        "a video's menu offers Open or Save, which the page a tap opens \
+         already carries on its pull-down. {context}"
     );
 
     assert_eq!(

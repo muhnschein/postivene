@@ -160,6 +160,11 @@ fn restart_delay(attempt: u32) -> Duration {
 /// Only a slice of the core's ~100 JSON-RPC methods is exposed; add more
 /// the same way as the UI needs them.
 #[derive(QObject, Default)]
+// `io_all`, `supervising` and the two `_set` flags are independent facts,
+// not states of one thing: what IO was asked for, whether a spawn has ever
+// succeeded, and whether QML has handed each of two settings over. A state
+// machine would be invented for them, not found.
+#[allow(clippy::struct_excessive_bools)]
 pub struct DeltaChatCore {
     base: qt_base_class!(trait QObject),
 
@@ -210,6 +215,24 @@ pub struct DeltaChatCore {
     pub download_limit: qt_property!(u32; WRITE set_download_limit NOTIFY download_limit_changed),
     /// Emitted when [`DeltaChatCore::download_limit`] changes.
     pub download_limit_changed: qt_signal!(),
+
+    /// Messages older than this many seconds are deleted from this
+    /// device; 0 keeps them. The reader's setting, applied to every
+    /// account the way the download limit is. The core's
+    /// `delete_device_after`, which it applies to every chat whatever
+    /// that chat's own disappearing-messages timer says, and never to
+    /// "Saved messages".
+    pub delete_device_after: qt_property!(u32; WRITE set_delete_device_after NOTIFY delete_device_after_changed),
+    /// Emitted when [`DeltaChatCore::delete_device_after`] changes.
+    pub delete_device_after_changed: qt_signal!(),
+    /// Ask how many messages `delete_device_after` set to `seconds` would
+    /// delete now, across every account: what the settings page says
+    /// before the reader confirms. Answers on `auto_deletion_estimated`,
+    /// or on `core_error`.
+    pub estimate_auto_deletion: qt_method!(fn(&mut self, seconds: u32)),
+    /// The answer to `estimate_auto_deletion`, with the seconds it was
+    /// asked for, so an answer to an earlier question can be told apart.
+    pub auto_deletion_estimated: qt_signal!(seconds: u32, count: u32),
 
     /// Repopulate `account_list`. QML uses the `accounts_refreshed` result
     /// at startup to choose between onboarding and resuming an account.
@@ -306,6 +329,8 @@ pub struct DeltaChatCore {
     /// property holds a default nobody chose, and writing that to every
     /// account would be the app deciding for the reader.
     download_limit_set: bool,
+    /// The same, for the deletion period.
+    delete_device_after_set: bool,
 }
 
 impl DeltaChatCore {
@@ -767,44 +792,65 @@ impl DeltaChatCore {
         self.download_limit = bytes;
         self.download_limit_set = true;
         self.download_limit_changed();
-        // Applied to whatever accounts the core has now; nothing to apply
-        // to before the core is up, and `refresh_accounts` covers that.
+        self.spread("download_limit", bytes.to_string());
+    }
+
+    /// Set the deletion period and apply it to every account.
+    pub fn set_delete_device_after(&mut self, seconds: u32) {
+        if self.delete_device_after_set && self.delete_device_after == seconds {
+            return;
+        }
+        self.delete_device_after = seconds;
+        self.delete_device_after_set = true;
+        self.delete_device_after_changed();
+        self.spread("delete_device_after", seconds.to_string());
+    }
+
+    /// Write one setting to whatever accounts the core has now. Nothing
+    /// to apply to before the core is up, and `refresh_accounts` covers
+    /// that.
+    fn spread(&self, key: &'static str, value: String) {
         let Some((rpc, runtime)) = self.connection() else {
             return;
         };
-        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let ptr: QPointer<Self> = QPointer::from(self);
         let done = queued_callback(move |result: Result<Vec<u32>, String>| {
             let Some(this) = ptr.as_pinned() else { return };
             match result {
-                Ok(ids) => this.borrow().apply_download_limit(ids),
+                Ok(ids) => this.borrow().write_config(&ids, key, value.clone()),
                 Err(err) => this.borrow().core_error(err.into()),
             }
         });
         runtime.spawn(async move {
-            let result = rpc
-                .call_unit::<Vec<serde_json::Value>>("get_all_accounts")
-                .await
-                .map(|accounts| {
-                    accounts
-                        .iter()
-                        .filter_map(|account| json::u32_opt(account, "id"))
-                        .collect::<Vec<_>>()
-                })
-                .map_err(|err| err.to_string());
-            done(result);
+            done(account_ids(&rpc).await);
         });
     }
 
-    /// Write the download limit to each of these accounts, if one has
-    /// been chosen. A failure is reported and the rest still written.
-    fn apply_download_limit(&self, ids: Vec<u32>) {
-        if !self.download_limit_set || ids.is_empty() {
+    /// Write every setting QML has handed over to each of these accounts:
+    /// what a profile added later gets when the list is next read.
+    fn apply_settings(&self, ids: &[u32]) {
+        if self.download_limit_set {
+            self.write_config(ids, "download_limit", self.download_limit.to_string());
+        }
+        if self.delete_device_after_set {
+            self.write_config(
+                ids,
+                "delete_device_after",
+                self.delete_device_after.to_string(),
+            );
+        }
+    }
+
+    /// Write one config value to each of these accounts. A failure is
+    /// reported and the rest still written.
+    fn write_config(&self, ids: &[u32], key: &'static str, value: String) {
+        if ids.is_empty() {
             return;
         }
         let Some((rpc, runtime)) = self.connection() else {
             return;
         };
-        let limit = self.download_limit.to_string();
+        let ids = ids.to_vec();
         let ptr: QPointer<Self> = QPointer::from(self);
         let failed = queued_callback(move |err: String| {
             if let Some(this) = ptr.as_pinned() {
@@ -814,15 +860,50 @@ impl DeltaChatCore {
         runtime.spawn(async move {
             for account_id in ids {
                 if let Err(err) = rpc
-                    .call::<_, ()>(
-                        "set_config",
-                        (account_id, "download_limit", Some(limit.clone())),
-                    )
+                    .call::<_, ()>("set_config", (account_id, key, Some(value.clone())))
                     .await
                 {
-                    failed(format!("could not set the download limit: {err}"));
+                    failed(format!("could not set {key}: {err}"));
                 }
             }
+        });
+    }
+
+    /// Count what a deletion period would delete now, across every
+    /// account.
+    pub fn estimate_auto_deletion(&mut self, seconds: u32) {
+        let Some((rpc, runtime)) = self.connection() else {
+            self.core_error(QString::from("not started"));
+            return;
+        };
+        let ptr: QPointer<Self> = QPointer::from(&*self);
+        let done = queued_callback(move |result: Result<u32, String>| {
+            let Some(this) = ptr.as_pinned() else { return };
+            match result {
+                Ok(count) => this.borrow().auto_deletion_estimated(seconds, count),
+                Err(err) => this.borrow().core_error(err.into()),
+            }
+        });
+        runtime.spawn(async move {
+            let result = async {
+                let mut total: u64 = 0;
+                for account_id in account_ids(&rpc).await? {
+                    // estimate_auto_deletion_count params: account,
+                    // from_server, seconds. From this device, not the
+                    // server: the setting is the device's.
+                    let count: u64 = rpc
+                        .call(
+                            "estimate_auto_deletion_count",
+                            (account_id, false, i64::from(seconds)),
+                        )
+                        .await
+                        .map_err(|err| err.to_string())?;
+                    total = total.saturating_add(count);
+                }
+                Ok::<_, String>(u32::try_from(total).unwrap_or(u32::MAX))
+            }
+            .await;
+            done(result);
         });
     }
 
@@ -847,7 +928,7 @@ impl DeltaChatCore {
                         let resume_account_id = resume_account(&items, selected);
                         let ids: Vec<u32> = items.iter().map(|item| item.account_id).collect();
                         reconcile_accounts(&mut this.borrow_mut().account_list.borrow_mut(), items);
-                        this.borrow().apply_download_limit(ids);
+                        this.borrow().apply_settings(&ids);
                         this.borrow()
                             .accounts_refreshed(configured_count, resume_account_id);
                     }
@@ -1225,6 +1306,19 @@ impl DeltaChatCore {
 /// on their account switchers. It leaves muted chats out, as they do. An
 /// account that cannot be asked counts as having nothing waiting: the
 /// badge is a nicety, and the list is not worth failing over it.
+/// The id of every account the core has, configured or not.
+async fn account_ids(rpc: &RpcClient) -> Result<Vec<u32>, String> {
+    rpc.call_unit::<Vec<serde_json::Value>>("get_all_accounts")
+        .await
+        .map(|accounts| {
+            accounts
+                .iter()
+                .filter_map(|account| json::u32_opt(account, "id"))
+                .collect()
+        })
+        .map_err(|err| err.to_string())
+}
+
 async fn fresh_count(rpc: &RpcClient, account_id: u32) -> u32 {
     rpc.call::<_, Vec<u32>>("get_fresh_msgs", (account_id,))
         .await

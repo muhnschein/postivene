@@ -65,12 +65,17 @@ ApplicationWindow {
         source: Qt.resolvedUrl("share/ShareTarget.qml")
     }
 
-    // The one setting the core has to be told about: it applies to every
-    // profile, and it follows the key as the settings page changes it.
+    // The two settings the core has to be told about: each applies to
+    // every profile, and follows its key as the settings page changes it.
     Binding {
         target: core
         property: "download_limit"
         value: Settings.downloadLimit
+    }
+    Binding {
+        target: core
+        property: "delete_device_after"
+        value: Settings.deleteDeviceAfter
     }
 
     Component.onCompleted: {

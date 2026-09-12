@@ -7,8 +7,8 @@ import Sailfish.Silica 1.0
  * drawn over, after the cover's grid of everyone. Nobody is known yet,
  * so the faces are made up, and they are an IMAGE -- painted ahead of
  * time by tools/faces/ and shipped in qml/art/ -- rather than the
- * cover's avatars laid out again. Forty of those are forty masked,
- * desaturated, tinted textures, which is the wrong first impression;
+ * cover's avatars laid out again. A hundred of those are a hundred
+ * masked, desaturated, tinted textures, the wrong first impression;
  * a picture costs one texture and one pass, cannot half-arrive, and
  * looks the same on every phone.
  *

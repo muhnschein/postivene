@@ -5,10 +5,10 @@ The welcome page shows a new reader what the cover shows an old one: a
 staggered grid of round avatars, in grey, with a few of them lit in the
 ambience's own colour. Nobody is known yet, so the faces are made up --
 drawn, not photographed, and drawn here, ahead of time, rather than on
-the phone: a page of forty faces through the cover's own avatar effects
-is forty shader passes with a texture each, which is not a first
-impression, and a picture costs nothing to show and looks the same on
-every phone.
+the phone: a page of a hundred faces through the cover's own avatar
+effects is a hundred shader passes with a texture each, which is not a
+first impression, and a picture costs nothing to show and looks the same
+on every phone.
 
 NOT SHIPPED. `make faces` runs this and writes the masks to qml/art/,
 which is what the app draws (qml/components/FaceField.qml).
@@ -59,14 +59,16 @@ import zlib
 REPO = pathlib.Path(__file__).resolve().parent.parent.parent
 ART = REPO / "qml" / "art"
 
-# The masters. `columns` is how many whole cells fit across; the cover's
-# grid has three across its own width, and a page is about four covers
-# wide, or nine covers wide on its side.
+# The masters. `columns` is how many whole cells fit across, and it is
+# what makes the field dense: the faces are as wide as the master is
+# divided by it, so six across a phone's width -- and the same face size
+# on its side -- is a crowd rather than a handful of large portraits,
+# which is what a field is meant to read as.
 MASTERS = (
-    {"file": "faces-portrait.png", "width": 1080, "height": 2520, "columns": 4,
-     "clear": (0.30, 0.22), "lit": 7, "seed": 11},
-    {"file": "faces-landscape.png", "width": 2520, "height": 1080, "columns": 9,
-     "clear": (0.24, 0.36), "lit": 7, "seed": 23},
+    {"file": "faces-portrait.png", "width": 1080, "height": 2520, "columns": 6,
+     "clear": (0.30, 0.22), "lit": 13, "seed": 11},
+    {"file": "faces-landscape.png", "width": 2520, "height": 1080, "columns": 14,
+     "clear": (0.24, 0.36), "lit": 13, "seed": 23},
 )
 
 # Ink, 0..1: how much of the tint a pixel gets. The disc is what the

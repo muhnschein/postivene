@@ -331,15 +331,16 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   -- busts in discs and initials on discs, the two kinds of avatar the
   app draws -- and they are painted ahead of time by `tools/faces/`
   (`make faces`) into two masks in `qml/art/`, one per orientation,
-  rather than laid out on the phone: forty of the cover's avatars are
-  forty masked, desaturated, tinted textures, and a first impression
-  cannot afford a frame of that, while a picture is one texture and one
-  pass. The masks carry no colour: red is a grey face's ink, green a lit
-  one's, and one shader (`components/FaceField.qml`) tints them with the
-  theme's own two colours, so one file is right on every ambience and
-  the room for the words is cut where the words are. The painter is
-  standard-library Python and deterministic, so the masks change only
-  when it does, and a build needs neither it nor a display.
+  rather than laid out on the phone: a screenful of the cover's avatars
+  is a hundred masked, desaturated, tinted textures, and a first
+  impression cannot afford a frame of that, while a picture is one
+  texture and one pass. The masks carry no colour: red is a grey face's
+  ink, green a lit one's, and one shader (`components/FaceField.qml`)
+  tints them with the theme's own two colours, so one file is right on
+  every ambience and the room for the words is cut where the words are.
+  The painter is standard-library Python and deterministic, so the
+  masks change only when it does, and a build needs neither it nor a
+  display.
   Adding a profile is the other half of that screen, and the relay is
   the part of it nobody here controls: a public relay is somebody's
   spare-time server, and one that is down holds the core's transport

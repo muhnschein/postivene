@@ -42,3 +42,6 @@ build-*/
 /rust/vendor/
 /rust/.cargo/
 /.cargo/
+
+# Python 3 leaves these beside tools/faces/faces.py when it runs.
+__pycache__/

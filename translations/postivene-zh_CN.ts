@@ -853,6 +853,14 @@
         <source>Back</source>
         <translation>返回</translation>
     </message>
+    <message>
+        <source>%1 did not answer within %2 seconds.</source>
+        <translation>%1 在 %2 秒内没有回应。</translation>
+    </message>
+    <message>
+        <source>Chatmail relays are run by volunteers in their spare time. If this one does not seem to work, go back and try another one.</source>
+        <translation>Chatmail 中继由志愿者利用业余时间运营。如果这个似乎不可用，请返回并尝试另一个。</translation>
+    </message>
 </context>
 <context>
     <name>ProfilesPage</name>
@@ -1202,10 +1210,6 @@
 </context>
 <context>
     <name>WelcomePage</name>
-    <message>
-        <source>Postivene</source>
-        <translation>Postivene</translation>
-    </message>
     <message>
         <source>Secure decentralized chat</source>
         <translation>安全的去中心化聊天</translation>

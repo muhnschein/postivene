@@ -36,6 +36,7 @@ mod recorder;
 mod runtime;
 mod saver;
 mod search;
+mod signup;
 mod truncation;
 mod webxdc;
 mod webxdc_host;

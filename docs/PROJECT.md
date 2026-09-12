@@ -322,6 +322,38 @@ deltachat-rpc-server (bundled binary, subprocess) = the entire core
   message, and pops to it; the conversation keeps the ask until it is
   the page on screen and lands the message the way a search result
   lands, over the place it puts back on the way in.
+- **The first screen is the cover with nobody on it yet, and it is a
+  picture.** A new reader sees what an old one sees when the app is
+  minimised: a field of faces in the ambience's colours, grey in its
+  primary and a few lit in its highlight, filling the screen either way
+  up, with the app's name, what it is and the one button in a box the
+  field clears for them. Nobody is known yet, so the faces are made up
+  -- busts in discs and initials on discs, the two kinds of avatar the
+  app draws -- and they are painted ahead of time by `tools/faces/`
+  (`make faces`) into two masks in `qml/art/`, one per orientation,
+  rather than laid out on the phone: a screenful of the cover's avatars
+  is a hundred masked, desaturated, tinted textures, and a first
+  impression cannot afford a frame of that, while a picture is one
+  texture and one pass. The masks carry no colour: red is a grey face's
+  ink, green a lit one's, and one shader (`components/FaceField.qml`)
+  tints them with the theme's own two colours, so one file is right on
+  every ambience and the room for the words is cut where the words are.
+  The painter is standard-library Python and deterministic, so the
+  masks change only when it does, and a build needs neither it nor a
+  display.
+  Adding a profile is the other half of that screen, and the relay is
+  the part of it nobody here controls: a public relay is somebody's
+  spare-time server, and one that is down holds the core's transport
+  call for as long as its own connection attempts take, which is
+  minutes. So an attempt is bounded (`signup.rs`): at thirty seconds the
+  shim stops the process and tells the page the relay did not answer,
+  and from the fourth second the page says under Cancel what a relay is
+  and that another is worth trying. An attempt given up on is still
+  running in the core, which allows one ongoing process per account and
+  refused the retry that picked the same unconfigured account back up;
+  the accounts an attempt still holds are remembered, a retry takes a
+  fresh one, and a profile the first relay makes after all is removed
+  rather than found on the next start.
 
 ## Platform baseline
 

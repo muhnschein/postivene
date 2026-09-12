@@ -58,6 +58,12 @@ struct State {
     /// Groups this account has left. The real core refuses every change
     /// to one of these.
     left_groups: std::collections::BTreeSet<u32>,
+    /// Accounts whose transport call has not been answered yet. The
+    /// real core allows one ongoing process per account and refuses a
+    /// second; see `add_transport_from_qr`.
+    configuring: std::collections::BTreeSet<u32>,
+    /// Accounts whose ongoing process was asked to stop.
+    stopped: std::collections::BTreeSet<u32>,
     /// Seconds after which a chat's messages disappear, by chat.
     timers: std::collections::BTreeMap<u32, u32>,
     /// Config values per account, so a set can be read back.
@@ -662,15 +668,60 @@ fn env_ids(var: &str) -> Vec<u64> {
         .unwrap_or_default()
 }
 
-/// A reply delay in milliseconds, from `var`. Lets a test fix the order in
-/// which two replies land.
-fn delay(var: &str) -> std::time::Duration {
+/// Ask the relay named in `qr` for an account.
+///
+/// Instant, unless the relay is a slow one: a payload containing `slow`
+/// is answered only after `POSTIVENE_FAKE_SLOW_MS` (three seconds by
+/// default), the way a relay that is down holds the real core for as
+/// long as its connection attempts take. While it is pending the account
+/// is configuring, and the real core's two rules about that are kept:
+/// a second transport call on the same account is refused, in the real
+/// core's words, and `stop_ongoing_process` makes the pending call end
+/// in failure -- unless the payload also says `deaf`, for a relay that
+/// answers after all, which is what a stop that came too late looks
+/// like.
+async fn add_transport_from_qr(
+    state: &Arc<Mutex<State>>,
+    id: &Value,
+    account: u32,
+    qr: &str,
+) -> Value {
+    if should_fail(qr) {
+        return err(id, "cannot resolve chatmail server");
+    }
+    if !state.lock().await.configuring.insert(account) {
+        return err(id, "There is already another ongoing process running.");
+    }
+    let stopped = if qr.contains("slow") {
+        tokio::time::sleep(delay_or("POSTIVENE_FAKE_SLOW_MS", 3000)).await;
+        !qr.contains("deaf") && state.lock().await.stopped.contains(&account)
+    } else {
+        false
+    };
+    let mut state = state.lock().await;
+    state.configuring.remove(&account);
+    state.stopped.remove(&account);
+    if stopped {
+        return err(id, "Configuration was stopped");
+    }
+    state.configure(account);
+    ok(id, &Value::Null)
+}
+
+/// A reply delay in milliseconds, from `var`, or `default` when unset.
+fn delay_or(var: &str, default: u64) -> std::time::Duration {
     std::time::Duration::from_millis(
         std::env::var(var)
             .ok()
             .and_then(|value| value.parse().ok())
-            .unwrap_or(0),
+            .unwrap_or(default),
     )
+}
+
+/// A reply delay in milliseconds, from `var`. Lets a test fix the order in
+/// which two replies land.
+fn delay(var: &str) -> std::time::Duration {
+    delay_or(var, 0)
 }
 
 fn main() {
@@ -930,18 +981,16 @@ async fn serve() {
                 }
                 "start_io"
                 | "start_io_for_all_accounts"
-                | "stop_ongoing_process"
                 | "markseen_msgs"
                 | "set_chat_visibility"
                 | "resend_messages" => ok(&id, &Value::Null),
+                "stop_ongoing_process" => {
+                    state.lock().await.stopped.insert(account_id());
+                    ok(&id, &Value::Null)
+                }
                 "add_transport_from_qr" => {
                     let qr = positional(1).as_str().unwrap_or_default().to_string();
-                    if should_fail(&qr) {
-                        err(&id, "cannot resolve chatmail server")
-                    } else {
-                        state.lock().await.configure(account_id());
-                        ok(&id, &Value::Null)
-                    }
+                    add_transport_from_qr(&state, &id, account_id(), &qr).await
                 }
                 "add_or_update_transport" => {
                     let param = positional(1);

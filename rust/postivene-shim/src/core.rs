@@ -9,6 +9,7 @@ use qmetaobject::*;
 use crate::json;
 use crate::models::{AccountItem, AccountListModel};
 use crate::runtime::CoreRuntime;
+use crate::signup::{self, Attempts, Outcome, Transport};
 
 /// The one live connection to the spawned server, shared with the models
 /// QML instantiates per chat.
@@ -264,7 +265,9 @@ pub struct DeltaChatCore {
     pub default_provider_qr: qt_method!(fn(&mut self) -> QString),
 
     /// Create a profile on a chatmail server: the core mints the address
-    /// and credentials. Result via `profile_created`/`profile_error`.
+    /// and credentials. Result via `profile_created`, `profile_error` or
+    /// `profile_timed_out`, and only for the latest attempt: an attempt
+    /// cancelled or superseded answers nobody (`signup.rs`).
     pub create_profile: qt_method!(fn(&mut self, display_name: QString, provider_qr: QString)),
 
     /// Configure an existing mailbox as this profile's transport.
@@ -275,13 +278,23 @@ pub struct DeltaChatCore {
     pub profile_created: qt_signal!(account_id: u32),
     /// Creating a profile failed. The message is the core's own.
     pub profile_error: qt_signal!(message: QString),
+    /// The relay did not answer within `seconds`, and the attempt was
+    /// given up on: the core's process is stopped, and a profile it
+    /// makes after all is removed.
+    pub profile_timed_out: qt_signal!(seconds: u32),
+    /// Seconds a relay is given to answer before an attempt is given up
+    /// on; 0 is the built-in thirty (`signup::DEADLINE`). Nothing sets
+    /// it; a test turns it down rather than waiting.
+    pub profile_timeout: qt_property!(u32; NOTIFY profile_timeout_changed),
+    /// Emitted when [`DeltaChatCore::profile_timeout`] changes.
+    pub profile_timeout_changed: qt_signal!(),
 
     /// Configuration progress for `account_id`, as the core reports it:
     /// 0 means failure, 1..=999 is permille, 1000 means done.
     pub configure_progress: qt_signal!(account_id: u32, permille: u32),
 
-    /// Abort a running configure. Takes no account id: onboarding has none
-    /// to give, so the unconfigured account is found here.
+    /// Abort the running attempt at a profile. Takes no account id:
+    /// onboarding has none to give, and the attempt knows its own.
     pub cancel_ongoing: qt_method!(fn(&mut self)),
 
     /// The account's email transports, as a JSON array of upstream
@@ -331,6 +344,9 @@ pub struct DeltaChatCore {
     download_limit_set: bool,
     /// The same, for the deletion period.
     delete_device_after_set: bool,
+    /// The attempts at a profile there have been, shared with the tasks
+    /// that carry each one out.
+    attempts: Arc<Attempts>,
 }
 
 impl DeltaChatCore {
@@ -1094,80 +1110,70 @@ impl DeltaChatCore {
     /// Create a profile on a chatmail server from a `dcaccount:`/`dclogin:`
     /// payload.
     pub fn create_profile(&mut self, display_name: QString, provider_qr: QString) {
-        let Some((rpc, runtime)) = self.connection() else {
-            self.profile_error(QString::from("not started"));
-            return;
-        };
-        let done = self.profile_callback();
-
-        let display_name = display_name.to_string();
-        let provider_qr = provider_qr.to_string();
-        runtime.spawn(async move {
-            let result = async {
-                let account_id = Self::profile_account(&rpc).await?;
-                Self::set_display_name(&rpc, account_id, display_name).await?;
-                // The core asks the server for an account, stores the
-                // credentials, and restarts IO. Not `configure`, which
-                // upstream deprecated (docs/PROJECT.md).
-                rpc.call::<_, ()>("add_transport_from_qr", (account_id, provider_qr))
-                    .await
-                    .map_err(|err| err.to_string())?;
-                Ok(account_id)
-            }
-            .await;
-            done(result);
-        });
+        self.begin_profile(
+            display_name.to_string(),
+            Transport::Qr(provider_qr.to_string()),
+        );
     }
 
-    /// Create a profile backed by an existing mailbox.
+    /// Create a profile backed by an existing mailbox. `addr` and
+    /// `password` only; the rest of `EnteredLoginParam` autoconfigures
+    /// (docs/PROJECT.md).
     pub fn create_profile_with_email(
         &mut self,
         display_name: QString,
         addr: QString,
         password: QString,
     ) {
+        self.begin_profile(
+            display_name.to_string(),
+            Transport::Mailbox {
+                addr: addr.to_string(),
+                password: password.to_string(),
+            },
+        );
+    }
+
+    /// The shared start of both `create_profile*` methods: one attempt,
+    /// which becomes the one that counts, carried out on the runtime.
+    fn begin_profile(&mut self, display_name: String, transport: Transport) {
         let Some((rpc, runtime)) = self.connection() else {
             self.profile_error(QString::from("not started"));
             return;
         };
-        let done = self.profile_callback();
-
-        let display_name = display_name.to_string();
-        let addr = addr.to_string();
-        let password = password.to_string();
+        let deadline = match self.profile_timeout {
+            0 => signup::DEADLINE,
+            seconds => Duration::from_secs(u64::from(seconds)),
+        };
+        let attempt = self.attempts.begin(deadline);
+        let done = self.profile_callback(attempt.id());
+        let task_runtime = runtime.clone();
         runtime.spawn(async move {
-            let result = async {
-                let account_id = Self::profile_account(&rpc).await?;
-                Self::set_display_name(&rpc, account_id, display_name).await?;
-                // `addr` and `password` only; the rest of
-                // EnteredLoginParam autoconfigures (docs/PROJECT.md).
-                let param = serde_json::json!({ "addr": addr, "password": password });
-                rpc.call::<_, ()>("add_or_update_transport", (account_id, param))
-                    .await
-                    .map_err(|err| err.to_string())?;
-                Ok(account_id)
-            }
-            .await;
-            done(result);
+            done(
+                attempt
+                    .run(&task_runtime, rpc, display_name, transport)
+                    .await,
+            );
         });
     }
 
-    /// Abort a running configure.
+    /// Abort the running attempt: nothing it answers is waited for any
+    /// more, and the core's process is stopped on every account an
+    /// attempt is still holding -- the one being cancelled, and any
+    /// earlier one the core has not let go of yet.
     pub fn cancel_ongoing(&mut self) {
+        let held = self.attempts.cancel();
         let Some((rpc, runtime)) = self.connection() else {
             return;
         };
         runtime.spawn(async move {
-            // The configuring account is the unconfigured one. Never
-            // creates one, unlike `profile_account`.
-            let Ok(Some(account_id)) = Self::find_unconfigured(&rpc).await else {
-                return;
-            };
             // Fire and forget: the UI reacts to the core's final
             // ConfigureProgress(0), not to this call's return.
-            let _ = rpc
-                .call::<_, ()>("stop_ongoing_process", (account_id,))
-                .await;
+            for account_id in held {
+                let _ = rpc
+                    .call::<_, ()>("stop_ongoing_process", (account_id,))
+                    .await;
+            }
         });
     }
 
@@ -1220,57 +1226,33 @@ impl DeltaChatCore {
         })
     }
 
-    /// The shared completion path of both `create_profile*` methods.
-    fn profile_callback(&self) -> impl Fn(Result<u32, String>) {
+    /// The shared completion path of both `create_profile*` methods:
+    /// the outcome, signalled if `attempt` is still the one the reader
+    /// is waiting for. A profile made for an attempt that no longer is
+    /// -- the relay answered after the reader cancelled -- is removed
+    /// rather than announced: nobody asked for it, and left in place it
+    /// would be the profile the app opened on next time.
+    fn profile_callback(&self, attempt: u64) -> impl Fn(Outcome) {
         let ptr: QPointer<Self> = QPointer::from(self);
-        queued_callback(move |result: Result<u32, String>| {
+        queued_callback(move |outcome: Outcome| {
             let Some(this) = ptr.as_pinned() else { return };
-            match result {
-                Ok(account_id) => this.borrow().profile_created(account_id),
-                Err(err) => this.borrow().profile_error(err.into()),
+            let wanted = this.borrow().attempts.is_current(attempt);
+            match outcome {
+                Outcome::Created(account_id) if wanted => {
+                    this.borrow().profile_created(account_id);
+                }
+                Outcome::Created(account_id) => {
+                    if let Some((rpc, runtime)) = this.borrow().connection() {
+                        runtime.spawn(async move { signup::discard(&rpc, account_id).await });
+                    }
+                }
+                Outcome::Failed(err) if wanted => this.borrow().profile_error(err.into()),
+                Outcome::TimedOut(seconds) if wanted => {
+                    this.borrow().profile_timed_out(seconds);
+                }
+                Outcome::Failed(_) | Outcome::TimedOut(_) => {}
             }
         })
-    }
-
-    /// The account a new profile is built on: an existing unconfigured one
-    /// if there is one, else a fresh one. Reuse keeps a failed signup from
-    /// stranding an account per retry.
-    async fn profile_account(rpc: &RpcClient) -> Result<u32, String> {
-        if let Some(account_id) = Self::find_unconfigured(rpc).await? {
-            return Ok(account_id);
-        }
-        rpc.call_unit::<u32>("add_account")
-            .await
-            .map_err(|err| err.to_string())
-    }
-
-    /// The first account the core reports as `Unconfigured`, if any.
-    async fn find_unconfigured(rpc: &RpcClient) -> Result<Option<u32>, String> {
-        let accounts: Vec<serde_json::Value> = rpc
-            .call_unit("get_all_accounts")
-            .await
-            .map_err(|err| err.to_string())?;
-        Ok(accounts.iter().find_map(|account| {
-            if json::str_at(account, "kind") != "Unconfigured" {
-                return None;
-            }
-            json::u32_opt(account, "id")
-        }))
-    }
-
-    /// Set the display name, before the transport call so it is in place
-    /// when the core announces the account.
-    async fn set_display_name(
-        rpc: &RpcClient,
-        account_id: u32,
-        display_name: String,
-    ) -> Result<(), String> {
-        rpc.call::<_, ()>(
-            "set_config",
-            (account_id, "displayname", Some(display_name)),
-        )
-        .await
-        .map_err(|err| err.to_string())
     }
 
     /// The transport and runtime, once [`DeltaChatCore::start`] completed.
